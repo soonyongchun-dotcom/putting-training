@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>SY-PTS Green Mission</title>
+<style>
+body { font-family: Arial; padding:20px; max-width:980px; margin:0 auto; background:#f6f9fc; }
+h1 { color:#1f4db8; margin-bottom:8px; }
+h2 { margin-top:24px; }
+input, select { margin:5px; padding:8px; border:1px solid #c7d4ee; border-radius:6px; }
+button { padding:8px 12px; margin:5px; border:none; border-radius:6px; background:#265fd3; color:#fff; cursor:pointer; }
+.panel { border:1px solid #d7e0f2; border-radius:12px; padding:14px; margin-top:14px; background:#ffffff; box-shadow:0 2px 6px rgba(25,50,110,0.06); }
+.row { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.form-grid {
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:10px 14px;
+    margin-top:8px;
+}
+
+.field {
+    display:flex;
+    flex-direction:column;
+}
+
+.field label {
+    margin:0 0 4px;
+    font-size:13px;
+    color:#2e4a88;
+    font-weight:bold;
+}
+
+.field input,
+.field select {
+    margin:0;
+    width:100%;
+    box-sizing:border-box;
+}
+
+@media (min-width: 700px) {
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.result { margin-top:10px; font-weight:bold; }
+.metrics { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px; margin-top:8px; }
+.metric-card { border:1px solid #d7e0f2; border-radius:10px; padding:10px; background:#f8fbff; }
+.metric-card.overall-highlight {
+    background:linear-gradient(180deg, #fff4d8 0%, #ffe8a3 100%);
+    border-color:#d4a72c;
+}
+.metric-label { font-size:12px; color:#666; }
+.metric-value { font-size:20px; font-weight:bold; margin-top:4px; }
+#heatmapCanvas, #speedHeatmapCanvas { border:1px solid #c7d4ee; margin-top:10px; border-radius:8px; background:#fff; }
+.small { font-size:12px; color:#555; }
+.guide-list { margin:8px 0 0 18px; padding:0; }
+.guide-list li { margin:6px 0; line-height:1.35; }
+.concept-box {
+    margin-top:12px;
+    border:1px solid #d3def6;
+    border-radius:10px;
+    padding:12px;
+    background:#f5f9ff;
+}
+.concept-title { font-weight:bold; color:#1f4db8; margin-bottom:6px; }
+.concept-grid {
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:8px;
+}
+.concept-item {
+    border:1px solid #d9e3f6;
+    border-radius:8px;
+    background:#fff;
+    padding:8px;
+}
+@media (min-width: 700px) {
+    .concept-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.section-nav {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap:10px;
+    margin:14px 0 8px;
+}
+
+.nav-card {
+    border:1px solid #cbd8f4;
+    border-radius:12px;
+    padding:12px;
+    background:linear-gradient(180deg, #ffffff 0%, #eef4ff 100%);
+    cursor:pointer;
+    text-align:left;
+    transition:all 0.2s ease;
+}
+
+.nav-card .nav-title { font-weight:bold; color:#1c3f91; margin-bottom:4px; }
+.nav-card .nav-desc { font-size:12px; color:#3f5f9d; }
+
+.nav-card.active {
+    border-color:#1f4db8;
+    background:linear-gradient(180deg, #dfeaff 0%, #cddfff 100%);
+    box-shadow:0 2px 8px rgba(31,77,184,0.2);
+}
+
+.section { display:none; }
+.section.active { display:block; }
+
+.panel-train { border-left:6px solid #2c63d4; }
+.panel-analyze { border-left:6px solid #17a16b; }
+.panel-data { border-left:6px solid #8b5cf6; }
+
+#loginScreen {
+    position: fixed;
+    inset: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index: 1000;
+    background:
+        linear-gradient(rgba(12,24,50,0.48), rgba(12,24,50,0.48)),
+        url("https://images.unsplash.com/photo-1592919505780-303950717480?auto=format&fit=crop&w=1600&q=60") center/cover no-repeat;
+}
+
+.login-card {
+    width:100%;
+    max-width:460px;
+    background:rgba(255,255,255,0.94);
+    border:1px solid #d7e0f2;
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 8px 20px rgba(10,30,80,0.22);
+}
+
+.login-title { margin:0 0 8px; color:#1f4db8; }
+.login-note { margin:0 0 12px; color:#425d97; font-size:13px; }
+.login-actions { margin-top:10px; display:flex; align-items:center; gap:8px; }
+.error-text { color:#c93232; font-size:13px; min-height:18px; }
+.session-info { margin-bottom:10px; color:#3c5b97; font-weight:bold; }
+.top-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.top-actions { display:flex; align-items:center; gap:8px; }
+.secondary-btn { background:#8aa2d8; }
+.secondary-btn:disabled { background:#b8c6e6; cursor:not-allowed; }
+.distance-table { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; }
+.distance-table th, .distance-table td { border:1px solid #d7e0f2; padding:6px 8px; text-align:center; }
+.distance-table th { background:#eef4ff; color:#1f4db8; }
+.distance-empty { margin-top:8px; color:#667; font-size:13px; }
+.mission-file-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.mission-file-btn {
+    border:1px solid #bfcff1;
+    background:#eef4ff;
+    color:#204a9b;
+    border-radius:8px;
+    padding:6px 10px;
+    cursor:pointer;
+}
+.mission-file-btn.active { background:#d7e6ff; border-color:#6f94df; }
+.mission-work { margin-top:10px; border:1px solid #d7e0f2; border-radius:10px; padding:10px; background:#fafcff; }
+.mission-textarea { width:100%; min-height:90px; border:1px solid #c7d4ee; border-radius:8px; padding:8px; box-sizing:border-box; }
+.mission-meta { margin:6px 0 8px; color:#4a649e; font-size:12px; }
+.mission-log { margin-top:8px; font-size:12px; color:#4c5b7a; }
+.mission-log-item { padding:4px 0; border-bottom:1px dashed #d5dff3; }
+</style>
+</head>
+
+<body>
+
+<div id="loginScreen">
+    <div class="login-card">
+        <h2 class="login-title">SY-PTS 접속</h2>
+        <p class="login-note">선수 정보와 패스코드를 입력하면 훈련 화면으로 진입합니다.</p>
+        <div class="form-grid">
+            <div class="field">
+                <label for="loginPlayerName">선수 이름</label>
+                <input type="text" id="loginPlayerName" placeholder="예: 전순용">
+            </div>
+            <div class="field">
+                <label for="loginDate">날짜</label>
+                <input type="date" id="loginDate">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label for="loginPasscode">패스코드</label>
+                <input type="password" id="loginPasscode" placeholder="4자리 코드">
+            </div>
+        </div>
+        <div class="login-actions">
+            <button id="loginButton" type="button">입장</button>
+        </div>
+        <div class="error-text" id="loginError"></div>
+    </div>
+</div>
+
+<div id="appContent" style="display:none;">
+
+<div class="top-bar">
+    <div>
+        <h1>SY Putting Training System - Green Mission</h1>
+        <div class="session-info" id="sessionInfo"></div>
+    </div>
+    <div class="top-actions">
+        <button id="newStartButton" class="secondary-btn" type="button">새로 시작</button>
+        <button id="logoutButton" class="secondary-btn" type="button">로그아웃</button>
+    </div>
+</div>
+<div class="small">큰 블럭을 먼저 선택하고, 선택된 섹션에서 세부 내용을 입력하세요.</div>
+
+<div class="section-nav" id="sectionNav">
+    <button class="nav-card active" data-target="section-framework" type="button">
+        <div class="nav-title">1) Framework</div>
+        <div class="nav-desc">훈련 원칙 확인</div>
+    </button>
+    <button class="nav-card" data-target="section-m1" type="button">
+        <div class="nav-title">2) M1 입력</div>
+        <div class="nav-desc">방향/결정력 기록</div>
+    </button>
+    <button class="nav-card" data-target="section-m2" type="button">
+        <div class="nav-title">3) M2 입력</div>
+        <div class="nav-desc">경사/속도 보정</div>
+    </button>
+    <button class="nav-card" data-target="section-analysis" type="button">
+        <div class="nav-title">4) 분석 보기</div>
+        <div class="nav-desc">지표/분류 통계</div>
+    </button>
+    <button class="nav-card" data-target="section-visual" type="button">
+        <div class="nav-title">5) 시각화</div>
+        <div class="nav-desc">히트맵/Bayesian</div>
+    </button>
+    <button class="nav-card" data-target="section-coach" type="button">
+        <div class="nav-title">6) 코치 미션</div>
+        <div class="nav-desc">미션 업로드/입력</div>
+    </button>
+    <button class="nav-card" data-target="section-export" type="button">
+        <div class="nav-title">7) 데이터</div>
+        <div class="nav-desc">CSV 내보내기</div>
+    </button>
+</div>
+
+<div class="section active" id="section-framework">
+<div class="panel panel-train">
+    <h2>Performance Lie-Reading Framework</h2>
+    <div class="small">라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합</div>
+    <ol class="guide-list">
+        <li><b>Low-Point 훈련:</b> 라인이 아니라 중력 방향(물이 모이는 지점)부터 찾기</li>
+        <li><b>Feet Calibration:</b> 예측 경사%와 실제 경사% 오차를 누적 기록</li>
+        <li><b>High-Side Only:</b> 낮은 쪽 미스를 벌점으로 관리해 결정력 강화</li>
+        <li><b>Apex 시각화:</b> 컵이 아닌 최고점 지점을 먼저 결정</li>
+        <li><b>Speed First:</b> 데드웨이트/30cm/60cm 오버 속도별 브레이크 차이 학습</li>
+        <li><b>One-Look Decision:</b> 1회 읽기 + 5초 이내 스트로크로 확신 유지</li>
+    </ol>
+
+    <div class="concept-box">
+        <div class="concept-title">Speed First 개념 정리 (핵심)</div>
+        <div class="small">같은 경사·같은 출발선에서도 <b>속도가 빨라질수록 브레이크는 줄어듭니다.</b> 즉, 라인을 먼저 고정하는 것이 아니라 목표 속도를 먼저 정해야 합니다.</div>
+        <div class="concept-grid" style="margin-top:8px;">
+            <div class="concept-item">
+                <b>Dead Weight</b><br>
+                가장 느린 속도, 브레이크 최대<br>
+                <span class="small">공이 컵 근처에서 멈출 느낌</span>
+            </div>
+            <div class="concept-item">
+                <b>30cm Over</b><br>
+                중간 속도, 브레이크 중간
+                <br><span class="small">표준 경기 속도 기준</span>
+            </div>
+            <div class="concept-item">
+                <b>60cm Over</b><br>
+                빠른 속도, 브레이크 최소
+                <br><span class="small">라인은 타이트해지지만 관성 리스크 증가</span>
+            </div>
+        </div>
+        <div class="small" style="margin-top:8px;">
+            드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요.
+            속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="section" id="section-m1">
+<div class="panel panel-train" id="m1Panel">
+    <h2>Lie 결정훈련 (Slope / Direction Decision)</h2>
+    <div class="form-grid">
+        <div class="field">
+            <label for="distance">Distance (yd)</label>
+            <input type="number" id="distance" min="1" step="1" value="3">
+        </div>
+
+        <div class="field">
+            <label for="intendedStartLine">Intended Start Line</label>
+            <select id="intendedStartLine">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="actualMiss">Actual Miss</label>
+            <select id="actualMiss">
+            <option value="center">Holed</option>
+            <option value="left">Left Miss</option>
+            <option value="right">Right Miss</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="lateralError">Lateral Error (cm)</label>
+            <input type="number" id="lateralError" min="0" step="1" value="0">
+        </div>
+
+        <div class="field">
+            <label for="predLowPoint">Pred Low-Point (Slope Flow)</label>
+            <select id="predLowPoint">
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                    <option value="flat">Flat</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="actualLowPoint">Actual Low-Point</label>
+            <select id="actualLowPoint">
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                    <option value="flat">Flat</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="speedPlan">Speed Plan</label>
+            <select id="speedPlan">
+                    <option value="dead">Dead Weight</option>
+                    <option value="over30">30cm Over</option>
+                    <option value="over60">60cm Over</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="actualPace">Actual Pace</label>
+            <select id="actualPace">
+                    <option value="dead">Dead Weight</option>
+                    <option value="over30">30cm Over</option>
+                    <option value="over60">60cm Over</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="decisionSec">Decision Time (sec)</label>
+            <input type="number" id="decisionSec" min="1" max="20" step="0.5" value="5">
+        </div>
+
+        <div class="field">
+            <label for="highSideCommit">High-side Commit</label>
+            <select id="highSideCommit">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="apexCommit">Apex Visualized</label>
+            <select id="apexCommit">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="missType">Miss Type</label>
+            <select id="missType">
+                    <option value="none">No Miss (Holed)</option>
+                    <option value="direction">Direction Miss</option>
+                    <option value="speed">Speed Miss</option>
+                    <option value="both">Direction + Speed Miss</option>
+            </select>
+        </div>
+    </div>
+    <button id="submitM1">Submit Lie Training</button>
+  <div class="result" id="m1Result"></div>
+    <div class="small">Directional Miss: Miss Type이 direction/both인 경우 / One-look 목표: 5초 이내</div>
+</div>
+</div>
+
+<div class="section" id="section-m2">
+<div class="panel panel-train" id="m2Panel">
+    <h2>Speed 결정훈련 (Pace / Roll Decision)</h2>
+    <div class="form-grid">
+                <div class="field">
+                        <label for="speedDistance">Distance (yd)</label>
+                        <input type="number" step="1" min="1" id="speedDistance" value="3">
+                </div>
+
+        <div class="field">
+            <label for="predSlope">Predicted Slope %</label>
+            <input type="number" step="0.1" id="predSlope" value="1.0">
+        </div>
+
+        <div class="field">
+            <label for="actualSlope">Actual Slope %</label>
+            <input type="number" step="0.1" id="actualSlope" value="1.0">
+        </div>
+
+        <div class="field">
+            <label for="predSpeedCm">Pred Finish (cm over)</label>
+            <input type="number" step="1" id="predSpeedCm" value="30">
+        </div>
+
+        <div class="field">
+            <label for="actualSpeedCm">Actual Finish (cm over)</label>
+            <input type="number" step="1" id="actualSpeedCm" value="30">
+        </div>
+    </div>
+    <button id="submitM2">Submit Speed Training</button>
+  <div class="result" id="m2Result"></div>
+</div>
+</div>
+
+<div class="section" id="section-analysis">
+<div class="panel panel-analyze">
+    <h2>Auto Metrics (SRI / SII / DCS + 3-Stage Performance)</h2>
+  <div class="metrics" id="metricsBoard"></div>
+    <div class="small">SRI: 경사 수치화 정확도 / SII: 방향 판독+Low-side 보정 / DCS: 거리 대비 오차 + 속도 통합 품질</div>
+</div>
+
+<div class="panel panel-analyze">
+    <h2>Directional Miss Analysis</h2>
+  <div class="result" id="lowSideResult"></div>
+</div>
+
+<div class="panel panel-analyze">
+    <h2>Miss Type Analysis</h2>
+    <div class="result" id="missTypeResult"></div>
+</div>
+
+<div class="panel panel-analyze">
+    <h2>Lie 결정훈련 거리별 분석</h2>
+    <div id="lieDistanceAnalysis"></div>
+</div>
+
+<div class="panel panel-analyze">
+    <h2>Speed 결정훈련 거리별 분석</h2>
+    <div id="speedDistanceAnalysis"></div>
+</div>
+</div>
+
+<div class="section" id="section-visual">
+<div class="panel panel-analyze">
+  <h2>Left / Right Error Heatmap</h2>
+  <canvas id="heatmapCanvas" width="520" height="250"></canvas>
+    <div class="small">X축: 거리 구간(yd), Y축: Left/Center/Right</div>
+</div>
+
+<div class="panel panel-analyze">
+    <h2>Speed Error Heatmap (M2)</h2>
+    <canvas id="speedHeatmapCanvas" width="520" height="250"></canvas>
+        <div class="small">X축: 거리 구간(yd), Y축: 경사 구간(%) / 셀 값: 평균 Speed Error(cm)</div>
+</div>
+
+<div class="panel panel-analyze">
+  <h2>Bayesian Skill Update</h2>
+  <div class="result" id="bayesResult"></div>
+  <div class="small">사전분포 Beta(1,1), M1 결과의 Holed 여부로 실시간 업데이트</div>
+</div>
+</div>
+
+<div class="section" id="section-coach">
+<div class="panel panel-data">
+  <h2>Coach Mission Upload & Input</h2>
+  <div class="small">지도자가 미션 엑셀 파일을 업로드하면, 파일명을 클릭해 해당 미션을 선택/입력하고 저장할 수 있습니다.</div>
+
+  <div class="form-grid">
+      <div class="field" style="grid-column: 1 / -1;">
+          <label for="missionExcelInput">Mission Excel Upload (.xlsx, .xls, .csv)</label>
+          <input type="file" id="missionExcelInput" accept=".xlsx,.xls,.csv" multiple>
+      </div>
+  </div>
+
+  <div class="mission-file-list" id="missionFileList"></div>
+
+  <div class="mission-work" id="missionWorkArea" style="display:none;">
+      <div class="form-grid">
+          <div class="field">
+              <label for="missionItemSelect">Mission Item</label>
+              <select id="missionItemSelect"></select>
+          </div>
+          <div class="field">
+              <label for="missionInputText">입력 내용 (수행결과/메모)</label>
+              <textarea id="missionInputText" class="mission-textarea" placeholder="예: 4yd 우하향 브레이크 미션 10회 중 7회 성공"></textarea>
+          </div>
+      </div>
+      <div class="mission-meta" id="missionMeta"></div>
+            <button id="saveMissionInputBtn" type="button">미션 입력 저장</button>
+            <button id="deleteMissionFileBtn" class="secondary-btn" type="button">선택 파일 삭제</button>
+      <div class="result" id="missionSaveResult"></div>
+      <div class="mission-log" id="missionEntryList"></div>
+  </div>
+</div>
+</div>
+
+<div class="section" id="section-export">
+<div class="panel panel-data">
+  <h2>Export Data</h2>
+  <button id="downloadCsv">Download CSV</button>
+    <div class="form-grid" style="margin-top:10px;">
+            <div class="field" style="grid-column: 1 / -1;">
+                    <label for="importCsvInput">CSV 불러오기 (동일 포맷)</label>
+                    <input type="file" id="importCsvInput" accept=".csv">
+            </div>
+          <div class="field" style="grid-column: 1 / -1;">
+              <label for="importMode">불러오기 방식</label>
+              <select id="importMode">
+                  <option value="merge">병합 (기존 데이터 유지 + 추가)</option>
+                  <option value="overwrite">덮어쓰기 (기존 데이터 교체)</option>
+              </select>
+          </div>
+    </div>
+    <button id="importCsvBtn" class="secondary-btn" type="button">CSV 불러오기 실행</button>
+    <div class="result" id="importCsvResult"></div>
+</div>
+</div>
+
+</div>
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+
+const APP_CONFIG = {
+    ACCESS_PASSCODE: "0403",
+    MAX_LOGIN_ATTEMPTS: 3,
+    LOCKOUT_SECONDS: 30,
+    LOGIN_DRAFT_KEY: "greenMissionLoginDraft",
+    FORM_DRAFTS_KEY: "greenMissionDrafts",
+    COACH_MISSIONS_KEY: "coachMissionFiles",
+    COACH_DELETE_CODE: "1013",
+    COACH_DELETE_ALLOWED_USER: "전순용"
+};
+
+class MissionRecord {
+    constructor(payload) {
+        this.date = payload.date || new Date().toLocaleString();
+        this.playerName = payload.playerName ?? "";
+        this.sessionDate = payload.sessionDate ?? "";
+        this.mission = payload.mission;
+        this.distance = payload.distance ?? null;
+        const rawStartLine = String(payload.intendedStartLine ?? payload.predDir ?? "yes").trim().toLowerCase();
+        if (rawStartLine === "no") {
+            this.intendedStartLine = "no";
+        } else {
+            this.intendedStartLine = "yes";
+        }
+        this.actualMiss = payload.actualMiss ?? "";
+        this.lateralErrorCm = payload.lateralErrorCm ?? 0;
+        this.predSlope = payload.predSlope ?? null;
+        this.actualSlope = payload.actualSlope ?? null;
+        this.predSpeedCm = payload.predSpeedCm ?? null;
+        this.actualSpeedCm = payload.actualSpeedCm ?? null;
+        this.predLowPoint = payload.predLowPoint ?? "";
+        this.actualLowPoint = payload.actualLowPoint ?? "";
+        this.speedPlan = payload.speedPlan ?? "";
+        this.actualPace = payload.actualPace ?? "";
+        this.decisionSec = payload.decisionSec ?? null;
+        this.highSideCommit = payload.highSideCommit ?? "";
+        this.apexCommit = payload.apexCommit ?? "";
+        this.missType = payload.missType ?? "none";
+        this.missionFileName = payload.missionFileName ?? "";
+        this.missionTitle = payload.missionTitle ?? "";
+        this.missionResponse = payload.missionResponse ?? "";
+        this.score = payload.score ?? 0;
+    }
+}
+
+class StorageService {
+    constructor(storageKey) {
+        this.storageKey = storageKey;
+    }
+
+    getRecords() {
+        const raw = JSON.parse(localStorage.getItem(this.storageKey)) || [];
+        return raw.map(item => new MissionRecord(item));
+    }
+
+    saveRecords(records) {
+        localStorage.setItem(this.storageKey, JSON.stringify(records));
+    }
+}
+
+class MetricsService {
+    static normalizeMission(mission) {
+        return String(mission || "").trim().toUpperCase();
+    }
+
+    static isLieMission(mission) {
+        const normalized = MetricsService.normalizeMission(mission);
+        return normalized === "LIE" || normalized === "M1";
+    }
+
+    static isSpeedMission(mission) {
+        const normalized = MetricsService.normalizeMission(mission);
+        return normalized === "SPEED" || normalized === "M2";
+    }
+
+    static clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    static isDirectionalMiss(missType) {
+        return missType === "direction" || missType === "both";
+    }
+
+    calculateM1Score({ intendedStartLine, actualMiss }) {
+        if (actualMiss === "center") return 10;
+        if (intendedStartLine === "yes") return 5;
+        return 0;
+    }
+
+    calculateM2Score(predSlope, actualSlope, predSpeedCm, actualSpeedCm) {
+        const slopeError = Math.abs(predSlope - actualSlope);
+        const speedError = Math.abs(predSpeedCm - actualSpeedCm);
+        const slopeScore = Math.max(0, 10 - slopeError * 5);
+        const speedScore = Math.max(0, 10 - speedError * 0.4);
+        const totalScore = slopeScore * 0.6 + speedScore * 0.4;
+        return {
+            slopeError,
+            speedError,
+            slopeScore,
+            speedScore,
+            totalScore
+        };
+    }
+
+    calculateAutoMetrics(records) {
+        const m1 = records.filter(r => MetricsService.isLieMission(r.mission));
+        const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
+
+        const avgSlopeError = m2.length
+            ? m2.reduce((sum, r) => sum + Math.abs((r.predSlope ?? 0) - (r.actualSlope ?? 0)), 0) / m2.length
+            : 0;
+
+        const avgSpeedError = m2.length
+            ? m2.reduce((sum, r) => sum + Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)), 0) / m2.length
+            : 0;
+
+        const directionCorrectRate = m1.length
+            ? m1.filter(r => r.intendedStartLine === "yes").length / m1.length
+            : 0;
+
+        const totalMisses = m1.filter(r => r.actualMiss !== "center");
+        const lowSideCount = totalMisses.filter(r => MetricsService.isDirectionalMiss(r.missType)).length;
+        const lowSideRate = totalMisses.length ? lowSideCount / totalMisses.length : 0;
+
+        const avgDistanceNormalizedError = m1.length
+            ? m1.reduce((sum, r) => {
+                const distance = Math.max(0.5, Number(r.distance) || 0.5);
+                const lateralError = Math.abs(Number(r.lateralErrorCm) || 0);
+                const normalizedError = lateralError / (distance * 2.5);
+                return sum + normalizedError;
+            }, 0) / m1.length
+            : 0;
+
+        const lowPointSamples = m1.filter(r => r.predLowPoint && r.actualLowPoint);
+        const lowPointAccuracy = lowPointSamples.length
+            ? lowPointSamples.filter(r => r.predLowPoint === r.actualLowPoint).length / lowPointSamples.length
+            : 0;
+
+        const speedSamples = m1.filter(r => r.speedPlan && r.actualPace);
+        const speedMatchRate = speedSamples.length
+            ? speedSamples.filter(r => r.speedPlan === r.actualPace).length / speedSamples.length
+            : 0;
+
+        const oneLookSamples = m1.filter(r => r.decisionSec !== null && r.decisionSec !== undefined);
+        const oneLookRate = oneLookSamples.length
+            ? oneLookSamples.filter(r => Number(r.decisionSec) <= 5).length / oneLookSamples.length
+            : 0;
+
+        const confidenceSamples = m1.filter(r => r.highSideCommit && r.apexCommit);
+        const confidenceRate = confidenceSamples.length
+            ? confidenceSamples.filter(r => r.highSideCommit === "yes" && r.apexCommit === "yes").length / confidenceSamples.length
+            : 0;
+
+        const missSamples = m1.filter(r => r.actualMiss !== "center");
+        const directionMissCount = missSamples.filter(r => r.missType === "direction").length;
+        const speedMissCount = missSamples.filter(r => r.missType === "speed").length;
+        const bothMissCount = missSamples.filter(r => r.missType === "both").length;
+        const missDenominator = Math.max(1, missSamples.length);
+
+        const gravityStageScore = lowPointAccuracy * 100;
+        const slopeCalibrationScore = MetricsService.clamp(100 - avgSlopeError * 20, 0, 100);
+        const speedCalibrationScore = MetricsService.clamp(100 - avgSpeedError * 1.2, 0, 100);
+        const slopeStageScore = MetricsService.clamp(slopeCalibrationScore * 0.7 + speedCalibrationScore * 0.3, 0, 100);
+        const speedStageScore = ((speedMatchRate * 0.6) + (oneLookRate * 0.4)) * 100;
+
+        const sri = slopeStageScore;
+        const sii = MetricsService.clamp((directionCorrectRate * 0.5 + (1 - lowSideRate) * 0.25 + lowPointAccuracy * 0.25) * 100, 0, 100);
+        const dcs = MetricsService.clamp((100 - avgDistanceNormalizedError * 100) * 0.5 + speedStageScore * 0.5, 0, 100);
+
+        const avgSlopeErrorScore = slopeCalibrationScore;
+        const avgSpeedErrorScore = speedCalibrationScore;
+        const overallMetricAverage = [
+            sri,
+            sii,
+            dcs,
+            gravityStageScore,
+            slopeStageScore,
+            speedStageScore,
+            avgSlopeErrorScore,
+            avgSpeedErrorScore
+        ].reduce((sum, value) => sum + value, 0) / 8;
+
+        return {
+            sri,
+            sii,
+            dcs,
+            avgSlopeError,
+            avgSpeedError,
+            directionCorrectRate,
+            lowSideCount,
+            totalMisses: totalMisses.length,
+            lowSideRate,
+            lowPointAccuracy,
+            speedMatchRate,
+            oneLookRate,
+            confidenceRate,
+            gravityStageScore,
+            slopeStageScore,
+            speedCalibrationScore,
+            speedStageScore,
+            avgSlopeErrorScore,
+            avgSpeedErrorScore,
+            overallMetricAverage,
+            directionMissCount,
+            speedMissCount,
+            bothMissCount,
+            missTotal: missSamples.length,
+            directionMissRate: directionMissCount / missDenominator,
+            speedMissRate: speedMissCount / missDenominator,
+            bothMissRate: bothMissCount / missDenominator,
+            lieTrials: m1.length,
+            speedTrials: m2.length
+        };
+    }
+
+    calculateDistanceBreakdown(records) {
+        const lieRows = records.filter(r => MetricsService.isLieMission(r.mission));
+        const speedRows = records.filter(r => MetricsService.isSpeedMission(r.mission));
+
+        const groupByDistance = (rows) => {
+            const map = new Map();
+            rows.forEach((row) => {
+                const distance = Math.max(1, Math.round(Number(row.distance) || 0));
+                if (!map.has(distance)) map.set(distance, []);
+                map.get(distance).push(row);
+            });
+            return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+        };
+
+        const lieByDistance = groupByDistance(lieRows).map(([distance, rows]) => {
+            const count = rows.length;
+            const holedRate = rows.filter(r => r.actualMiss === "center").length / Math.max(1, count);
+            const directionAcc = rows.filter(r => r.intendedStartLine === "yes").length / Math.max(1, count);
+            const misses = rows.filter(r => r.actualMiss !== "center");
+            const lowSideRate = misses.filter(r => MetricsService.isDirectionalMiss(r.missType)).length / Math.max(1, misses.length);
+            return { distance, count, holedRate, directionAcc, lowSideRate };
+        });
+
+        const speedByDistance = groupByDistance(speedRows).map(([distance, rows]) => {
+            const count = rows.length;
+            const avgSlopeError = rows.reduce((sum, r) => sum + Math.abs((r.predSlope ?? 0) - (r.actualSlope ?? 0)), 0) / Math.max(1, count);
+            const avgSpeedError = rows.reduce((sum, r) => sum + Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)), 0) / Math.max(1, count);
+            const stablePaceRate = rows.filter(r => Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)) <= 10).length / Math.max(1, count);
+            return { distance, count, avgSlopeError, avgSpeedError, stablePaceRate };
+        });
+
+        return { lieByDistance, speedByDistance };
+    }
+}
+
+class BayesianService {
+    buildPosterior(records) {
+        const m1 = records.filter(r => MetricsService.isLieMission(r.mission));
+        const successes = m1.filter(r => r.actualMiss === "center").length;
+        const failures = m1.length - successes;
+
+        const alpha = 1 + successes;
+        const beta = 1 + failures;
+
+        const mean = alpha / (alpha + beta);
+        const variance = (alpha * beta) / (Math.pow(alpha + beta, 2) * (alpha + beta + 1));
+        const std = Math.sqrt(variance);
+        const ciLow = Math.max(0, mean - 1.96 * std);
+        const ciHigh = Math.min(1, mean + 1.96 * std);
+
+        return { alpha, beta, mean, ciLow, ciHigh, trials: m1.length };
+    }
+}
+
+class HeatmapComponent {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext("2d");
+        this.speedCanvas = document.getElementById("speedHeatmapCanvas");
+        this.speedCtx = this.speedCanvas ? this.speedCanvas.getContext("2d") : null;
+        this.distanceBins = [0, 2, 4, 6, 8, Number.POSITIVE_INFINITY];
+        this.distanceLabels = ["0-2yd", "2-4yd", "4-6yd", "6-8yd", "8yd+"];
+        this.yLabels = ["Left", "Center", "Right"];
+        this.slopeBins = [0, 1, 2, 3, Number.POSITIVE_INFINITY];
+        this.slopeLabels = ["0-1%", "1-2%", "2-3%", "3%+"];
+    }
+
+    getDistanceBin(distance) {
+        for (let i = 0; i < this.distanceBins.length - 1; i += 1) {
+            if (distance >= this.distanceBins[i] && distance < this.distanceBins[i + 1]) return i;
+        }
+        return this.distanceLabels.length - 1;
+    }
+
+    getMissBin(miss) {
+        if (miss === "left") return 0;
+        if (miss === "right") return 2;
+        return 1;
+    }
+
+    getSlopeBin(slopePercent) {
+        for (let i = 0; i < this.slopeBins.length - 1; i += 1) {
+            if (slopePercent >= this.slopeBins[i] && slopePercent < this.slopeBins[i + 1]) return i;
+        }
+        return this.slopeLabels.length - 1;
+    }
+
+    render(records) {
+        this.renderLieHeatmap(records);
+        this.renderSpeedHeatmap(records);
+    }
+
+    renderLieHeatmap(records) {
+        const m1 = records.filter(r => MetricsService.isLieMission(r.mission));
+        const { ctx } = this;
+
+        if (!m1.length) {
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.fillStyle = "#6b7280";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("N/A (Lie 데이터 없음)", this.canvas.width / 2, this.canvas.height / 2);
+            return;
+        }
+
+        const matrix = [
+            new Array(this.distanceLabels.length).fill(0),
+            new Array(this.distanceLabels.length).fill(0),
+            new Array(this.distanceLabels.length).fill(0)
+        ];
+
+        m1.forEach(row => {
+            const x = this.getDistanceBin(Number(row.distance) || 0);
+            const y = this.getMissBin(row.actualMiss);
+            matrix[y][x] += 1;
+        });
+
+        const maxValue = Math.max(1, ...matrix.flat());
+        const cellW = 90;
+        const cellH = 55;
+        const offsetX = 60;
+        const offsetY = 30;
+
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        for (let y = 0; y < matrix.length; y += 1) {
+            for (let x = 0; x < matrix[y].length; x += 1) {
+                const value = matrix[y][x];
+                const intensity = value / maxValue;
+                const blue = Math.round(255 - intensity * 160);
+                ctx.fillStyle = `rgb(${blue}, ${blue}, 255)`;
+                const drawX = offsetX + x * cellW;
+                const drawY = offsetY + y * cellH;
+                ctx.fillRect(drawX, drawY, cellW - 2, cellH - 2);
+                ctx.fillStyle = "#111";
+                ctx.fillText(String(value), drawX + (cellW / 2), drawY + (cellH / 2));
+            }
+        }
+
+        ctx.fillStyle = "#111";
+        this.distanceLabels.forEach((label, index) => {
+            ctx.fillText(label, offsetX + index * cellW + (cellW / 2), 15);
+        });
+        this.yLabels.forEach((label, index) => {
+            ctx.textAlign = "right";
+            ctx.fillText(label, 50, offsetY + index * cellH + (cellH / 2));
+            ctx.textAlign = "center";
+        });
+    }
+
+    renderSpeedHeatmap(records) {
+        if (!this.speedCanvas || !this.speedCtx) return;
+
+        const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
+        const ctx = this.speedCtx;
+
+        if (!m2.length) {
+            ctx.clearRect(0, 0, this.speedCanvas.width, this.speedCanvas.height);
+            ctx.fillStyle = "#6b7280";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("N/A (Speed 데이터 없음)", this.speedCanvas.width / 2, this.speedCanvas.height / 2);
+            return;
+        }
+
+        const sumMatrix = this.slopeLabels.map(() => new Array(this.distanceLabels.length).fill(0));
+        const countMatrix = this.slopeLabels.map(() => new Array(this.distanceLabels.length).fill(0));
+
+        m2.forEach(row => {
+            const distance = Number(row.distance) || 0;
+            const speedError = Math.abs((Number(row.predSpeedCm) || 0) - (Number(row.actualSpeedCm) || 0));
+            const slopeBasis = Math.abs(Number(row.actualSlope ?? row.predSlope) || 0);
+            const x = this.getDistanceBin(distance);
+            const y = this.getSlopeBin(slopeBasis);
+            sumMatrix[y][x] += speedError;
+            countMatrix[y][x] += 1;
+        });
+
+        const avgMatrix = sumMatrix.map((row, y) => row.map((sum, x) => {
+            const count = countMatrix[y][x];
+            return count ? sum / count : 0;
+        }));
+
+        const maxAvgError = Math.max(1, ...avgMatrix.flat());
+        const cellW = 90;
+        const cellH = 48;
+        const offsetX = 60;
+        const offsetY = 30;
+
+        ctx.clearRect(0, 0, this.speedCanvas.width, this.speedCanvas.height);
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        for (let y = 0; y < avgMatrix.length; y += 1) {
+            for (let x = 0; x < avgMatrix[y].length; x += 1) {
+                const avgError = avgMatrix[y][x];
+                const intensity = avgError / maxAvgError;
+                const green = Math.round(240 - intensity * 170);
+                const red = Math.round(180 + intensity * 70);
+                const blue = Math.round(250 - intensity * 190);
+                ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+                const drawX = offsetX + x * cellW;
+                const drawY = offsetY + y * cellH;
+                ctx.fillRect(drawX, drawY, cellW - 2, cellH - 2);
+
+                const count = countMatrix[y][x];
+                ctx.fillStyle = "#111";
+                ctx.fillText(count ? avgError.toFixed(1) : "-", drawX + (cellW / 2), drawY + (cellH / 2));
+            }
+        }
+
+        ctx.fillStyle = "#111";
+        this.distanceLabels.forEach((label, index) => {
+            ctx.fillText(label, offsetX + index * cellW + (cellW / 2), 15);
+        });
+        this.slopeLabels.forEach((label, index) => {
+            ctx.textAlign = "right";
+            ctx.fillText(label, 50, offsetY + index * cellH + (cellH / 2));
+            ctx.textAlign = "center";
+        });
+    }
+}
+
+class DashboardComponent {
+    constructor(metricsTargetId, lowSideTargetId, bayesTargetId, missTypeTargetId, lieDistanceTargetId, speedDistanceTargetId) {
+        this.metricsTarget = document.getElementById(metricsTargetId);
+        this.lowSideTarget = document.getElementById(lowSideTargetId);
+        this.bayesTarget = document.getElementById(bayesTargetId);
+        this.missTypeTarget = document.getElementById(missTypeTargetId);
+        this.lieDistanceTarget = document.getElementById(lieDistanceTargetId);
+        this.speedDistanceTarget = document.getElementById(speedDistanceTargetId);
+    }
+
+    renderMetrics(metrics) {
+        const hasLieTrials = metrics.lieTrials > 0;
+        const hasSpeedTrials = metrics.speedTrials > 0;
+        const hasAnyTrials = hasLieTrials || hasSpeedTrials;
+
+        const display = (condition, text) => (condition ? text : "N/A");
+
+        this.metricsTarget.innerHTML = `
+            <div class="metric-card" title="SRI: 경사 수치화 정확도 점수. 평균 경사 오차와 속도 보정 오차를 반영하며 높을수록 좋습니다.">
+                <div class="metric-label">SRI</div>
+                <div class="metric-value">${display(hasSpeedTrials, metrics.sri.toFixed(1))}</div>
+            </div>
+            <div class="metric-card" title="SII: 방향 판독 및 Low-side 회피 품질 점수. 방향 정확도, Low-side 비율, Low-Point 정확도를 합산합니다.">
+                <div class="metric-label">SII</div>
+                <div class="metric-value">${display(hasLieTrials, metrics.sii.toFixed(1))}</div>
+            </div>
+            <div class="metric-card" title="DCS: 거리 대비 좌우 오차와 속도 통합 실행 점수. 라인 오차 정규화와 실행 일관성을 함께 반영합니다.">
+                <div class="metric-label">DCS</div>
+                <div class="metric-value">${display(hasLieTrials, metrics.dcs.toFixed(1))}</div>
+            </div>
+            <div class="metric-card" title="Avg Slope Error: 예측 경사와 실제 경사의 평균 오차(%). 낮을수록 좋습니다.">
+                <div class="metric-label">Avg Slope Error</div>
+                <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSlopeErrorScore.toFixed(1)}(${metrics.avgSlopeError.toFixed(2)}%)`)}</div>
+            </div>
+            <div class="metric-card" title="Avg Speed Error: 예측 피니시 거리와 실제 피니시 거리의 평균 오차(cm). 낮을수록 좋습니다.">
+                <div class="metric-label">Avg Speed Error</div>
+                <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSpeedErrorScore.toFixed(1)}(${metrics.avgSpeedError.toFixed(1)}cm)`)}</div>
+            </div>
+            <div class="metric-card" title="Stage 1: Gravity. Low-Point(중력 흐름) 인지 정확도 단계 점수입니다.">
+                <div class="metric-label">Stage 1: Gravity</div>
+                <div class="metric-value">${display(hasLieTrials, metrics.gravityStageScore.toFixed(1))}</div>
+            </div>
+            <div class="metric-card" title="Stage 2: Quantification. 경사/속도 수치화 정확도를 반영한 단계 점수입니다.">
+                <div class="metric-label">Stage 2: Quantification</div>
+                <div class="metric-value">${display(hasSpeedTrials, metrics.slopeStageScore.toFixed(1))}</div>
+            </div>
+            <div class="metric-card" title="Stage 3: Speed Integration. 속도 계획과 실행(One-Look 포함) 통합 품질 단계 점수입니다.">
+                <div class="metric-label">Stage 3: Speed Integration</div>
+                <div class="metric-value">${display(hasLieTrials, metrics.speedStageScore.toFixed(1))}</div>
+            </div>
+            <div class="metric-card overall-highlight" title="Overall Metrics Average: 핵심 지표(SRI/SII/DCS/Stage1~3/오차점수2개)의 평균값입니다.">
+                <div class="metric-label">Overall Metrics Avg</div>
+                <div class="metric-value">${display(hasAnyTrials, metrics.overallMetricAverage.toFixed(1))}</div>
+            </div>
+        `;
+
+        if (!hasLieTrials) {
+            this.lowSideTarget.textContent = "N/A (Lie 데이터 없음)";
+        } else {
+            const lowSideText = metrics.totalMisses > 0
+                ? `${metrics.lowSideCount}/${metrics.totalMisses} (${(metrics.lowSideRate * 100).toFixed(1)}%)`
+                : "N/A";
+            this.lowSideTarget.textContent =
+                `Low-side ${lowSideText} | Low-Point 정확도 ${(metrics.lowPointAccuracy * 100).toFixed(1)}% | Speed Plan 일치 ${(metrics.speedMatchRate * 100).toFixed(1)}% | One-Look 5초 이내 ${(metrics.oneLookRate * 100).toFixed(1)}% | 확신 유지 ${(metrics.confidenceRate * 100).toFixed(1)}%`;
+        }
+    }
+
+    renderBayesian(posterior) {
+        if (!posterior.trials) {
+            this.bayesTarget.textContent = "N/A (Lie 데이터 없음)";
+            return;
+        }
+        this.bayesTarget.textContent =
+            `Posterior Beta(${posterior.alpha}, ${posterior.beta}) | Make Prob Mean ${(posterior.mean * 100).toFixed(1)}% | 95% CI ${(posterior.ciLow * 100).toFixed(1)}% ~ ${(posterior.ciHigh * 100).toFixed(1)}% | Trials ${posterior.trials}`;
+    }
+
+    renderMissType(metrics) {
+        if (!metrics.lieTrials || !metrics.missTotal) {
+            this.missTypeTarget.textContent = "N/A (미스 데이터 없음)";
+            return;
+        }
+        this.missTypeTarget.textContent =
+            `Direction Miss ${metrics.directionMissCount}/${metrics.missTotal} (${(metrics.directionMissRate * 100).toFixed(1)}%) | Speed Miss ${metrics.speedMissCount}/${metrics.missTotal} (${(metrics.speedMissRate * 100).toFixed(1)}%) | Direction+Speed Miss ${metrics.bothMissCount}/${metrics.missTotal} (${(metrics.bothMissRate * 100).toFixed(1)}%)`;
+    }
+
+    renderDistanceBreakdown(distanceBreakdown) {
+        if (!distanceBreakdown.lieByDistance.length) {
+            this.lieDistanceTarget.innerHTML = '<div class="distance-empty">N/A (Lie 결정훈련 데이터 없음)</div>';
+        } else {
+            this.lieDistanceTarget.innerHTML = `
+                <table class="distance-table">
+                    <thead>
+                        <tr>
+                            <th>Distance (yd)</th>
+                            <th>Shots</th>
+                            <th>Holed %</th>
+                            <th title="Intended Start Line %: Intended Start Line을 Yes로 유지한 비율입니다. 높을수록 결정/실행 일관성이 좋습니다.">Intended Start Line %</th>
+                            <th title="Directional Miss %: 미스 샷 중 Miss Type이 direction 또는 both인 비율입니다. 낮을수록 좋습니다.">Directional Miss %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${distanceBreakdown.lieByDistance.map(row => `
+                            <tr>
+                                <td>${row.distance}</td>
+                                <td>${row.count}</td>
+                                <td>${(row.holedRate * 100).toFixed(1)}</td>
+                                <td>${(row.directionAcc * 100).toFixed(1)}</td>
+                                <td>${(row.lowSideRate * 100).toFixed(1)}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        if (!distanceBreakdown.speedByDistance.length) {
+            this.speedDistanceTarget.innerHTML = '<div class="distance-empty">N/A (Speed 결정훈련 데이터 없음)</div>';
+        } else {
+            this.speedDistanceTarget.innerHTML = `
+                <table class="distance-table">
+                    <thead>
+                        <tr>
+                            <th>Distance (yd)</th>
+                            <th>Shots</th>
+                            <th>Avg Slope Error %</th>
+                            <th>Avg Speed Error cm</th>
+                            <th title="Pace Stable % (±10cm): Pred Finish와 Actual Finish 차이가 ±10cm 이내인 시도의 비율입니다. 높을수록 속도 실행 일관성이 좋습니다.">Pace Stable % (±10cm)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${distanceBreakdown.speedByDistance.map(row => `
+                            <tr>
+                                <td>${row.distance}</td>
+                                <td>${row.count}</td>
+                                <td>${row.avgSlopeError.toFixed(2)}</td>
+                                <td>${row.avgSpeedError.toFixed(1)}</td>
+                                <td>${(row.stablePaceRate * 100).toFixed(1)}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+}
+
+class SectionNavigator {
+    constructor(navRootId) {
+        this.navRoot = document.getElementById(navRootId);
+        this.buttons = Array.from(this.navRoot.querySelectorAll(".nav-card"));
+        this.sections = Array.from(document.querySelectorAll(".section"));
+    }
+
+    init(defaultSectionId) {
+        this.buttons.forEach(button => {
+            button.addEventListener("click", () => {
+                this.show(button.dataset.target);
+            });
+        });
+        this.show(defaultSectionId);
+    }
+
+    show(sectionId) {
+        this.sections.forEach(section => {
+            section.classList.toggle("active", section.id === sectionId);
+        });
+
+        this.buttons.forEach(button => {
+            button.classList.toggle("active", button.dataset.target === sectionId);
+        });
+    }
+}
+
+class PuttingTrainingApp {
+    constructor() {
+        this.storageService = new StorageService("greenMissions");
+        this.metricsService = new MetricsService();
+        this.bayesianService = new BayesianService();
+        this.dashboard = new DashboardComponent(
+            "metricsBoard",
+            "lowSideResult",
+            "bayesResult",
+            "missTypeResult",
+            "lieDistanceAnalysis",
+            "speedDistanceAnalysis"
+        );
+        this.heatmap = new HeatmapComponent("heatmapCanvas");
+        this.sectionNavigator = new SectionNavigator("sectionNav");
+        this.records = this.storageService.getRecords();
+        this.coachMissionFiles = JSON.parse(localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY)) || [];
+        this.activeMissionFileId = null;
+        this.session = {
+            playerName: "",
+            sessionDate: ""
+        };
+        this.failedLoginAttempts = 0;
+        this.lockUntil = null;
+        this.lockoutTimerId = null;
+        this.appEventsBound = false;
+        this.formFieldIds = [
+            "distance", "intendedStartLine", "actualMiss", "lateralError", "predLowPoint", "actualLowPoint",
+            "speedPlan", "actualPace", "decisionSec", "highSideCommit", "apexCommit", "missType",
+            "speedDistance", "predSlope", "actualSlope", "predSpeedCm", "actualSpeedCm"
+        ];
+    }
+
+    init() {
+        this.setupLogin();
+    }
+
+    setupLogin() {
+        const dateInput = document.getElementById("loginDate");
+        const today = new Date();
+        dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        this.restoreLoginDraft();
+
+        document.getElementById("loginPlayerName").addEventListener("input", () => this.saveLoginDraft());
+        document.getElementById("loginDate").addEventListener("change", () => this.saveLoginDraft());
+
+        document.getElementById("loginButton").addEventListener("click", () => this.handleLogin());
+        document.getElementById("loginPasscode").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") this.handleLogin();
+        });
+        document.getElementById("logoutButton").addEventListener("click", () => this.handleLogout());
+        document.getElementById("newStartButton").addEventListener("click", () => this.handleNewStart());
+        window.addEventListener("beforeunload", () => {
+            this.saveLoginDraft();
+            this.saveDraftForCurrentPlayer();
+        });
+        this.updateLockoutUI();
+    }
+
+    getLoginDraft() {
+        return JSON.parse(localStorage.getItem(APP_CONFIG.LOGIN_DRAFT_KEY)) || {};
+    }
+
+    saveLoginDraft() {
+        const playerName = document.getElementById("loginPlayerName")?.value?.trim() || "";
+        const sessionDate = document.getElementById("loginDate")?.value || "";
+        localStorage.setItem(APP_CONFIG.LOGIN_DRAFT_KEY, JSON.stringify({ playerName, sessionDate }));
+    }
+
+    restoreLoginDraft() {
+        const draft = this.getLoginDraft();
+        const nameInput = document.getElementById("loginPlayerName");
+        const dateInput = document.getElementById("loginDate");
+        if (nameInput && draft.playerName) {
+            nameInput.value = draft.playerName;
+        }
+        if (dateInput && draft.sessionDate) {
+            dateInput.value = draft.sessionDate;
+        }
+    }
+
+    saveCoachMissionFiles() {
+        localStorage.setItem(APP_CONFIG.COACH_MISSIONS_KEY, JSON.stringify(this.coachMissionFiles));
+    }
+
+    renderCoachMissionFiles() {
+        const target = document.getElementById("missionFileList");
+        if (!this.coachMissionFiles.length) {
+            target.innerHTML = '<div class="distance-empty">업로드된 미션 파일이 없습니다.</div>';
+            document.getElementById("missionWorkArea").style.display = "none";
+            return;
+        }
+
+        target.innerHTML = this.coachMissionFiles.map(file => `
+            <button type="button" class="mission-file-btn ${file.id === this.activeMissionFileId ? "active" : ""}" data-file-id="${file.id}">
+                ${file.fileName} (${(file.missions || []).length})
+            </button>
+        `).join("");
+
+        target.querySelectorAll(".mission-file-btn").forEach(button => {
+            button.addEventListener("click", () => {
+                this.selectMissionFile(button.dataset.fileId);
+            });
+        });
+    }
+
+    selectMissionFile(fileId) {
+        this.activeMissionFileId = fileId;
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+    }
+
+    renderMissionWorkArea() {
+        const workArea = document.getElementById("missionWorkArea");
+        const select = document.getElementById("missionItemSelect");
+        const meta = document.getElementById("missionMeta");
+        const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+
+        if (!file) {
+            workArea.style.display = "none";
+            return;
+        }
+
+        workArea.style.display = "block";
+        const missions = file.missions && file.missions.length ? file.missions : [{ title: file.fileName, detail: "" }];
+        select.innerHTML = missions.map((mission, index) => `
+            <option value="${index}">${mission.title}</option>
+        `).join("");
+
+        const selectedMission = missions[0];
+        meta.textContent = selectedMission && selectedMission.detail ? `미션 설명: ${selectedMission.detail}` : "미션 설명 없음";
+        this.renderMissionEntryList();
+    }
+
+    renderMissionEntryList() {
+        const target = document.getElementById("missionEntryList");
+        const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+        if (!file) {
+            target.innerHTML = "";
+            return;
+        }
+
+        const rows = this.records
+            .filter(r => r.mission === "COACH_MISSION" && r.missionFileName === file.fileName)
+            .slice(-5)
+            .reverse();
+
+        if (!rows.length) {
+            target.innerHTML = '<div class="distance-empty">아직 저장된 미션 입력이 없습니다.</div>';
+            return;
+        }
+
+        target.innerHTML = rows.map(row => `
+            <div class="mission-log-item">[${row.date}] ${row.playerName} - ${row.missionTitle}: ${row.missionResponse}</div>
+        `).join("");
+    }
+
+    async parseMissionFile(file) {
+        let missions = [];
+        try {
+            if (window.XLSX) {
+                const buffer = await file.arrayBuffer();
+                const workbook = window.XLSX.read(buffer, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[firstSheetName];
+                const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+                missions = rows
+                    .map(row => ({
+                        title: String(row[0] || "").trim(),
+                        detail: String(row[1] || "").trim()
+                    }))
+                    .filter(row => row.title);
+            }
+        } catch (error) {
+            missions = [];
+        }
+
+        if (!missions.length) {
+            missions = [{ title: file.name, detail: "" }];
+        }
+
+        return {
+            id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            fileName: file.name,
+            uploadedAt: new Date().toLocaleString(),
+            missions
+        };
+    }
+
+    async handleMissionFileUpload(event) {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+
+        const parsed = [];
+        for (const file of files) {
+            const missionFile = await this.parseMissionFile(file);
+            parsed.push(missionFile);
+        }
+
+        this.coachMissionFiles = [...this.coachMissionFiles, ...parsed];
+        this.saveCoachMissionFiles();
+        this.activeMissionFileId = parsed[0]?.id || this.activeMissionFileId;
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+        event.target.value = "";
+    }
+
+    saveCoachMissionInput() {
+        const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+        if (!file) return;
+
+        const missionIndex = Number(document.getElementById("missionItemSelect").value || 0);
+        const mission = (file.missions || [])[missionIndex] || { title: file.fileName, detail: "" };
+        const missionResponse = document.getElementById("missionInputText").value.trim();
+        const resultTarget = document.getElementById("missionSaveResult");
+
+        if (!missionResponse) {
+            resultTarget.textContent = "입력 내용을 작성하세요.";
+            return;
+        }
+
+        this.records.push(new MissionRecord({
+            mission: "COACH_MISSION",
+            playerName: this.session.playerName,
+            sessionDate: this.session.sessionDate,
+            missionFileName: file.fileName,
+            missionTitle: mission.title,
+            missionResponse,
+            score: ""
+        }));
+        this.storageService.saveRecords(this.records);
+        document.getElementById("missionInputText").value = "";
+        resultTarget.textContent = "미션 입력이 저장되었습니다.";
+        this.renderMissionEntryList();
+    }
+
+    updateDeleteButtonAccess() {
+        const deleteBtn = document.getElementById("deleteMissionFileBtn");
+        const allowed = (this.session.playerName || "").trim() === APP_CONFIG.COACH_DELETE_ALLOWED_USER;
+        deleteBtn.disabled = !allowed;
+        deleteBtn.title = allowed
+            ? "삭제코드 입력 후 파일 삭제 가능"
+            : `${APP_CONFIG.COACH_DELETE_ALLOWED_USER} 로그인에서만 삭제 가능합니다.`;
+    }
+
+    deleteSelectedMissionFile() {
+        const resultTarget = document.getElementById("missionSaveResult");
+        const allowed = (this.session.playerName || "").trim() === APP_CONFIG.COACH_DELETE_ALLOWED_USER;
+        if (!allowed) {
+            resultTarget.textContent = `${APP_CONFIG.COACH_DELETE_ALLOWED_USER} 이름으로 로그인된 경우에만 삭제 가능합니다.`;
+            return;
+        }
+
+        const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+        if (!file) {
+            resultTarget.textContent = "삭제할 파일이 선택되지 않았습니다.";
+            return;
+        }
+
+        const code = window.prompt("삭제코드를 입력하세요.");
+        if (code === null) return;
+        if (code.trim() !== APP_CONFIG.COACH_DELETE_CODE) {
+            resultTarget.textContent = "삭제코드가 일치하지 않습니다.";
+            return;
+        }
+
+        this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== this.activeMissionFileId);
+        this.saveCoachMissionFiles();
+
+        if (this.coachMissionFiles.length) {
+            this.activeMissionFileId = this.coachMissionFiles[0].id;
+        } else {
+            this.activeMissionFileId = null;
+        }
+
+        resultTarget.textContent = `파일이 삭제되었습니다: ${file.fileName}`;
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+    }
+
+    getDefaultFormState() {
+        return {
+            distance: "3",
+            intendedStartLine: "yes",
+            actualMiss: "center",
+            lateralError: "0",
+            predLowPoint: "left",
+            actualLowPoint: "left",
+            speedPlan: "dead",
+            actualPace: "dead",
+            decisionSec: "5",
+            highSideCommit: "yes",
+            apexCommit: "yes",
+            missType: "none",
+            speedDistance: "3",
+            predSlope: "1.0",
+            actualSlope: "1.0",
+            predSpeedCm: "30",
+            actualSpeedCm: "30"
+        };
+    }
+
+    getDraftsMap() {
+        return JSON.parse(localStorage.getItem(APP_CONFIG.FORM_DRAFTS_KEY)) || {};
+    }
+
+    setDraftsMap(map) {
+        localStorage.setItem(APP_CONFIG.FORM_DRAFTS_KEY, JSON.stringify(map));
+    }
+
+    collectCurrentFormState() {
+        const state = {};
+        this.formFieldIds.forEach((fieldId) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                state[fieldId] = element.value;
+            }
+        });
+        return state;
+    }
+
+    applyFormState(state) {
+        this.formFieldIds.forEach((fieldId) => {
+            const element = document.getElementById(fieldId);
+            if (element && state[fieldId] !== undefined && state[fieldId] !== null) {
+                element.value = state[fieldId];
+            }
+        });
+    }
+
+    saveDraftForCurrentPlayer() {
+        const playerName = this.session.playerName;
+        if (!playerName) return;
+
+        const drafts = this.getDraftsMap();
+        drafts[playerName] = this.collectCurrentFormState();
+        this.setDraftsMap(drafts);
+    }
+
+    restoreDraftForPlayer(playerName) {
+        const drafts = this.getDraftsMap();
+        const state = drafts[playerName] || this.getDefaultFormState();
+        this.applyFormState(state);
+    }
+
+    clearDraftForPlayer(playerName) {
+        const drafts = this.getDraftsMap();
+        delete drafts[playerName];
+        this.setDraftsMap(drafts);
+    }
+
+    bindDraftPersistence() {
+        this.formFieldIds.forEach((fieldId) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.addEventListener("change", () => this.saveDraftForCurrentPlayer());
+                element.addEventListener("input", () => this.saveDraftForCurrentPlayer());
+            }
+        });
+    }
+
+    updateLockoutUI() {
+        const button = document.getElementById("loginButton");
+        const passInput = document.getElementById("loginPasscode");
+        const errorTarget = document.getElementById("loginError");
+
+        if (!this.lockUntil) {
+            button.disabled = false;
+            passInput.disabled = false;
+            if (this.lockoutTimerId) {
+                clearInterval(this.lockoutTimerId);
+                this.lockoutTimerId = null;
+            }
+            return;
+        }
+
+        const tick = () => {
+            const remainMs = this.lockUntil - Date.now();
+            if (remainMs <= 0) {
+                this.lockUntil = null;
+                this.failedLoginAttempts = 0;
+                button.disabled = false;
+                passInput.disabled = false;
+                errorTarget.textContent = "다시 로그인할 수 있습니다.";
+                if (this.lockoutTimerId) {
+                    clearInterval(this.lockoutTimerId);
+                    this.lockoutTimerId = null;
+                }
+                return;
+            }
+
+            const remainSec = Math.ceil(remainMs / 1000);
+            button.disabled = true;
+            passInput.disabled = true;
+            errorTarget.textContent = `로그인 3회 실패: ${remainSec}초 후 재시도 가능합니다.`;
+        };
+
+        tick();
+        if (!this.lockoutTimerId) {
+            this.lockoutTimerId = setInterval(tick, 1000);
+        }
+    }
+
+    handleLogin() {
+        const playerName = document.getElementById("loginPlayerName").value.trim();
+        const sessionDate = document.getElementById("loginDate").value;
+        const passcode = document.getElementById("loginPasscode").value.trim();
+        const errorTarget = document.getElementById("loginError");
+
+        if (this.lockUntil && Date.now() < this.lockUntil) {
+            this.updateLockoutUI();
+            return;
+        }
+
+        if (!playerName) {
+            errorTarget.textContent = "선수 이름을 입력하세요.";
+            return;
+        }
+        if (!sessionDate) {
+            errorTarget.textContent = "날짜를 입력하세요.";
+            return;
+        }
+        if (passcode !== APP_CONFIG.ACCESS_PASSCODE) {
+            this.failedLoginAttempts += 1;
+            if (this.failedLoginAttempts >= APP_CONFIG.MAX_LOGIN_ATTEMPTS) {
+                this.lockUntil = Date.now() + APP_CONFIG.LOCKOUT_SECONDS * 1000;
+                this.updateLockoutUI();
+            } else {
+                const remain = APP_CONFIG.MAX_LOGIN_ATTEMPTS - this.failedLoginAttempts;
+                errorTarget.textContent = `패스코드가 올바르지 않습니다. 남은 시도: ${remain}회`;
+            }
+            return;
+        }
+
+        this.failedLoginAttempts = 0;
+        this.lockUntil = null;
+        this.updateLockoutUI();
+        errorTarget.textContent = "";
+        this.saveLoginDraft();
+        this.session.playerName = playerName;
+        this.session.sessionDate = sessionDate;
+
+        document.getElementById("sessionInfo").textContent = `선수: ${playerName} | 날짜: ${sessionDate}`;
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("appContent").style.display = "block";
+        this.initializeAppAfterLogin();
+        this.restoreDraftForPlayer(playerName);
+        this.saveDraftForCurrentPlayer();
+        this.updateDeleteButtonAccess();
+    }
+
+    handleLogout() {
+        this.session = { playerName: "", sessionDate: "" };
+        document.getElementById("sessionInfo").textContent = "";
+        document.getElementById("loginPasscode").value = "";
+        document.getElementById("loginError").textContent = "";
+        document.getElementById("missionSaveResult").textContent = "";
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("appContent").style.display = "none";
+        this.sectionNavigator.show("section-framework");
+        this.updateDeleteButtonAccess();
+    }
+
+    handleNewStart() {
+        if (!this.session.playerName) return;
+        const confirmed = window.confirm("현재 선수/날짜 세션 데이터를 초기화하시겠습니까?\n입력값, 분석지표, 시각화가 리셋됩니다.");
+        if (!confirmed) return;
+        this.clearDraftForPlayer(this.session.playerName);
+
+        this.records = this.records.filter(record => {
+            const samePlayer = (record.playerName || "") === this.session.playerName;
+            const sameDate = (record.sessionDate || "") === this.session.sessionDate;
+            return !(samePlayer && sameDate);
+        });
+        this.storageService.saveRecords(this.records);
+
+        this.applyFormState(this.getDefaultFormState());
+        document.getElementById("m1Result").textContent = "";
+        document.getElementById("m2Result").textContent = "";
+        document.getElementById("importCsvResult").textContent = "";
+        document.getElementById("missionSaveResult").textContent = "";
+        this.saveDraftForCurrentPlayer();
+        this.refreshDashboard();
+        this.renderMissionEntryList();
+        this.sectionNavigator.show("section-m1");
+    }
+
+    resetM1Form() {
+        const defaults = this.getDefaultFormState();
+        [
+            "distance", "intendedStartLine", "actualMiss", "lateralError", "predLowPoint", "actualLowPoint",
+            "speedPlan", "actualPace", "decisionSec", "highSideCommit", "apexCommit", "missType"
+        ].forEach((fieldId) => {
+            const element = document.getElementById(fieldId);
+            if (element) element.value = defaults[fieldId];
+        });
+    }
+
+    resetM2Form() {
+        const defaults = this.getDefaultFormState();
+        ["speedDistance", "predSlope", "actualSlope", "predSpeedCm", "actualSpeedCm"].forEach((fieldId) => {
+            const element = document.getElementById(fieldId);
+            if (element) element.value = defaults[fieldId];
+        });
+    }
+
+    initializeAppAfterLogin() {
+        if (!this.appEventsBound) {
+            document.getElementById("submitM1").addEventListener("click", () => this.onSubmitM1());
+            document.getElementById("submitM2").addEventListener("click", () => this.onSubmitM2());
+            document.getElementById("downloadCsv").addEventListener("click", () => this.exportCsv());
+            document.getElementById("importCsvBtn").addEventListener("click", () => this.importCsv());
+            document.getElementById("missionExcelInput").addEventListener("change", (event) => this.handleMissionFileUpload(event));
+            document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
+            document.getElementById("deleteMissionFileBtn").addEventListener("click", () => this.deleteSelectedMissionFile());
+            document.getElementById("missionItemSelect").addEventListener("change", () => {
+                const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+                const idx = Number(document.getElementById("missionItemSelect").value || 0);
+                const mission = file && file.missions ? file.missions[idx] : null;
+                document.getElementById("missionMeta").textContent = mission && mission.detail ? `미션 설명: ${mission.detail}` : "미션 설명 없음";
+            });
+            document.getElementById("actualMiss").addEventListener("change", (event) => {
+                if (event.target.value === "center") {
+                    document.getElementById("lateralError").value = "0";
+                    document.getElementById("missType").value = "none";
+                    this.saveDraftForCurrentPlayer();
+                    return;
+                }
+                this.saveDraftForCurrentPlayer();
+            });
+            this.bindDraftPersistence();
+            this.appEventsBound = true;
+        }
+        this.sectionNavigator.init("section-framework");
+        this.renderCoachMissionFiles();
+        if (this.coachMissionFiles.length && !this.activeMissionFileId) {
+            this.activeMissionFileId = this.coachMissionFiles[0].id;
+        }
+        this.renderMissionWorkArea();
+        this.updateDeleteButtonAccess();
+        this.refreshDashboard();
+    }
+
+    onSubmitM1() {
+        const distance = Number(document.getElementById("distance").value || 0);
+        const intendedStartLine = document.getElementById("intendedStartLine").value;
+        const actualMiss = document.getElementById("actualMiss").value;
+        const lateralErrorCm = Math.abs(Number(document.getElementById("lateralError").value || 0));
+        const predLowPoint = document.getElementById("predLowPoint").value;
+        const actualLowPoint = document.getElementById("actualLowPoint").value;
+        const speedPlan = document.getElementById("speedPlan").value;
+        const actualPace = document.getElementById("actualPace").value;
+        const decisionSec = Number(document.getElementById("decisionSec").value || 0);
+        const highSideCommit = document.getElementById("highSideCommit").value;
+        const apexCommit = document.getElementById("apexCommit").value;
+        let missType = document.getElementById("missType").value;
+        if (actualMiss === "center") {
+            missType = "none";
+        }
+
+        const score = this.metricsService.calculateM1Score({ intendedStartLine, actualMiss });
+        const lowSide = MetricsService.isDirectionalMiss(missType) ? "Yes" : "No";
+        const oneLookOk = decisionSec <= 5 ? "Pass" : "Late";
+
+        this.records.push(new MissionRecord({
+            mission: "LIE",
+            playerName: this.session.playerName,
+            sessionDate: this.session.sessionDate,
+            distance,
+            intendedStartLine,
+            actualMiss,
+            lateralErrorCm: actualMiss === "center" ? 0 : lateralErrorCm,
+            predLowPoint,
+            actualLowPoint,
+            speedPlan,
+            actualPace,
+            decisionSec,
+            highSideCommit,
+            apexCommit,
+            missType,
+            score
+        }));
+        this.storageService.saveRecords(this.records);
+
+        document.getElementById("m1Result").textContent =
+            `Score: ${score} | Intended Start Line: ${intendedStartLine} | Directional Miss: ${lowSide} | MissType: ${missType} | One-Look: ${oneLookOk} | High-side: ${highSideCommit} | Apex: ${apexCommit}`;
+        this.resetM1Form();
+        this.saveDraftForCurrentPlayer();
+        this.refreshDashboard();
+        this.sectionNavigator.show("section-m1");
+    }
+
+    onSubmitM2() {
+        const speedDistance = Number(document.getElementById("speedDistance").value || 0);
+        const predSlope = Number(document.getElementById("predSlope").value || 0);
+        const actualSlope = Number(document.getElementById("actualSlope").value || 0);
+        const predSpeedCm = Number(document.getElementById("predSpeedCm").value || 0);
+        const actualSpeedCm = Number(document.getElementById("actualSpeedCm").value || 0);
+        const speedPack = this.metricsService.calculateM2Score(predSlope, actualSlope, predSpeedCm, actualSpeedCm);
+
+        this.records.push(new MissionRecord({
+            mission: "SPEED",
+            playerName: this.session.playerName,
+            sessionDate: this.session.sessionDate,
+            distance: speedDistance,
+            predSlope,
+            actualSlope,
+            predSpeedCm,
+            actualSpeedCm,
+            score: Number(speedPack.totalScore.toFixed(1))
+        }));
+        this.storageService.saveRecords(this.records);
+
+        const speedRows = this.records.filter(r => MetricsService.isSpeedMission(r.mission));
+        const cumulativeAvgScore = speedRows.length
+            ? speedRows.reduce((sum, r) => sum + (Number(r.score) || 0), 0) / speedRows.length
+            : 0;
+
+        document.getElementById("m2Result").textContent =
+            `Slope Error: ${speedPack.slopeError.toFixed(2)} | Speed Error: ${speedPack.speedError.toFixed(1)}cm | Score: ${cumulativeAvgScore.toFixed(1)} (누적평균)`;
+        this.resetM2Form();
+        this.saveDraftForCurrentPlayer();
+        this.refreshDashboard();
+        this.sectionNavigator.show("section-m2");
+    }
+
+    getCurrentSessionRecords() {
+        const playerName = (this.session.playerName || "").trim();
+        const sessionDate = (this.session.sessionDate || "").trim();
+
+        if (!playerName || !sessionDate) return [];
+
+        return this.records.filter(record => {
+            const samePlayer = (record.playerName || "").trim() === playerName;
+            const sameDate = (record.sessionDate || "").trim() === sessionDate;
+            return samePlayer && sameDate;
+        });
+    }
+
+    refreshDashboard() {
+        const sessionRecords = this.getCurrentSessionRecords();
+        const metrics = this.metricsService.calculateAutoMetrics(sessionRecords);
+        const distanceBreakdown = this.metricsService.calculateDistanceBreakdown(sessionRecords);
+        const posterior = this.bayesianService.buildPosterior(sessionRecords);
+        this.dashboard.renderMetrics(metrics);
+        this.dashboard.renderBayesian(posterior);
+        this.dashboard.renderMissType(metrics);
+        this.dashboard.renderDistanceBreakdown(distanceBreakdown);
+        this.heatmap.render(sessionRecords);
+    }
+
+    sanitizeFilePart(value, fallback) {
+        const raw = (value || "").toString().trim();
+        if (!raw) return fallback;
+        return raw.replace(/[\\/:*?"<>|\s]+/g, "_");
+    }
+
+    buildExportFileName() {
+        const namePart = this.sanitizeFilePart(this.session.playerName, "player");
+        const dateRaw = this.session.sessionDate || new Date().toISOString().slice(0, 10);
+        const datePart = this.sanitizeFilePart(dateRaw.replace(/-/g, ""), "date");
+        return `${namePart}_${datePart}.csv`;
+    }
+
+    triggerFallbackDownload(csv, fileName) {
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    csvEscape(value) {
+        const text = value === null || value === undefined ? "" : String(value);
+        if (/[",\n\r]/.test(text)) {
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+    }
+
+    parseCsvRows(text) {
+        const rows = [];
+        let row = [];
+        let value = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i += 1) {
+            const char = text[i];
+            const next = text[i + 1];
+
+            if (inQuotes) {
+                if (char === '"' && next === '"') {
+                    value += '"';
+                    i += 1;
+                } else if (char === '"') {
+                    inQuotes = false;
+                } else {
+                    value += char;
+                }
+                continue;
+            }
+
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ',') {
+                row.push(value);
+                value = "";
+            } else if (char === '\n' || char === '\r') {
+                if (char === '\r' && next === '\n') i += 1;
+                row.push(value);
+                const hasData = row.some(cell => cell !== "");
+                if (hasData) rows.push(row);
+                row = [];
+                value = "";
+            } else {
+                value += char;
+            }
+        }
+
+        if (value !== "" || row.length) {
+            row.push(value);
+            const hasData = row.some(cell => cell !== "");
+            if (hasData) rows.push(row);
+        }
+
+        return rows;
+    }
+
+    alignLegacyCsvRow(row, headerLength) {
+        if (row.length === headerLength) return row;
+
+        const looksLikeTime = (value) => /^\s*\d{1,2}:\d{2}:\d{2}\s*(AM|PM)\s*$/i.test(String(value || ""));
+
+        if (row.length === headerLength + 1 && looksLikeTime(row[1])) {
+            const mergedDate = `${row[0]},${row[1]}`.trim();
+            return [mergedDate, ...row.slice(2)];
+        }
+
+        if (row.length > headerLength && looksLikeTime(row[1])) {
+            const mergedDate = `${row[0]},${row[1]}`.trim();
+            const aligned = [mergedDate, ...row.slice(2)];
+            return aligned.slice(0, headerLength);
+        }
+
+        return row.slice(0, headerLength);
+    }
+
+    toNumberOrNull(value) {
+        const trimmed = value === undefined || value === null ? "" : String(value).trim();
+        if (!trimmed) return null;
+        const numeric = Number(trimmed);
+        return Number.isNaN(numeric) ? null : numeric;
+    }
+
+    pickBestSessionFromRecords(records) {
+        const bucket = new Map();
+
+        records.forEach((record) => {
+            const player = (record.playerName || "").trim();
+            const date = (record.sessionDate || "").trim();
+            if (!player || !date) return;
+            const key = `${player}||${date}`;
+            bucket.set(key, (bucket.get(key) || 0) + 1);
+        });
+
+        let bestKey = "";
+        let bestCount = 0;
+        bucket.forEach((count, key) => {
+            if (count > bestCount) {
+                bestCount = count;
+                bestKey = key;
+            }
+        });
+
+        if (!bestKey) return null;
+        const [playerName, sessionDate] = bestKey.split("||");
+        return { playerName, sessionDate };
+    }
+
+    async importCsv() {
+        const fileInput = document.getElementById("importCsvInput");
+        const resultTarget = document.getElementById("importCsvResult");
+        const importMode = document.getElementById("importMode").value;
+        const file = fileInput.files && fileInput.files[0];
+
+        if (!file) {
+            resultTarget.textContent = "불러올 CSV 파일을 먼저 선택하세요.";
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const rows = this.parseCsvRows(text);
+            if (rows.length < 2) {
+                resultTarget.textContent = "유효한 데이터가 없습니다.";
+                return;
+            }
+
+            const header = rows[0].map(h => String(h).replace(/^\uFEFF/, "").trim());
+            const indexOf = (name) => header.findIndex(h => h === name);
+
+            const required = ["Date", "Mission"];
+            const missing = required.filter(name => indexOf(name) < 0);
+            if (missing.length) {
+                resultTarget.textContent = `필수 컬럼 누락: ${missing.join(", ")}`;
+                return;
+            }
+
+            const imported = [];
+            for (let i = 1; i < rows.length; i += 1) {
+                const row = this.alignLegacyCsvRow(rows[i], header.length);
+                const mission = row[indexOf("Mission")] || "";
+                if (!mission) continue;
+
+                const rowPlayerName = indexOf("PlayerName") >= 0
+                    ? (row[indexOf("PlayerName")] || "").trim()
+                    : "";
+                const rowSessionDate = indexOf("SessionDate") >= 0
+                    ? (row[indexOf("SessionDate")] || "").trim()
+                    : "";
+
+                imported.push(new MissionRecord({
+                    date: row[indexOf("Date")] || new Date().toLocaleString(),
+                    playerName: rowPlayerName,
+                    sessionDate: rowSessionDate,
+                    mission: MetricsService.normalizeMission(mission),
+                    score: indexOf("Score") >= 0 ? (row[indexOf("Score")] || "") : "",
+                    distance: indexOf("Distance") >= 0 ? this.toNumberOrNull(row[indexOf("Distance")]) : null,
+                    intendedStartLine: indexOf("IntendedStartLine") >= 0
+                        ? (row[indexOf("IntendedStartLine")] || "")
+                        : (indexOf("PredDir") >= 0 ? (row[indexOf("PredDir")] || "") : "yes"),
+                    actualMiss: indexOf("ActualMiss") >= 0 ? (row[indexOf("ActualMiss")] || "") : "",
+                    lateralErrorCm: indexOf("LateralErrorCm") >= 0 ? this.toNumberOrNull(row[indexOf("LateralErrorCm")]) : null,
+                    predSlope: indexOf("PredSlope") >= 0 ? this.toNumberOrNull(row[indexOf("PredSlope")]) : null,
+                    actualSlope: indexOf("ActualSlope") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSlope")]) : null,
+                    predSpeedCm: indexOf("PredSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("PredSpeedCm")]) : null,
+                    actualSpeedCm: indexOf("ActualSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSpeedCm")]) : null,
+                    predLowPoint: indexOf("PredLowPoint") >= 0 ? (row[indexOf("PredLowPoint")] || "") : "",
+                    actualLowPoint: indexOf("ActualLowPoint") >= 0 ? (row[indexOf("ActualLowPoint")] || "") : "",
+                    speedPlan: indexOf("SpeedPlan") >= 0 ? (row[indexOf("SpeedPlan")] || "") : "",
+                    actualPace: indexOf("ActualPace") >= 0 ? (row[indexOf("ActualPace")] || "") : "",
+                    decisionSec: indexOf("DecisionSec") >= 0 ? this.toNumberOrNull(row[indexOf("DecisionSec")]) : null,
+                    highSideCommit: indexOf("HighSideCommit") >= 0 ? (row[indexOf("HighSideCommit")] || "") : "",
+                    apexCommit: indexOf("ApexCommit") >= 0 ? (row[indexOf("ApexCommit")] || "") : "",
+                    missType: indexOf("MissType") >= 0 ? (row[indexOf("MissType")] || "none") : "none",
+                    missionFileName: indexOf("MissionFileName") >= 0 ? (row[indexOf("MissionFileName")] || "") : "",
+                    missionTitle: indexOf("MissionTitle") >= 0 ? (row[indexOf("MissionTitle")] || "") : "",
+                    missionResponse: indexOf("MissionResponse") >= 0 ? (row[indexOf("MissionResponse")] || "") : ""
+                }));
+            }
+
+            if (!imported.length) {
+                resultTarget.textContent = "가져올 행이 없습니다.";
+                return;
+            }
+
+            this.records = importMode === "overwrite"
+                ? imported
+                : [...this.records, ...imported];
+
+            const importedForCurrentSession = imported.filter(record => {
+                const samePlayer = (record.playerName || "") === (this.session.playerName || "");
+                const sameDate = (record.sessionDate || "") === (this.session.sessionDate || "");
+                return samePlayer && sameDate;
+            }).length;
+
+            if (imported.length && importedForCurrentSession === 0) {
+                const bestSession = this.pickBestSessionFromRecords(imported);
+                if (bestSession) {
+                    this.session.playerName = bestSession.playerName;
+                    this.session.sessionDate = bestSession.sessionDate;
+                    document.getElementById("sessionInfo").textContent = `선수: ${bestSession.playerName} | 날짜: ${bestSession.sessionDate}`;
+                    this.updateDeleteButtonAccess();
+                }
+            }
+
+            this.storageService.saveRecords(this.records);
+            this.refreshDashboard();
+            this.renderMissionEntryList();
+            this.sectionNavigator.show("section-analysis");
+            fileInput.value = "";
+            const modeText = importMode === "overwrite" ? "덮어쓰기" : "병합";
+            resultTarget.textContent = `${imported.length}개 행을 ${modeText} 방식으로 반영했습니다.`;
+        } catch (error) {
+            resultTarget.textContent = "CSV 불러오기 중 오류가 발생했습니다.";
+        }
+    }
+
+    async exportCsv() {
+        const exportRecords = this.getCurrentSessionRecords();
+        if (!exportRecords.length) {
+            const importResult = document.getElementById("importCsvResult");
+            if (importResult) {
+                importResult.textContent = "내보낼 현재 세션 데이터가 없습니다.";
+            }
+            return;
+        }
+
+        const header = [
+            "Date", "PlayerName", "SessionDate", "Mission", "Score", "Distance", "IntendedStartLine", "PredDir", "ActualMiss",
+            "LateralErrorCm", "PredSlope", "ActualSlope", "PredSpeedCm", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
+            "SpeedPlan", "ActualPace", "DecisionSec", "HighSideCommit", "ApexCommit", "MissType", "MissionFileName", "MissionTitle", "MissionResponse"
+        ];
+        let csv = `${header.join(",")}\n`;
+
+        exportRecords.forEach(r => {
+            csv += [
+                r.date,
+                r.playerName ?? "",
+                r.sessionDate ?? "",
+                r.mission,
+                r.score,
+                r.distance ?? "",
+                r.intendedStartLine ?? "",
+                r.intendedStartLine ?? "",
+                r.actualMiss ?? "",
+                r.lateralErrorCm ?? "",
+                r.predSlope ?? "",
+                r.actualSlope ?? "",
+                r.predSpeedCm ?? "",
+                r.actualSpeedCm ?? "",
+                r.predLowPoint ?? "",
+                r.actualLowPoint ?? "",
+                r.speedPlan ?? "",
+                r.actualPace ?? "",
+                r.decisionSec ?? "",
+                r.highSideCommit ?? "",
+                r.apexCommit ?? "",
+                r.missType ?? "none",
+                r.missionFileName ?? "",
+                r.missionTitle ?? "",
+                r.missionResponse ?? ""
+            ].map(value => this.csvEscape(value)).join(",") + "\n";
+        });
+
+        const fileName = this.buildExportFileName();
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [
+                        {
+                            description: "CSV File",
+                            accept: { "text/csv": [".csv"] }
+                        }
+                    ]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(csv);
+                await writable.close();
+                const importResult = document.getElementById("importCsvResult");
+                if (importResult) {
+                    importResult.textContent = `현재 세션 ${exportRecords.length}건을 내보냈습니다.`;
+                }
+                return;
+            } catch (error) {
+                if (error && error.name === "AbortError") return;
+            }
+        }
+
+        this.triggerFallbackDownload(csv, fileName);
+        const importResult = document.getElementById("importCsvResult");
+        if (importResult) {
+            importResult.textContent = `현재 세션 ${exportRecords.length}건을 내보냈습니다.`;
+        }
+    }
+}
+
+const app = new PuttingTrainingApp();
+app.init();
+
+</script>
+
+</body>
+</html> 
