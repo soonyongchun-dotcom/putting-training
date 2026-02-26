@@ -165,6 +165,8 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .mission-meta { margin:6px 0 8px; color:#4a649e; font-size:12px; }
 .mission-log { margin-top:8px; font-size:12px; color:#4c5b7a; }
 .mission-log-item { padding:4px 0; border-bottom:1px dashed #d5dff3; }
+.section-action-row { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pdf-exclude { }
 </style>
 </head>
 
@@ -420,6 +422,10 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 </div>
 
 <div class="section" id="section-analysis">
+<div class="section-action-row pdf-exclude" data-html2canvas-ignore="true">
+    <button id="downloadAnalysisPdf" type="button">분석보기 PDF 다운로드</button>
+    <div class="result" id="analysisPdfResult"></div>
+</div>
 <div class="panel panel-analyze">
     <h2>Auto Metrics (SRI / SII / DCS + 3-Stage Performance)</h2>
   <div class="metrics" id="metricsBoard"></div>
@@ -448,10 +454,14 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 </div>
 
 <div class="section" id="section-visual">
+<div class="section-action-row pdf-exclude" data-html2canvas-ignore="true">
+        <button id="downloadVisualPdf" type="button">시각화 PDF 다운로드</button>
+        <div class="result" id="visualPdfResult"></div>
+</div>
 <div class="panel panel-analyze">
   <h2>Left / Right Error Heatmap</h2>
   <canvas id="heatmapCanvas" width="520" height="250"></canvas>
-    <div class="small">X축: 거리 구간(yd), Y축: Left/Center/Right</div>
+    <div class="small">X축: 거리 구간(yd), Y축: Left/Holed/Right</div>
 </div>
 
 <div class="panel panel-analyze">
@@ -527,6 +537,8 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 
 const APP_CONFIG = {
@@ -806,7 +818,7 @@ class HeatmapComponent {
         this.speedCtx = this.speedCanvas ? this.speedCanvas.getContext("2d") : null;
         this.distanceBins = [0, 2, 4, 6, 8, Number.POSITIVE_INFINITY];
         this.distanceLabels = ["0-2yd", "2-4yd", "4-6yd", "6-8yd", "8yd+"];
-        this.yLabels = ["Left", "Center", "Right"];
+        this.yLabels = ["Left", "Holed", "Right"];
         this.slopeBins = [0, 1, 2, 3, Number.POSITIVE_INFINITY];
         this.slopeLabels = ["0-1%", "1-2%", "2-3%", "3%+"];
     }
@@ -855,11 +867,17 @@ class HeatmapComponent {
             new Array(this.distanceLabels.length).fill(0),
             new Array(this.distanceLabels.length).fill(0)
         ];
+        const attemptsByDistance = new Array(this.distanceLabels.length).fill(0);
+        const holedByDistance = new Array(this.distanceLabels.length).fill(0);
 
         m1.forEach(row => {
             const x = this.getDistanceBin(Number(row.distance) || 0);
             const y = this.getMissBin(row.actualMiss);
             matrix[y][x] += 1;
+            attemptsByDistance[x] += 1;
+            if (row.actualMiss === "center") {
+                holedByDistance[x] += 1;
+            }
         });
 
         const maxValue = Math.max(1, ...matrix.flat());
@@ -895,6 +913,18 @@ class HeatmapComponent {
             ctx.textAlign = "right";
             ctx.fillText(label, 50, offsetY + index * cellH + (cellH / 2));
             ctx.textAlign = "center";
+        });
+
+        const summaryY = offsetY + matrix.length * cellH + 20;
+        ctx.font = "11px Arial";
+        ctx.fillStyle = "#334155";
+        ctx.textAlign = "right";
+        ctx.fillText("시도(성공률)", 50, summaryY);
+        ctx.textAlign = "center";
+        attemptsByDistance.forEach((attempts, index) => {
+            const successRate = attempts ? (holedByDistance[index] / attempts) * 100 : 0;
+            const text = `${attempts}회 (${successRate.toFixed(1)}%)`;
+            ctx.fillText(text, offsetX + index * cellW + (cellW / 2), summaryY);
         });
     }
 
@@ -1036,7 +1066,7 @@ class DashboardComponent {
                 ? `${metrics.lowSideCount}/${metrics.totalMisses} (${(metrics.lowSideRate * 100).toFixed(1)}%)`
                 : "N/A";
             this.lowSideTarget.textContent =
-                `Low-side ${lowSideText} | Low-Point 정확도 ${(metrics.lowPointAccuracy * 100).toFixed(1)}% | Speed Plan 일치 ${(metrics.speedMatchRate * 100).toFixed(1)}% | One-Look 5초 이내 ${(metrics.oneLookRate * 100).toFixed(1)}% | 확신 유지 ${(metrics.confidenceRate * 100).toFixed(1)}%`;
+                `Low-side ${lowSideText} | Low-Point Accuracy ${(metrics.lowPointAccuracy * 100).toFixed(1)}% | Speed Plan Match ${(metrics.speedMatchRate * 100).toFixed(1)}% | One-Look Within 5s ${(metrics.oneLookRate * 100).toFixed(1)}% | Confidence Retention ${(metrics.confidenceRate * 100).toFixed(1)}%`;
         }
     }
 
@@ -1658,6 +1688,8 @@ class PuttingTrainingApp {
             document.getElementById("submitM1").addEventListener("click", () => this.onSubmitM1());
             document.getElementById("submitM2").addEventListener("click", () => this.onSubmitM2());
             document.getElementById("downloadCsv").addEventListener("click", () => this.exportCsv());
+            document.getElementById("downloadAnalysisPdf").addEventListener("click", () => this.exportSectionPdf("section-analysis", "analysis", "analysisPdfResult", "downloadAnalysisPdf"));
+            document.getElementById("downloadVisualPdf").addEventListener("click", () => this.exportSectionPdf("section-visual", "visual", "visualPdfResult", "downloadVisualPdf"));
             document.getElementById("importCsvBtn").addEventListener("click", () => this.importCsv());
             document.getElementById("missionExcelInput").addEventListener("change", (event) => this.handleMissionFileUpload(event));
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
@@ -1809,6 +1841,13 @@ class PuttingTrainingApp {
         const dateRaw = this.session.sessionDate || new Date().toISOString().slice(0, 10);
         const datePart = this.sanitizeFilePart(dateRaw.replace(/-/g, ""), "date");
         return `${namePart}_${datePart}.csv`;
+    }
+
+    buildExportBaseName() {
+        const namePart = this.sanitizeFilePart(this.session.playerName, "player");
+        const dateRaw = this.session.sessionDate || new Date().toISOString().slice(0, 10);
+        const datePart = this.sanitizeFilePart(dateRaw.replace(/-/g, ""), "date");
+        return `${namePart}_${datePart}`;
     }
 
     triggerFallbackDownload(csv, fileName) {
@@ -2113,6 +2152,69 @@ class PuttingTrainingApp {
         const importResult = document.getElementById("importCsvResult");
         if (importResult) {
             importResult.textContent = `현재 세션 ${exportRecords.length}건을 내보냈습니다.`;
+        }
+    }
+
+    async exportSectionPdf(sectionId, fileLabel, resultTargetId, buttonId) {
+        const resultTarget = document.getElementById(resultTargetId);
+        const button = document.getElementById(buttonId);
+
+        if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
+            if (resultTarget) {
+                resultTarget.textContent = "PDF 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.";
+            }
+            return;
+        }
+
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            if (resultTarget) {
+                resultTarget.textContent = "PDF로 저장할 섹션을 찾을 수 없습니다.";
+            }
+            return;
+        }
+
+        if (button) button.disabled = true;
+        if (resultTarget) resultTarget.textContent = "PDF 생성 중...";
+
+        try {
+            const canvas = await window.html2canvas(section, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#ffffff",
+                ignoreElements: (element) => element.classList && element.classList.contains("pdf-exclude")
+            });
+
+            const imageData = canvas.toDataURL("image/png");
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF("p", "mm", "a4");
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imageWidth = pageWidth;
+            const imageHeight = canvas.height * imageWidth / canvas.width;
+
+            let heightLeft = imageHeight;
+            let position = 0;
+
+            pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - imageHeight;
+                pdf.addPage();
+                pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const fileName = `${this.buildExportBaseName()}_${fileLabel}.pdf`;
+            pdf.save(fileName);
+            if (resultTarget) resultTarget.textContent = `PDF 저장 완료: ${fileName}`;
+        } catch (error) {
+            if (resultTarget) {
+                resultTarget.textContent = "PDF 저장 중 오류가 발생했습니다.";
+            }
+        } finally {
+            if (button) button.disabled = false;
         }
     }
 }
