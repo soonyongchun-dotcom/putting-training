@@ -398,12 +398,28 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
         <div class="field">
             <label for="predSlope">Predicted Slope %</label>
-            <input type="number" step="0.1" id="predSlope" value="1.0">
+            <select id="predSlope">
+                <option value="1">오르막1</option>
+                <option value="2">오르막2</option>
+                <option value="3">오르막3</option>
+                <option value="0">평지</option>
+                <option value="-1">내리막1</option>
+                <option value="-2">내리막2</option>
+                <option value="-3">내리막3</option>
+            </select>
         </div>
 
         <div class="field">
             <label for="actualSlope">Actual Slope %</label>
-            <input type="number" step="0.1" id="actualSlope" value="1.0">
+            <select id="actualSlope">
+                <option value="1">오르막1</option>
+                <option value="2">오르막2</option>
+                <option value="3">오르막3</option>
+                <option value="0">평지</option>
+                <option value="-1">내리막1</option>
+                <option value="-2">내리막2</option>
+                <option value="-3">내리막3</option>
+            </select>
         </div>
 
         <div class="field">
@@ -552,6 +568,41 @@ const APP_CONFIG = {
     COACH_DELETE_ALLOWED_USER: "전순용"
 };
 
+const SLOPE_LEVEL_OPTIONS = [
+    { value: 1, label: "오르막1" },
+    { value: 2, label: "오르막2" },
+    { value: 3, label: "오르막3" },
+    { value: 0, label: "평지" },
+    { value: -1, label: "내리막1" },
+    { value: -2, label: "내리막2" },
+    { value: -3, label: "내리막3" }
+];
+
+const SLOPE_LEVEL_LABEL_MAP = new Map(SLOPE_LEVEL_OPTIONS.map(option => [option.value, option.label]));
+const SLOPE_LEVEL_TEXT_MAP = new Map(SLOPE_LEVEL_OPTIONS.map(option => [option.label, option.value]));
+
+function normalizeSlopeLevel(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(-3, Math.min(3, Math.round(numeric)));
+}
+
+function slopeLevelToLabel(value) {
+    const level = normalizeSlopeLevel(value);
+    return SLOPE_LEVEL_LABEL_MAP.get(level) || "평지";
+}
+
+function parseSlopeLevelOrNull(value) {
+    const trimmed = value === undefined || value === null ? "" : String(value).trim();
+    if (!trimmed) return null;
+    if (SLOPE_LEVEL_TEXT_MAP.has(trimmed)) {
+        return SLOPE_LEVEL_TEXT_MAP.get(trimmed);
+    }
+    const numeric = Number(trimmed);
+    if (Number.isNaN(numeric)) return null;
+    return normalizeSlopeLevel(numeric);
+}
+
 class MissionRecord {
     constructor(payload) {
         this.date = payload.date || new Date().toLocaleString();
@@ -567,8 +618,12 @@ class MissionRecord {
         }
         this.actualMiss = payload.actualMiss ?? "";
         this.lateralErrorCm = payload.lateralErrorCm ?? 0;
-        this.predSlope = payload.predSlope ?? null;
-        this.actualSlope = payload.actualSlope ?? null;
+        this.predSlope = payload.predSlope === null || payload.predSlope === undefined
+            ? null
+            : normalizeSlopeLevel(payload.predSlope);
+        this.actualSlope = payload.actualSlope === null || payload.actualSlope === undefined
+            ? null
+            : normalizeSlopeLevel(payload.actualSlope);
         this.predSpeedCm = payload.predSpeedCm ?? null;
         this.actualSpeedCm = payload.actualSpeedCm ?? null;
         this.predLowPoint = payload.predLowPoint ?? "";
@@ -631,7 +686,9 @@ class MetricsService {
     }
 
     calculateM2Score(predSlope, actualSlope, predSpeedCm, actualSpeedCm) {
-        const slopeError = Math.abs(predSlope - actualSlope);
+        const normalizedPredSlope = normalizeSlopeLevel(predSlope);
+        const normalizedActualSlope = normalizeSlopeLevel(actualSlope);
+        const slopeError = Math.abs(normalizedPredSlope - normalizedActualSlope);
         const speedError = Math.abs(predSpeedCm - actualSpeedCm);
         const slopeScore = Math.max(0, 10 - slopeError * 5);
         const speedScore = Math.max(0, 10 - speedError * 0.4);
@@ -650,7 +707,7 @@ class MetricsService {
         const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
 
         const avgSlopeError = m2.length
-            ? m2.reduce((sum, r) => sum + Math.abs((r.predSlope ?? 0) - (r.actualSlope ?? 0)), 0) / m2.length
+            ? m2.reduce((sum, r) => sum + Math.abs(normalizeSlopeLevel(r.predSlope ?? 0) - normalizeSlopeLevel(r.actualSlope ?? 0)), 0) / m2.length
             : 0;
 
         const avgSpeedError = m2.length
@@ -781,7 +838,7 @@ class MetricsService {
 
         const speedByDistance = groupByDistance(speedRows).map(([distance, rows]) => {
             const count = rows.length;
-            const avgSlopeError = rows.reduce((sum, r) => sum + Math.abs((r.predSlope ?? 0) - (r.actualSlope ?? 0)), 0) / Math.max(1, count);
+            const avgSlopeError = rows.reduce((sum, r) => sum + Math.abs(normalizeSlopeLevel(r.predSlope ?? 0) - normalizeSlopeLevel(r.actualSlope ?? 0)), 0) / Math.max(1, count);
             const avgSpeedError = rows.reduce((sum, r) => sum + Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)), 0) / Math.max(1, count);
             const stablePaceRate = rows.filter(r => Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)) <= 10).length / Math.max(1, count);
             return { distance, count, avgSlopeError, avgSpeedError, stablePaceRate };
@@ -819,8 +876,9 @@ class HeatmapComponent {
         this.distanceBins = [0, 2, 4, 6, 8, Number.POSITIVE_INFINITY];
         this.distanceLabels = ["0-2yd", "2-4yd", "4-6yd", "6-8yd", "8yd+"];
         this.yLabels = ["Left", "Holed", "Right"];
-        this.slopeBins = [0, 1, 2, 3, Number.POSITIVE_INFINITY];
-        this.slopeLabels = ["0-1%", "1-2%", "2-3%", "3%+"];
+        this.slopeLevels = [1, 2, 3, 0, -1, -2, -3];
+        this.slopeLabels = this.slopeLevels.map(level => slopeLevelToLabel(level));
+        this.slopeLevelIndexMap = new Map(this.slopeLevels.map((level, index) => [level, index]));
     }
 
     getDistanceBin(distance) {
@@ -837,10 +895,8 @@ class HeatmapComponent {
     }
 
     getSlopeBin(slopePercent) {
-        for (let i = 0; i < this.slopeBins.length - 1; i += 1) {
-            if (slopePercent >= this.slopeBins[i] && slopePercent < this.slopeBins[i + 1]) return i;
-        }
-        return this.slopeLabels.length - 1;
+        const level = normalizeSlopeLevel(slopePercent);
+        return this.slopeLevelIndexMap.get(level) ?? this.slopeLevelIndexMap.get(0) ?? 0;
     }
 
     render(records) {
@@ -950,7 +1006,7 @@ class HeatmapComponent {
         m2.forEach(row => {
             const distance = Number(row.distance) || 0;
             const speedError = Math.abs((Number(row.predSpeedCm) || 0) - (Number(row.actualSpeedCm) || 0));
-            const slopeBasis = Math.abs(Number(row.actualSlope ?? row.predSlope) || 0);
+            const slopeBasis = normalizeSlopeLevel(row.actualSlope ?? row.predSlope ?? 0);
             const x = this.getDistanceBin(distance);
             const y = this.getSlopeBin(slopeBasis);
             sumMatrix[y][x] += speedError;
@@ -1472,8 +1528,8 @@ class PuttingTrainingApp {
             apexCommit: "yes",
             missType: "none",
             speedDistance: "3",
-            predSlope: "1.0",
-            actualSlope: "1.0",
+            predSlope: "1",
+            actualSlope: "1",
             predSpeedCm: "30",
             actualSpeedCm: "30"
         };
@@ -1773,8 +1829,8 @@ class PuttingTrainingApp {
 
     onSubmitM2() {
         const speedDistance = Number(document.getElementById("speedDistance").value || 0);
-        const predSlope = Number(document.getElementById("predSlope").value || 0);
-        const actualSlope = Number(document.getElementById("actualSlope").value || 0);
+        const predSlope = normalizeSlopeLevel(document.getElementById("predSlope").value);
+        const actualSlope = normalizeSlopeLevel(document.getElementById("actualSlope").value);
         const predSpeedCm = Number(document.getElementById("predSpeedCm").value || 0);
         const actualSpeedCm = Number(document.getElementById("actualSpeedCm").value || 0);
         const speedPack = this.metricsService.calculateM2Score(predSlope, actualSlope, predSpeedCm, actualSpeedCm);
@@ -1798,7 +1854,7 @@ class PuttingTrainingApp {
             : 0;
 
         document.getElementById("m2Result").textContent =
-            `Slope Error: ${speedPack.slopeError.toFixed(2)} | Speed Error: ${speedPack.speedError.toFixed(1)}cm | Score: ${cumulativeAvgScore.toFixed(1)} (누적평균)`;
+            `Slope Error: ${speedPack.slopeError.toFixed(2)} (${slopeLevelToLabel(predSlope)} vs ${slopeLevelToLabel(actualSlope)}) | Speed Error: ${speedPack.speedError.toFixed(1)}cm | Score: ${cumulativeAvgScore.toFixed(1)} (누적평균)`;
         this.resetM2Form();
         this.saveDraftForCurrentPlayer();
         this.refreshDashboard();
@@ -2021,8 +2077,8 @@ class PuttingTrainingApp {
                         : (indexOf("PredDir") >= 0 ? (row[indexOf("PredDir")] || "") : "yes"),
                     actualMiss: indexOf("ActualMiss") >= 0 ? (row[indexOf("ActualMiss")] || "") : "",
                     lateralErrorCm: indexOf("LateralErrorCm") >= 0 ? this.toNumberOrNull(row[indexOf("LateralErrorCm")]) : null,
-                    predSlope: indexOf("PredSlope") >= 0 ? this.toNumberOrNull(row[indexOf("PredSlope")]) : null,
-                    actualSlope: indexOf("ActualSlope") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSlope")]) : null,
+                    predSlope: indexOf("PredSlope") >= 0 ? parseSlopeLevelOrNull(row[indexOf("PredSlope")]) : null,
+                    actualSlope: indexOf("ActualSlope") >= 0 ? parseSlopeLevelOrNull(row[indexOf("ActualSlope")]) : null,
                     predSpeedCm: indexOf("PredSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("PredSpeedCm")]) : null,
                     actualSpeedCm: indexOf("ActualSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSpeedCm")]) : null,
                     predLowPoint: indexOf("PredLowPoint") >= 0 ? (row[indexOf("PredLowPoint")] || "") : "",
