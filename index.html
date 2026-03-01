@@ -1029,6 +1029,8 @@ const UI_I18N = {
         cloudSyncPulled: "클라우드 불러오기 완료 (기록 {{records}}건, 미션파일 {{missions}}개, 업로드 {{uploads}}개, 선수 {{players}}명)",
         cloudSyncPushed: "클라우드 올리기 완료 (기록 {{records}}건, 미션파일 {{missions}}개, 업로드 {{uploads}}개, 선수 {{players}}명)",
         cloudSyncNoData: "클라우드에 저장된 데이터가 없습니다.",
+        cloudSyncAutoPulling: "자동 클라우드 불러오기 실행 중...",
+        cloudSyncAutoPulled: "자동 클라우드 불러오기 완료",
         cloudSyncFailed: "클라우드 동기화 실패: {{message}}",
         cloudPushCoachOnly: "클라우드 올리기는 지도자 모드에서만 가능합니다.",
         coachRoleCoachNote: "지도자 모드: 미션 업로드/삭제 및 선수별 피드백 관리 가능",
@@ -1197,6 +1199,8 @@ const UI_I18N = {
         cloudSyncPulled: "Cloud pull completed (records {{records}}, mission files {{missions}}, uploads {{uploads}}, players {{players}})",
         cloudSyncPushed: "Cloud push completed (records {{records}}, mission files {{missions}}, uploads {{uploads}}, players {{players}})",
         cloudSyncNoData: "No saved data found in cloud.",
+        cloudSyncAutoPulling: "Auto cloud pull in progress...",
+        cloudSyncAutoPulled: "Auto cloud pull completed",
         cloudSyncFailed: "Cloud sync failed: {{message}}",
         cloudPushCoachOnly: "Cloud push is available only in coach mode.",
         coachRoleCoachNote: "Coach mode: can upload/delete missions and manage player feedback",
@@ -4137,7 +4141,7 @@ class PuttingTrainingApp {
             return;
         }
 
-        if (!isCoachLogin && this.isCloudSyncConfigured()) {
+        if (this.isCloudSyncConfigured()) {
             await this.pullCloudState(true);
         }
 
@@ -4195,6 +4199,9 @@ class PuttingTrainingApp {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "block";
         this.initializeAppAfterLogin();
+        if (this.session.role !== "coach") {
+            this.sectionNavigator.show("section-export");
+        }
         this.restoreDraftForPlayer(playerName);
         this.saveDraftForCurrentPlayer();
         this.updateDeleteButtonAccess();
@@ -4741,6 +4748,10 @@ class PuttingTrainingApp {
 
     async pullCloudState(silent = false) {
         const resultTarget = document.getElementById("cloudSyncResult");
+        const showAutoMessage = silent && !!resultTarget;
+        if (showAutoMessage) {
+            resultTarget.textContent = this.t("cloudSyncAutoPulling");
+        }
         if (!this.isCloudSyncConfigured()) {
             if (!silent && resultTarget) resultTarget.textContent = this.t("cloudSyncNeedConfig");
             return;
@@ -4767,12 +4778,18 @@ class PuttingTrainingApp {
             const rows = await response.json();
             const payload = rows?.[0]?.payload;
             if (!payload) {
-                if (!silent && resultTarget) resultTarget.textContent = this.t("cloudSyncNoData");
+                if (showAutoMessage && resultTarget) {
+                    resultTarget.textContent = this.t("cloudSyncNoData");
+                } else if (!silent && resultTarget) {
+                    resultTarget.textContent = this.t("cloudSyncNoData");
+                }
                 return;
             }
 
             this.applyCloudSnapshot(payload);
-            if (!silent && resultTarget) {
+            if (showAutoMessage && resultTarget) {
+                resultTarget.textContent = this.t("cloudSyncAutoPulled");
+            } else if (!silent && resultTarget) {
                 resultTarget.textContent = this.t("cloudSyncPulled", {
                     records: this.records.length,
                     missions: this.coachMissionFiles.length,
@@ -4781,7 +4798,11 @@ class PuttingTrainingApp {
                 });
             }
         } catch (error) {
-            if (!silent && resultTarget) {
+            if (showAutoMessage && resultTarget) {
+                resultTarget.textContent = this.t("cloudSyncFailed", {
+                    message: error?.message || "unknown error"
+                });
+            } else if (!silent && resultTarget) {
                 resultTarget.textContent = this.t("cloudSyncFailed", {
                     message: error?.message || "unknown error"
                 });
