@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,6 +10,7 @@ h1 { color:#1f4db8; margin-bottom:8px; }
 h2 { margin-top:24px; }
 input, select { margin:5px; padding:8px; border:1px solid #c7d4ee; border-radius:6px; }
 button { padding:8px 12px; margin:5px; border:none; border-radius:6px; background:#265fd3; color:#fff; cursor:pointer; }
+.save-feedback { background:#1ea868 !important; }
 .panel { border:1px solid #d7e0f2; border-radius:12px; padding:14px; margin-top:14px; background:#ffffff; box-shadow:0 2px 6px rgba(25,50,110,0.06); }
 .row { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
 .form-grid {
@@ -44,6 +46,46 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 }
 
 .result { margin-top:10px; font-weight:bold; }
+.result.metric-breakdown {
+    font-weight:normal;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap:8px;
+}
+.metric-chip {
+    border:1px solid #d7e0f2;
+    border-radius:10px;
+    padding:8px 10px;
+    background:#f8fbff;
+    cursor:help;
+}
+.metric-chip-label {
+    font-size:12px;
+    color:#3f5f9d;
+    font-weight:bold;
+}
+.metric-chip-value {
+    margin-top:4px;
+    font-size:15px;
+    color:#1c3f91;
+    font-weight:bold;
+    line-height:1.25;
+}
+.metric-chip-meta {
+    margin-top:3px;
+    font-size:11px;
+    color:#6a7fae;
+}
+.metric-chip-note {
+    margin-left:4px;
+    font-size:12px;
+    color:#5b6f9f;
+    font-weight:normal;
+}
+.metric-chip.quality-neutral { background:#f8fbff; border-color:#d7e0f2; }
+.metric-chip.quality-good { background:#eef9f3; border-color:#b9e2cc; }
+.metric-chip.quality-mid { background:#fff6de; border-color:#e6ca7a; }
+.metric-chip.quality-bad { background:#fff1f1; border-color:#efc0c0; }
 .metrics { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px; margin-top:8px; }
 .metric-card { border:1px solid #d7e0f2; border-radius:10px; padding:10px; background:#f8fbff; }
 .metric-card.overall-highlight {
@@ -146,9 +188,14 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .top-actions { display:flex; align-items:center; gap:8px; }
 .secondary-btn { background:#8aa2d8; }
 .secondary-btn:disabled { background:#b8c6e6; cursor:not-allowed; }
+#uploadMissionResultBtn.secondary-btn:not(:disabled) { background:#4f73c8; }
 .distance-table { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; }
 .distance-table th, .distance-table td { border:1px solid #d7e0f2; padding:6px 8px; text-align:center; }
 .distance-table th { background:#eef4ff; color:#1f4db8; }
+.distance-table .summary-row td {
+    background:#f2f4f7;
+    font-weight:bold;
+}
 .distance-empty { margin-top:8px; color:#667; font-size:13px; }
 .mission-file-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
 .mission-file-btn {
@@ -163,10 +210,166 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .mission-work { margin-top:10px; border:1px solid #d7e0f2; border-radius:10px; padding:10px; background:#fafcff; }
 .mission-textarea { width:100%; min-height:90px; border:1px solid #c7d4ee; border-radius:8px; padding:8px; box-sizing:border-box; }
 .mission-meta { margin:6px 0 8px; color:#4a649e; font-size:12px; }
+.mission-meta { white-space: pre-wrap; }
 .mission-log { margin-top:8px; font-size:12px; color:#4c5b7a; }
 .mission-log-item { padding:4px 0; border-bottom:1px dashed #d5dff3; }
+.mission-date-filter {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:6px 0 8px;
+    font-size:12px;
+    color:#3d5fa1;
+}
+.mission-date-filter select {
+    margin:0;
+    min-width:170px;
+}
+.mission-source-preview-title {
+    margin:8px 0 4px;
+    font-size:12px;
+    color:#3d5fa1;
+    font-weight:bold;
+}
+.mission-source-preview-wrap {
+    max-height:220px;
+    overflow:auto;
+    border:1px solid #d7e0f2;
+    border-radius:8px;
+    background:#fff;
+}
+.distance-table td.mission-item-cell {
+    white-space: pre-wrap;
+    text-align: left;
+    line-height: 1.35;
+}
+.mission-toolbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    flex-wrap:wrap;
+}
+.mission-thread {
+    margin-top:10px;
+    border:1px solid #d7e0f2;
+    border-radius:10px;
+    background:#ffffff;
+    padding:10px;
+    max-height:320px;
+    overflow:auto;
+}
+.mission-thread-empty {
+    color:#6f7c97;
+    font-size:12px;
+}
+.mission-bubble {
+    border:1px solid #d8e2f6;
+    background:#f7faff;
+    border-radius:10px;
+    padding:8px 10px;
+    margin-bottom:8px;
+}
+.mission-bubble.coach {
+    border-color:#bfd2ff;
+    background:#ecf3ff;
+}
+.mission-bubble.player {
+    border-color:#bfe5cf;
+    background:#edf9f1;
+}
+.mission-bubble-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:4px;
+}
+.mission-badge {
+    font-size:11px;
+    font-weight:bold;
+    color:#264a92;
+    background:#dce8ff;
+    border-radius:999px;
+    padding:2px 8px;
+}
+.mission-bubble.player .mission-badge {
+    color:#1c6a41;
+    background:#d8f0e1;
+}
+.mission-time { font-size:11px; color:#6b7ea8; }
+.mission-line { font-size:12px; color:#324a82; line-height:1.35; }
+.mission-line.type { color:#5f74a5; font-size:11px; margin-bottom:4px; }
+.coach-role-note {
+    margin:6px 0 4px;
+    color:#5a6f9e;
+    font-size:12px;
+    font-weight:bold;
+}
+.mission-transfer {
+    margin-top:8px;
+    padding:8px;
+    border:1px solid #d7e0f2;
+    border-radius:10px;
+    background:#f7faff;
+}
+.mission-transfer .row {
+    align-items:flex-end;
+.mission-status {
+    display:inline-block;
+    margin-left:6px;
+    padding:1px 6px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:bold;
+}
+.mission-status.pending {
+    background:#fff4d8;
+    color:#8a5a00;
+    border:1px solid #e5c06a;
+}
+.mission-status.resolved {
+    background:#e9f8ef;
+    color:#1a7a49;
+    border:1px solid #9ad0b3;
+}
+}
+.mission-transfer input[type="file"] {
+    width:100%;
+}
+.mission-section-title {
+    margin:8px 0 6px;
+    font-size:13px;
+    font-weight:bold;
+    color:#2f4f92;
+}
+.coach-group {
+    margin-top:10px;
+    border:1px solid #d7e0f2;
+    border-radius:10px;
+    background:#f9fbff;
+    padding:10px;
+}
+.coach-group:first-of-type {
+    margin-top:8px;
+}
+.mission-upload-list {
+    margin-top:8px;
+    border:1px solid #d7e0f2;
+    border-radius:8px;
+    background:#fff;
+    padding:8px;
+    max-height:140px;
+    overflow:auto;
+    font-size:12px;
+    color:#4b608f;
+}
+.mission-upload-item {
+    padding:4px 0;
+    border-bottom:1px dashed #d6e0f3;
+}
+.mission-upload-item:last-child { border-bottom:none; }
 .section-action-row { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.pdf-exclude { }
 </style>
 </head>
 
@@ -182,8 +385,22 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
                 <input type="text" id="loginPlayerName" placeholder="예: 전순용">
             </div>
             <div class="field">
+                <label for="loginLanguage">언어</label>
+                <select id="loginLanguage">
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="field">
                 <label for="loginDate">날짜</label>
                 <input type="date" id="loginDate">
+            </div>
+            <div class="field">
+                <label for="loginRole">접속 역할</label>
+                <select id="loginRole">
+                    <option value="player">선수</option>
+                    <option value="coach">지도자</option>
+                </select>
             </div>
             <div class="field" style="grid-column: 1 / -1;">
                 <label for="loginPasscode">패스코드</label>
@@ -205,6 +422,10 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
+        <select id="topLanguage" aria-label="Language">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+        </select>
         <button id="newStartButton" class="secondary-btn" type="button">새로 시작</button>
         <button id="logoutButton" class="secondary-btn" type="button">로그아웃</button>
     </div>
@@ -218,7 +439,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     </button>
     <button class="nav-card" data-target="section-m1" type="button">
         <div class="nav-title">2) M1 입력</div>
-        <div class="nav-desc">방향/결정력 기록</div>
+        <div class="nav-desc">방향/결정력/커밋 기록</div>
     </button>
     <button class="nav-card" data-target="section-m2" type="button">
         <div class="nav-title">3) M2 입력</div>
@@ -226,11 +447,11 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     </button>
     <button class="nav-card" data-target="section-analysis" type="button">
         <div class="nav-title">4) 분석 보기</div>
-        <div class="nav-desc">지표/분류 통계</div>
+        <div class="nav-desc">지표/미스원인/거리별 분석</div>
     </button>
     <button class="nav-card" data-target="section-visual" type="button">
         <div class="nav-title">5) 시각화</div>
-        <div class="nav-desc">히트맵/Bayesian</div>
+        <div class="nav-desc">히트맵/베이지안 업데이트</div>
     </button>
     <button class="nav-card" data-target="section-coach" type="button">
         <div class="nav-title">6) 코치 미션</div>
@@ -252,7 +473,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         <li><b>High-Side Only:</b> 낮은 쪽 미스를 벌점으로 관리해 결정력 강화</li>
         <li><b>Apex 시각화:</b> 컵이 아닌 최고점 지점을 먼저 결정</li>
         <li><b>Speed First:</b> 데드웨이트/30cm/60cm 오버 속도별 브레이크 차이 학습</li>
-        <li><b>One-Look Decision:</b> 1회 읽기 + 5초 이내 스트로크로 확신 유지</li>
+        <li><b>Address→Putt 7초 루틴:</b> 어드레스 진입 후 7초 이내 스트로크 유지 (7초 초과 여부 체크)</li>
     </ol>
 
     <div class="concept-box">
@@ -285,7 +506,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="section" id="section-m1">
 <div class="panel panel-train" id="m1Panel">
-    <h2>Lie 결정훈련 (Slope / Direction Decision)</h2>
+    <h2>Lie Decision Training (Slope / Direction / Commitment)</h2>
     <div class="form-grid">
         <div class="field">
             <label for="distance">Distance (yd)</label>
@@ -351,8 +572,11 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         </div>
 
         <div class="field">
-            <label for="decisionSec">Decision Time (sec)</label>
-            <input type="number" id="decisionSec" min="1" max="20" step="0.5" value="5">
+            <label for="decisionOver7">Stroke Time Consistency (Over 7s?)</label>
+            <select id="decisionOver7">
+                    <option value="no">No (Within 7s)</option>
+                    <option value="yes">Yes (Over 7s)</option>
+            </select>
         </div>
 
         <div class="field">
@@ -381,15 +605,15 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
             </select>
         </div>
     </div>
-    <button id="submitM1">Submit Lie Training</button>
+    <button id="submitM1">저장 (Save)</button>
   <div class="result" id="m1Result"></div>
-    <div class="small">Directional Miss: Miss Type이 direction/both인 경우 / One-look 목표: 5초 이내</div>
+    <div class="small">Directional Miss: counted when Miss Type is direction/both / Address→Putt target: within 7s</div>
 </div>
 </div>
 
 <div class="section" id="section-m2">
 <div class="panel panel-train" id="m2Panel">
-    <h2>Speed 결정훈련 (Pace / Roll Decision)</h2>
+    <h2>Speed Decision Training (Pace / Roll Decision)</h2>
     <div class="form-grid">
                 <div class="field">
                         <label for="speedDistance">Distance (yd)</label>
@@ -399,26 +623,26 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         <div class="field">
             <label for="predSlope">Predicted Slope %</label>
             <select id="predSlope">
-                <option value="1">오르막1</option>
-                <option value="2">오르막2</option>
-                <option value="3">오르막3</option>
-                <option value="0">평지</option>
-                <option value="-1">내리막1</option>
-                <option value="-2">내리막2</option>
-                <option value="-3">내리막3</option>
+                <option value="1">Uphill 1</option>
+                <option value="2">Uphill 2</option>
+                <option value="3">Uphill 3</option>
+                <option value="0">Flat</option>
+                <option value="-1">Downhill 1</option>
+                <option value="-2">Downhill 2</option>
+                <option value="-3">Downhill 3</option>
             </select>
         </div>
 
         <div class="field">
             <label for="actualSlope">Actual Slope %</label>
             <select id="actualSlope">
-                <option value="1">오르막1</option>
-                <option value="2">오르막2</option>
-                <option value="3">오르막3</option>
-                <option value="0">평지</option>
-                <option value="-1">내리막1</option>
-                <option value="-2">내리막2</option>
-                <option value="-3">내리막3</option>
+                <option value="1">Uphill 1</option>
+                <option value="2">Uphill 2</option>
+                <option value="3">Uphill 3</option>
+                <option value="0">Flat</option>
+                <option value="-1">Downhill 1</option>
+                <option value="-2">Downhill 2</option>
+                <option value="-3">Downhill 3</option>
             </select>
         </div>
 
@@ -432,20 +656,20 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
             <input type="number" step="1" id="actualSpeedCm" value="30">
         </div>
     </div>
-    <button id="submitM2">Submit Speed Training</button>
+    <button id="submitM2">저장 (Save)</button>
   <div class="result" id="m2Result"></div>
 </div>
 </div>
 
 <div class="section" id="section-analysis">
 <div class="section-action-row pdf-exclude" data-html2canvas-ignore="true">
-    <button id="downloadAnalysisPdf" type="button">분석보기 PDF 다운로드</button>
+    <button id="downloadAnalysisPdf" type="button">Download Analysis PDF</button>
     <div class="result" id="analysisPdfResult"></div>
 </div>
 <div class="panel panel-analyze">
     <h2>Auto Metrics (SRI / SII / DCS + 3-Stage Performance)</h2>
   <div class="metrics" id="metricsBoard"></div>
-    <div class="small">SRI: 경사 수치화 정확도 / SII: 방향 판독+Low-side 보정 / DCS: 거리 대비 오차 + 속도 통합 품질</div>
+    <div class="small">SRI: slope quantification accuracy / SII: direction read + low-side control / DCS: distance-normalized error + speed integration quality</div>
 </div>
 
 <div class="panel panel-analyze">
@@ -459,79 +683,172 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 </div>
 
 <div class="panel panel-analyze">
-    <h2>Lie 결정훈련 거리별 분석</h2>
+    <h2>Lie Decision Training by Distance</h2>
     <div id="lieDistanceAnalysis"></div>
 </div>
 
 <div class="panel panel-analyze">
-    <h2>Speed 결정훈련 거리별 분석</h2>
+    <h2>Speed Decision Training by Distance</h2>
     <div id="speedDistanceAnalysis"></div>
 </div>
 </div>
 
 <div class="section" id="section-visual">
 <div class="section-action-row pdf-exclude" data-html2canvas-ignore="true">
-        <button id="downloadVisualPdf" type="button">시각화 PDF 다운로드</button>
+        <button id="downloadVisualPdf" type="button">Download Visualization PDF</button>
         <div class="result" id="visualPdfResult"></div>
 </div>
 <div class="panel panel-analyze">
   <h2>Left / Right Error Heatmap</h2>
   <canvas id="heatmapCanvas" width="520" height="250"></canvas>
-    <div class="small">X축: 거리 구간(yd), Y축: Left/Holed/Right</div>
+    <div class="small">X-axis: distance bins (yd), Y-axis: Left/Holed/Right</div>
 </div>
 
 <div class="panel panel-analyze">
     <h2>Speed Error Heatmap (M2)</h2>
     <canvas id="speedHeatmapCanvas" width="520" height="250"></canvas>
-        <div class="small">X축: 거리 구간(yd), Y축: 경사 구간(%) / 셀 값: 평균 Speed Error(cm)</div>
+    <div class="small">X-axis: distance bins (yd), Y-axis: slope categories / cell value: average speed error (cm)</div>
 </div>
 
 <div class="panel panel-analyze">
   <h2>Bayesian Skill Update</h2>
   <div class="result" id="bayesResult"></div>
-  <div class="small">사전분포 Beta(1,1), M1 결과의 Holed 여부로 실시간 업데이트</div>
+    <div class="small">Prior Beta(1,1), updated in real time using M1 holed outcomes</div>
 </div>
 </div>
 
 <div class="section" id="section-coach">
 <div class="panel panel-data">
-  <h2>Coach Mission Upload & Input</h2>
-  <div class="small">지도자가 미션 엑셀 파일을 업로드하면, 파일명을 클릭해 해당 미션을 선택/입력하고 저장할 수 있습니다.</div>
+    <h2>Coach Mission & Feedback Hub</h2>
+    <div class="small">지도자와 선수가 미션/피드백을 대화형으로 주고받고, 기록을 저장해 관리할 수 있습니다.</div>
 
-  <div class="form-grid">
-      <div class="field" style="grid-column: 1 / -1;">
-          <label for="missionExcelInput">Mission Excel Upload (.xlsx, .xls, .csv)</label>
-          <input type="file" id="missionExcelInput" accept=".xlsx,.xls,.csv" multiple>
+    <div class="coach-role-note" id="coachRoleNote"></div>
+
+  <div class="coach-group" id="coachPlayerManageGroup">
+      <div class="mission-section-title" id="coachPlayerManageTitle">선수 선택/등록</div>
+
+      <div class="form-grid" id="coachPlayerFilterWrap" style="margin-top:6px; display:none;">
+          <div class="field" style="grid-column: 1 / -1;">
+              <label for="coachPlayerFilter">선수 선택</label>
+              <select id="coachPlayerFilter"></select>
+          </div>
+      </div>
+
+      <div class="form-grid" id="coachPlayerRegisterWrap" style="margin-top:6px; display:none;">
+          <div class="field">
+              <label for="registerPlayerName">선수 등록 이름</label>
+              <input type="text" id="registerPlayerName" placeholder="예: 유수연">
+          </div>
+          <div class="field">
+              <label for="registerPlayerPass">선수 비밀번호</label>
+              <input type="password" id="registerPlayerPass" placeholder="예: 1234">
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+              <button id="registerPlayerBtn" type="button" class="secondary-btn">선수등록</button>
+          </div>
+          <div class="result" id="registerPlayerResult"></div>
+          <div class="mission-upload-list" id="registeredPlayerList"></div>
       </div>
   </div>
 
+  <div class="coach-group" id="coachMissionManageGroup">
+      <div class="mission-section-title" id="coachMissionManageTitle">미션 등록/배포</div>
+
+      <div class="form-grid">
+          <div class="field" style="grid-column: 1 / -1;" id="missionExcelUploadField">
+              <label for="missionExcelInput">Mission Excel Upload (.xlsx, .xls, .csv)</label>
+              <input type="file" id="missionExcelInput" accept=".xlsx,.xls,.csv" multiple>
+          </div>
+      </div>
+
+      <div class="form-grid" id="coachMissionDirectField" style="margin-top:6px; display:none;">
+          <div class="field">
+              <label for="missionDirectTitle">미션 제목</label>
+              <input type="text" id="missionDirectTitle" placeholder="예: 3yd 스트레이트 20구">
+          </div>
+          <div class="field">
+              <label for="missionDirectItem">미션내용</label>
+              <textarea id="missionDirectItem" class="mission-textarea" placeholder="예: 20구 중 16구 이상 홀인\n미스 시 루틴 재점검"></textarea>
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+              <button id="saveMissionDirectBtn" type="button" class="secondary-btn">미션등록</button>
+          </div>
+      </div>
+  </div>
+
+  <div class="mission-section-title" id="missionTaskTitle">수행미션</div>
   <div class="mission-file-list" id="missionFileList"></div>
 
   <div class="mission-work" id="missionWorkArea" style="display:none;">
+      <div class="mission-section-title" id="coachResultManageTitle">선수 결과 관리</div>
+      <div class="mission-transfer" id="missionTransferBox">
+          <div class="form-grid">
+              <div class="field" style="grid-column: 1 / -1;" id="missionResultUploadField">
+                  <label for="missionResultCsvInput">미션 결과 데이터 업로드 (CSV)</label>
+                  <input type="file" id="missionResultCsvInput" accept=".csv">
+              </div>
+              <div class="field" style="grid-column: 1 / -1;">
+                  <label for="missionResultDownloadFile">다운로드 대상 파일</label>
+                  <select id="missionResultDownloadFile"></select>
+              </div>
+          </div>
+          <div class="row" style="margin-top:4px;">
+              <button id="uploadMissionResultBtn" type="button" class="secondary-btn">미션결과 업로드</button>
+              <button id="downloadMissionResultBtn" type="button" class="secondary-btn">미션결과 다운로드</button>
+          </div>
+          <div class="mission-upload-list" id="missionResultUploadList"></div>
+      </div>
+
+      <div class="mission-section-title" id="coachConversationTitle">선수 대화/피드백</div>
       <div class="form-grid">
           <div class="field">
               <label for="missionItemSelect">Mission Item</label>
               <select id="missionItemSelect"></select>
           </div>
           <div class="field">
-              <label for="missionInputText">입력 내용 (수행결과/메모)</label>
-              <textarea id="missionInputText" class="mission-textarea" placeholder="예: 4yd 우하향 브레이크 미션 10회 중 7회 성공"></textarea>
+              <label for="missionMessageType">기록 유형</label>
+              <select id="missionMessageType">
+                  <option value="mission">미션 지시</option>
+                  <option value="feedback">피드백</option>
+                  <option value="question">질문/메모</option>
+              </select>
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+              <label for="missionTargetPlayer">대상 선수</label>
+              <input type="text" id="missionTargetPlayer" placeholder="예: 전순용">
+          </div>
+          <div class="field" style="grid-column: 1 / -1;" id="missionBroadcastWrap">
+              <label><input type="checkbox" id="missionBroadcastAll"> <span id="missionBroadcastLabel">전체선수 공지</span></label>
           </div>
       </div>
       <div class="mission-meta" id="missionMeta"></div>
-            <button id="saveMissionInputBtn" type="button">미션 입력 저장</button>
+    <div id="missionSourcePreview"></div>
+            <div class="mission-thread" id="missionEntryList"></div>
+            <div class="field" style="margin-top:8px;">
+                    <label for="missionInputText">대화 내용</label>
+                    <textarea id="missionInputText" class="mission-textarea" placeholder="예: 4yd 우하향 브레이크 10회 중 7회 성공 / 다음 세트는 데드웨이트 유지"></textarea>
+            </div>
+      <div class="mission-toolbar">
+                        <button id="saveMissionInputBtn" type="button">전송</button>
             <button id="deleteMissionFileBtn" class="secondary-btn" type="button">선택 파일 삭제</button>
+      </div>
       <div class="result" id="missionSaveResult"></div>
-      <div class="mission-log" id="missionEntryList"></div>
   </div>
 </div>
 </div>
 
 <div class="section" id="section-export">
 <div class="panel panel-data">
-  <h2>Export Data</h2>
-  <button id="downloadCsv">Download CSV</button>
-    <div class="form-grid" style="margin-top:10px;">
+    <h2 id="sectionExportTitle">Export Data</h2>
+        <div id="playerTransferBox" style="display:none; margin-bottom:10px;">
+                <div class="small" id="playerTransferDesc">M1/M2 저장 데이터(현재 선수/날짜)를 지도자에게 전송합니다.</div>
+            <button id="sendTrainingDataBtn" type="button">데이터관리</button>
+                <div class="result" id="trainingTransferResult"></div>
+        </div>
+
+        <div id="coachDataControls">
+                <button id="downloadCsv">Download CSV</button>
+                <div class="form-grid" style="margin-top:10px;">
             <div class="field" style="grid-column: 1 / -1;">
                     <label for="importCsvInput">CSV 불러오기 (동일 포맷)</label>
                     <input type="file" id="importCsvInput" accept=".csv">
@@ -543,8 +860,9 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
                   <option value="overwrite">덮어쓰기 (기존 데이터 교체)</option>
               </select>
           </div>
+        </div>
+        <button id="importCsvBtn" class="secondary-btn" type="button">CSV 불러오기 실행</button>
     </div>
-    <button id="importCsvBtn" class="secondary-btn" type="button">CSV 불러오기 실행</button>
     <div class="result" id="importCsvResult"></div>
 </div>
 </div>
@@ -559,27 +877,365 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 const APP_CONFIG = {
     ACCESS_PASSCODE: "0403",
+    COACH_LOGIN_PASSCODE: "1013",
+    COACH_LOGIN_ALLOWED_USER: "전순용",
     MAX_LOGIN_ATTEMPTS: 3,
     LOCKOUT_SECONDS: 30,
     LOGIN_DRAFT_KEY: "greenMissionLoginDraft",
     FORM_DRAFTS_KEY: "greenMissionDrafts",
+    REGISTERED_PLAYERS_KEY: "registeredPlayers",
     COACH_MISSIONS_KEY: "coachMissionFiles",
+    MISSION_RESULT_UPLOADS_KEY: "missionResultUploads",
     COACH_DELETE_CODE: "1013",
     COACH_DELETE_ALLOWED_USER: "전순용"
 };
 
+let CURRENT_LANG = "ko";
+
+const UI_I18N = {
+    ko: {
+        loginTitle: "SY-PTS 접속",
+        loginNote: "선수 정보와 패스코드를 입력하면 훈련 화면으로 진입합니다.",
+        loginPlayer: "선수 이름",
+        loginPlayerPh: "예: 전순용",
+        loginLang: "언어",
+        loginDate: "날짜",
+        loginRole: "접속 역할",
+        rolePlayer: "선수",
+        roleCoach: "지도자",
+        loginPass: "패스코드",
+        loginPassPh: "4자리 코드",
+        loginEnter: "입장",
+        newStart: "새로 시작",
+        logout: "로그아웃",
+        sessionInfo: "이름: {{playerName}} | 날짜: {{sessionDate}} | 역할: {{role}}",
+        score: "점수",
+        passWithin7s: "통과 (7초 이내)",
+        lateOver7s: "지연 (7초 초과)",
+        m1Result: "점수: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 7초 기준: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
+        m2Result: "Slope Error: {{slopeError}} ({{predLabel}} vs {{actualLabel}}) | Speed Error: {{speedError}}cm | Score: {{score}} (누적평균)",
+        missionDesc: "미션 설명: {{detail}}",
+        missionDescEmpty: "미션 설명 없음",
+        missionDescFromSource: "미션 설명은 아래 원본 미션 파일 내용에서 확인하세요.",
+        missionSourcePreviewTitle: "원본 미션 파일 내용",
+        missionSourcePreviewEmpty: "표시할 원본 파일 데이터가 없습니다.",
+        noMissionFiles: "업로드된 미션 파일이 없습니다.",
+        noMissionFileSelected: "먼저 수행미션 파일을 선택하세요.",
+        noMissionEntries: "아직 저장된 미션 입력이 없습니다.",
+        writeMissionInput: "입력 내용을 작성하세요.",
+        needTargetPlayer: "대상 선수를 입력하세요.",
+        coachUploadOnly: "미션 파일 업로드는 지도자 계정에서만 가능합니다.",
+        coachDeleteOnly: "파일 삭제는 지도자 계정에서만 가능합니다.",
+        missionSaved: "미션 입력이 저장되었습니다.",
+        missionSavedAs: "기록 저장 완료: {{actorRole}} → {{targetPlayer}}",
+        missionQuestionSavedAs: "질문 등록 완료: {{actorRole}} → {{targetPlayer}}",
+        questionPending: "답변대기",
+        questionResolved: "답변완료",
+        missionTypeMission: "미션 지시",
+        missionTypeFeedback: "피드백",
+        missionTypeQuestion: "질문/메모",
+        missionTypeLabel: "기록 유형",
+        missionSendBtn: "전송",
+        missionTargetLabel: "대상 선수",
+        registerPlayerNameLabel: "선수 등록 이름",
+        registerPlayerPassLabel: "선수 비밀번호",
+        registerPlayerNamePh: "예: 유수연",
+        registerPlayerPassPh: "예: 1234",
+        registerPlayerBtn: "선수등록",
+        registerPlayerSaved: "선수 등록 완료: {{name}}",
+        registerPlayerExists: "이미 등록된 선수입니다: {{name}}",
+        registerPlayerNeedName: "선수 이름을 입력하세요.",
+        registerPlayerNeedPass: "선수 비밀번호를 입력하세요.",
+        registerPlayerListItem: "{{name}} (등록: {{createdAt}})",
+        registerPlayerDeleteBtn: "삭제",
+        registerPlayerResetBtn: "비밀번호 재설정",
+        registerPlayerDeleteConfirm: "{{name}} 선수 계정을 삭제하시겠습니까?",
+        registerPlayerDeleteRelatedConfirm: "{{name}} 선수의 관련 데이터(훈련기록/미션/업로드 결과)도 함께 삭제하시겠습니까?",
+        registerPlayerDeleted: "선수 계정 삭제 완료: {{name}}",
+        registerPlayerDeletedWithData: "선수 계정 및 관련 데이터 삭제 완료: {{name}} (기록 {{records}}건, 미션파일 {{missions}}개, 결과파일 {{uploads}}개)",
+        registerPlayerNewPassPrompt: "{{name}} 선수의 새 비밀번호를 입력하세요.",
+        registerPlayerResetSaved: "선수 비밀번호 재설정 완료: {{name}}",
+        registerPlayerProtected: "이 계정은 삭제할 수 없습니다: {{name}}",
+        noRegisteredPlayers: "등록된 선수가 없습니다.",
+        missionInputLabel: "대화 내용",
+        missionInputPh: "예: 4yd 우하향 브레이크 10회 중 7회 성공 / 다음 세트는 데드웨이트 유지",
+        missionDirectTitleLabel: "미션 제목",
+        missionDirectItemLabel: "미션내용",
+        missionDirectTitlePh: "예: 3yd 스트레이트 20구",
+        missionDirectItemPh: "예: 20구 중 16구 이상 홀인",
+        saveMissionDirect: "미션등록",
+        needMissionDirectTitle: "미션 제목을 입력하세요.",
+        needMissionDirectItem: "미션 항목을 입력하세요.",
+        missionDirectSaved: "미션 등록 완료: {{targetPlayer}} / {{title}}",
+        missionResultFileLabel: "미션 결과 데이터 업로드 (CSV)",
+        uploadMissionResult: "미션결과 업로드",
+        downloadMissionResult: "미션결과 다운로드",
+        needMissionResultFile: "업로드할 미션 결과 CSV 파일을 선택하세요.",
+        missionResultImported: "미션 결과 {{count}}건을 불러왔습니다.",
+        missionResultNoRows: "가져올 미션 결과 행이 없습니다.",
+        missionResultDownloadNoData: "다운로드할 미션 결과 데이터가 없습니다.",
+        missionResultDownloaded: "미션 결과 {{count}}건을 다운로드했습니다.",
+        missionResultDownloadTargetLabel: "다운로드 대상 파일",
+        missionResultSelectPlaceholder: "파일 선택",
+        needMissionResultDownloadFile: "다운로드할 파일을 선택하세요.",
+        missionResultDownloadedAs: "미션 결과 파일 다운로드 완료: {{fileName}} ({{count}}건)",
+        missionTaskTitleCoach: "등록된 미션 파일",
+        missionTaskTitlePlayer: "수행미션",
+        missionDateFilterLabel: "날짜 선택",
+        missionDateFilterLabelPlayer: "날짜 선택",
+        missionDateFilterLabelCoach: "선수 선택 날짜",
+        missionDateLatest: "최신",
+        noMissionResultUploads: "업로드된 수행결과 파일이 없습니다.",
+        missionResultUploadItem: "{{fileName}} | {{uploadedBy}} | {{uploadedAt}} | {{rowCount}}건",
+        coachPlayerManageTitle: "선수 선택/등록",
+        coachMissionManageTitle: "미션 등록/배포",
+        coachResultManageTitle: "선수 결과 관리",
+        coachConversationTitle: "선수 대화/피드백",
+        missionBroadcastAllLabel: "전체선수 공지",
+        missionBroadcastSaved: "전체선수 공지 저장 완료: {{count}}명",
+        noPlayersForBroadcast: "전체공지 대상 선수가 없습니다.",
+        coachPlayerFilterLabel: "선수 선택",
+        coachPlayerAll: "전체 선수",
+        navExportCoachTitle: "7) 데이터",
+        navExportCoachDesc: "CSV 내보내기",
+        navExportPlayerTitle: "7) 데이터관리",
+        navExportPlayerDesc: "M1/M2 수행결과 관리",
+        sectionExportCoachTitle: "데이터 내보내기/불러오기",
+        sectionExportPlayerTitle: "데이터관리",
+        playerTransferDesc: "M1/M2 저장 데이터(현재 선수/날짜)를 지도자에게 전송합니다.",
+        sendTrainingData: "데이터관리",
+        noTrainingDataToSend: "전송할 M1/M2 데이터가 없습니다.",
+        trainingDataSent: "전송 완료: {{fileName}} ({{count}}건)",
+        coachRoleCoachNote: "지도자 모드: 미션 업로드/삭제 및 선수별 피드백 관리 가능",
+        coachRolePlayerNote: "선수 모드: 지도자 미션 확인 및 피드백 기록 가능",
+        coachHubTitle: "Coach Mission & Feedback Hub",
+        coachHubDesc: "지도자와 선수가 미션/피드백을 대화형으로 주고받고, 기록을 저장해 관리할 수 있습니다.",
+        deleteBtnAllowed: "삭제코드 입력 후 파일 삭제 가능",
+        deleteBtnDenied: "{{name}} 로그인에서만 삭제 가능합니다.",
+        deleteDenied: "{{name}} 이름으로 로그인된 경우에만 삭제 가능합니다.",
+        deleteNoFile: "삭제할 파일이 선택되지 않았습니다.",
+        promptDeleteCode: "삭제코드를 입력하세요.",
+        deleteCodeMismatch: "삭제코드가 일치하지 않습니다.",
+        fileDeleted: "파일이 삭제되었습니다: {{fileName}}",
+        canRelogin: "다시 로그인할 수 있습니다.",
+        lockout: "로그인 3회 실패: {{remainSec}}초 후 재시도 가능합니다.",
+        needPlayer: "선수 이름을 입력하세요.",
+        needDate: "날짜를 입력하세요.",
+        passcodeWrong: "패스코드가 올바르지 않습니다. 남은 시도: {{remain}}회",
+        playerNotRegistered: "등록되지 않은 선수입니다. 지도자에게 선수등록을 요청하세요.",
+        playerPasscodeWrong: "선수 비밀번호가 올바르지 않습니다. 남은 시도: {{remain}}회",
+        coachNameOnly: "지도자 로그인은 {{name}} 이름으로만 가능합니다.",
+        coachPasscodeWrong: "지도자 패스코드가 올바르지 않습니다. 남은 시도: {{remain}}회",
+        needMissType: "미스 유형을 선택하세요.",
+        confirmReset: "현재 선수/날짜 세션 데이터를 초기화하시겠습니까?\n입력값, 분석지표, 시각화가 리셋됩니다.",
+        needCsvFile: "불러올 CSV 파일을 먼저 선택하세요.",
+        invalidCsvData: "유효한 데이터가 없습니다.",
+        missingColumns: "필수 컬럼 누락: {{missing}}",
+        noImportRows: "가져올 행이 없습니다.",
+        importApplied: "{{count}}개 행을 {{modeText}} 방식으로 반영했습니다.",
+        importModeOverwrite: "덮어쓰기",
+        importModeMerge: "병합",
+        importError: "CSV 불러오기 중 오류가 발생했습니다.",
+        noSessionExport: "내보낼 현재 세션 데이터가 없습니다.",
+        exportedRows: "현재 세션 {{count}}건을 내보냈습니다.",
+        pdfLibError: "PDF 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.",
+        pdfSectionError: "PDF로 저장할 섹션을 찾을 수 없습니다.",
+        pdfGenerating: "PDF 생성 중...",
+        pdfSaved: "PDF 저장 완료: {{fileName}}",
+        pdfSaveError: "PDF 저장 중 오류가 발생했습니다.",
+        slope_up_1: "오르막1",
+        slope_up_2: "오르막2",
+        slope_up_3: "오르막3",
+        slope_flat: "평지",
+        slope_down_1: "내리막1",
+        slope_down_2: "내리막2",
+        slope_down_3: "내리막3"
+    },
+    en: {
+        loginTitle: "SY-PTS Login",
+        loginNote: "Enter player info and passcode to access the training screen.",
+        loginPlayer: "Player Name",
+        loginPlayerPh: "e.g., Jeon Sunyong",
+        loginLang: "Language",
+        loginDate: "Date",
+        loginRole: "Login Role",
+        rolePlayer: "Player",
+        roleCoach: "Coach",
+        loginPass: "Passcode",
+        loginPassPh: "4-digit code",
+        loginEnter: "Enter",
+        newStart: "New Start",
+        logout: "Logout",
+        sessionInfo: "Name: {{playerName}} | Date: {{sessionDate}} | Role: {{role}}",
+        score: "Score",
+        passWithin7s: "Pass (Within 7s)",
+        lateOver7s: "Late (Over 7s)",
+        m1Result: "Score: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 7s Rule: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
+        m2Result: "Slope Error: {{slopeError}} ({{predLabel}} vs {{actualLabel}}) | Speed Error: {{speedError}}cm | Score: {{score}} (Cumulative Avg)",
+        missionDesc: "Mission Description: {{detail}}",
+        missionDescEmpty: "No mission description",
+        missionDescFromSource: "See mission details in the source mission file table below.",
+        missionSourcePreviewTitle: "Original Mission File Content",
+        missionSourcePreviewEmpty: "No source file data to display.",
+        noMissionFiles: "No uploaded mission files.",
+        noMissionFileSelected: "Please select an assigned mission file first.",
+        noMissionEntries: "No saved mission entries yet.",
+        writeMissionInput: "Please enter mission input.",
+        needTargetPlayer: "Please enter a target player.",
+        coachUploadOnly: "Mission file upload is available only in coach mode.",
+        coachDeleteOnly: "File deletion is available only in coach mode.",
+        missionSaved: "Mission input has been saved.",
+        missionSavedAs: "Saved: {{actorRole}} → {{targetPlayer}}",
+        missionQuestionSavedAs: "Question saved: {{actorRole}} → {{targetPlayer}}",
+        questionPending: "Pending Reply",
+        questionResolved: "Replied",
+        missionTypeMission: "Mission Instruction",
+        missionTypeFeedback: "Feedback",
+        missionTypeQuestion: "Question/Note",
+        missionTypeLabel: "Record Type",
+        missionSendBtn: "Send",
+        missionTargetLabel: "Target Player",
+        registerPlayerNameLabel: "Player Name",
+        registerPlayerPassLabel: "Player Password",
+        registerPlayerNamePh: "e.g., Yoo Suyeon",
+        registerPlayerPassPh: "e.g., 1234",
+        registerPlayerBtn: "Register Player",
+        registerPlayerSaved: "Player registered: {{name}}",
+        registerPlayerExists: "Player already registered: {{name}}",
+        registerPlayerNeedName: "Please enter player name.",
+        registerPlayerNeedPass: "Please enter player password.",
+        registerPlayerListItem: "{{name}} (registered: {{createdAt}})",
+        registerPlayerDeleteBtn: "Delete",
+        registerPlayerResetBtn: "Reset Password",
+        registerPlayerDeleteConfirm: "Delete player account: {{name}}?",
+        registerPlayerDeleteRelatedConfirm: "Also delete related data (training records/missions/uploaded results) for {{name}}?",
+        registerPlayerDeleted: "Player account deleted: {{name}}",
+        registerPlayerDeletedWithData: "Deleted player account and related data: {{name}} (records {{records}}, mission files {{missions}}, result files {{uploads}})",
+        registerPlayerNewPassPrompt: "Enter new password for {{name}}.",
+        registerPlayerResetSaved: "Player password reset: {{name}}",
+        registerPlayerProtected: "This account cannot be deleted: {{name}}",
+        noRegisteredPlayers: "No registered players.",
+        missionInputLabel: "Message",
+        missionInputPh: "e.g., 7/10 success on 4yd right-to-left break / next set keep dead-weight pace",
+        missionDirectTitleLabel: "Mission Title",
+        missionDirectItemLabel: "Mission Content",
+        missionDirectTitlePh: "e.g., 3yd straight 20 putts",
+        missionDirectItemPh: "e.g., Hole at least 16 out of 20",
+        saveMissionDirect: "Register Mission",
+        needMissionDirectTitle: "Please enter a mission title.",
+        needMissionDirectItem: "Please enter a mission item.",
+        missionDirectSaved: "Mission saved: {{targetPlayer}} / {{title}}",
+        missionResultFileLabel: "Upload Mission Result Data (CSV)",
+        uploadMissionResult: "Upload Mission Result",
+        downloadMissionResult: "Download Mission Result",
+        needMissionResultFile: "Please select a mission result CSV file to upload.",
+        missionResultImported: "Imported {{count}} mission result rows.",
+        missionResultNoRows: "No mission result rows to import.",
+        missionResultDownloadNoData: "No mission result data to download.",
+        missionResultDownloaded: "Downloaded {{count}} mission result rows.",
+        missionResultDownloadTargetLabel: "Download Target File",
+        missionResultSelectPlaceholder: "Select a file",
+        needMissionResultDownloadFile: "Please select a file to download.",
+        missionResultDownloadedAs: "Downloaded mission result file: {{fileName}} ({{count}} rows)",
+        missionTaskTitleCoach: "Registered Mission Files",
+        missionTaskTitlePlayer: "Assigned Missions",
+        missionDateFilterLabel: "Date",
+        missionDateFilterLabelPlayer: "Date",
+        missionDateFilterLabelCoach: "Selected Player Date",
+        missionDateLatest: "Latest",
+        noMissionResultUploads: "No uploaded mission result files.",
+        missionResultUploadItem: "{{fileName}} | {{uploadedBy}} | {{uploadedAt}} | {{rowCount}} rows",
+        coachPlayerManageTitle: "Player Select / Register",
+        coachMissionManageTitle: "Mission Setup / Assign",
+        coachResultManageTitle: "Player Result Management",
+        coachConversationTitle: "Player Conversation / Feedback",
+        missionBroadcastAllLabel: "Broadcast to all players",
+        missionBroadcastSaved: "Broadcast saved: {{count}} players",
+        noPlayersForBroadcast: "No players available for broadcast.",
+        coachPlayerFilterLabel: "Player",
+        coachPlayerAll: "All Players",
+        navExportCoachTitle: "7) Data",
+        navExportCoachDesc: "CSV export",
+        navExportPlayerTitle: "7) Data Management",
+        navExportPlayerDesc: "Manage M1/M2 results",
+        sectionExportCoachTitle: "Data Export / Import",
+        sectionExportPlayerTitle: "Data Management",
+        playerTransferDesc: "Send saved M1/M2 data (current player/date) to coach.",
+        sendTrainingData: "Data Management",
+        noTrainingDataToSend: "No M1/M2 data to send.",
+        trainingDataSent: "Sent: {{fileName}} ({{count}} rows)",
+        coachRoleCoachNote: "Coach mode: can upload/delete missions and manage player feedback",
+        coachRolePlayerNote: "Player mode: can review coach missions and log feedback",
+        coachHubTitle: "Coach Mission & Feedback Hub",
+        coachHubDesc: "Coach and player can exchange mission/feedback messages and keep a saved conversation history.",
+        deleteBtnAllowed: "Delete available after entering delete code",
+        deleteBtnDenied: "Deletion allowed only when logged in as {{name}}.",
+        deleteDenied: "Deletion is allowed only when logged in as {{name}}.",
+        deleteNoFile: "No file selected to delete.",
+        promptDeleteCode: "Enter delete code.",
+        deleteCodeMismatch: "Delete code does not match.",
+        fileDeleted: "File deleted: {{fileName}}",
+        canRelogin: "You can log in again.",
+        lockout: "3 failed login attempts: retry after {{remainSec}}s.",
+        needPlayer: "Please enter player name.",
+        needDate: "Please enter date.",
+        passcodeWrong: "Incorrect passcode. Remaining attempts: {{remain}}",
+        playerNotRegistered: "Unregistered player. Ask coach to register this player.",
+        playerPasscodeWrong: "Incorrect player password. Remaining attempts: {{remain}}",
+        coachNameOnly: "Coach login is allowed only with name {{name}}.",
+        coachPasscodeWrong: "Incorrect coach passcode. Remaining attempts: {{remain}}",
+        needMissType: "Please select a miss type.",
+        confirmReset: "Reset current player/date session data?\nInputs, metrics, and visualizations will be reset.",
+        needCsvFile: "Please select a CSV file to import first.",
+        invalidCsvData: "No valid data found.",
+        missingColumns: "Missing required columns: {{missing}}",
+        noImportRows: "No rows to import.",
+        importApplied: "Applied {{count}} rows in {{modeText}} mode.",
+        importModeOverwrite: "overwrite",
+        importModeMerge: "merge",
+        importError: "An error occurred while importing CSV.",
+        noSessionExport: "No current session data to export.",
+        exportedRows: "Exported {{count}} rows from current session.",
+        pdfLibError: "Could not load the PDF library. Please check your network.",
+        pdfSectionError: "Could not find the section to export as PDF.",
+        pdfGenerating: "Generating PDF...",
+        pdfSaved: "PDF saved: {{fileName}}",
+        pdfSaveError: "An error occurred while saving the PDF.",
+        slope_up_1: "Uphill 1",
+        slope_up_2: "Uphill 2",
+        slope_up_3: "Uphill 3",
+        slope_flat: "Flat",
+        slope_down_1: "Downhill 1",
+        slope_down_2: "Downhill 2",
+        slope_down_3: "Downhill 3"
+    }
+};
+
+function tr(key, params = {}, lang = CURRENT_LANG) {
+    const pack = UI_I18N[lang] || UI_I18N.ko;
+    const fallback = UI_I18N.en[key] || key;
+    let text = pack[key] ?? fallback;
+    Object.keys(params).forEach((paramKey) => {
+        text = text.replace(new RegExp(`\\{\\{${paramKey}\\}\\}`, "g"), String(params[paramKey]));
+    });
+    return text;
+}
+
 const SLOPE_LEVEL_OPTIONS = [
-    { value: 1, label: "오르막1" },
-    { value: 2, label: "오르막2" },
-    { value: 3, label: "오르막3" },
-    { value: 0, label: "평지" },
-    { value: -1, label: "내리막1" },
-    { value: -2, label: "내리막2" },
-    { value: -3, label: "내리막3" }
+    { value: 1, key: "slope_up_1", koLabel: "오르막1", enLabel: "Uphill 1" },
+    { value: 2, key: "slope_up_2", koLabel: "오르막2", enLabel: "Uphill 2" },
+    { value: 3, key: "slope_up_3", koLabel: "오르막3", enLabel: "Uphill 3" },
+    { value: 0, key: "slope_flat", koLabel: "평지", enLabel: "Flat" },
+    { value: -1, key: "slope_down_1", koLabel: "내리막1", enLabel: "Downhill 1" },
+    { value: -2, key: "slope_down_2", koLabel: "내리막2", enLabel: "Downhill 2" },
+    { value: -3, key: "slope_down_3", koLabel: "내리막3", enLabel: "Downhill 3" }
 ];
 
-const SLOPE_LEVEL_LABEL_MAP = new Map(SLOPE_LEVEL_OPTIONS.map(option => [option.value, option.label]));
-const SLOPE_LEVEL_TEXT_MAP = new Map(SLOPE_LEVEL_OPTIONS.map(option => [option.label, option.value]));
+const SLOPE_LEVEL_TEXT_MAP = new Map();
+SLOPE_LEVEL_OPTIONS.forEach((option) => {
+    SLOPE_LEVEL_TEXT_MAP.set(option.koLabel, option.value);
+    SLOPE_LEVEL_TEXT_MAP.set(option.enLabel, option.value);
+});
 
 function normalizeSlopeLevel(value) {
     const numeric = Number(value);
@@ -589,7 +1245,9 @@ function normalizeSlopeLevel(value) {
 
 function slopeLevelToLabel(value) {
     const level = normalizeSlopeLevel(value);
-    return SLOPE_LEVEL_LABEL_MAP.get(level) || "평지";
+    const found = SLOPE_LEVEL_OPTIONS.find(option => option.value === level);
+    if (!found) return tr("slope_flat");
+    return tr(found.key);
 }
 
 function parseSlopeLevelOrNull(value) {
@@ -630,6 +1288,15 @@ class MissionRecord {
         this.actualLowPoint = payload.actualLowPoint ?? "";
         this.speedPlan = payload.speedPlan ?? "";
         this.actualPace = payload.actualPace ?? "";
+        const rawDecisionOver7 = String(payload.decisionOver7 ?? "").trim().toLowerCase();
+        if (rawDecisionOver7 === "yes" || rawDecisionOver7 === "no") {
+            this.decisionOver7 = rawDecisionOver7;
+        } else {
+            const legacyDecisionSec = Number(payload.decisionSec);
+            this.decisionOver7 = Number.isFinite(legacyDecisionSec)
+                ? (legacyDecisionSec > 7 ? "yes" : "no")
+                : null;
+        }
         this.decisionSec = payload.decisionSec ?? null;
         this.highSideCommit = payload.highSideCommit ?? "";
         this.apexCommit = payload.apexCommit ?? "";
@@ -637,6 +1304,10 @@ class MissionRecord {
         this.missionFileName = payload.missionFileName ?? "";
         this.missionTitle = payload.missionTitle ?? "";
         this.missionResponse = payload.missionResponse ?? "";
+        this.missionActorRole = payload.missionActorRole ?? "player";
+        this.missionActorName = payload.missionActorName ?? this.playerName;
+        this.missionTargetPlayer = payload.missionTargetPlayer ?? this.playerName;
+        this.missionMessageType = payload.missionMessageType ?? "feedback";
         this.score = payload.score ?? 0;
     }
 }
@@ -732,39 +1403,75 @@ class MetricsService {
             : 0;
 
         const lowPointSamples = m1.filter(r => r.predLowPoint && r.actualLowPoint);
+        const lowPointMatchCount = lowPointSamples.filter(r => r.predLowPoint === r.actualLowPoint).length;
         const lowPointAccuracy = lowPointSamples.length
-            ? lowPointSamples.filter(r => r.predLowPoint === r.actualLowPoint).length / lowPointSamples.length
+            ? lowPointMatchCount / lowPointSamples.length
             : 0;
 
         const speedSamples = m1.filter(r => r.speedPlan && r.actualPace);
+        const speedMatchCount = speedSamples.filter(r => r.speedPlan === r.actualPace).length;
         const speedMatchRate = speedSamples.length
-            ? speedSamples.filter(r => r.speedPlan === r.actualPace).length / speedSamples.length
+            ? speedMatchCount / speedSamples.length
             : 0;
 
-        const oneLookSamples = m1.filter(r => r.decisionSec !== null && r.decisionSec !== undefined);
+        const oneLookSamples = m1.filter(r => r.decisionOver7 === "yes" || r.decisionOver7 === "no");
+        const oneLookCount = oneLookSamples.filter(r => r.decisionOver7 === "no").length;
         const oneLookRate = oneLookSamples.length
-            ? oneLookSamples.filter(r => Number(r.decisionSec) <= 5).length / oneLookSamples.length
+            ? oneLookCount / oneLookSamples.length
             : 0;
 
         const confidenceSamples = m1.filter(r => r.highSideCommit && r.apexCommit);
+        const confidenceCount = confidenceSamples.filter(r => r.highSideCommit === "yes" && r.apexCommit === "yes").length;
         const confidenceRate = confidenceSamples.length
-            ? confidenceSamples.filter(r => r.highSideCommit === "yes" && r.apexCommit === "yes").length / confidenceSamples.length
+            ? confidenceCount / confidenceSamples.length
             : 0;
 
         const missSamples = m1.filter(r => r.actualMiss !== "center");
+        const totalMissRate = m1.length ? missSamples.length / m1.length : 0;
         const directionMissCount = missSamples.filter(r => r.missType === "direction").length;
         const speedMissCount = missSamples.filter(r => r.missType === "speed").length;
         const bothMissCount = missSamples.filter(r => r.missType === "both").length;
         const missDenominator = Math.max(1, missSamples.length);
+        const directionRelatedCount = directionMissCount + bothMissCount;
+        const speedRelatedCount = speedMissCount + bothMissCount;
 
-        const gravityStageScore = lowPointAccuracy * 100;
+        const directionRelatedMissRate = directionRelatedCount / missDenominator;
+        const speedRelatedMissRate = speedRelatedCount / missDenominator;
+
+        const objectiveLowSideSamples = missSamples.filter(r =>
+            (r.actualMiss === "left" || r.actualMiss === "right") &&
+            (r.predLowPoint === "left" || r.predLowPoint === "right")
+        );
+        const objectiveLowSideCount = objectiveLowSideSamples.filter(r => r.actualMiss === r.predLowPoint).length;
+        const objectiveLowSideMissRate = objectiveLowSideSamples.length
+            ? objectiveLowSideCount / objectiveLowSideSamples.length
+            : 0;
+
+        const lowPointMissSamples = missSamples.filter(r => r.predLowPoint && r.actualLowPoint);
+        const lowPointMissMismatchCount = lowPointMissSamples.filter(r => r.predLowPoint !== r.actualLowPoint).length;
+        const lowPointMissMismatchRate = lowPointMissSamples.length
+            ? lowPointMissMismatchCount / lowPointMissSamples.length
+            : 0;
+
+        const practicalMissCauseScore = MetricsService.clamp((
+            ((1 - lowPointMissMismatchRate) * 0.25) +
+            ((1 - directionRelatedMissRate) * 0.25) +
+            ((1 - speedRelatedMissRate) * 0.25) +
+            (confidenceRate * 0.25)
+        ) * 100, 0, 100);
+
+        const gravityStageScore = MetricsService.clamp(((lowPointAccuracy * 0.60) + ((practicalMissCauseScore / 100) * 0.40)) * 100, 0, 100);
         const slopeCalibrationScore = MetricsService.clamp(100 - avgSlopeError * 20, 0, 100);
         const speedCalibrationScore = MetricsService.clamp(100 - avgSpeedError * 1.2, 0, 100);
         const slopeStageScore = MetricsService.clamp(slopeCalibrationScore * 0.7 + speedCalibrationScore * 0.3, 0, 100);
         const speedStageScore = ((speedMatchRate * 0.6) + (oneLookRate * 0.4)) * 100;
 
         const sri = slopeStageScore;
-        const sii = MetricsService.clamp((directionCorrectRate * 0.5 + (1 - lowSideRate) * 0.25 + lowPointAccuracy * 0.25) * 100, 0, 100);
+        const sii = MetricsService.clamp((
+            (directionCorrectRate * 0.40) +
+            ((1 - lowSideRate) * 0.25) +
+            ((practicalMissCauseScore / 100) * 0.35)
+        ) * 100, 0, 100);
         const dcs = MetricsService.clamp((100 - avgDistanceNormalizedError * 100) * 0.5 + speedStageScore * 0.5, 0, 100);
 
         const avgSlopeErrorScore = slopeCalibrationScore;
@@ -790,10 +1497,30 @@ class MetricsService {
             lowSideCount,
             totalMisses: totalMisses.length,
             lowSideRate,
+            totalMissRate,
             lowPointAccuracy,
+            lowPointSampleCount: lowPointSamples.length,
+            lowPointMatchCount,
+            lowPointMissMismatchRate,
+            lowPointMissSampleCount: lowPointMissSamples.length,
+            lowPointMissMismatchCount,
+            practicalMissCauseScore,
+            directionRelatedMissRate,
+            directionRelatedCount,
+            speedRelatedMissRate,
+            speedRelatedCount,
+            objectiveLowSideMissRate,
+            objectiveLowSideCount,
+            objectiveLowSideSampleCount: objectiveLowSideSamples.length,
             speedMatchRate,
+            speedSampleCount: speedSamples.length,
+            speedMatchCount,
             oneLookRate,
+            oneLookSampleCount: oneLookSamples.length,
+            oneLookCount,
             confidenceRate,
+            confidenceSampleCount: confidenceSamples.length,
+            confidenceCount,
             gravityStageScore,
             slopeStageScore,
             speedCalibrationScore,
@@ -829,11 +1556,15 @@ class MetricsService {
 
         const lieByDistance = groupByDistance(lieRows).map(([distance, rows]) => {
             const count = rows.length;
-            const holedRate = rows.filter(r => r.actualMiss === "center").length / Math.max(1, count);
-            const directionAcc = rows.filter(r => r.intendedStartLine === "yes").length / Math.max(1, count);
+            const holedCount = rows.filter(r => r.actualMiss === "center").length;
+            const holedRate = holedCount / Math.max(1, count);
+            const intendedYesCount = rows.filter(r => r.intendedStartLine === "yes").length;
+            const directionAcc = intendedYesCount / Math.max(1, count);
             const misses = rows.filter(r => r.actualMiss !== "center");
-            const lowSideRate = misses.filter(r => MetricsService.isDirectionalMiss(r.missType)).length / Math.max(1, misses.length);
-            return { distance, count, holedRate, directionAcc, lowSideRate };
+            const missCount = misses.length;
+            const directionalMissCount = misses.filter(r => MetricsService.isDirectionalMiss(r.missType)).length;
+            const lowSideRate = directionalMissCount / Math.max(1, missCount);
+            return { distance, count, holedCount, holedRate, intendedYesCount, directionAcc, missCount, directionalMissCount, lowSideRate };
         });
 
         const speedByDistance = groupByDistance(speedRows).map(([distance, rows]) => {
@@ -881,6 +1612,10 @@ class HeatmapComponent {
         this.slopeLevelIndexMap = new Map(this.slopeLevels.map((level, index) => [level, index]));
     }
 
+    setLanguage() {
+        this.slopeLabels = this.slopeLevels.map(level => slopeLevelToLabel(level));
+    }
+
     getDistanceBin(distance) {
         for (let i = 0; i < this.distanceBins.length - 1; i += 1) {
             if (distance >= this.distanceBins[i] && distance < this.distanceBins[i + 1]) return i;
@@ -914,7 +1649,7 @@ class HeatmapComponent {
             ctx.font = "14px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("N/A (Lie 데이터 없음)", this.canvas.width / 2, this.canvas.height / 2);
+            ctx.fillText(CURRENT_LANG === "en" ? "N/A (No Lie data)" : "N/A (Lie 데이터 없음)", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
 
@@ -975,11 +1710,13 @@ class HeatmapComponent {
         ctx.font = "11px Arial";
         ctx.fillStyle = "#334155";
         ctx.textAlign = "right";
-        ctx.fillText("시도(성공률)", 50, summaryY);
+        ctx.fillText(CURRENT_LANG === "en" ? "Attempts (Holed%)" : "시도(성공률)", 50, summaryY);
         ctx.textAlign = "center";
         attemptsByDistance.forEach((attempts, index) => {
             const successRate = attempts ? (holedByDistance[index] / attempts) * 100 : 0;
-            const text = `${attempts}회 (${successRate.toFixed(1)}%)`;
+            const text = CURRENT_LANG === "en"
+                ? `${attempts} (${successRate.toFixed(1)}%)`
+                : `${attempts}회 (${successRate.toFixed(1)}%)`;
             ctx.fillText(text, offsetX + index * cellW + (cellW / 2), summaryY);
         });
     }
@@ -988,7 +1725,18 @@ class HeatmapComponent {
         if (!this.speedCanvas || !this.speedCtx) return;
 
         const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
-        const ctx = this.speedCtx;
+        let ctx = this.speedCtx;
+
+        const cellW = 90;
+        const cellH = 48;
+        const offsetX = 60;
+        const offsetY = 30;
+        const requiredHeight = offsetY + this.slopeLabels.length * cellH + 24;
+        if (this.speedCanvas.height !== requiredHeight) {
+            this.speedCanvas.height = requiredHeight;
+            this.speedCtx = this.speedCanvas.getContext("2d");
+            ctx = this.speedCtx;
+        }
 
         if (!m2.length) {
             ctx.clearRect(0, 0, this.speedCanvas.width, this.speedCanvas.height);
@@ -996,7 +1744,7 @@ class HeatmapComponent {
             ctx.font = "14px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("N/A (Speed 데이터 없음)", this.speedCanvas.width / 2, this.speedCanvas.height / 2);
+            ctx.fillText(CURRENT_LANG === "en" ? "N/A (No Speed data)" : "N/A (Speed 데이터 없음)", this.speedCanvas.width / 2, this.speedCanvas.height / 2);
             return;
         }
 
@@ -1019,10 +1767,6 @@ class HeatmapComponent {
         }));
 
         const maxAvgError = Math.max(1, ...avgMatrix.flat());
-        const cellW = 90;
-        const cellH = 48;
-        const offsetX = 60;
-        const offsetY = 30;
 
         ctx.clearRect(0, 0, this.speedCanvas.width, this.speedCanvas.height);
         ctx.font = "12px Arial";
@@ -1073,62 +1817,168 @@ class DashboardComponent {
         const hasLieTrials = metrics.lieTrials > 0;
         const hasSpeedTrials = metrics.speedTrials > 0;
         const hasAnyTrials = hasLieTrials || hasSpeedTrials;
+        const isEn = CURRENT_LANG === "en";
 
         const display = (condition, text) => (condition ? text : "N/A");
 
         this.metricsTarget.innerHTML = `
-            <div class="metric-card" title="SRI: 경사 수치화 정확도 점수. 평균 경사 오차와 속도 보정 오차를 반영하며 높을수록 좋습니다.">
+            <div class="metric-card" title="${isEn ? "SRI: Slope quantification accuracy score. Reflects average slope error and speed calibration error; higher is better." : "SRI: 경사 수치화 정확도 점수. 평균 경사 오차와 속도 보정 오차를 반영하며 높을수록 좋습니다."}">
                 <div class="metric-label">SRI</div>
                 <div class="metric-value">${display(hasSpeedTrials, metrics.sri.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="SII: 방향 판독 및 Low-side 회피 품질 점수. 방향 정확도, Low-side 비율, Low-Point 정확도를 합산합니다.">
+            <div class="metric-card" title="${isEn ? "SII: Direction-read and low-side control quality score. Combines direction accuracy, low-side rate, and practical miss-cause factors (direction/speed/low-point mismatch)." : "SII: 방향 판독 및 Low-side 회피 품질 점수. 방향 정확도, Low-side 비율, 실전형 미스 원인(방향/속도/Low-Point 불일치)을 함께 반영합니다."}">
                 <div class="metric-label">SII</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.sii.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="DCS: 거리 대비 좌우 오차와 속도 통합 실행 점수. 라인 오차 정규화와 실행 일관성을 함께 반영합니다.">
+            <div class="metric-card" title="${isEn ? "DCS: Distance-calibrated execution score combining lateral error normalization and speed integration consistency." : "DCS: 거리 대비 좌우 오차와 속도 통합 실행 점수. 라인 오차 정규화와 실행 일관성을 함께 반영합니다."}">
                 <div class="metric-label">DCS</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.dcs.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="Avg Slope Error: 예측 경사와 실제 경사의 평균 오차(%). 낮을수록 좋습니다.">
+            <div class="metric-card" title="${isEn ? "Avg Slope Error: Average difference between predicted and actual slope values. Lower is better." : "Avg Slope Error: 예측 경사와 실제 경사의 평균 오차(%). 낮을수록 좋습니다."}">
                 <div class="metric-label">Avg Slope Error</div>
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSlopeErrorScore.toFixed(1)}(${metrics.avgSlopeError.toFixed(2)}%)`)}</div>
             </div>
-            <div class="metric-card" title="Avg Speed Error: 예측 피니시 거리와 실제 피니시 거리의 평균 오차(cm). 낮을수록 좋습니다.">
+            <div class="metric-card" title="${isEn ? "Avg Speed Error: Average difference between predicted and actual finish distance (cm). Lower is better." : "Avg Speed Error: 예측 피니시 거리와 실제 피니시 거리의 평균 오차(cm). 낮을수록 좋습니다."}">
                 <div class="metric-label">Avg Speed Error</div>
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSpeedErrorScore.toFixed(1)}(${metrics.avgSpeedError.toFixed(1)}cm)`)}</div>
             </div>
-            <div class="metric-card" title="Stage 1: Gravity. Low-Point(중력 흐름) 인지 정확도 단계 점수입니다.">
+            <div class="metric-card" title="${isEn ? "Stage 1: Gravity. Combines low-point accuracy and practical miss-cause score." : "Stage 1: Gravity. Low-Point 정확도와 실전형 미스 원인 점수를 결합한 단계 점수입니다."}">
                 <div class="metric-label">Stage 1: Gravity</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.gravityStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="Stage 2: Quantification. 경사/속도 수치화 정확도를 반영한 단계 점수입니다.">
+            <div class="metric-card" title="${isEn ? "Stage 2: Quantification. Reflects slope/speed quantification accuracy." : "Stage 2: Quantification. 경사/속도 수치화 정확도를 반영한 단계 점수입니다."}">
                 <div class="metric-label">Stage 2: Quantification</div>
                 <div class="metric-value">${display(hasSpeedTrials, metrics.slopeStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="Stage 3: Speed Integration. 속도 계획과 실행(One-Look 포함) 통합 품질 단계 점수입니다.">
+            <div class="metric-card" title="${isEn ? "Stage 3: Speed Integration. Integrates speed planning and execution quality (including Address→Putt within 7s)." : "Stage 3: Speed Integration. 속도 계획과 실행(Address→Putt 7초 기준 포함) 통합 품질 단계 점수입니다."}">
                 <div class="metric-label">Stage 3: Speed Integration</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.speedStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card overall-highlight" title="Overall Metrics Average: 핵심 지표(SRI/SII/DCS/Stage1~3/오차점수2개)의 평균값입니다.">
+            <div class="metric-card overall-highlight" title="${isEn ? "Overall Metrics Average: Mean value of core metrics (SRI/SII/DCS/Stage1~3/two error scores)." : "Overall Metrics Average: 핵심 지표(SRI/SII/DCS/Stage1~3/오차점수2개)의 평균값입니다."}">
                 <div class="metric-label">Overall Metrics Avg</div>
                 <div class="metric-value">${display(hasAnyTrials, metrics.overallMetricAverage.toFixed(1))}</div>
             </div>
         `;
 
         if (!hasLieTrials) {
-            this.lowSideTarget.textContent = "N/A (Lie 데이터 없음)";
+            this.lowSideTarget.classList.remove("metric-breakdown");
+            this.lowSideTarget.textContent = isEn ? "N/A (No Lie data)" : "N/A (Lie 데이터 없음)";
         } else {
-            const lowSideText = metrics.totalMisses > 0
-                ? `${metrics.lowSideCount}/${metrics.totalMisses} (${(metrics.lowSideRate * 100).toFixed(1)}%)`
+            const totalMissText = metrics.lieTrials > 0
+                ? `${metrics.missTotal}/${metrics.lieTrials} (${(metrics.totalMissRate * 100).toFixed(1)}%)`
                 : "N/A";
-            this.lowSideTarget.textContent =
-                `Low-side ${lowSideText} | Low-Point Accuracy ${(metrics.lowPointAccuracy * 100).toFixed(1)}% | Speed Plan Match ${(metrics.speedMatchRate * 100).toFixed(1)}% | One-Look Within 5s ${(metrics.oneLookRate * 100).toFixed(1)}% | Confidence Retention ${(metrics.confidenceRate * 100).toFixed(1)}%`;
+            const lowPointAccuracyText = metrics.lowPointSampleCount > 0
+                ? `${metrics.lowPointMatchCount}/${metrics.lowPointSampleCount} (${(metrics.lowPointAccuracy * 100).toFixed(1)}%)`
+                : "N/A";
+            const lowPointMismatchText = metrics.lowPointMissSampleCount > 0
+                ? `${metrics.lowPointMissMismatchCount}/${metrics.lowPointMissSampleCount} (${(metrics.lowPointMissMismatchRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const directionRelatedText = metrics.totalMisses > 0
+                ? `${metrics.directionRelatedCount}/${metrics.totalMisses} (${(metrics.directionRelatedMissRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const speedRelatedText = metrics.totalMisses > 0
+                ? `${metrics.speedRelatedCount}/${metrics.totalMisses} (${(metrics.speedRelatedMissRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const missCauseScoreWarning = metrics.lieTrials > 0 && metrics.lieTrials < 10
+                ? `<span class="metric-chip-note">${isEn ? "(Low sample n<10)" : "(표본주의 n<10)"}</span>`
+                : "";
+            const missCauseScoreText = `${metrics.practicalMissCauseScore.toFixed(1)}%${missCauseScoreWarning}`;
+            const objectiveLowSideText = metrics.objectiveLowSideSampleCount > 0
+                ? `${metrics.objectiveLowSideCount}/${metrics.objectiveLowSideSampleCount} (${(metrics.objectiveLowSideMissRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const speedMatchText = metrics.speedSampleCount > 0
+                ? `${metrics.speedMatchCount}/${metrics.speedSampleCount} (${(metrics.speedMatchRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const oneLookText = metrics.oneLookSampleCount > 0
+                ? `${metrics.oneLookCount}/${metrics.oneLookSampleCount} (${(metrics.oneLookRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const confidenceText = metrics.confidenceSampleCount > 0
+                ? `${metrics.confidenceCount}/${metrics.confidenceSampleCount} (${(metrics.confidenceRate * 100).toFixed(1)}%)`
+                : "N/A";
+            const getQualityClass = (normalizedValue, preference) => {
+                if (preference === "neutral" || !Number.isFinite(normalizedValue)) return "quality-neutral";
+                if (preference === "higher") {
+                    if (normalizedValue >= 0.7) return "quality-good";
+                    if (normalizedValue >= 0.45) return "quality-mid";
+                    return "quality-bad";
+                }
+                if (normalizedValue <= 0.3) return "quality-good";
+                if (normalizedValue <= 0.55) return "quality-mid";
+                return "quality-bad";
+            };
+            const getPreferenceNote = (preference) => {
+                if (preference === "higher") return isEn ? "Higher is better" : "높을수록 좋음";
+                if (preference === "lower") return isEn ? "Lower is better" : "낮을수록 좋음";
+                return isEn ? "Reference metric" : "참고 지표";
+            };
+            const getMetricTooltip = (key) => {
+                const tooltips = isEn
+                    ? {
+                        totalMissRate: "Ratio of missed putts among all M1 attempts. Lower is better.",
+                        lowPointAccuracy: "How often predicted low-point matches actual low-point across all valid samples.",
+                        lowPointMismatch: "Within missed putts, rate of low-point mismatch between prediction and actual.",
+                        objectiveLowSide: "Among directional misses, rate where miss side matches predicted low-point side.",
+                        directionMiss: "Among missed putts, share attributed to direction or direction+speed.",
+                        speedMiss: "Among missed putts, share attributed to speed or direction+speed.",
+                        missCauseWeight: "Composite score from low-point mismatch, direction miss, speed miss, and confidence retention.",
+                        speedControl: "Match rate between planned speed and actual pace.",
+                        puttWithin7s: "Rate of putts executed within 7 seconds after address.",
+                        confidenceRetention: "Rate where both High-side Commit and Apex Commit were maintained."
+                    }
+                    : {
+                        totalMissRate: "전체 M1 시도 중 미스 비율입니다. 낮을수록 좋습니다.",
+                        lowPointAccuracy: "Low-Point 인지값과 실제값이 일치한 비율입니다.",
+                        lowPointMismatch: "미스 샷 중 Low-Point 인지와 실제가 불일치한 비율입니다.",
+                        objectiveLowSide: "좌/우 미스 샷에서 미스 방향이 예측 Low-Point 방향과 같은 비율입니다.",
+                        directionMiss: "미스 샷 중 원인이 방향 또는 방향+속도인 비율입니다.",
+                        speedMiss: "미스 샷 중 원인이 속도 또는 방향+속도인 비율입니다.",
+                        missCauseWeight: "Low-Point 불일치, 방향/속도 미스, 확신 유지를 종합한 가중 점수입니다.",
+                        speedControl: "계획한 속도와 실제 속도 실행이 일치한 비율입니다.",
+                        puttWithin7s: "어드레스 후 7초 이내 스트로크 실행 비율입니다.",
+                        confidenceRetention: "High-side 커밋과 Apex 커밋을 동시에 유지한 비율입니다."
+                    };
+                return tooltips[key] || "";
+            };
+            const metricItems = isEn
+                ? [
+                    { key: "totalMissRate", label: "Total Miss Rate", value: totalMissText, normalized: metrics.lieTrials > 0 ? metrics.totalMissRate : null, preference: "lower" },
+                    { key: "lowPointAccuracy", label: "Low-Point Accuracy", value: lowPointAccuracyText, normalized: metrics.lowPointSampleCount > 0 ? metrics.lowPointAccuracy : null, preference: "higher" },
+                    { key: "lowPointMismatch", label: "Low-Point Miss Mismatch", value: lowPointMismatchText, normalized: metrics.lowPointMissSampleCount > 0 ? metrics.lowPointMissMismatchRate : null, preference: "lower" },
+                    { key: "objectiveLowSide", label: "Objective Low-side Miss", value: objectiveLowSideText, normalized: metrics.objectiveLowSideSampleCount > 0 ? metrics.objectiveLowSideMissRate : null, preference: "lower" },
+                    { key: "directionMiss", label: "Direction-related Miss", value: directionRelatedText, normalized: metrics.totalMisses > 0 ? metrics.directionRelatedMissRate : null, preference: "lower" },
+                    { key: "speedMiss", label: "Speed-related Miss", value: speedRelatedText, normalized: metrics.totalMisses > 0 ? metrics.speedRelatedMissRate : null, preference: "lower" },
+                    { key: "missCauseWeight", label: "Miss Cause Weight", value: missCauseScoreText, normalized: metrics.missTotal > 0 ? (metrics.practicalMissCauseScore / 100) : null, preference: "higher" },
+                    { key: "speedControl", label: "Speed Plan Match", value: speedMatchText, normalized: metrics.speedSampleCount > 0 ? metrics.speedMatchRate : null, preference: "higher" },
+                    { key: "puttWithin7s", label: "Address→Putt Within 7s", value: oneLookText, normalized: metrics.oneLookSampleCount > 0 ? metrics.oneLookRate : null, preference: "higher" },
+                    { key: "confidenceRetention", label: "Confidence Retention", value: confidenceText, normalized: metrics.confidenceSampleCount > 0 ? metrics.confidenceRate : null, preference: "higher" }
+                ]
+                : [
+                    { key: "totalMissRate", label: "전체 미스율", value: totalMissText, normalized: metrics.lieTrials > 0 ? metrics.totalMissRate : null, preference: "lower" },
+                    { key: "lowPointAccuracy", label: "Low-Point 정확도", value: lowPointAccuracyText, normalized: metrics.lowPointSampleCount > 0 ? metrics.lowPointAccuracy : null, preference: "higher" },
+                    { key: "lowPointMismatch", label: "미스 시 Low-Point 불일치", value: lowPointMismatchText, normalized: metrics.lowPointMissSampleCount > 0 ? metrics.lowPointMissMismatchRate : null, preference: "lower" },
+                    { key: "objectiveLowSide", label: "결과기반 Low-side 미스율", value: objectiveLowSideText, normalized: metrics.objectiveLowSideSampleCount > 0 ? metrics.objectiveLowSideMissRate : null, preference: "lower" },
+                    { key: "directionMiss", label: "방향 관련 미스", value: directionRelatedText, normalized: metrics.totalMisses > 0 ? metrics.directionRelatedMissRate : null, preference: "lower" },
+                    { key: "speedMiss", label: "속도 관련 미스", value: speedRelatedText, normalized: metrics.totalMisses > 0 ? metrics.speedRelatedMissRate : null, preference: "lower" },
+                    { key: "missCauseWeight", label: "미스원인가중치", value: missCauseScoreText, normalized: metrics.missTotal > 0 ? (metrics.practicalMissCauseScore / 100) : null, preference: "higher" },
+                    { key: "speedControl", label: "속도제어", value: speedMatchText, normalized: metrics.speedSampleCount > 0 ? metrics.speedMatchRate : null, preference: "higher" },
+                    { key: "puttWithin7s", label: "Address→Putt 7초 이내", value: oneLookText, normalized: metrics.oneLookSampleCount > 0 ? metrics.oneLookRate : null, preference: "higher" },
+                    { key: "confidenceRetention", label: "확신 유지", value: confidenceText, normalized: metrics.confidenceSampleCount > 0 ? metrics.confidenceRate : null, preference: "higher" }
+                ];
+
+            this.lowSideTarget.classList.add("metric-breakdown");
+            this.lowSideTarget.innerHTML = metricItems.map(item => `
+                <div class="metric-chip ${getQualityClass(item.normalized, item.preference)}" title="${getMetricTooltip(item.key)}">
+                    <div class="metric-chip-label">${item.label}</div>
+                    <div class="metric-chip-value">${item.value}</div>
+                    <div class="metric-chip-meta">${getPreferenceNote(item.preference)}</div>
+                </div>
+            `).join("");
         }
     }
 
     renderBayesian(posterior) {
         if (!posterior.trials) {
-            this.bayesTarget.textContent = "N/A (Lie 데이터 없음)";
+            this.bayesTarget.textContent = CURRENT_LANG === "en" ? "N/A (No Lie data)" : "N/A (Lie 데이터 없음)";
             return;
         }
         this.bayesTarget.textContent =
@@ -1137,7 +1987,7 @@ class DashboardComponent {
 
     renderMissType(metrics) {
         if (!metrics.lieTrials || !metrics.missTotal) {
-            this.missTypeTarget.textContent = "N/A (미스 데이터 없음)";
+            this.missTypeTarget.textContent = CURRENT_LANG === "en" ? "N/A (No miss data)" : "N/A (미스 데이터 없음)";
             return;
         }
         this.missTypeTarget.textContent =
@@ -1145,18 +1995,31 @@ class DashboardComponent {
     }
 
     renderDistanceBreakdown(distanceBreakdown) {
+        const isEn = CURRENT_LANG === "en";
         if (!distanceBreakdown.lieByDistance.length) {
-            this.lieDistanceTarget.innerHTML = '<div class="distance-empty">N/A (Lie 결정훈련 데이터 없음)</div>';
+            this.lieDistanceTarget.innerHTML = isEn
+                ? '<div class="distance-empty">N/A (No Lie Decision Training data)</div>'
+                : '<div class="distance-empty">N/A (Lie 결정훈련 데이터 없음)</div>';
         } else {
+            const totalShots = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.count, 0);
+            const totalHoledCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.holedCount, 0);
+            const totalIntendedYesCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.intendedYesCount, 0);
+            const totalMissCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.missCount, 0);
+            const totalDirectionalMissCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.directionalMissCount, 0);
+
+            const overallHoledRate = totalShots ? totalHoledCount / totalShots : 0;
+            const overallDirectionAcc = totalShots ? totalIntendedYesCount / totalShots : 0;
+            const overallDirectionalMissRate = totalMissCount ? totalDirectionalMissCount / totalMissCount : 0;
+
             this.lieDistanceTarget.innerHTML = `
                 <table class="distance-table">
                     <thead>
                         <tr>
                             <th>Distance (yd)</th>
-                            <th>Shots</th>
-                            <th>Holed %</th>
-                            <th title="Intended Start Line %: Intended Start Line을 Yes로 유지한 비율입니다. 높을수록 결정/실행 일관성이 좋습니다.">Intended Start Line %</th>
-                            <th title="Directional Miss %: 미스 샷 중 Miss Type이 direction 또는 both인 비율입니다. 낮을수록 좋습니다.">Directional Miss %</th>
+                            <th>${isEn ? "Shots" : "시도"}</th>
+                            <th>${isEn ? "Holed (Count, %)" : "홀인 (횟수, %)"}</th>
+                            <th title="${isEn ? "Intended Start Line %: Share of shots that kept Intended Start Line as Yes. Higher indicates better decision/execution consistency." : "Intended Start Line %: Intended Start Line을 Yes로 유지한 비율입니다. 높을수록 결정/실행 일관성이 좋습니다."}">Intended Start Line %</th>
+                            <th title="${isEn ? "Directional Miss %: Share of misses with Miss Type = direction or both. Lower is better." : "Directional Miss %: 미스 샷 중 Miss Type이 direction 또는 both인 비율입니다. 낮을수록 좋습니다."}">Directional Miss %</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1164,28 +2027,46 @@ class DashboardComponent {
                             <tr>
                                 <td>${row.distance}</td>
                                 <td>${row.count}</td>
-                                <td>${(row.holedRate * 100).toFixed(1)}</td>
+                                <td>${row.holedCount} (${(row.holedRate * 100).toFixed(1)}%)</td>
                                 <td>${(row.directionAcc * 100).toFixed(1)}</td>
                                 <td>${(row.lowSideRate * 100).toFixed(1)}</td>
                             </tr>
                         `).join("")}
+                        <tr class="summary-row">
+                            <td>${isEn ? "Average" : "평균"}</td>
+                            <td>${totalShots}</td>
+                            <td>${totalHoledCount} (${(overallHoledRate * 100).toFixed(1)}%)</td>
+                            <td>${(overallDirectionAcc * 100).toFixed(1)}</td>
+                            <td>${(overallDirectionalMissRate * 100).toFixed(1)}</td>
+                        </tr>
                     </tbody>
                 </table>
             `;
         }
 
         if (!distanceBreakdown.speedByDistance.length) {
-            this.speedDistanceTarget.innerHTML = '<div class="distance-empty">N/A (Speed 결정훈련 데이터 없음)</div>';
+            this.speedDistanceTarget.innerHTML = isEn
+                ? '<div class="distance-empty">N/A (No Speed Decision Training data)</div>'
+                : '<div class="distance-empty">N/A (Speed 결정훈련 데이터 없음)</div>';
         } else {
+            const totalSpeedShots = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + row.count, 0);
+            const weightedSlopeErrorSum = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + (row.avgSlopeError * row.count), 0);
+            const weightedSpeedErrorSum = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + (row.avgSpeedError * row.count), 0);
+            const stablePaceCount = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + (row.stablePaceRate * row.count), 0);
+
+            const overallSlopeError = totalSpeedShots ? weightedSlopeErrorSum / totalSpeedShots : 0;
+            const overallSpeedError = totalSpeedShots ? weightedSpeedErrorSum / totalSpeedShots : 0;
+            const overallStablePaceRate = totalSpeedShots ? stablePaceCount / totalSpeedShots : 0;
+
             this.speedDistanceTarget.innerHTML = `
                 <table class="distance-table">
                     <thead>
                         <tr>
                             <th>Distance (yd)</th>
-                            <th>Shots</th>
+                            <th>${isEn ? "Shots" : "시도"}</th>
                             <th>Avg Slope Error %</th>
                             <th>Avg Speed Error cm</th>
-                            <th title="Pace Stable % (±10cm): Pred Finish와 Actual Finish 차이가 ±10cm 이내인 시도의 비율입니다. 높을수록 속도 실행 일관성이 좋습니다.">Pace Stable % (±10cm)</th>
+                            <th title="${isEn ? "Pace Stable % (±10cm): Share of attempts where Pred Finish and Actual Finish differ by no more than ±10cm. Higher indicates better speed execution consistency." : "Pace Stable % (±10cm): Pred Finish와 Actual Finish 차이가 ±10cm 이내인 시도의 비율입니다. 높을수록 속도 실행 일관성이 좋습니다."}">Pace Stable % (±10cm)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1198,6 +2079,13 @@ class DashboardComponent {
                                 <td>${(row.stablePaceRate * 100).toFixed(1)}</td>
                             </tr>
                         `).join("")}
+                        <tr class="summary-row">
+                            <td>${isEn ? "Average" : "평균"}</td>
+                            <td>${totalSpeedShots}</td>
+                            <td>${overallSlopeError.toFixed(2)}</td>
+                            <td>${overallSpeedError.toFixed(1)}</td>
+                            <td>${(overallStablePaceRate * 100).toFixed(1)}</td>
+                        </tr>
                     </tbody>
                 </table>
             `;
@@ -1249,24 +2137,34 @@ class PuttingTrainingApp {
         this.sectionNavigator = new SectionNavigator("sectionNav");
         this.records = this.storageService.getRecords();
         this.coachMissionFiles = JSON.parse(localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY)) || [];
+        this.missionResultUploads = JSON.parse(localStorage.getItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
+        this.registeredPlayers = this.loadRegisteredPlayers();
         this.activeMissionFileId = null;
+        this.coachSelectedPlayer = "";
+        this.selectedPlayerMissionDate = "";
+        this.selectedMissionDateByScope = {};
+        this.selectedMissionResultFile = "";
         this.session = {
             playerName: "",
-            sessionDate: ""
+            sessionDate: "",
+            language: "ko",
+            role: "player"
         };
+        this.language = "ko";
         this.failedLoginAttempts = 0;
         this.lockUntil = null;
         this.lockoutTimerId = null;
         this.appEventsBound = false;
         this.formFieldIds = [
             "distance", "intendedStartLine", "actualMiss", "lateralError", "predLowPoint", "actualLowPoint",
-            "speedPlan", "actualPace", "decisionSec", "highSideCommit", "apexCommit", "missType",
+            "speedPlan", "actualPace", "decisionOver7", "highSideCommit", "apexCommit", "missType",
             "speedDistance", "predSlope", "actualSlope", "predSpeedCm", "actualSpeedCm"
         ];
     }
 
     init() {
         this.setupLogin();
+        this.applyLanguage(this.language);
     }
 
     setupLogin() {
@@ -1277,6 +2175,17 @@ class PuttingTrainingApp {
 
         document.getElementById("loginPlayerName").addEventListener("input", () => this.saveLoginDraft());
         document.getElementById("loginDate").addEventListener("change", () => this.saveLoginDraft());
+        document.getElementById("loginRole").addEventListener("change", () => this.saveLoginDraft());
+        document.getElementById("loginLanguage").addEventListener("change", () => {
+            const nextLanguage = document.getElementById("loginLanguage").value || "ko";
+            this.applyLanguage(nextLanguage);
+            this.saveLoginDraft();
+        });
+        document.getElementById("topLanguage").addEventListener("change", () => {
+            const nextLanguage = document.getElementById("topLanguage").value || "ko";
+            this.applyLanguage(nextLanguage);
+            this.saveLoginDraft();
+        });
 
         document.getElementById("loginButton").addEventListener("click", () => this.handleLogin());
         document.getElementById("loginPasscode").addEventListener("keydown", (event) => {
@@ -1291,6 +2200,939 @@ class PuttingTrainingApp {
         this.updateLockoutUI();
     }
 
+    t(key, params = {}) {
+        return tr(key, params, this.language);
+    }
+
+    applyLanguage(language) {
+        this.language = language === "en" ? "en" : "ko";
+        CURRENT_LANG = this.language;
+        this.session.language = this.language;
+        document.documentElement.lang = this.language;
+
+        const loginLanguage = document.getElementById("loginLanguage");
+        const topLanguage = document.getElementById("topLanguage");
+        if (loginLanguage) loginLanguage.value = this.language;
+        if (topLanguage) topLanguage.value = this.language;
+
+        const setText = (selector, text) => {
+            const el = document.querySelector(selector);
+            if (el) el.textContent = text;
+        };
+
+        const setPlaceholder = (selector, text) => {
+            const el = document.querySelector(selector);
+            if (el) el.placeholder = text;
+        };
+
+        setText(".login-title", this.t("loginTitle"));
+        setText(".login-note", this.t("loginNote"));
+        setText('label[for="loginPlayerName"]', this.t("loginPlayer"));
+        setPlaceholder("#loginPlayerName", this.t("loginPlayerPh"));
+        setText('label[for="loginLanguage"]', this.t("loginLang"));
+        setText('label[for="loginDate"]', this.t("loginDate"));
+        setText('label[for="loginRole"]', this.t("loginRole"));
+        setText('label[for="loginPasscode"]', this.t("loginPass"));
+        setPlaceholder("#loginPasscode", this.t("loginPassPh"));
+        setText("#loginButton", this.t("loginEnter"));
+        setText("#newStartButton", this.t("newStart"));
+        setText("#logoutButton", this.t("logout"));
+        const rolePlayerOption = document.querySelector('#loginRole option[value="player"]');
+        const roleCoachOption = document.querySelector('#loginRole option[value="coach"]');
+        if (rolePlayerOption) rolePlayerOption.textContent = this.t("rolePlayer");
+        if (roleCoachOption) roleCoachOption.textContent = this.t("roleCoach");
+
+        const helperTop = document.querySelector("#appContent > .small");
+        if (helperTop) {
+            helperTop.textContent = this.language === "en"
+                ? "Select a main block first, then enter details in the selected section."
+                : "큰 블럭을 먼저 선택하고, 선택된 섹션에서 세부 내용을 입력하세요.";
+        }
+
+        const navCards = document.querySelectorAll("#sectionNav .nav-card");
+        if (navCards.length >= 7) {
+            const navText = this.language === "en"
+                ? [
+                    ["1) Framework", "Review training principles"],
+                    ["2) M1 Input", "Record direction/decision/commitment"],
+                    ["3) M2 Input", "Calibrate slope/speed"],
+                    ["4) Analysis", "Metrics/miss-cause/distance analysis"],
+                    ["5) Visualization", "Heatmap/Bayesian update"],
+                    ["6) Coach Mission", "Mission/feedback hub"],
+                    ["7) Data", "Export CSV"]
+                ]
+                : [
+                    ["1) Framework", "훈련 원칙 확인"],
+                    ["2) M1 입력", "방향/결정력/커밋 기록"],
+                    ["3) M2 입력", "경사/속도 보정"],
+                    ["4) 분석 보기", "지표/미스원인/거리별 분석"],
+                    ["5) 시각화", "히트맵/베이지안 업데이트"],
+                    ["6) 코치 미션", "미션/피드백 허브"],
+                    ["7) 데이터", "CSV 내보내기"]
+                ];
+            navCards.forEach((card, index) => {
+                const title = card.querySelector(".nav-title");
+                const desc = card.querySelector(".nav-desc");
+                if (title) title.textContent = navText[index][0];
+                if (desc) desc.textContent = navText[index][1];
+            });
+        }
+
+        const framework = document.getElementById("section-framework");
+        if (framework) {
+            const panel = framework.querySelector(".panel");
+            const h2 = panel?.querySelector("h2");
+            if (h2) h2.textContent = this.language === "en" ? "Performance Lie-Reading Framework" : "Performance Lie-Reading Framework";
+            const smalls = panel?.querySelectorAll(".small");
+            if (smalls && smalls[0]) {
+                smalls[0].textContent = this.language === "en"
+                    ? "Lie reading is not feel but trained perception: ① slope direction recognition ② slope magnitude quantification ③ speed integration"
+                    : "라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합";
+            }
+            const guideList = panel?.querySelectorAll(".guide-list li");
+            if (guideList && guideList.length >= 6) {
+                const guideHtml = this.language === "en"
+                    ? [
+                        "<b>Low-Point Training:</b> Start by finding gravity flow (where water gathers), not the putting line",
+                        "<b>Feet Calibration:</b> Accumulate predicted-vs-actual slope error records",
+                        "<b>High-Side Only:</b> Penalize low-side misses to strengthen commitment",
+                        "<b>Apex Visualization:</b> Decide the apex point before focusing on the cup",
+                        "<b>Speed First:</b> Learn break differences across dead weight/30cm over/60cm over",
+                        "<b>Address→Putt 7s Routine:</b> Keep stroke within 7 seconds after address (check over-7s)"
+                    ]
+                    : [
+                        "<b>Low-Point 훈련:</b> 라인이 아니라 중력 방향(물이 모이는 지점)부터 찾기",
+                        "<b>Feet Calibration:</b> 예측 경사%와 실제 경사% 오차를 누적 기록",
+                        "<b>High-Side Only:</b> 낮은 쪽 미스를 벌점으로 관리해 결정력 강화",
+                        "<b>Apex 시각화:</b> 컵이 아닌 최고점 지점을 먼저 결정",
+                        "<b>Speed First:</b> 데드웨이트/30cm/60cm 오버 속도별 브레이크 차이 학습",
+                        "<b>Address→Putt 7초 루틴:</b> 어드레스 진입 후 7초 이내 스트로크 유지 (7초 초과 여부 체크)"
+                    ];
+                guideList.forEach((item, idx) => { item.innerHTML = guideHtml[idx]; });
+            }
+
+            const conceptTitle = panel?.querySelector(".concept-title");
+            if (conceptTitle) {
+                conceptTitle.textContent = this.language === "en" ? "Speed First Concept (Core)" : "Speed First 개념 정리 (핵심)";
+            }
+            if (smalls && smalls[1]) {
+                smalls[1].innerHTML = this.language === "en"
+                    ? "Even on the same slope and start line, <b>faster speed reduces break.</b> Set target speed first, then line."
+                    : "같은 경사·같은 출발선에서도 <b>속도가 빨라질수록 브레이크는 줄어듭니다.</b> 즉, 라인을 먼저 고정하는 것이 아니라 목표 속도를 먼저 정해야 합니다.";
+            }
+            const conceptItems = panel?.querySelectorAll(".concept-item");
+            if (conceptItems && conceptItems.length >= 3) {
+                if (this.language === "en") {
+                    conceptItems[0].innerHTML = "<b>Dead Weight</b><br>Slowest speed, maximum break<br><span class='small'>Ball tends to stop near the cup</span>";
+                    conceptItems[1].innerHTML = "<b>30cm Over</b><br>Medium speed, medium break<br><span class='small'>Standard match pace baseline</span>";
+                    conceptItems[2].innerHTML = "<b>60cm Over</b><br>Fast speed, minimum break<br><span class='small'>Tighter line, higher inertia risk</span>";
+                } else {
+                    conceptItems[0].innerHTML = "<b>Dead Weight</b><br>가장 느린 속도, 브레이크 최대<br><span class='small'>공이 컵 근처에서 멈출 느낌</span>";
+                    conceptItems[1].innerHTML = "<b>30cm Over</b><br>중간 속도, 브레이크 중간<br><span class='small'>표준 경기 속도 기준</span>";
+                    conceptItems[2].innerHTML = "<b>60cm Over</b><br>빠른 속도, 브레이크 최소<br><span class='small'>라인은 타이트해지지만 관성 리스크 증가</span>";
+                }
+            }
+            if (smalls && smalls[2]) {
+                smalls[2].innerHTML = this.language === "en"
+                    ? "Drill rule: execute all three speeds from the same spot and record <b>Speed Plan</b> and <b>Actual Pace</b> on every shot. Plan-execution speed match is a key reproducibility indicator."
+                    : "드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요. 속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.";
+            }
+        }
+
+        const m1Panel = document.getElementById("m1Panel");
+        if (m1Panel) {
+            const m1h2 = m1Panel.querySelector("h2");
+            if (m1h2) m1h2.textContent = this.language === "en" ? "Lie Decision Training (Slope / Direction / Commitment)" : "Lie 결정훈련 (Slope / Direction / Commitment)";
+            const m1Labels = {
+                distance: this.language === "en" ? "Distance (yd)" : "거리 (yd)",
+                intendedStartLine: this.language === "en" ? "Intended Start Line" : "의도한 출발 라인",
+                actualMiss: this.language === "en" ? "Putt Result" : "퍼팅결과",
+                lateralError: this.language === "en" ? "Lateral Error (cm)" : "좌우 오차 (cm)",
+                predLowPoint: this.language === "en" ? "Pred Low-Point (Slope Flow)" : "인지한 Low-Point",
+                actualLowPoint: this.language === "en" ? "Actual Low-Point" : "실제 Low-Point",
+                speedPlan: this.language === "en" ? "Distance Target" : "거리목표",
+                actualPace: this.language === "en" ? "Actual Distance" : "실제 거리",
+                decisionOver7: this.language === "en" ? "Stroke Time Consistency (Over 7s?)" : "스트로크소요시간 일관성 (7초 초과?)",
+                highSideCommit: this.language === "en" ? "High-side Commit" : "High-side 커밋",
+                apexCommit: this.language === "en" ? "Apex Commit" : "Apex 커밋",
+                missType: this.language === "en" ? "Miss Type" : "미스 유형"
+            };
+            Object.entries(m1Labels).forEach(([field, text]) => setText(`label[for='${field}']`, text));
+            setText("#submitM1", this.language === "en" ? "Save" : "저장 (Save)");
+            const m1Small = m1Panel.querySelector(".small");
+            if (m1Small) m1Small.textContent = this.language === "en"
+                ? "Directional Miss: counted when Miss Type is direction/both / Address→Putt target: within 7s / High-side Commit & Apex are routine-quality indicators (also counted on holed putts)"
+                : "Directional Miss: Miss Type이 direction/both인 경우 / Address→Putt 목표: 7초 이내 / High-side 커밋·Apex는 루틴품질 지표(홀인에도 반영)";
+
+            const setOption = (selector, value, text) => {
+                const option = document.querySelector(`${selector} option[value='${value}']`);
+                if (option) option.textContent = text;
+            };
+
+            setOption("#intendedStartLine", "yes", this.language === "en" ? "Yes" : "예");
+            setOption("#intendedStartLine", "no", this.language === "en" ? "No" : "아니오");
+
+            setOption("#actualMiss", "center", this.language === "en" ? "Holed" : "홀인");
+            setOption("#actualMiss", "left", this.language === "en" ? "Left Miss" : "좌측 미스");
+            setOption("#actualMiss", "right", this.language === "en" ? "Right Miss" : "우측 미스");
+
+            setOption("#predLowPoint", "left", this.language === "en" ? "Left" : "왼쪽");
+            setOption("#predLowPoint", "right", this.language === "en" ? "Right" : "오른쪽");
+            setOption("#predLowPoint", "flat", this.language === "en" ? "Flat" : "평지");
+            setOption("#actualLowPoint", "left", this.language === "en" ? "Left" : "왼쪽");
+            setOption("#actualLowPoint", "right", this.language === "en" ? "Right" : "오른쪽");
+            setOption("#actualLowPoint", "flat", this.language === "en" ? "Flat" : "평지");
+
+            setOption("#speedPlan", "dead", this.language === "en" ? "Dead Weight" : "데드웨이트");
+            setOption("#speedPlan", "over30", this.language === "en" ? "30cm Over" : "30cm 오버");
+            setOption("#speedPlan", "over60", this.language === "en" ? "60cm Over" : "60cm 오버");
+            setOption("#actualPace", "dead", this.language === "en" ? "Dead Weight" : "데드웨이트");
+            setOption("#actualPace", "over30", this.language === "en" ? "30cm Over" : "30cm 오버");
+            setOption("#actualPace", "over60", this.language === "en" ? "60cm Over" : "60cm 오버");
+
+            setOption("#highSideCommit", "yes", this.language === "en" ? "Yes" : "예");
+            setOption("#highSideCommit", "no", this.language === "en" ? "No" : "아니오");
+            setOption("#apexCommit", "yes", this.language === "en" ? "Yes" : "예");
+            setOption("#apexCommit", "no", this.language === "en" ? "No" : "아니오");
+
+            setOption("#missType", "none", this.language === "en" ? "No Miss (Holed)" : "미스 없음 (성공)" );
+            setOption("#missType", "direction", this.language === "en" ? "Direction Miss" : "방향 미스");
+            setOption("#missType", "speed", this.language === "en" ? "Speed Miss" : "속도 미스");
+            setOption("#missType", "both", this.language === "en" ? "Direction + Speed Miss" : "방향 + 속도 미스");
+        }
+
+        const m2Panel = document.getElementById("m2Panel");
+        if (m2Panel) {
+            const m2h2 = m2Panel.querySelector("h2");
+            if (m2h2) m2h2.textContent = this.language === "en" ? "Speed Decision Training (Pace / Roll Decision)" : "Speed 결정훈련 (Pace / Roll Decision)";
+            setText("#submitM2", this.language === "en" ? "Save" : "저장 (Save)");
+        }
+
+        const analysisSection = document.getElementById("section-analysis");
+        if (analysisSection) {
+            const h2List = analysisSection.querySelectorAll("h2");
+            if (h2List[0]) h2List[0].textContent = "Auto Metrics (SRI / SII / DCS + 3-Stage Performance)";
+            if (h2List[1]) h2List[1].textContent = this.language === "en" ? "Putting Miss Analysis" : "퍼팅 미스 분석";
+            if (h2List[2]) h2List[2].textContent = this.language === "en" ? "Miss Type Analysis" : "미스 유형 분석";
+            if (h2List[3]) h2List[3].textContent = this.language === "en" ? "Lie Decision Training by Distance" : "Lie 결정훈련 거리별 분석";
+            if (h2List[4]) h2List[4].textContent = this.language === "en" ? "Speed Decision Training by Distance" : "Speed 결정훈련 거리별 분석";
+            const autoMetricDesc = analysisSection.querySelector(".panel.panel-analyze .small");
+            if (autoMetricDesc) {
+                autoMetricDesc.textContent = this.language === "en"
+                    ? "SRI: slope quantification accuracy / SII: direction read + low-side control / DCS: distance-normalized error + speed integration quality"
+                    : "SRI: 경사 수치화 정확도 / SII: 방향 판독+Low-side 보정 / DCS: 거리 대비 오차 + 속도 통합 품질";
+            }
+        }
+
+        const visualSection = document.getElementById("section-visual");
+        if (visualSection) {
+            const h2List = visualSection.querySelectorAll("h2");
+            if (h2List[0]) h2List[0].textContent = "Left / Right Error Heatmap";
+            if (h2List[1]) h2List[1].textContent = "Speed Error Heatmap (M2)";
+            if (h2List[2]) h2List[2].textContent = "Bayesian Skill Update";
+            const smalls = visualSection.querySelectorAll(".small");
+            if (smalls[0]) smalls[0].textContent = this.language === "en" ? "X-axis: distance bins (yd), Y-axis: Left/Holed/Right" : "X축: 거리 구간(yd), Y축: Left/Holed/Right";
+            if (smalls[1]) smalls[1].textContent = this.language === "en" ? "X-axis: distance bins (yd), Y-axis: slope categories / cell value: average speed error (cm)" : "X축: 거리 구간(yd), Y축: 경사 구간(%) / 셀 값: 평균 Speed Error(cm)";
+            if (smalls[2]) smalls[2].textContent = this.language === "en" ? "Prior Beta(1,1), updated in real time using M1 holed outcomes" : "사전분포 Beta(1,1), M1 결과의 Holed 여부로 실시간 업데이트";
+        }
+
+        const coachSection = document.getElementById("section-coach");
+        if (coachSection) {
+            const coachH2 = coachSection.querySelector("h2");
+            if (coachH2) coachH2.textContent = this.t("coachHubTitle");
+            const coachDesc = coachSection.querySelector(".panel.panel-data > .small");
+            if (coachDesc) coachDesc.textContent = this.t("coachHubDesc");
+            setText("#coachPlayerManageTitle", this.t("coachPlayerManageTitle"));
+            setText("#coachMissionManageTitle", this.t("coachMissionManageTitle"));
+            setText("#coachResultManageTitle", this.t("coachResultManageTitle"));
+            setText("#coachConversationTitle", this.t("coachConversationTitle"));
+            setText("label[for='coachPlayerFilter']", this.t("coachPlayerFilterLabel"));
+            setText("label[for='registerPlayerName']", this.t("registerPlayerNameLabel"));
+            setText("label[for='registerPlayerPass']", this.t("registerPlayerPassLabel"));
+            setText("label[for='missionInputText']", this.t("missionInputLabel"));
+            setText("label[for='missionDirectTitle']", this.t("missionDirectTitleLabel"));
+            setText("label[for='missionDirectItem']", this.t("missionDirectItemLabel"));
+            setText("label[for='missionMessageType']", this.t("missionTypeLabel"));
+            setText("label[for='missionTargetPlayer']", this.t("missionTargetLabel"));
+            setText("#missionBroadcastLabel", this.t("missionBroadcastAllLabel"));
+            setText("label[for='missionExcelInput']", this.language === "en" ? "Mission File Upload (.xlsx, .xls, .csv)" : "미션 파일 업로드 (.xlsx, .xls, .csv)");
+            setText("label[for='missionResultCsvInput']", this.t("missionResultFileLabel"));
+            setText("label[for='missionResultDownloadFile']", this.t("missionResultDownloadTargetLabel"));
+            setText("label[for='missionItemSelect']", this.language === "en" ? "Mission Item" : "미션 항목");
+            setPlaceholder("#missionInputText", this.t("missionInputPh"));
+            setPlaceholder("#registerPlayerName", this.t("registerPlayerNamePh"));
+            setPlaceholder("#registerPlayerPass", this.t("registerPlayerPassPh"));
+            setPlaceholder("#missionDirectTitle", this.t("missionDirectTitlePh"));
+            setPlaceholder("#missionDirectItem", this.t("missionDirectItemPh"));
+            setPlaceholder("#missionTargetPlayer", this.language === "en" ? "e.g., Jeon Sunyong" : "예: 전순용");
+            setText("#registerPlayerBtn", this.t("registerPlayerBtn"));
+            setText("#saveMissionInputBtn", this.t("missionSendBtn"));
+            setText("#saveMissionDirectBtn", this.t("saveMissionDirect"));
+            setText("#deleteMissionFileBtn", this.language === "en" ? "Delete Selected File" : "선택 파일 삭제");
+            setText("#uploadMissionResultBtn", this.t("uploadMissionResult"));
+            setText("#downloadMissionResultBtn", this.t("downloadMissionResult"));
+            setText("#missionTaskTitle", this.isCoachMode() ? this.t("missionTaskTitleCoach") : this.t("missionTaskTitlePlayer"));
+            const roleNote = document.getElementById("coachRoleNote");
+            if (roleNote) {
+                roleNote.textContent = this.session.role === "coach"
+                    ? this.t("coachRoleCoachNote")
+                    : this.t("coachRolePlayerNote");
+            }
+            const typeMission = document.querySelector('#missionMessageType option[value="mission"]');
+            const typeFeedback = document.querySelector('#missionMessageType option[value="feedback"]');
+            const typeQuestion = document.querySelector('#missionMessageType option[value="question"]');
+            if (typeMission) typeMission.textContent = this.t("missionTypeMission");
+            if (typeFeedback) typeFeedback.textContent = this.t("missionTypeFeedback");
+            if (typeQuestion) typeQuestion.textContent = this.t("missionTypeQuestion");
+        }
+
+        const exportSection = document.getElementById("section-export");
+        if (exportSection) {
+            const exportH2 = document.getElementById("sectionExportTitle");
+            if (exportH2) {
+                exportH2.textContent = this.isCoachMode()
+                    ? this.t("sectionExportCoachTitle")
+                    : this.t("sectionExportPlayerTitle");
+            }
+            setText("#playerTransferDesc", this.t("playerTransferDesc"));
+            setText("#sendTrainingDataBtn", this.t("sendTrainingData"));
+
+            const exportNavTitle = document.querySelector('#sectionNav .nav-card[data-target="section-export"] .nav-title');
+            const exportNavDesc = document.querySelector('#sectionNav .nav-card[data-target="section-export"] .nav-desc');
+            if (exportNavTitle) {
+                exportNavTitle.textContent = this.isCoachMode()
+                    ? this.t("navExportCoachTitle")
+                    : this.t("navExportPlayerTitle");
+            }
+            if (exportNavDesc) {
+                exportNavDesc.textContent = this.isCoachMode()
+                    ? this.t("navExportCoachDesc")
+                    : this.t("navExportPlayerDesc");
+            }
+        }
+
+        setText("#downloadAnalysisPdf", this.language === "en" ? "Download Analysis PDF" : "분석보기 PDF 다운로드");
+        setText("#downloadVisualPdf", this.language === "en" ? "Download Visualization PDF" : "시각화 PDF 다운로드");
+        setText("#downloadCsv", this.language === "en" ? "Download CSV" : "CSV 다운로드");
+        setText("label[for='importCsvInput']", this.language === "en" ? "Import CSV (same format)" : "CSV 불러오기 (동일 포맷)");
+        setText("label[for='importMode']", this.language === "en" ? "Import Mode" : "불러오기 방식");
+        setText("#importCsvBtn", this.language === "en" ? "Run CSV Import" : "CSV 불러오기 실행");
+
+        const importModeMerge = document.querySelector('#importMode option[value="merge"]');
+        const importModeOverwrite = document.querySelector('#importMode option[value="overwrite"]');
+        if (importModeMerge) importModeMerge.textContent = this.language === "en" ? "Merge (keep existing + append)" : "병합 (기존 데이터 유지 + 추가)";
+        if (importModeOverwrite) importModeOverwrite.textContent = this.language === "en" ? "Overwrite (replace existing)" : "덮어쓰기 (기존 데이터 교체)";
+
+        const currentPlayer = (this.session.playerName || "").trim();
+        const currentDate = (this.session.sessionDate || "").trim();
+        if (currentPlayer && currentDate) {
+            document.getElementById("sessionInfo").textContent = this.t("sessionInfo", {
+                playerName: currentPlayer,
+                sessionDate: currentDate,
+                role: this.session.role === "coach" ? this.t("roleCoach") : this.t("rolePlayer")
+            });
+        }
+
+        const slopeSelects = [document.getElementById("predSlope"), document.getElementById("actualSlope")];
+        slopeSelects.forEach((selectEl) => {
+            if (!selectEl) return;
+            Array.from(selectEl.options).forEach((option) => {
+                const found = SLOPE_LEVEL_OPTIONS.find(item => String(item.value) === option.value);
+                if (found) option.text = this.t(found.key);
+            });
+        });
+
+        const decisionOptionNo = document.querySelector('#decisionOver7 option[value="no"]');
+        const decisionOptionYes = document.querySelector('#decisionOver7 option[value="yes"]');
+        if (decisionOptionNo) decisionOptionNo.textContent = this.language === "en" ? "No (Within 7s)" : "아니오 (7초 이내)";
+        if (decisionOptionYes) decisionOptionYes.textContent = this.language === "en" ? "Yes (Over 7s)" : "예 (7초 초과)";
+
+        const koLangOptions = document.querySelectorAll('#loginLanguage option[value="ko"], #topLanguage option[value="ko"]');
+        const enLangOptions = document.querySelectorAll('#loginLanguage option[value="en"], #topLanguage option[value="en"]');
+        koLangOptions.forEach((option) => { option.textContent = this.language === "en" ? "Korean" : "한국어"; });
+        enLangOptions.forEach((option) => { option.textContent = "English"; });
+
+        if (this.heatmap && typeof this.heatmap.setLanguage === "function") {
+            this.heatmap.setLanguage(this.language);
+        }
+
+        if (this.session.playerName) {
+            this.refreshDashboard();
+            this.renderCoachMissionFiles();
+            this.renderMissionWorkArea();
+            this.renderMissionResultUploadList();
+            this.updateDeleteButtonAccess();
+            this.updateCoachRoleUI();
+            this.updateRoleBasedSections();
+        }
+    }
+
+    isCoachMode() {
+        return this.session.role === "coach";
+    }
+
+    getRoleLabel(role) {
+        return role === "coach" ? this.t("roleCoach") : this.t("rolePlayer");
+    }
+
+    getMessageTypeLabel(type) {
+        if (type === "mission") return this.t("missionTypeMission");
+        if (type === "question") return this.t("missionTypeQuestion");
+        return this.t("missionTypeFeedback");
+    }
+
+    updateCoachRoleUI() {
+        const uploadInput = document.getElementById("missionExcelInput");
+        const uploadField = document.getElementById("missionExcelUploadField");
+        const missionResultUploadField = document.getElementById("missionResultUploadField");
+        const missionBroadcastWrap = document.getElementById("missionBroadcastWrap");
+        const missionBroadcastAll = document.getElementById("missionBroadcastAll");
+        const directField = document.getElementById("coachMissionDirectField");
+        const filterWrap = document.getElementById("coachPlayerFilterWrap");
+        const registerWrap = document.getElementById("coachPlayerRegisterWrap");
+        const playerManageGroup = document.getElementById("coachPlayerManageGroup");
+        const missionManageGroup = document.getElementById("coachMissionManageGroup");
+        const missionTaskTitle = document.getElementById("missionTaskTitle");
+        const missionResultInput = document.getElementById("missionResultCsvInput");
+        const missionResultDownloadFile = document.getElementById("missionResultDownloadFile");
+        const uploadMissionResultBtn = document.getElementById("uploadMissionResultBtn");
+        const downloadMissionResultBtn = document.getElementById("downloadMissionResultBtn");
+        const targetInput = document.getElementById("missionTargetPlayer");
+        const typeSelect = document.getElementById("missionMessageType");
+        const roleNote = document.getElementById("coachRoleNote");
+        const isCoach = this.isCoachMode();
+
+        if (uploadInput) {
+            uploadInput.disabled = !isCoach;
+            uploadInput.title = isCoach ? "" : this.t("coachUploadOnly");
+        }
+        if (uploadField) {
+            uploadField.style.display = isCoach ? "block" : "none";
+        }
+        if (missionResultUploadField) {
+            missionResultUploadField.style.display = isCoach ? "none" : "block";
+        }
+        if (missionBroadcastWrap) {
+            missionBroadcastWrap.style.display = isCoach ? "block" : "none";
+        }
+        if (!isCoach && missionBroadcastAll) {
+            missionBroadcastAll.checked = false;
+        }
+        if (directField) {
+            directField.style.display = isCoach ? "grid" : "none";
+        }
+        if (filterWrap) {
+            filterWrap.style.display = isCoach ? "grid" : "none";
+        }
+        if (registerWrap) {
+            registerWrap.style.display = isCoach ? "grid" : "none";
+        }
+        if (playerManageGroup) {
+            playerManageGroup.style.display = isCoach ? "block" : "none";
+        }
+        if (missionManageGroup) {
+            missionManageGroup.style.display = isCoach ? "block" : "none";
+        }
+        if (missionTaskTitle) {
+            missionTaskTitle.textContent = isCoach ? this.t("missionTaskTitleCoach") : this.t("missionTaskTitlePlayer");
+        }
+        if (missionResultInput) {
+            missionResultInput.disabled = isCoach;
+            missionResultInput.title = isCoach ? this.t("coachRoleCoachNote") : "";
+        }
+        if (uploadMissionResultBtn) {
+            uploadMissionResultBtn.disabled = isCoach;
+            uploadMissionResultBtn.title = isCoach ? this.t("coachRoleCoachNote") : "";
+            uploadMissionResultBtn.style.display = isCoach ? "none" : "inline-block";
+        }
+        if (downloadMissionResultBtn) {
+            downloadMissionResultBtn.disabled = !isCoach;
+            downloadMissionResultBtn.title = isCoach ? "" : this.t("coachDeleteOnly");
+        }
+        if (missionResultDownloadFile) {
+            missionResultDownloadFile.disabled = !isCoach;
+            missionResultDownloadFile.title = isCoach ? "" : this.t("coachDeleteOnly");
+        }
+        if (targetInput) {
+            if (isCoach) {
+                const selectedPlayer = this.getSelectedCoachPlayer();
+                if (missionBroadcastAll && missionBroadcastAll.checked) {
+                    targetInput.value = "";
+                    targetInput.disabled = true;
+                } else {
+                    targetInput.value = selectedPlayer || targetInput.value || "";
+                    targetInput.disabled = false;
+                }
+            } else {
+                targetInput.value = this.session.playerName || "";
+                targetInput.disabled = true;
+            }
+        }
+        if (typeSelect) {
+            if (!isCoach) typeSelect.value = "feedback";
+            const missionOption = typeSelect.querySelector('option[value="mission"]');
+            if (missionOption) missionOption.disabled = !isCoach;
+        }
+        if (roleNote) {
+            roleNote.textContent = isCoach ? this.t("coachRoleCoachNote") : this.t("coachRolePlayerNote");
+        }
+
+        this.populateCoachPlayerFilter();
+        this.renderRegisteredPlayerList();
+        this.renderCoachMissionFiles();
+        this.renderMissionResultUploadList();
+    }
+
+    getVisibleCoachMissionFiles() {
+        const selectedCoachPlayer = this.getSelectedCoachPlayer();
+        const me = (this.session.playerName || "").trim();
+        const targetScopePlayer = this.isCoachMode() ? selectedCoachPlayer : me;
+
+        return (this.coachMissionFiles || []).filter((file) => {
+            const targetPlayer = String(file?.targetPlayer || "").trim();
+            if (this.isCoachMode() && !selectedCoachPlayer) return true;
+
+            if (!targetScopePlayer) return true;
+            if (targetPlayer === targetScopePlayer) return true;
+
+            if (!targetPlayer) {
+                const hasPlayerRecord = this.records.some((record) => (
+                    record.mission === "COACH_MISSION"
+                    && String(record.missionFileName || "").trim() === String(file?.fileName || "").trim()
+                    && String(record.missionTargetPlayer || "").trim() === targetScopePlayer
+                ));
+                return hasPlayerRecord;
+            }
+
+            const hasPlayerRecord = this.records.some((record) => (
+                record.mission === "COACH_MISSION"
+                && String(record.missionFileName || "").trim() === String(file?.fileName || "").trim()
+                && String(record.missionTargetPlayer || "").trim() === targetScopePlayer
+            ));
+            return hasPlayerRecord;
+        });
+    }
+
+    getVisibleMissionResultUploads() {
+        const selectedCoachPlayer = this.getSelectedCoachPlayer();
+        const filtered = (this.missionResultUploads || []).filter((item) => {
+            if (!this.isCoachMode() || !selectedCoachPlayer) return true;
+            const uploadedBy = String(item.uploadedBy || "").trim();
+            const fileName = String(item.fileName || "").trim();
+            return uploadedBy === selectedCoachPlayer || fileName.startsWith(`${selectedCoachPlayer}_`);
+        });
+
+        const dedupedByFileName = new Map();
+        filtered.forEach((item) => {
+            const fileName = String(item.fileName || "").trim();
+            if (!fileName) return;
+            dedupedByFileName.set(fileName, item);
+        });
+        return Array.from(dedupedByFileName.values());
+    }
+
+    renderMissionResultDownloadOptions() {
+        const select = document.getElementById("missionResultDownloadFile");
+        if (!select) return;
+
+        const rows = this.getVisibleMissionResultUploads();
+        const selected = String(this.selectedMissionResultFile || select.value || "").trim();
+
+        if (!rows.length) {
+            this.selectedMissionResultFile = "";
+            select.innerHTML = `<option value="">${this.t("missionResultSelectPlaceholder")}</option>`;
+            select.value = "";
+            return;
+        }
+
+        select.innerHTML = [`<option value="">${this.t("missionResultSelectPlaceholder")}</option>`]
+            .concat(rows.slice().reverse().map((item) => {
+                const fileName = String(item.fileName || "").trim();
+                return `<option value="${fileName}">${fileName}</option>`;
+            }))
+            .join("");
+
+        const hasSelected = rows.some((item) => String(item.fileName || "").trim() === selected);
+        this.selectedMissionResultFile = hasSelected
+            ? selected
+            : String(rows[rows.length - 1].fileName || "").trim();
+        select.value = this.selectedMissionResultFile;
+    }
+
+    loadRegisteredPlayers() {
+        let parsed;
+        try {
+            parsed = JSON.parse(localStorage.getItem(APP_CONFIG.REGISTERED_PLAYERS_KEY)) || [];
+        } catch (error) {
+            parsed = [];
+        }
+
+        if (!Array.isArray(parsed)) return [];
+
+        const deduped = new Map();
+        parsed.forEach((item) => {
+            const isString = typeof item === "string";
+            const name = String(isString ? item : (item?.name || item?.playerName || "")).trim();
+            if (!name) return;
+
+            const passcode = String(isString ? "" : (item?.passcode || item?.password || "")).trim();
+            const createdAt = String(isString ? "" : (item?.createdAt || "")).trim() || new Date().toLocaleString();
+            deduped.set(name, { name, passcode, createdAt });
+        });
+
+        return Array.from(deduped.values())
+            .sort((a, b) => a.name.localeCompare(b.name, this.language));
+    }
+
+    saveRegisteredPlayers() {
+        localStorage.setItem(APP_CONFIG.REGISTERED_PLAYERS_KEY, JSON.stringify(this.registeredPlayers));
+    }
+
+    findRegisteredPlayer(name) {
+        const target = String(name || "").trim();
+        if (!target) return null;
+        return this.registeredPlayers.find((player) => String(player?.name || "").trim() === target) || null;
+    }
+
+    renderRegisteredPlayerList() {
+        const target = document.getElementById("registeredPlayerList");
+        if (!target) return;
+
+        const escapeHtml = (value) => String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        if (!this.registeredPlayers.length) {
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("noRegisteredPlayers")}</div>`;
+            return;
+        }
+
+        target.innerHTML = this.registeredPlayers
+            .slice()
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), this.language))
+            .map((player) => `
+                <div class="mission-upload-item">
+                    <div>${this.t("registerPlayerListItem", {
+                        name: player.name || "-",
+                        createdAt: player.createdAt || "-"
+                    })}</div>
+                    <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="secondary-btn" data-player-action="reset" data-player-name="${escapeHtml(player.name || "")}">${this.t("registerPlayerResetBtn")}</button>
+                        <button type="button" class="secondary-btn" data-player-action="delete" data-player-name="${escapeHtml(player.name || "")}">${this.t("registerPlayerDeleteBtn")}</button>
+                    </div>
+                </div>
+            `)
+            .join("");
+    }
+
+    handleRegisteredPlayerAction(event) {
+        if (!this.isCoachMode()) return;
+        const button = event.target?.closest?.("button[data-player-action]");
+        if (!button) return;
+
+        const action = String(button.dataset.playerAction || "").trim();
+        const name = String(button.dataset.playerName || "").trim();
+        if (!name) return;
+
+        if (action === "delete") {
+            this.deleteRegisteredPlayer(name);
+            return;
+        }
+        if (action === "reset") {
+            this.resetRegisteredPlayerPasscode(name);
+        }
+    }
+
+    deleteRegisteredPlayer(name) {
+        if (!this.isCoachMode()) return;
+        const resultTarget = document.getElementById("registerPlayerResult");
+        const playerName = String(name || "").trim();
+        if (!playerName) return;
+
+        if (playerName === APP_CONFIG.COACH_LOGIN_ALLOWED_USER) {
+            if (resultTarget) resultTarget.textContent = this.t("registerPlayerProtected", { name: playerName });
+            return;
+        }
+
+        const exists = !!this.findRegisteredPlayer(playerName);
+        if (!exists) return;
+
+        const confirmed = window.confirm(this.t("registerPlayerDeleteConfirm", { name: playerName }));
+        if (!confirmed) return;
+        const deleteRelatedData = window.confirm(this.t("registerPlayerDeleteRelatedConfirm", { name: playerName }));
+
+        let removedRecordCount = 0;
+        let removedMissionFileCount = 0;
+        let removedUploadCount = 0;
+
+        if (deleteRelatedData) {
+            const beforeRecordCount = this.records.length;
+            this.records = this.records.filter((record) => {
+                const owner = String(record.playerName || "").trim();
+                const target = String(record.missionTargetPlayer || "").trim();
+                const actor = String(record.missionActorName || "").trim();
+                return owner !== playerName && target !== playerName && actor !== playerName;
+            });
+            removedRecordCount = beforeRecordCount - this.records.length;
+
+            const beforeMissionFileCount = this.coachMissionFiles.length;
+            this.coachMissionFiles = this.coachMissionFiles.filter((file) => {
+                const targetPlayer = String(file?.targetPlayer || "").trim();
+                return targetPlayer !== playerName;
+            });
+            removedMissionFileCount = beforeMissionFileCount - this.coachMissionFiles.length;
+
+            const beforeUploadCount = this.missionResultUploads.length;
+            this.missionResultUploads = this.missionResultUploads.filter((item) => {
+                const uploadedBy = String(item.uploadedBy || "").trim();
+                const fileName = String(item.fileName || "").trim();
+                return uploadedBy !== playerName && !fileName.startsWith(`${playerName}_`);
+            });
+            removedUploadCount = beforeUploadCount - this.missionResultUploads.length;
+
+            this.storageService.saveRecords(this.records);
+            this.saveCoachMissionFiles();
+            this.saveMissionResultUploads();
+
+            if (!this.coachMissionFiles.some((item) => item.id === this.activeMissionFileId)) {
+                this.activeMissionFileId = this.coachMissionFiles[0]?.id || null;
+            }
+        }
+
+        this.registeredPlayers = this.registeredPlayers
+            .filter((player) => String(player?.name || "").trim() !== playerName)
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), this.language));
+
+        this.saveRegisteredPlayers();
+        this.populateCoachPlayerFilter();
+        this.renderRegisteredPlayerList();
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+        this.renderMissionResultUploadList();
+        this.renderMissionEntryList();
+        this.refreshDashboard();
+
+        if (resultTarget) {
+            resultTarget.textContent = deleteRelatedData
+                ? this.t("registerPlayerDeletedWithData", {
+                    name: playerName,
+                    records: removedRecordCount,
+                    missions: removedMissionFileCount,
+                    uploads: removedUploadCount
+                })
+                : this.t("registerPlayerDeleted", { name: playerName });
+        }
+    }
+
+    resetRegisteredPlayerPasscode(name) {
+        if (!this.isCoachMode()) return;
+        const resultTarget = document.getElementById("registerPlayerResult");
+        const playerName = String(name || "").trim();
+        if (!playerName) return;
+
+        const target = this.findRegisteredPlayer(playerName);
+        if (!target) return;
+
+        const input = window.prompt(this.t("registerPlayerNewPassPrompt", { name: playerName }));
+        if (input === null) return;
+
+        const passcode = String(input || "").trim();
+        if (!passcode) {
+            if (resultTarget) resultTarget.textContent = this.t("registerPlayerNeedPass");
+            return;
+        }
+
+        target.passcode = passcode;
+        this.saveRegisteredPlayers();
+        this.renderRegisteredPlayerList();
+        if (resultTarget) resultTarget.textContent = this.t("registerPlayerResetSaved", { name: playerName });
+    }
+
+    registerPlayerAccount() {
+        if (!this.isCoachMode()) return;
+
+        const nameInput = document.getElementById("registerPlayerName");
+        const passInput = document.getElementById("registerPlayerPass");
+        const resultTarget = document.getElementById("registerPlayerResult");
+
+        const name = String(nameInput?.value || "").trim();
+        const passcode = String(passInput?.value || "").trim();
+
+        if (!name) {
+            if (resultTarget) resultTarget.textContent = this.t("registerPlayerNeedName");
+            return;
+        }
+
+        if (!passcode) {
+            if (resultTarget) resultTarget.textContent = this.t("registerPlayerNeedPass");
+            return;
+        }
+
+        const now = new Date().toLocaleString();
+        const existingIndex = this.registeredPlayers.findIndex((player) => String(player?.name || "").trim() === name);
+
+        if (existingIndex >= 0) {
+            this.registeredPlayers[existingIndex] = {
+                ...this.registeredPlayers[existingIndex],
+                name,
+                passcode,
+                createdAt: this.registeredPlayers[existingIndex].createdAt || now
+            };
+            if (resultTarget) resultTarget.textContent = this.t("registerPlayerExists", { name });
+        } else {
+            this.registeredPlayers.push({ name, passcode, createdAt: now });
+            if (resultTarget) resultTarget.textContent = this.t("registerPlayerSaved", { name });
+        }
+
+        this.registeredPlayers = this.registeredPlayers
+            .slice()
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), this.language));
+
+        this.saveRegisteredPlayers();
+        this.populateCoachPlayerFilter();
+        this.renderRegisteredPlayerList();
+
+        if (nameInput) nameInput.value = "";
+        if (passInput) passInput.value = "";
+    }
+
+    getRegisteredPlayers() {
+        return this.registeredPlayers
+            .map((player) => String(player?.name || "").trim())
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, this.language));
+    }
+
+    getManagedPlayers() {
+        return this.getRegisteredPlayers().filter((name) => String(name || "").trim() !== APP_CONFIG.COACH_LOGIN_ALLOWED_USER);
+    }
+
+    getSelectedCoachPlayer() {
+        if (!this.isCoachMode()) return "";
+        const select = document.getElementById("coachPlayerFilter");
+        const selected = String(select?.value || this.coachSelectedPlayer || "").trim();
+        return selected;
+    }
+
+    populateCoachPlayerFilter() {
+        const select = document.getElementById("coachPlayerFilter");
+        if (!select) return;
+
+        const players = this.getRegisteredPlayers();
+        const selected = this.getSelectedCoachPlayer();
+        const validSelected = players.includes(selected) ? selected : "";
+        this.coachSelectedPlayer = validSelected;
+
+        const escapeHtml = (value) => String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const options = [`<option value="">${this.t("coachPlayerAll")}</option>`]
+            .concat(players.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`));
+        select.innerHTML = options.join("");
+        select.value = validSelected;
+    }
+
+    updateRoleBasedSections() {
+        const exportNav = document.querySelector('#sectionNav .nav-card[data-target="section-export"]');
+        const exportSection = document.getElementById("section-export");
+        const coachDataControls = document.getElementById("coachDataControls");
+        const playerTransferBox = document.getElementById("playerTransferBox");
+        const isCoach = this.isCoachMode();
+        if (exportNav) exportNav.style.display = "block";
+        if (exportSection) exportSection.style.display = "";
+        if (coachDataControls) coachDataControls.style.display = isCoach ? "block" : "none";
+        if (playerTransferBox) playerTransferBox.style.display = isCoach ? "none" : "block";
+    }
+
+    buildPlayerTransferFileName() {
+        const player = (this.session.playerName || "player").trim().replace(/[\\/:*?"<>|]/g, "_");
+        const date = (this.session.sessionDate || new Date().toISOString().slice(0, 10)).trim().replace(/[\\/:*?"<>|]/g, "_");
+        return `${player}_${date}.csv`;
+    }
+
+    sendTrainingDataToCoach() {
+        if (this.isCoachMode()) return;
+
+        const resultTarget = document.getElementById("trainingTransferResult");
+        const transferRecords = this.records.filter((record) => {
+            const samePlayer = (record.playerName || "") === this.session.playerName;
+            const sameDate = (record.sessionDate || "") === this.session.sessionDate;
+            const isTargetMission = MetricsService.isLieMission(record.mission) || MetricsService.isSpeedMission(record.mission);
+            return samePlayer && sameDate && isTargetMission;
+        });
+
+        if (!transferRecords.length) {
+            if (resultTarget) resultTarget.textContent = this.t("noTrainingDataToSend");
+            return;
+        }
+
+        const fileName = this.buildPlayerTransferFileName();
+        transferRecords.forEach((record) => {
+            record.missionFileName = fileName;
+        });
+        this.storageService.saveRecords(this.records);
+
+        const uploadItem = {
+            fileName,
+            uploadedBy: this.session.playerName || "-",
+            uploadedAt: new Date().toLocaleString(),
+            rowCount: transferRecords.length
+        };
+        const existingIndex = this.missionResultUploads.findIndex(item => String(item.fileName || "") === fileName);
+        if (existingIndex >= 0) {
+            this.missionResultUploads[existingIndex] = uploadItem;
+        } else {
+            this.missionResultUploads.push(uploadItem);
+        }
+        this.saveMissionResultUploads();
+        this.renderMissionResultUploadList();
+
+        if (resultTarget) {
+            resultTarget.textContent = this.t("trainingDataSent", {
+                fileName,
+                count: transferRecords.length
+            });
+        }
+        this.selectedMissionResultFile = fileName;
+    }
+
+    saveMissionResultUploads() {
+        localStorage.setItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, JSON.stringify(this.missionResultUploads));
+    }
+
+    renderMissionResultUploadList() {
+        const target = document.getElementById("missionResultUploadList");
+        if (!target) return;
+
+        const rows = this.getVisibleMissionResultUploads()
+            .slice()
+            .reverse()
+            .slice(0, 20);
+
+        this.renderMissionResultDownloadOptions();
+
+        if (!rows.length) {
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("noMissionResultUploads")}</div>`;
+            return;
+        }
+
+        target.innerHTML = rows.map((item) => `
+            <div class="mission-upload-item">${this.t("missionResultUploadItem", {
+                fileName: item.fileName || "-",
+                uploadedBy: item.uploadedBy || "-",
+                uploadedAt: item.uploadedAt || "-",
+                rowCount: item.rowCount ?? 0
+            })}</div>
+        `).join("");
+    }
+
     getLoginDraft() {
         return JSON.parse(localStorage.getItem(APP_CONFIG.LOGIN_DRAFT_KEY)) || {};
     }
@@ -1298,7 +3140,9 @@ class PuttingTrainingApp {
     saveLoginDraft() {
         const playerName = document.getElementById("loginPlayerName")?.value?.trim() || "";
         const sessionDate = document.getElementById("loginDate")?.value || "";
-        localStorage.setItem(APP_CONFIG.LOGIN_DRAFT_KEY, JSON.stringify({ playerName, sessionDate }));
+        const language = document.getElementById("loginLanguage")?.value || this.language || "ko";
+        const role = document.getElementById("loginRole")?.value === "coach" ? "coach" : "player";
+        localStorage.setItem(APP_CONFIG.LOGIN_DRAFT_KEY, JSON.stringify({ playerName, sessionDate, language, role }));
     }
 
     restoreLoginDraft() {
@@ -1311,27 +3155,131 @@ class PuttingTrainingApp {
         if (dateInput && draft.sessionDate) {
             dateInput.value = draft.sessionDate;
         }
+        const roleSelect = document.getElementById("loginRole");
+        if (roleSelect) {
+            roleSelect.value = draft.role === "coach" ? "coach" : "player";
+        }
+        const languageSelect = document.getElementById("loginLanguage");
+        if (languageSelect) {
+            languageSelect.value = draft.language === "en" ? "en" : "ko";
+            this.applyLanguage(languageSelect.value);
+        }
     }
 
     saveCoachMissionFiles() {
         localStorage.setItem(APP_CONFIG.COACH_MISSIONS_KEY, JSON.stringify(this.coachMissionFiles));
     }
 
+    getMissionFileDateKey(file) {
+        const iso = String(file?.uploadedAtISO || "").trim();
+        if (iso && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
+            return iso.slice(0, 10);
+        }
+
+        const idPrefix = Number(String(file?.id || "").split("_")[0]);
+        if (Number.isFinite(idPrefix) && idPrefix > 0) {
+            return new Date(idPrefix).toISOString().slice(0, 10);
+        }
+
+        const uploadedAt = String(file?.uploadedAt || "").trim();
+        const parsed = Date.parse(uploadedAt);
+        if (Number.isFinite(parsed)) {
+            return new Date(parsed).toISOString().slice(0, 10);
+        }
+
+        return "unknown";
+    }
+
     renderCoachMissionFiles() {
         const target = document.getElementById("missionFileList");
-        if (!this.coachMissionFiles.length) {
-            target.innerHTML = '<div class="distance-empty">업로드된 미션 파일이 없습니다.</div>';
+        const visibleFiles = this.getVisibleCoachMissionFiles();
+        if (!visibleFiles.length) {
+            target.innerHTML = `<div class="distance-empty">${this.t("noMissionFiles")}</div>`;
             document.getElementById("missionWorkArea").style.display = "none";
             return;
         }
 
-        target.innerHTML = this.coachMissionFiles.map(file => `
+        const isCoach = this.isCoachMode();
+        const selectedCoachPlayer = this.getSelectedCoachPlayer();
+        const useDateFilter = !isCoach || !!selectedCoachPlayer;
+        let filesToRender = visibleFiles;
+
+        if (useDateFilter) {
+            const datedFiles = visibleFiles.map((file) => ({
+                file,
+                dateKey: this.getMissionFileDateKey(file)
+            }));
+            const distinctDateKeys = Array.from(new Set(datedFiles.map((item) => item.dateKey)))
+                .sort((a, b) => {
+                    if (a === "unknown") return 1;
+                    if (b === "unknown") return -1;
+                    return b.localeCompare(a);
+                });
+
+            const dateScopeKey = isCoach
+                ? `coach:${selectedCoachPlayer}`
+                : `player:${this.session.playerName || ""}`;
+            const latestDateKey = distinctDateKeys[0] || "";
+            const scopedSelectedDate = String(this.selectedMissionDateByScope[dateScopeKey] || this.selectedPlayerMissionDate || "").trim();
+            const selectedDateKey = distinctDateKeys.includes(scopedSelectedDate)
+                ? scopedSelectedDate
+                : latestDateKey;
+            this.selectedMissionDateByScope[dateScopeKey] = selectedDateKey;
+            this.selectedPlayerMissionDate = selectedDateKey;
+
+            filesToRender = datedFiles
+                .filter((item) => item.dateKey === selectedDateKey)
+                .map((item) => item.file);
+
+            const dateOptions = distinctDateKeys.map((dateKey) => {
+                const label = `${dateKey}${dateKey === latestDateKey ? ` (${this.t("missionDateLatest")})` : ""}`;
+                return `<option value="${dateKey}">${label}</option>`;
+            }).join("");
+            const dateFilterLabel = isCoach
+                ? this.t("missionDateFilterLabelCoach")
+                : this.t("missionDateFilterLabelPlayer");
+
+            target.innerHTML = `
+                <div class="mission-date-filter">
+                    <span>${dateFilterLabel}</span>
+                    <select id="missionDateFilterSelect">${dateOptions}</select>
+                </div>
+                <div class="mission-file-list" id="missionScopedFileList"></div>
+            `;
+
+            const dateSelect = target.querySelector("#missionDateFilterSelect");
+            if (dateSelect) {
+                dateSelect.value = selectedDateKey;
+                dateSelect.addEventListener("change", (event) => {
+                    const nextDate = String(event.target?.value || "").trim();
+                    this.selectedMissionDateByScope[dateScopeKey] = nextDate;
+                    this.selectedPlayerMissionDate = nextDate;
+                    this.renderCoachMissionFiles();
+                    this.renderMissionWorkArea();
+                });
+            }
+        }
+
+        if (!filesToRender.length) {
+            target.innerHTML = `<div class="distance-empty">${this.t("noMissionFiles")}</div>`;
+            document.getElementById("missionWorkArea").style.display = "none";
+            return;
+        }
+
+        if (!filesToRender.some(file => file.id === this.activeMissionFileId)) {
+            this.activeMissionFileId = filesToRender[0].id;
+        }
+
+        const listTarget = useDateFilter ? target.querySelector("#missionScopedFileList") : target;
+        if (!listTarget) return;
+
+        listTarget.innerHTML = filesToRender.map(file => `
             <button type="button" class="mission-file-btn ${file.id === this.activeMissionFileId ? "active" : ""}" data-file-id="${file.id}">
                 ${file.fileName} (${(file.missions || []).length})
             </button>
         `).join("");
 
-        target.querySelectorAll(".mission-file-btn").forEach(button => {
+        listTarget.querySelectorAll(".mission-file-btn").forEach(button => {
             button.addEventListener("click", () => {
                 this.selectMissionFile(button.dataset.fileId);
             });
@@ -1342,16 +3290,54 @@ class PuttingTrainingApp {
         this.activeMissionFileId = fileId;
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
+        this.updateCoachRoleUI();
     }
 
     renderMissionWorkArea() {
         const workArea = document.getElementById("missionWorkArea");
         const select = document.getElementById("missionItemSelect");
         const meta = document.getElementById("missionMeta");
-        const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+        const preview = document.getElementById("missionSourcePreview");
+        const visibleFiles = this.getVisibleCoachMissionFiles();
+        const isCoach = this.isCoachMode();
+        const selectedCoachPlayer = this.getSelectedCoachPlayer();
+        const useDateFilter = !isCoach || !!selectedCoachPlayer;
+
+        let scopedFiles = visibleFiles;
+        if (useDateFilter && visibleFiles.length) {
+            const datedFiles = visibleFiles.map((file) => ({
+                file,
+                dateKey: this.getMissionFileDateKey(file)
+            }));
+            const distinctDateKeys = Array.from(new Set(datedFiles.map((item) => item.dateKey)))
+                .sort((a, b) => {
+                    if (a === "unknown") return 1;
+                    if (b === "unknown") return -1;
+                    return b.localeCompare(a);
+                });
+            const dateScopeKey = isCoach
+                ? `coach:${selectedCoachPlayer}`
+                : `player:${this.session.playerName || ""}`;
+            const latestDateKey = distinctDateKeys[0] || "";
+            const scopedSelectedDate = String(this.selectedMissionDateByScope[dateScopeKey] || this.selectedPlayerMissionDate || "").trim();
+            const selectedDateKey = distinctDateKeys.includes(scopedSelectedDate)
+                ? scopedSelectedDate
+                : latestDateKey;
+            this.selectedMissionDateByScope[dateScopeKey] = selectedDateKey;
+            this.selectedPlayerMissionDate = selectedDateKey;
+
+            scopedFiles = datedFiles
+                .filter((item) => item.dateKey === selectedDateKey)
+                .map((item) => item.file);
+        }
+
+        const file = scopedFiles.find(item => item.id === this.activeMissionFileId);
 
         if (!file) {
             workArea.style.display = "none";
+            if (select) select.innerHTML = "";
+            if (meta) meta.textContent = "";
+            if (preview) preview.innerHTML = "";
             return;
         }
 
@@ -1362,8 +3348,78 @@ class PuttingTrainingApp {
         `).join("");
 
         const selectedMission = missions[0];
-        meta.textContent = selectedMission && selectedMission.detail ? `미션 설명: ${selectedMission.detail}` : "미션 설명 없음";
+        const hasSourceRows = Array.isArray(file?.sourceRows) && file.sourceRows.length > 1;
+        meta.textContent = selectedMission && selectedMission.detail
+            ? (hasSourceRows ? this.t("missionDescFromSource") : this.t("missionDesc", { detail: selectedMission.detail }))
+            : this.t("missionDescEmpty");
+        this.renderMissionSourcePreview(file);
+        const targetInput = document.getElementById("missionTargetPlayer");
+        if (targetInput && !this.isCoachMode()) {
+            targetInput.value = this.session.playerName || "";
+        }
         this.renderMissionEntryList();
+    }
+
+    renderMissionSourcePreview(file) {
+        const target = document.getElementById("missionSourcePreview");
+        if (!target) return;
+
+        const rows = Array.isArray(file?.sourceRows) ? file.sourceRows : [];
+        if (!rows.length) {
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("missionSourcePreviewEmpty")}</div>`;
+            return;
+        }
+
+        const maxCols = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+        if (!maxCols) {
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("missionSourcePreviewEmpty")}</div>`;
+            return;
+        }
+
+        const escapeHtml = (value) => String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const normalizedRows = rows.map((row) => {
+            const cells = Array.isArray(row) ? row.slice(0, maxCols) : [];
+            while (cells.length < maxCols) cells.push("");
+            return cells;
+        });
+
+        const headerCells = normalizedRows[0];
+        const bodyRows = normalizedRows.slice(1);
+        const missionItemColIndex = headerCells.findIndex((cell) => {
+            const key = String(cell || "").trim().toLowerCase();
+            return key === "missionitem" || key === "미션내용";
+        });
+
+        const headerHtml = headerCells.map((cell, idx) => {
+            const text = String(cell || "").trim() || `Column ${idx + 1}`;
+            return `<th>${escapeHtml(text)}</th>`;
+        }).join("");
+
+        const bodyHtml = bodyRows.length
+            ? bodyRows.map((row) => `<tr>${row.map((cell, idx) => {
+                const className = idx === missionItemColIndex ? " class=\"mission-item-cell\"" : "";
+                return `<td${className}>${escapeHtml(cell)}</td>`;
+            }).join("")}</tr>`).join("")
+            : `<tr>${headerCells.map((cell, idx) => {
+                const className = idx === missionItemColIndex ? " class=\"mission-item-cell\"" : "";
+                return `<td${className}>${escapeHtml(cell)}</td>`;
+            }).join("")}</tr>`;
+
+        target.innerHTML = `
+            <div class="mission-source-preview-title">${this.t("missionSourcePreviewTitle")}</div>
+            <div class="mission-source-preview-wrap">
+                <table class="distance-table">
+                    <thead><tr>${headerHtml}</tr></thead>
+                    <tbody>${bodyHtml}</tbody>
+                </table>
+            </div>
+        `;
     }
 
     renderMissionEntryList() {
@@ -1374,23 +3430,94 @@ class PuttingTrainingApp {
             return;
         }
 
+        const selectedCoachPlayer = this.getSelectedCoachPlayer();
+        const missionIndex = Number(document.getElementById("missionItemSelect")?.value || 0);
+        const mission = (file.missions || [])[missionIndex] || null;
+        const missionTitle = mission?.title || "";
+
         const rows = this.records
             .filter(r => r.mission === "COACH_MISSION" && r.missionFileName === file.fileName)
-            .slice(-5)
-            .reverse();
+            .filter(r => !missionTitle || r.missionTitle === missionTitle)
+            .filter(r => {
+                if (this.isCoachMode()) {
+                    if (!selectedCoachPlayer) return true;
+                    const actor = (r.missionActorName || r.playerName || "").trim();
+                    const targetPlayer = (r.missionTargetPlayer || "").trim();
+                    const owner = (r.playerName || "").trim();
+                    return actor === selectedCoachPlayer || targetPlayer === selectedCoachPlayer || owner === selectedCoachPlayer;
+                }
+                const me = (this.session.playerName || "").trim();
+                const actor = (r.missionActorName || r.playerName || "").trim();
+                const targetPlayer = (r.missionTargetPlayer || "").trim();
+                return actor === me || targetPlayer === me;
+            })
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        if (!rows.length) {
-            target.innerHTML = '<div class="distance-empty">아직 저장된 미션 입력이 없습니다.</div>';
+        const uniqueRows = [];
+        const seen = new Set();
+        rows.forEach((row) => {
+            const dedupeKey = [
+                row.mission,
+                row.date,
+                row.playerName,
+                row.sessionDate,
+                row.missionFileName,
+                row.missionTitle,
+                row.missionResponse,
+                row.missionActorRole,
+                row.missionActorName,
+                row.missionTargetPlayer,
+                row.missionMessageType
+            ].map(value => String(value ?? "")).join("||");
+
+            if (seen.has(dedupeKey)) return;
+            seen.add(dedupeKey);
+            uniqueRows.push(row);
+        });
+
+        if (!uniqueRows.length) {
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("noMissionEntries")}</div>`;
             return;
         }
 
-        target.innerHTML = rows.map(row => `
-            <div class="mission-log-item">[${row.date}] ${row.playerName} - ${row.missionTitle}: ${row.missionResponse}</div>
-        `).join("");
+        target.innerHTML = uniqueRows.map((row, index) => {
+            const actorRole = row.missionActorRole || "player";
+            const actorName = row.missionActorName || row.playerName || "-";
+            const targetPlayer = row.missionTargetPlayer || "-";
+            const roleLabel = this.getRoleLabel(actorRole);
+            const messageType = row.missionMessageType || "feedback";
+            const typeLabel = this.getMessageTypeLabel(messageType);
+            let questionStatusHtml = "";
+            if (messageType === "question") {
+                const asker = String(row.missionActorName || row.playerName || "").trim();
+                const targetName = String(row.missionTargetPlayer || row.playerName || "").trim();
+                const answered = uniqueRows.slice(index + 1).some((nextRow) => {
+                    if ((nextRow.missionActorRole || "player") !== "coach") return false;
+                    const nextTarget = String(nextRow.missionTargetPlayer || nextRow.playerName || "").trim();
+                    return !!nextTarget && (nextTarget === asker || nextTarget === targetName);
+                });
+                questionStatusHtml = answered
+                    ? `<span class="mission-status resolved">${this.t("questionResolved")}</span>`
+                    : `<span class="mission-status pending">${this.t("questionPending")}</span>`;
+            }
+            return `
+            <div class="mission-bubble ${actorRole === "coach" ? "coach" : "player"}">
+                <div class="mission-bubble-head">
+                    <span class="mission-badge">${roleLabel}</span>
+                    <span class="mission-time">${row.date || ""}</span>
+                </div>
+                <div class="mission-line type">${typeLabel} · ${actorName} → ${targetPlayer}${questionStatusHtml}</div>
+                <div class="mission-line">${row.missionResponse || ""}</div>
+            </div>
+            `;
+        }).join("");
+        target.scrollTop = target.scrollHeight;
     }
 
     async parseMissionFile(file) {
         let missions = [];
+        let sourceRows = [];
+        const targetPlayer = String(document.getElementById("missionTargetPlayer")?.value || this.getSelectedCoachPlayer() || "").trim();
         try {
             if (window.XLSX) {
                 const buffer = await file.arrayBuffer();
@@ -1398,6 +3525,7 @@ class PuttingTrainingApp {
                 const firstSheetName = workbook.SheetNames[0];
                 const sheet = workbook.Sheets[firstSheetName];
                 const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                sourceRows = Array.isArray(rows) ? rows : [];
 
                 missions = rows
                     .map(row => ({
@@ -1410,6 +3538,15 @@ class PuttingTrainingApp {
             missions = [];
         }
 
+        if (!sourceRows.length && String(file.name || "").toLowerCase().endsWith(".csv")) {
+            try {
+                const text = await file.text();
+                sourceRows = this.parseCsvRows(text);
+            } catch (error) {
+                sourceRows = [];
+            }
+        }
+
         if (!missions.length) {
             missions = [{ title: file.name, detail: "" }];
         }
@@ -1418,11 +3555,62 @@ class PuttingTrainingApp {
             id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             fileName: file.name,
             uploadedAt: new Date().toLocaleString(),
-            missions
+            uploadedAtISO: new Date().toISOString(),
+            missions,
+            sourceRows,
+            targetPlayer
         };
     }
 
+    saveDirectCoachMission() {
+        if (!this.isCoachMode()) return;
+
+        const title = String(document.getElementById("missionDirectTitle")?.value || "").trim();
+        const item = String(document.getElementById("missionDirectItem")?.value || "").trim();
+        const targetPlayer = String(document.getElementById("missionTargetPlayer")?.value || this.getSelectedCoachPlayer() || "").trim();
+        const resultTarget = document.getElementById("missionSaveResult");
+
+        if (!targetPlayer) {
+            resultTarget.textContent = this.t("needTargetPlayer");
+            return;
+        }
+        if (!title) {
+            resultTarget.textContent = this.t("needMissionDirectTitle");
+            return;
+        }
+        if (!item) {
+            resultTarget.textContent = this.t("needMissionDirectItem");
+            return;
+        }
+
+        const safeTitle = title.replace(/[\\/:*?"<>|]/g, "_");
+        const fileName = `${targetPlayer}_${safeTitle}.csv`;
+        const missionFile = {
+            id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            fileName,
+            uploadedAt: new Date().toLocaleString(),
+            uploadedAtISO: new Date().toISOString(),
+            targetPlayer,
+            missions: [{ title, detail: item }],
+            sourceRows: [["MissionTitle", "MissionItem", "TargetPlayer"], [title, item, targetPlayer]]
+        };
+
+        this.coachMissionFiles = [...this.coachMissionFiles, missionFile];
+        this.saveCoachMissionFiles();
+        this.activeMissionFileId = missionFile.id;
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+        document.getElementById("missionDirectTitle").value = "";
+        document.getElementById("missionDirectItem").value = "";
+        resultTarget.textContent = this.t("missionDirectSaved", { targetPlayer, title });
+    }
+
     async handleMissionFileUpload(event) {
+        if (!this.isCoachMode()) {
+            document.getElementById("missionSaveResult").textContent = this.t("coachUploadOnly");
+            event.target.value = "";
+            return;
+        }
         const files = Array.from(event.target.files || []);
         if (!files.length) return;
 
@@ -1442,60 +3630,106 @@ class PuttingTrainingApp {
 
     saveCoachMissionInput() {
         const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
-        if (!file) return;
-
-        const missionIndex = Number(document.getElementById("missionItemSelect").value || 0);
-        const mission = (file.missions || [])[missionIndex] || { title: file.fileName, detail: "" };
-        const missionResponse = document.getElementById("missionInputText").value.trim();
-        const resultTarget = document.getElementById("missionSaveResult");
-
-        if (!missionResponse) {
-            resultTarget.textContent = "입력 내용을 작성하세요.";
+        if (!file) {
+            const resultTarget = document.getElementById("missionSaveResult");
+            if (resultTarget) resultTarget.textContent = this.t("noMissionFileSelected");
             return;
         }
 
-        this.records.push(new MissionRecord({
-            mission: "COACH_MISSION",
-            playerName: this.session.playerName,
-            sessionDate: this.session.sessionDate,
-            missionFileName: file.fileName,
-            missionTitle: mission.title,
-            missionResponse,
-            score: ""
-        }));
+        const missionIndex = Number(document.getElementById("missionItemSelect").value || 0);
+        const mission = (file.missions || [])[missionIndex] || { title: file.fileName, detail: "" };
+        const messageType = document.getElementById("missionMessageType")?.value || "feedback";
+        const targetPlayerInput = (document.getElementById("missionTargetPlayer")?.value || "").trim();
+        const targetPlayer = this.isCoachMode()
+            ? (targetPlayerInput || this.getSelectedCoachPlayer())
+            : (this.session.playerName || "").trim();
+        const broadcastAll = this.isCoachMode() && !!document.getElementById("missionBroadcastAll")?.checked;
+        const missionResponse = document.getElementById("missionInputText").value.trim();
+        const resultTarget = document.getElementById("missionSaveResult");
+
+        if (!broadcastAll && !targetPlayer) {
+            resultTarget.textContent = this.t("needTargetPlayer");
+            return;
+        }
+
+        if (!this.isCoachMode() && messageType === "mission") {
+            resultTarget.textContent = this.t("coachUploadOnly");
+            return;
+        }
+
+        if (!missionResponse) {
+            resultTarget.textContent = this.t("writeMissionInput");
+            return;
+        }
+
+        const targetPlayers = broadcastAll
+            ? this.getManagedPlayers()
+            : [targetPlayer];
+
+        if (!targetPlayers.length) {
+            resultTarget.textContent = this.t("noPlayersForBroadcast");
+            return;
+        }
+
+        targetPlayers.forEach((targetName) => {
+            this.records.push(new MissionRecord({
+                mission: "COACH_MISSION",
+                playerName: this.session.playerName,
+                sessionDate: this.session.sessionDate,
+                missionFileName: file.fileName,
+                missionTitle: mission.title,
+                missionResponse,
+                missionActorRole: this.session.role,
+                missionActorName: this.session.playerName,
+                missionTargetPlayer: targetName,
+                missionMessageType: messageType,
+                score: ""
+            }));
+        });
         this.storageService.saveRecords(this.records);
         document.getElementById("missionInputText").value = "";
-        resultTarget.textContent = "미션 입력이 저장되었습니다.";
+        if (!this.isCoachMode()) {
+            const typeSelect = document.getElementById("missionMessageType");
+            if (typeSelect) typeSelect.value = "feedback";
+        }
+        if (broadcastAll) {
+            resultTarget.textContent = this.t("missionBroadcastSaved", { count: targetPlayers.length });
+        } else {
+            resultTarget.textContent = this.t(messageType === "question" ? "missionQuestionSavedAs" : "missionSavedAs", {
+                actorRole: this.getRoleLabel(this.session.role),
+                targetPlayer
+            });
+        }
         this.renderMissionEntryList();
     }
 
     updateDeleteButtonAccess() {
         const deleteBtn = document.getElementById("deleteMissionFileBtn");
-        const allowed = (this.session.playerName || "").trim() === APP_CONFIG.COACH_DELETE_ALLOWED_USER;
+        const allowed = this.isCoachMode();
         deleteBtn.disabled = !allowed;
         deleteBtn.title = allowed
-            ? "삭제코드 입력 후 파일 삭제 가능"
-            : `${APP_CONFIG.COACH_DELETE_ALLOWED_USER} 로그인에서만 삭제 가능합니다.`;
+            ? this.t("deleteBtnAllowed")
+            : this.t("coachDeleteOnly");
     }
 
     deleteSelectedMissionFile() {
         const resultTarget = document.getElementById("missionSaveResult");
-        const allowed = (this.session.playerName || "").trim() === APP_CONFIG.COACH_DELETE_ALLOWED_USER;
+        const allowed = this.isCoachMode();
         if (!allowed) {
-            resultTarget.textContent = `${APP_CONFIG.COACH_DELETE_ALLOWED_USER} 이름으로 로그인된 경우에만 삭제 가능합니다.`;
+            resultTarget.textContent = this.t("coachDeleteOnly");
             return;
         }
 
         const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
         if (!file) {
-            resultTarget.textContent = "삭제할 파일이 선택되지 않았습니다.";
+            resultTarget.textContent = this.t("deleteNoFile");
             return;
         }
 
-        const code = window.prompt("삭제코드를 입력하세요.");
+        const code = window.prompt(this.t("promptDeleteCode"));
         if (code === null) return;
         if (code.trim() !== APP_CONFIG.COACH_DELETE_CODE) {
-            resultTarget.textContent = "삭제코드가 일치하지 않습니다.";
+            resultTarget.textContent = this.t("deleteCodeMismatch");
             return;
         }
 
@@ -1508,9 +3742,202 @@ class PuttingTrainingApp {
             this.activeMissionFileId = null;
         }
 
-        resultTarget.textContent = `파일이 삭제되었습니다: ${file.fileName}`;
+        resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
+    }
+
+    async uploadMissionResultData() {
+        if (this.isCoachMode()) return;
+
+        const fileInput = document.getElementById("missionResultCsvInput");
+        const resultTarget = document.getElementById("missionSaveResult");
+        const file = fileInput?.files?.[0];
+
+        if (!file) {
+            resultTarget.textContent = this.t("needMissionResultFile");
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const rows = this.parseCsvRows(text);
+            if (rows.length < 2) {
+                resultTarget.textContent = this.t("missionResultNoRows");
+                return;
+            }
+
+            const header = rows[0].map(h => String(h).replace(/^\uFEFF/, "").trim());
+            const indexOf = (name) => header.findIndex(h => h === name);
+            const imported = [];
+
+            for (let i = 1; i < rows.length; i += 1) {
+                const row = this.alignLegacyCsvRow(rows[i], header.length);
+                const missionRaw = indexOf("Mission") >= 0 ? String(row[indexOf("Mission")] || "") : "";
+                const mission = MetricsService.normalizeMission(missionRaw);
+                if (!mission) continue;
+
+                const missionTitle = indexOf("MissionTitle") >= 0 ? String(row[indexOf("MissionTitle")] || "").trim() : "";
+                const missionResponse = indexOf("MissionResponse") >= 0 ? String(row[indexOf("MissionResponse")] || "").trim() : "";
+                const actorRoleRaw = indexOf("MissionActorRole") >= 0 ? String(row[indexOf("MissionActorRole")] || "").toLowerCase() : "player";
+                const actorRole = actorRoleRaw === "coach" ? "coach" : "player";
+                const actorName = indexOf("MissionActorName") >= 0
+                    ? String(row[indexOf("MissionActorName")] || "").trim()
+                    : ((indexOf("PlayerName") >= 0 ? String(row[indexOf("PlayerName")] || "").trim() : "") || this.session.playerName);
+                const targetPlayer = indexOf("MissionTargetPlayer") >= 0
+                    ? String(row[indexOf("MissionTargetPlayer")] || "").trim()
+                    : (this.session.playerName || actorName);
+                const messageTypeRaw = indexOf("MissionMessageType") >= 0 ? String(row[indexOf("MissionMessageType")] || "feedback").toLowerCase() : "feedback";
+                const messageType = ["mission", "feedback", "question"].includes(messageTypeRaw) ? messageTypeRaw : "feedback";
+
+                imported.push(new MissionRecord({
+                    date: indexOf("Date") >= 0 ? (row[indexOf("Date")] || new Date().toLocaleString()) : new Date().toLocaleString(),
+                    playerName: indexOf("PlayerName") >= 0 ? String(row[indexOf("PlayerName")] || "").trim() : this.session.playerName,
+                    sessionDate: indexOf("SessionDate") >= 0 ? String(row[indexOf("SessionDate")] || "").trim() : this.session.sessionDate,
+                    mission,
+                    score: indexOf("Score") >= 0 ? (row[indexOf("Score")] || "") : "",
+                    distance: indexOf("Distance") >= 0 ? this.toNumberOrNull(row[indexOf("Distance")]) : null,
+                    intendedStartLine: indexOf("IntendedStartLine") >= 0
+                        ? (row[indexOf("IntendedStartLine")] || "")
+                        : (indexOf("PredDir") >= 0 ? (row[indexOf("PredDir")] || "") : "yes"),
+                    actualMiss: indexOf("ActualMiss") >= 0 ? (row[indexOf("ActualMiss")] || "") : "",
+                    lateralErrorCm: indexOf("LateralErrorCm") >= 0 ? this.toNumberOrNull(row[indexOf("LateralErrorCm")]) : null,
+                    predSlope: indexOf("PredSlope") >= 0 ? parseSlopeLevelOrNull(row[indexOf("PredSlope")]) : null,
+                    actualSlope: indexOf("ActualSlope") >= 0 ? parseSlopeLevelOrNull(row[indexOf("ActualSlope")]) : null,
+                    predSpeedCm: indexOf("PredSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("PredSpeedCm")]) : null,
+                    actualSpeedCm: indexOf("ActualSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSpeedCm")]) : null,
+                    predLowPoint: indexOf("PredLowPoint") >= 0 ? (row[indexOf("PredLowPoint")] || "") : "",
+                    actualLowPoint: indexOf("ActualLowPoint") >= 0 ? (row[indexOf("ActualLowPoint")] || "") : "",
+                    speedPlan: indexOf("SpeedPlan") >= 0 ? (row[indexOf("SpeedPlan")] || "") : "",
+                    actualPace: indexOf("ActualPace") >= 0 ? (row[indexOf("ActualPace")] || "") : "",
+                    decisionOver7: indexOf("DecisionOver7") >= 0
+                        ? this.toYesNoOrNull(row[indexOf("DecisionOver7")])
+                        : this.decisionOver7FromLegacySec(indexOf("DecisionSec") >= 0 ? row[indexOf("DecisionSec")] : null),
+                    decisionSec: indexOf("DecisionSec") >= 0 ? this.toNumberOrNull(row[indexOf("DecisionSec")]) : null,
+                    highSideCommit: indexOf("HighSideCommit") >= 0 ? (row[indexOf("HighSideCommit")] || "") : "",
+                    apexCommit: indexOf("ApexCommit") >= 0 ? (row[indexOf("ApexCommit")] || "") : "",
+                    missType: indexOf("MissType") >= 0 ? (row[indexOf("MissType")] || "none") : "none",
+                    missionFileName: (() => {
+                        if (indexOf("MissionFileName") >= 0) {
+                            const value = String(row[indexOf("MissionFileName")] || "").trim();
+                            return value || file.name;
+                        }
+                        return file.name;
+                    })(),
+                    missionTitle,
+                    missionResponse,
+                    missionActorRole: actorRole,
+                    missionActorName: actorName,
+                    missionTargetPlayer: targetPlayer,
+                    missionMessageType: messageType
+                }));
+            }
+
+            if (!imported.length) {
+                resultTarget.textContent = this.t("missionResultNoRows");
+                return;
+            }
+
+            this.records = [...this.records, ...imported];
+            this.storageService.saveRecords(this.records);
+            this.missionResultUploads.push({
+                fileName: file.name,
+                uploadedBy: this.session.playerName || "-",
+                uploadedAt: new Date().toLocaleString(),
+                rowCount: imported.length
+            });
+            this.saveMissionResultUploads();
+            this.refreshDashboard();
+            this.renderMissionEntryList();
+            this.renderMissionResultUploadList();
+            fileInput.value = "";
+            resultTarget.textContent = this.t("missionResultImported", { count: imported.length });
+        } catch (error) {
+            resultTarget.textContent = this.t("importError");
+        }
+    }
+
+    async downloadMissionResultData() {
+        if (!this.isCoachMode()) return;
+
+        const resultTarget = document.getElementById("missionSaveResult");
+        const selectedFile = String(document.getElementById("missionResultDownloadFile")?.value || this.selectedMissionResultFile || "").trim();
+        if (!selectedFile) {
+            resultTarget.textContent = this.t("needMissionResultDownloadFile");
+            return;
+        }
+        const missionRows = this.records.filter((r) => {
+            const fileName = String(r.missionFileName || "").trim();
+            return fileName === selectedFile;
+        });
+
+        if (!missionRows.length) {
+            resultTarget.textContent = this.t("missionResultDownloadNoData");
+            return;
+        }
+
+        const header = [
+            "Date", "PlayerName", "SessionDate", "Mission", "Score", "Distance", "IntendedStartLine", "PredDir", "ActualMiss",
+            "LateralErrorCm", "PredSlope", "ActualSlope", "PredSpeedCm", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
+            "SpeedPlan", "ActualPace", "DecisionOver7", "DecisionSec", "HighSideCommit", "ApexCommit", "MissType", "MissionFileName", "MissionTitle", "MissionResponse",
+            "MissionActorRole", "MissionActorName", "MissionTargetPlayer", "MissionMessageType"
+        ];
+        let csv = `${header.join(",")}\n`;
+
+        missionRows.forEach((r) => {
+            csv += [
+                r.date,
+                r.playerName ?? "",
+                r.sessionDate ?? "",
+                r.mission,
+                r.score ?? "",
+                r.distance ?? "",
+                r.intendedStartLine ?? "",
+                r.intendedStartLine ?? "",
+                r.actualMiss ?? "",
+                r.lateralErrorCm ?? "",
+                r.predSlope ?? "",
+                r.actualSlope ?? "",
+                r.predSpeedCm ?? "",
+                r.actualSpeedCm ?? "",
+                r.predLowPoint ?? "",
+                r.actualLowPoint ?? "",
+                r.speedPlan ?? "",
+                r.actualPace ?? "",
+                r.decisionOver7 ?? "",
+                r.decisionSec ?? "",
+                r.highSideCommit ?? "",
+                r.apexCommit ?? "",
+                r.missType ?? "none",
+                r.missionFileName ?? "",
+                r.missionTitle ?? "",
+                r.missionResponse ?? "",
+                r.missionActorRole ?? "player",
+                r.missionActorName ?? (r.playerName || ""),
+                r.missionTargetPlayer ?? (r.playerName || ""),
+                r.missionMessageType ?? "feedback"
+            ].map(value => this.csvEscape(value)).join(",") + "\n";
+        });
+
+        const fileName = selectedFile;
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{ description: "CSV File", accept: { "text/csv": [".csv"] } }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(csv);
+                await writable.close();
+                resultTarget.textContent = this.t("missionResultDownloadedAs", { fileName, count: missionRows.length });
+                return;
+            } catch (error) {
+                if (error && error.name === "AbortError") return;
+            }
+        }
+
+        this.triggerFallbackDownload(csv, fileName);
+        resultTarget.textContent = this.t("missionResultDownloadedAs", { fileName, count: missionRows.length });
     }
 
     getDefaultFormState() {
@@ -1523,7 +3950,7 @@ class PuttingTrainingApp {
             actualLowPoint: "left",
             speedPlan: "dead",
             actualPace: "dead",
-            decisionSec: "5",
+            decisionOver7: "no",
             highSideCommit: "yes",
             apexCommit: "yes",
             missType: "none",
@@ -1616,7 +4043,7 @@ class PuttingTrainingApp {
                 this.failedLoginAttempts = 0;
                 button.disabled = false;
                 passInput.disabled = false;
-                errorTarget.textContent = "다시 로그인할 수 있습니다.";
+                errorTarget.textContent = this.t("canRelogin");
                 if (this.lockoutTimerId) {
                     clearInterval(this.lockoutTimerId);
                     this.lockoutTimerId = null;
@@ -1627,7 +4054,7 @@ class PuttingTrainingApp {
             const remainSec = Math.ceil(remainMs / 1000);
             button.disabled = true;
             passInput.disabled = true;
-            errorTarget.textContent = `로그인 3회 실패: ${remainSec}초 후 재시도 가능합니다.`;
+            errorTarget.textContent = this.t("lockout", { remainSec });
         };
 
         tick();
@@ -1639,6 +4066,7 @@ class PuttingTrainingApp {
     handleLogin() {
         const playerName = document.getElementById("loginPlayerName").value.trim();
         const sessionDate = document.getElementById("loginDate").value;
+        const role = document.getElementById("loginRole")?.value === "coach" ? "coach" : "player";
         const passcode = document.getElementById("loginPasscode").value.trim();
         const errorTarget = document.getElementById("loginError");
 
@@ -1648,21 +4076,50 @@ class PuttingTrainingApp {
         }
 
         if (!playerName) {
-            errorTarget.textContent = "선수 이름을 입력하세요.";
+            errorTarget.textContent = this.t("needPlayer");
             return;
         }
         if (!sessionDate) {
-            errorTarget.textContent = "날짜를 입력하세요.";
+            errorTarget.textContent = this.t("needDate");
             return;
         }
-        if (passcode !== APP_CONFIG.ACCESS_PASSCODE) {
+
+        const isCoachLogin = role === "coach";
+        if (isCoachLogin && playerName !== APP_CONFIG.COACH_LOGIN_ALLOWED_USER) {
+            errorTarget.textContent = this.t("coachNameOnly", { name: APP_CONFIG.COACH_LOGIN_ALLOWED_USER });
+            return;
+        }
+
+        let passcodeMatch = false;
+        let failMessageKey = "passcodeWrong";
+
+        if (isCoachLogin) {
+            passcodeMatch = passcode === APP_CONFIG.COACH_LOGIN_PASSCODE;
+            failMessageKey = "coachPasscodeWrong";
+        } else {
+            const registeredPlayer = this.findRegisteredPlayer(playerName);
+            if (!registeredPlayer) {
+                this.failedLoginAttempts += 1;
+                if (this.failedLoginAttempts >= APP_CONFIG.MAX_LOGIN_ATTEMPTS) {
+                    this.lockUntil = Date.now() + APP_CONFIG.LOCKOUT_SECONDS * 1000;
+                    this.updateLockoutUI();
+                } else {
+                    errorTarget.textContent = this.t("playerNotRegistered");
+                }
+                return;
+            }
+            passcodeMatch = passcode === String(registeredPlayer.passcode || "").trim();
+            failMessageKey = "playerPasscodeWrong";
+        }
+
+        if (!passcodeMatch) {
             this.failedLoginAttempts += 1;
             if (this.failedLoginAttempts >= APP_CONFIG.MAX_LOGIN_ATTEMPTS) {
                 this.lockUntil = Date.now() + APP_CONFIG.LOCKOUT_SECONDS * 1000;
                 this.updateLockoutUI();
             } else {
                 const remain = APP_CONFIG.MAX_LOGIN_ATTEMPTS - this.failedLoginAttempts;
-                errorTarget.textContent = `패스코드가 올바르지 않습니다. 남은 시도: ${remain}회`;
+                errorTarget.textContent = this.t(failMessageKey, { remain });
             }
             return;
         }
@@ -1672,10 +4129,18 @@ class PuttingTrainingApp {
         this.updateLockoutUI();
         errorTarget.textContent = "";
         this.saveLoginDraft();
+        this.language = (document.getElementById("loginLanguage")?.value === "en") ? "en" : "ko";
         this.session.playerName = playerName;
         this.session.sessionDate = sessionDate;
+        this.session.language = this.language;
+        this.session.role = role;
+        this.applyLanguage(this.language);
 
-        document.getElementById("sessionInfo").textContent = `선수: ${playerName} | 날짜: ${sessionDate}`;
+        document.getElementById("sessionInfo").textContent = this.t("sessionInfo", {
+            playerName,
+            sessionDate,
+            role: role === "coach" ? this.t("roleCoach") : this.t("rolePlayer")
+        });
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "block";
         this.initializeAppAfterLogin();
@@ -1685,11 +4150,15 @@ class PuttingTrainingApp {
     }
 
     handleLogout() {
-        this.session = { playerName: "", sessionDate: "" };
+        this.session = { playerName: "", sessionDate: "", language: this.language, role: "player" };
+        this.coachSelectedPlayer = "";
+        this.selectedMissionResultFile = "";
         document.getElementById("sessionInfo").textContent = "";
         document.getElementById("loginPasscode").value = "";
         document.getElementById("loginError").textContent = "";
         document.getElementById("missionSaveResult").textContent = "";
+        const transferResult = document.getElementById("trainingTransferResult");
+        if (transferResult) transferResult.textContent = "";
         document.getElementById("loginScreen").style.display = "flex";
         document.getElementById("appContent").style.display = "none";
         this.sectionNavigator.show("section-framework");
@@ -1698,7 +4167,7 @@ class PuttingTrainingApp {
 
     handleNewStart() {
         if (!this.session.playerName) return;
-        const confirmed = window.confirm("현재 선수/날짜 세션 데이터를 초기화하시겠습니까?\n입력값, 분석지표, 시각화가 리셋됩니다.");
+        const confirmed = window.confirm(this.t("confirmReset"));
         if (!confirmed) return;
         this.clearDraftForPlayer(this.session.playerName);
 
@@ -1714,17 +4183,30 @@ class PuttingTrainingApp {
         document.getElementById("m2Result").textContent = "";
         document.getElementById("importCsvResult").textContent = "";
         document.getElementById("missionSaveResult").textContent = "";
+        const transferResult = document.getElementById("trainingTransferResult");
+        if (transferResult) transferResult.textContent = "";
         this.saveDraftForCurrentPlayer();
         this.refreshDashboard();
         this.renderMissionEntryList();
         this.sectionNavigator.show("section-m1");
     }
 
+    flashSaveButton(buttonId) {
+        const button = document.getElementById(buttonId);
+        if (!button) return;
+        button.classList.remove("save-feedback");
+        void button.offsetWidth;
+        button.classList.add("save-feedback");
+        setTimeout(() => {
+            button.classList.remove("save-feedback");
+        }, 900);
+    }
+
     resetM1Form() {
         const defaults = this.getDefaultFormState();
         [
             "distance", "intendedStartLine", "actualMiss", "lateralError", "predLowPoint", "actualLowPoint",
-            "speedPlan", "actualPace", "decisionSec", "highSideCommit", "apexCommit", "missType"
+            "speedPlan", "actualPace", "decisionOver7", "highSideCommit", "apexCommit", "missType"
         ].forEach((fieldId) => {
             const element = document.getElementById(fieldId);
             if (element) element.value = defaults[fieldId];
@@ -1747,14 +4229,42 @@ class PuttingTrainingApp {
             document.getElementById("downloadAnalysisPdf").addEventListener("click", () => this.exportSectionPdf("section-analysis", "analysis", "analysisPdfResult", "downloadAnalysisPdf"));
             document.getElementById("downloadVisualPdf").addEventListener("click", () => this.exportSectionPdf("section-visual", "visual", "visualPdfResult", "downloadVisualPdf"));
             document.getElementById("importCsvBtn").addEventListener("click", () => this.importCsv());
+            document.getElementById("sendTrainingDataBtn").addEventListener("click", () => this.sendTrainingDataToCoach());
+            document.getElementById("coachPlayerFilter").addEventListener("change", (event) => {
+                this.coachSelectedPlayer = String(event.target?.value || "").trim();
+                if (this.isCoachMode()) {
+                    const targetInput = document.getElementById("missionTargetPlayer");
+                    const broadcastChecked = !!document.getElementById("missionBroadcastAll")?.checked;
+                    if (targetInput && !broadcastChecked) targetInput.value = this.coachSelectedPlayer || "";
+                }
+                this.renderCoachMissionFiles();
+                this.renderMissionWorkArea();
+                this.renderMissionResultUploadList();
+                this.renderMissionEntryList();
+            });
+            document.getElementById("missionBroadcastAll").addEventListener("change", () => {
+                this.updateCoachRoleUI();
+            });
             document.getElementById("missionExcelInput").addEventListener("change", (event) => this.handleMissionFileUpload(event));
+            document.getElementById("registerPlayerBtn").addEventListener("click", () => this.registerPlayerAccount());
+            document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
+            document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
             document.getElementById("deleteMissionFileBtn").addEventListener("click", () => this.deleteSelectedMissionFile());
+            document.getElementById("uploadMissionResultBtn").addEventListener("click", () => this.uploadMissionResultData());
+            document.getElementById("downloadMissionResultBtn").addEventListener("click", () => this.downloadMissionResultData());
+            document.getElementById("missionResultDownloadFile").addEventListener("change", (event) => {
+                this.selectedMissionResultFile = String(event.target?.value || "").trim();
+            });
             document.getElementById("missionItemSelect").addEventListener("change", () => {
                 const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
                 const idx = Number(document.getElementById("missionItemSelect").value || 0);
                 const mission = file && file.missions ? file.missions[idx] : null;
-                document.getElementById("missionMeta").textContent = mission && mission.detail ? `미션 설명: ${mission.detail}` : "미션 설명 없음";
+                document.getElementById("missionMeta").textContent = mission && mission.detail
+                    ? this.t("missionDesc", { detail: mission.detail })
+                    : this.t("missionDescEmpty");
+                if (file) this.renderMissionSourcePreview(file);
+                this.renderMissionEntryList();
             });
             document.getElementById("actualMiss").addEventListener("change", (event) => {
                 if (event.target.value === "center") {
@@ -1775,6 +4285,8 @@ class PuttingTrainingApp {
         }
         this.renderMissionWorkArea();
         this.updateDeleteButtonAccess();
+        this.updateCoachRoleUI();
+        this.updateRoleBasedSections();
         this.refreshDashboard();
     }
 
@@ -1787,17 +4299,24 @@ class PuttingTrainingApp {
         const actualLowPoint = document.getElementById("actualLowPoint").value;
         const speedPlan = document.getElementById("speedPlan").value;
         const actualPace = document.getElementById("actualPace").value;
-        const decisionSec = Number(document.getElementById("decisionSec").value || 0);
+        const decisionOver7 = document.getElementById("decisionOver7").value;
         const highSideCommit = document.getElementById("highSideCommit").value;
         const apexCommit = document.getElementById("apexCommit").value;
         let missType = document.getElementById("missType").value;
+
+        if (actualMiss !== "center" && (missType === "none" || lateralErrorCm === 0)) {
+            document.getElementById("m1Result").textContent = this.t("needMissType");
+            this.sectionNavigator.show("section-m1");
+            return;
+        }
+
         if (actualMiss === "center") {
             missType = "none";
         }
 
         const score = this.metricsService.calculateM1Score({ intendedStartLine, actualMiss });
         const lowSide = MetricsService.isDirectionalMiss(missType) ? "Yes" : "No";
-        const oneLookOk = decisionSec <= 5 ? "Pass" : "Late";
+        const oneLookOk = decisionOver7 === "no" ? this.t("passWithin7s") : this.t("lateOver7s");
 
         this.records.push(new MissionRecord({
             mission: "LIE",
@@ -1811,7 +4330,7 @@ class PuttingTrainingApp {
             actualLowPoint,
             speedPlan,
             actualPace,
-            decisionSec,
+            decisionOver7,
             highSideCommit,
             apexCommit,
             missType,
@@ -1819,8 +4338,22 @@ class PuttingTrainingApp {
         }));
         this.storageService.saveRecords(this.records);
 
+        const lieRows = this.records.filter(r => MetricsService.isLieMission(r.mission));
+        const cumulativeAvgScore = lieRows.length
+            ? lieRows.reduce((sum, r) => sum + (Number(r.score) || 0), 0) / lieRows.length
+            : 0;
+
         document.getElementById("m1Result").textContent =
-            `Score: ${score} | Intended Start Line: ${intendedStartLine} | Directional Miss: ${lowSide} | MissType: ${missType} | One-Look: ${oneLookOk} | High-side: ${highSideCommit} | Apex: ${apexCommit}`;
+            this.t("m1Result", {
+                score: cumulativeAvgScore.toFixed(1),
+                intendedStartLine,
+                lowSide,
+                missType,
+                oneLookOk,
+                highSideCommit,
+                apexCommit
+            });
+        this.flashSaveButton("submitM1");
         this.resetM1Form();
         this.saveDraftForCurrentPlayer();
         this.refreshDashboard();
@@ -1854,7 +4387,14 @@ class PuttingTrainingApp {
             : 0;
 
         document.getElementById("m2Result").textContent =
-            `Slope Error: ${speedPack.slopeError.toFixed(2)} (${slopeLevelToLabel(predSlope)} vs ${slopeLevelToLabel(actualSlope)}) | Speed Error: ${speedPack.speedError.toFixed(1)}cm | Score: ${cumulativeAvgScore.toFixed(1)} (누적평균)`;
+            this.t("m2Result", {
+                slopeError: speedPack.slopeError.toFixed(2),
+                predLabel: slopeLevelToLabel(predSlope),
+                actualLabel: slopeLevelToLabel(actualSlope),
+                speedError: speedPack.speedError.toFixed(1),
+                score: cumulativeAvgScore.toFixed(1)
+            });
+        this.flashSaveButton("submitM2");
         this.resetM2Form();
         this.saveDraftForCurrentPlayer();
         this.refreshDashboard();
@@ -1998,6 +4538,20 @@ class PuttingTrainingApp {
         return Number.isNaN(numeric) ? null : numeric;
     }
 
+    toYesNoOrNull(value) {
+        const raw = value === undefined || value === null ? "" : String(value).trim().toLowerCase();
+        if (!raw) return null;
+        if (["yes", "y", "1", "true", "초과", "예"].includes(raw)) return "yes";
+        if (["no", "n", "0", "false", "이내", "아니오"].includes(raw)) return "no";
+        return null;
+    }
+
+    decisionOver7FromLegacySec(value) {
+        const numeric = this.toNumberOrNull(value);
+        if (numeric === null) return null;
+        return numeric > 7 ? "yes" : "no";
+    }
+
     pickBestSessionFromRecords(records) {
         const bucket = new Map();
 
@@ -2030,7 +4584,7 @@ class PuttingTrainingApp {
         const file = fileInput.files && fileInput.files[0];
 
         if (!file) {
-            resultTarget.textContent = "불러올 CSV 파일을 먼저 선택하세요.";
+            resultTarget.textContent = this.t("needCsvFile");
             return;
         }
 
@@ -2038,7 +4592,7 @@ class PuttingTrainingApp {
             const text = await file.text();
             const rows = this.parseCsvRows(text);
             if (rows.length < 2) {
-                resultTarget.textContent = "유효한 데이터가 없습니다.";
+                resultTarget.textContent = this.t("invalidCsvData");
                 return;
             }
 
@@ -2048,7 +4602,7 @@ class PuttingTrainingApp {
             const required = ["Date", "Mission"];
             const missing = required.filter(name => indexOf(name) < 0);
             if (missing.length) {
-                resultTarget.textContent = `필수 컬럼 누락: ${missing.join(", ")}`;
+                resultTarget.textContent = this.t("missingColumns", { missing: missing.join(", ") });
                 return;
             }
 
@@ -2085,18 +4639,25 @@ class PuttingTrainingApp {
                     actualLowPoint: indexOf("ActualLowPoint") >= 0 ? (row[indexOf("ActualLowPoint")] || "") : "",
                     speedPlan: indexOf("SpeedPlan") >= 0 ? (row[indexOf("SpeedPlan")] || "") : "",
                     actualPace: indexOf("ActualPace") >= 0 ? (row[indexOf("ActualPace")] || "") : "",
+                    decisionOver7: indexOf("DecisionOver7") >= 0
+                        ? this.toYesNoOrNull(row[indexOf("DecisionOver7")])
+                        : this.decisionOver7FromLegacySec(indexOf("DecisionSec") >= 0 ? row[indexOf("DecisionSec")] : null),
                     decisionSec: indexOf("DecisionSec") >= 0 ? this.toNumberOrNull(row[indexOf("DecisionSec")]) : null,
                     highSideCommit: indexOf("HighSideCommit") >= 0 ? (row[indexOf("HighSideCommit")] || "") : "",
                     apexCommit: indexOf("ApexCommit") >= 0 ? (row[indexOf("ApexCommit")] || "") : "",
                     missType: indexOf("MissType") >= 0 ? (row[indexOf("MissType")] || "none") : "none",
                     missionFileName: indexOf("MissionFileName") >= 0 ? (row[indexOf("MissionFileName")] || "") : "",
                     missionTitle: indexOf("MissionTitle") >= 0 ? (row[indexOf("MissionTitle")] || "") : "",
-                    missionResponse: indexOf("MissionResponse") >= 0 ? (row[indexOf("MissionResponse")] || "") : ""
+                    missionResponse: indexOf("MissionResponse") >= 0 ? (row[indexOf("MissionResponse")] || "") : "",
+                    missionActorRole: indexOf("MissionActorRole") >= 0 ? (row[indexOf("MissionActorRole")] || "player") : "player",
+                    missionActorName: indexOf("MissionActorName") >= 0 ? (row[indexOf("MissionActorName")] || row[indexOf("PlayerName")] || "") : (row[indexOf("PlayerName")] || ""),
+                    missionTargetPlayer: indexOf("MissionTargetPlayer") >= 0 ? (row[indexOf("MissionTargetPlayer")] || row[indexOf("PlayerName")] || "") : (row[indexOf("PlayerName")] || ""),
+                    missionMessageType: indexOf("MissionMessageType") >= 0 ? (row[indexOf("MissionMessageType")] || "feedback") : "feedback"
                 }));
             }
 
             if (!imported.length) {
-                resultTarget.textContent = "가져올 행이 없습니다.";
+                resultTarget.textContent = this.t("noImportRows");
                 return;
             }
 
@@ -2115,7 +4676,11 @@ class PuttingTrainingApp {
                 if (bestSession) {
                     this.session.playerName = bestSession.playerName;
                     this.session.sessionDate = bestSession.sessionDate;
-                    document.getElementById("sessionInfo").textContent = `선수: ${bestSession.playerName} | 날짜: ${bestSession.sessionDate}`;
+                    document.getElementById("sessionInfo").textContent = this.t("sessionInfo", {
+                        playerName: bestSession.playerName,
+                        sessionDate: bestSession.sessionDate,
+                        role: this.session.role === "coach" ? this.t("roleCoach") : this.t("rolePlayer")
+                    });
                     this.updateDeleteButtonAccess();
                 }
             }
@@ -2125,10 +4690,10 @@ class PuttingTrainingApp {
             this.renderMissionEntryList();
             this.sectionNavigator.show("section-analysis");
             fileInput.value = "";
-            const modeText = importMode === "overwrite" ? "덮어쓰기" : "병합";
-            resultTarget.textContent = `${imported.length}개 행을 ${modeText} 방식으로 반영했습니다.`;
+            const modeText = importMode === "overwrite" ? this.t("importModeOverwrite") : this.t("importModeMerge");
+            resultTarget.textContent = this.t("importApplied", { count: imported.length, modeText });
         } catch (error) {
-            resultTarget.textContent = "CSV 불러오기 중 오류가 발생했습니다.";
+            resultTarget.textContent = this.t("importError");
         }
     }
 
@@ -2137,7 +4702,7 @@ class PuttingTrainingApp {
         if (!exportRecords.length) {
             const importResult = document.getElementById("importCsvResult");
             if (importResult) {
-                importResult.textContent = "내보낼 현재 세션 데이터가 없습니다.";
+                importResult.textContent = this.t("noSessionExport");
             }
             return;
         }
@@ -2145,7 +4710,8 @@ class PuttingTrainingApp {
         const header = [
             "Date", "PlayerName", "SessionDate", "Mission", "Score", "Distance", "IntendedStartLine", "PredDir", "ActualMiss",
             "LateralErrorCm", "PredSlope", "ActualSlope", "PredSpeedCm", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
-            "SpeedPlan", "ActualPace", "DecisionSec", "HighSideCommit", "ApexCommit", "MissType", "MissionFileName", "MissionTitle", "MissionResponse"
+            "SpeedPlan", "ActualPace", "DecisionOver7", "DecisionSec", "HighSideCommit", "ApexCommit", "MissType", "MissionFileName", "MissionTitle", "MissionResponse",
+            "MissionActorRole", "MissionActorName", "MissionTargetPlayer", "MissionMessageType"
         ];
         let csv = `${header.join(",")}\n`;
 
@@ -2169,13 +4735,18 @@ class PuttingTrainingApp {
                 r.actualLowPoint ?? "",
                 r.speedPlan ?? "",
                 r.actualPace ?? "",
+                r.decisionOver7 ?? "",
                 r.decisionSec ?? "",
                 r.highSideCommit ?? "",
                 r.apexCommit ?? "",
                 r.missType ?? "none",
                 r.missionFileName ?? "",
                 r.missionTitle ?? "",
-                r.missionResponse ?? ""
+                r.missionResponse ?? "",
+                r.missionActorRole ?? "player",
+                r.missionActorName ?? (r.playerName || ""),
+                r.missionTargetPlayer ?? (r.playerName || ""),
+                r.missionMessageType ?? "feedback"
             ].map(value => this.csvEscape(value)).join(",") + "\n";
         });
 
@@ -2196,7 +4767,7 @@ class PuttingTrainingApp {
                 await writable.close();
                 const importResult = document.getElementById("importCsvResult");
                 if (importResult) {
-                    importResult.textContent = `현재 세션 ${exportRecords.length}건을 내보냈습니다.`;
+                    importResult.textContent = this.t("exportedRows", { count: exportRecords.length });
                 }
                 return;
             } catch (error) {
@@ -2207,7 +4778,7 @@ class PuttingTrainingApp {
         this.triggerFallbackDownload(csv, fileName);
         const importResult = document.getElementById("importCsvResult");
         if (importResult) {
-            importResult.textContent = `현재 세션 ${exportRecords.length}건을 내보냈습니다.`;
+            importResult.textContent = this.t("exportedRows", { count: exportRecords.length });
         }
     }
 
@@ -2217,7 +4788,7 @@ class PuttingTrainingApp {
 
         if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
             if (resultTarget) {
-                resultTarget.textContent = "PDF 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.";
+                resultTarget.textContent = this.t("pdfLibError");
             }
             return;
         }
@@ -2225,13 +4796,13 @@ class PuttingTrainingApp {
         const section = document.getElementById(sectionId);
         if (!section) {
             if (resultTarget) {
-                resultTarget.textContent = "PDF로 저장할 섹션을 찾을 수 없습니다.";
+                resultTarget.textContent = this.t("pdfSectionError");
             }
             return;
         }
 
         if (button) button.disabled = true;
-        if (resultTarget) resultTarget.textContent = "PDF 생성 중...";
+        if (resultTarget) resultTarget.textContent = this.t("pdfGenerating");
 
         try {
             const canvas = await window.html2canvas(section, {
@@ -2264,10 +4835,10 @@ class PuttingTrainingApp {
 
             const fileName = `${this.buildExportBaseName()}_${fileLabel}.pdf`;
             pdf.save(fileName);
-            if (resultTarget) resultTarget.textContent = `PDF 저장 완료: ${fileName}`;
+            if (resultTarget) resultTarget.textContent = this.t("pdfSaved", { fileName });
         } catch (error) {
             if (resultTarget) {
-                resultTarget.textContent = "PDF 저장 중 오류가 발생했습니다.";
+                resultTarget.textContent = this.t("pdfSaveError");
             }
         } finally {
             if (button) button.disabled = false;
