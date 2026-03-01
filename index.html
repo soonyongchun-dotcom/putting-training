@@ -863,6 +863,15 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         </div>
         <button id="importCsvBtn" class="secondary-btn" type="button">CSV 불러오기 실행</button>
     </div>
+    <div class="panel panel-data" style="margin-top:10px;">
+        <h2 id="cloudSyncTitle">클라우드 동기화</h2>
+        <div class="small" id="cloudSyncDesc">Supabase 공유 저장소와 데이터 동기화 (선수등록/미션/대화/업로드)</div>
+        <div class="row" style="margin-top:6px;">
+            <button id="cloudPullBtn" type="button" class="secondary-btn">클라우드 불러오기</button>
+            <button id="cloudPushBtn" type="button" class="secondary-btn">클라우드 올리기</button>
+        </div>
+        <div class="result" id="cloudSyncResult"></div>
+    </div>
     <div class="result" id="importCsvResult"></div>
 </div>
 </div>
@@ -886,6 +895,10 @@ const APP_CONFIG = {
     REGISTERED_PLAYERS_KEY: "registeredPlayers",
     COACH_MISSIONS_KEY: "coachMissionFiles",
     MISSION_RESULT_UPLOADS_KEY: "missionResultUploads",
+    SUPABASE_URL: "",
+    SUPABASE_ANON_KEY: "",
+    SUPABASE_STATE_TABLE: "app_state",
+    SUPABASE_STATE_ID: "golfworks_main",
     COACH_DELETE_CODE: "1013",
     COACH_DELETE_ALLOWED_USER: "전순용"
 };
@@ -1006,6 +1019,16 @@ const UI_I18N = {
         sendTrainingData: "데이터관리",
         noTrainingDataToSend: "전송할 M1/M2 데이터가 없습니다.",
         trainingDataSent: "전송 완료: {{fileName}} ({{count}}건)",
+        cloudSyncTitle: "클라우드 동기화",
+        cloudSyncDesc: "Supabase 공유 저장소와 데이터 동기화 (선수등록/미션/대화/업로드)",
+        cloudPullBtn: "클라우드 불러오기",
+        cloudPushBtn: "클라우드 올리기",
+        cloudSyncNeedConfig: "클라우드 설정이 비어 있습니다. APP_CONFIG의 SUPABASE_URL, SUPABASE_ANON_KEY를 입력하세요.",
+        cloudSyncPulled: "클라우드 불러오기 완료 (기록 {{records}}건, 미션파일 {{missions}}개, 업로드 {{uploads}}개, 선수 {{players}}명)",
+        cloudSyncPushed: "클라우드 올리기 완료 (기록 {{records}}건, 미션파일 {{missions}}개, 업로드 {{uploads}}개, 선수 {{players}}명)",
+        cloudSyncNoData: "클라우드에 저장된 데이터가 없습니다.",
+        cloudSyncFailed: "클라우드 동기화 실패: {{message}}",
+        cloudPushCoachOnly: "클라우드 올리기는 지도자 모드에서만 가능합니다.",
         coachRoleCoachNote: "지도자 모드: 미션 업로드/삭제 및 선수별 피드백 관리 가능",
         coachRolePlayerNote: "선수 모드: 지도자 미션 확인 및 피드백 기록 가능",
         coachHubTitle: "Coach Mission & Feedback Hub",
@@ -1164,6 +1187,16 @@ const UI_I18N = {
         sendTrainingData: "Data Management",
         noTrainingDataToSend: "No M1/M2 data to send.",
         trainingDataSent: "Sent: {{fileName}} ({{count}} rows)",
+        cloudSyncTitle: "Cloud Sync",
+        cloudSyncDesc: "Sync data with shared Supabase storage (players/missions/conversation/uploads)",
+        cloudPullBtn: "Pull from Cloud",
+        cloudPushBtn: "Push to Cloud",
+        cloudSyncNeedConfig: "Cloud config is empty. Set SUPABASE_URL and SUPABASE_ANON_KEY in APP_CONFIG.",
+        cloudSyncPulled: "Cloud pull completed (records {{records}}, mission files {{missions}}, uploads {{uploads}}, players {{players}})",
+        cloudSyncPushed: "Cloud push completed (records {{records}}, mission files {{missions}}, uploads {{uploads}}, players {{players}})",
+        cloudSyncNoData: "No saved data found in cloud.",
+        cloudSyncFailed: "Cloud sync failed: {{message}}",
+        cloudPushCoachOnly: "Cloud push is available only in coach mode.",
         coachRoleCoachNote: "Coach mode: can upload/delete missions and manage player feedback",
         coachRolePlayerNote: "Player mode: can review coach missions and log feedback",
         coachHubTitle: "Coach Mission & Feedback Hub",
@@ -2517,6 +2550,10 @@ class PuttingTrainingApp {
         setText("label[for='importCsvInput']", this.language === "en" ? "Import CSV (same format)" : "CSV 불러오기 (동일 포맷)");
         setText("label[for='importMode']", this.language === "en" ? "Import Mode" : "불러오기 방식");
         setText("#importCsvBtn", this.language === "en" ? "Run CSV Import" : "CSV 불러오기 실행");
+        setText("#cloudSyncTitle", this.t("cloudSyncTitle"));
+        setText("#cloudSyncDesc", this.t("cloudSyncDesc"));
+        setText("#cloudPullBtn", this.t("cloudPullBtn"));
+        setText("#cloudPushBtn", this.t("cloudPushBtn"));
 
         const importModeMerge = document.querySelector('#importMode option[value="merge"]');
         const importModeOverwrite = document.querySelector('#importMode option[value="overwrite"]');
@@ -3044,11 +3081,17 @@ class PuttingTrainingApp {
         const exportSection = document.getElementById("section-export");
         const coachDataControls = document.getElementById("coachDataControls");
         const playerTransferBox = document.getElementById("playerTransferBox");
+        const cloudPushBtn = document.getElementById("cloudPushBtn");
         const isCoach = this.isCoachMode();
         if (exportNav) exportNav.style.display = "block";
         if (exportSection) exportSection.style.display = "";
         if (coachDataControls) coachDataControls.style.display = isCoach ? "block" : "none";
         if (playerTransferBox) playerTransferBox.style.display = isCoach ? "none" : "block";
+        if (cloudPushBtn) {
+            cloudPushBtn.disabled = !isCoach;
+            cloudPushBtn.style.display = isCoach ? "inline-block" : "none";
+            cloudPushBtn.title = isCoach ? "" : this.t("cloudPushCoachOnly");
+        }
     }
 
     buildPlayerTransferFileName() {
@@ -4063,7 +4106,7 @@ class PuttingTrainingApp {
         }
     }
 
-    handleLogin() {
+    async handleLogin() {
         const playerName = document.getElementById("loginPlayerName").value.trim();
         const sessionDate = document.getElementById("loginDate").value;
         const role = document.getElementById("loginRole")?.value === "coach" ? "coach" : "player";
@@ -4088,6 +4131,10 @@ class PuttingTrainingApp {
         if (isCoachLogin && playerName !== APP_CONFIG.COACH_LOGIN_ALLOWED_USER) {
             errorTarget.textContent = this.t("coachNameOnly", { name: APP_CONFIG.COACH_LOGIN_ALLOWED_USER });
             return;
+        }
+
+        if (!isCoachLogin && this.isCloudSyncConfigured()) {
+            await this.pullCloudState(true);
         }
 
         let passcodeMatch = false;
@@ -4229,6 +4276,8 @@ class PuttingTrainingApp {
             document.getElementById("downloadAnalysisPdf").addEventListener("click", () => this.exportSectionPdf("section-analysis", "analysis", "analysisPdfResult", "downloadAnalysisPdf"));
             document.getElementById("downloadVisualPdf").addEventListener("click", () => this.exportSectionPdf("section-visual", "visual", "visualPdfResult", "downloadVisualPdf"));
             document.getElementById("importCsvBtn").addEventListener("click", () => this.importCsv());
+            document.getElementById("cloudPullBtn").addEventListener("click", () => this.pullCloudState());
+            document.getElementById("cloudPushBtn").addEventListener("click", () => this.pushCloudState());
             document.getElementById("sendTrainingDataBtn").addEventListener("click", () => this.sendTrainingDataToCoach());
             document.getElementById("coachPlayerFilter").addEventListener("change", (event) => {
                 this.coachSelectedPlayer = String(event.target?.value || "").trim();
@@ -4288,6 +4337,9 @@ class PuttingTrainingApp {
         this.updateCoachRoleUI();
         this.updateRoleBasedSections();
         this.refreshDashboard();
+        if (this.isCloudSyncConfigured()) {
+            this.pullCloudState(true);
+        }
     }
 
     onSubmitM1() {
@@ -4575,6 +4627,165 @@ class PuttingTrainingApp {
         if (!bestKey) return null;
         const [playerName, sessionDate] = bestKey.split("||");
         return { playerName, sessionDate };
+    }
+
+    isCloudSyncConfigured() {
+        const url = String(APP_CONFIG.SUPABASE_URL || "").trim();
+        const key = String(APP_CONFIG.SUPABASE_ANON_KEY || "").trim();
+        return /^https?:\/\//i.test(url) && !!key;
+    }
+
+    getCloudBaseUrl() {
+        return String(APP_CONFIG.SUPABASE_URL || "").trim().replace(/\/$/, "");
+    }
+
+    getCloudHeaders() {
+        const anonKey = String(APP_CONFIG.SUPABASE_ANON_KEY || "").trim();
+        return {
+            "Content-Type": "application/json",
+            "apikey": anonKey,
+            "Authorization": `Bearer ${anonKey}`
+        };
+    }
+
+    buildCloudSnapshot() {
+        return {
+            records: this.records,
+            coachMissionFiles: this.coachMissionFiles,
+            missionResultUploads: this.missionResultUploads,
+            registeredPlayers: this.registeredPlayers,
+            savedAt: new Date().toISOString()
+        };
+    }
+
+    applyCloudSnapshot(payload) {
+        const safePayload = payload && typeof payload === "object" ? payload : {};
+
+        this.records = Array.isArray(safePayload.records) ? safePayload.records.map((row) => new MissionRecord(row)) : [];
+        this.coachMissionFiles = Array.isArray(safePayload.coachMissionFiles) ? safePayload.coachMissionFiles : [];
+        this.missionResultUploads = Array.isArray(safePayload.missionResultUploads) ? safePayload.missionResultUploads : [];
+        this.registeredPlayers = Array.isArray(safePayload.registeredPlayers)
+            ? safePayload.registeredPlayers
+            : this.loadRegisteredPlayers();
+
+        this.storageService.saveRecords(this.records);
+        this.saveCoachMissionFiles();
+        this.saveMissionResultUploads();
+        this.saveRegisteredPlayers();
+
+        if (!this.coachMissionFiles.some((item) => item.id === this.activeMissionFileId)) {
+            this.activeMissionFileId = this.coachMissionFiles[0]?.id || null;
+        }
+
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+        this.renderMissionResultUploadList();
+        this.renderRegisteredPlayerList();
+        this.renderMissionEntryList();
+        this.refreshDashboard();
+        this.updateCoachRoleUI();
+    }
+
+    async pullCloudState(silent = false) {
+        const resultTarget = document.getElementById("cloudSyncResult");
+        if (!this.isCloudSyncConfigured()) {
+            if (!silent && resultTarget) resultTarget.textContent = this.t("cloudSyncNeedConfig");
+            return;
+        }
+
+        try {
+            const table = encodeURIComponent(String(APP_CONFIG.SUPABASE_STATE_TABLE || "app_state").trim());
+            const stateId = encodeURIComponent(String(APP_CONFIG.SUPABASE_STATE_ID || "golfworks_main").trim());
+            const url = `${this.getCloudBaseUrl()}/rest/v1/${table}?id=eq.${stateId}&select=payload`;
+            const response = await fetch(url, {
+                method: "GET",
+                headers: this.getCloudHeaders()
+            });
+
+            if (!response.ok) {
+                let detail = "HTTP " + response.status;
+                try {
+                    const errJson = await response.json();
+                    detail = errJson?.message || errJson?.hint || detail;
+                } catch (_) {}
+                throw new Error(detail);
+            }
+
+            const rows = await response.json();
+            const payload = rows?.[0]?.payload;
+            if (!payload) {
+                if (!silent && resultTarget) resultTarget.textContent = this.t("cloudSyncNoData");
+                return;
+            }
+
+            this.applyCloudSnapshot(payload);
+            if (!silent && resultTarget) {
+                resultTarget.textContent = this.t("cloudSyncPulled", {
+                    records: this.records.length,
+                    missions: this.coachMissionFiles.length,
+                    uploads: this.missionResultUploads.length,
+                    players: this.registeredPlayers.length
+                });
+            }
+        } catch (error) {
+            if (!silent && resultTarget) {
+                resultTarget.textContent = this.t("cloudSyncFailed", {
+                    message: error?.message || "unknown error"
+                });
+            }
+        }
+    }
+
+    async pushCloudState() {
+        const resultTarget = document.getElementById("cloudSyncResult");
+        if (!this.isCoachMode()) {
+            if (resultTarget) resultTarget.textContent = this.t("cloudPushCoachOnly");
+            return;
+        }
+        if (!this.isCloudSyncConfigured()) {
+            if (resultTarget) resultTarget.textContent = this.t("cloudSyncNeedConfig");
+            return;
+        }
+
+        try {
+            const table = encodeURIComponent(String(APP_CONFIG.SUPABASE_STATE_TABLE || "app_state").trim());
+            const stateId = String(APP_CONFIG.SUPABASE_STATE_ID || "golfworks_main").trim();
+            const url = `${this.getCloudBaseUrl()}/rest/v1/${table}`;
+            const payload = this.buildCloudSnapshot();
+
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    ...this.getCloudHeaders(),
+                    "Prefer": "resolution=merge-duplicates,return=representation"
+                },
+                body: JSON.stringify([{ id: stateId, payload }])
+            });
+
+            if (!response.ok) {
+                let detail = "HTTP " + response.status;
+                try {
+                    const errJson = await response.json();
+                    detail = errJson?.message || errJson?.hint || detail;
+                } catch (_) {}
+                throw new Error(detail);
+            }
+
+            if (resultTarget) {
+                resultTarget.textContent = this.t("cloudSyncPushed", {
+                    records: this.records.length,
+                    missions: this.coachMissionFiles.length,
+                    uploads: this.missionResultUploads.length,
+                    players: this.registeredPlayers.length
+                });
+            }
+        } catch (error) {
+            if (resultTarget) {
+                resultTarget.textContent = this.t("cloudSyncFailed", {
+                    message: error?.message || "unknown error"
+                });
+            }
+        }
     }
 
     async importCsv() {
