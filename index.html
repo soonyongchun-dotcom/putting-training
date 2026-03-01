@@ -897,6 +897,8 @@ const APP_CONFIG = {
     MISSION_RESULT_UPLOADS_KEY: "missionResultUploads",
     SUPABASE_URL: "",
     SUPABASE_ANON_KEY: "",
+    SUPABASE_URL_STORAGE_KEY: "greenMissionSupabaseUrl",
+    SUPABASE_ANON_KEY_STORAGE_KEY: "greenMissionSupabaseAnonKey",
     SUPABASE_STATE_TABLE: "app_state",
     SUPABASE_STATE_ID: "golfworks_main",
     COACH_DELETE_CODE: "1013",
@@ -1023,7 +1025,7 @@ const UI_I18N = {
         cloudSyncDesc: "Supabase 공유 저장소와 데이터 동기화 (선수등록/미션/대화/업로드)",
         cloudPullBtn: "클라우드 불러오기",
         cloudPushBtn: "클라우드 올리기",
-        cloudSyncNeedConfig: "클라우드 설정이 비어 있습니다. APP_CONFIG의 SUPABASE_URL, SUPABASE_ANON_KEY를 입력하세요.",
+        cloudSyncNeedConfig: "클라우드 설정이 비어 있습니다. APP_CONFIG 입력 또는 URL 파라미터(sbUrl, sbKey)로 1회 설정하세요.",
         cloudSyncPulled: "클라우드 불러오기 완료 (기록 {{records}}건, 미션파일 {{missions}}개, 업로드 {{uploads}}개, 선수 {{players}}명)",
         cloudSyncPushed: "클라우드 올리기 완료 (기록 {{records}}건, 미션파일 {{missions}}개, 업로드 {{uploads}}개, 선수 {{players}}명)",
         cloudSyncNoData: "클라우드에 저장된 데이터가 없습니다.",
@@ -1191,7 +1193,7 @@ const UI_I18N = {
         cloudSyncDesc: "Sync data with shared Supabase storage (players/missions/conversation/uploads)",
         cloudPullBtn: "Pull from Cloud",
         cloudPushBtn: "Push to Cloud",
-        cloudSyncNeedConfig: "Cloud config is empty. Set SUPABASE_URL and SUPABASE_ANON_KEY in APP_CONFIG.",
+        cloudSyncNeedConfig: "Cloud config is empty. Set APP_CONFIG values or pass sbUrl/sbKey once via URL params.",
         cloudSyncPulled: "Cloud pull completed (records {{records}}, mission files {{missions}}, uploads {{uploads}}, players {{players}})",
         cloudSyncPushed: "Cloud push completed (records {{records}}, mission files {{missions}}, uploads {{uploads}}, players {{players}})",
         cloudSyncNoData: "No saved data found in cloud.",
@@ -2177,6 +2179,7 @@ class PuttingTrainingApp {
         this.selectedPlayerMissionDate = "";
         this.selectedMissionDateByScope = {};
         this.selectedMissionResultFile = "";
+        this.cloudConfig = this.resolveCloudConfig();
         this.session = {
             playerName: "",
             sessionDate: "",
@@ -2196,6 +2199,7 @@ class PuttingTrainingApp {
     }
 
     init() {
+        this.refreshCloudConfigFromUrl();
         this.setupLogin();
         this.applyLanguage(this.language);
     }
@@ -4629,18 +4633,67 @@ class PuttingTrainingApp {
         return { playerName, sessionDate };
     }
 
+    resolveCloudConfig() {
+        const safeGet = (key) => {
+            try {
+                return String(localStorage.getItem(key) || "").trim();
+            } catch (error) {
+                return "";
+            }
+        };
+
+        const storedUrl = safeGet(APP_CONFIG.SUPABASE_URL_STORAGE_KEY);
+        const storedKey = safeGet(APP_CONFIG.SUPABASE_ANON_KEY_STORAGE_KEY);
+        const appUrl = String(APP_CONFIG.SUPABASE_URL || "").trim();
+        const appKey = String(APP_CONFIG.SUPABASE_ANON_KEY || "").trim();
+
+        const url = (storedUrl || appUrl).replace(/\/$/, "");
+        const anonKey = storedKey || appKey;
+        return { url, anonKey };
+    }
+
+    refreshCloudConfigFromUrl() {
+        try {
+            const currentUrl = new URL(window.location.href);
+            const params = currentUrl.searchParams;
+
+            const fromUrl = String(params.get("sbUrl") || params.get("supabaseUrl") || "").trim();
+            const fromKey = String(params.get("sbKey") || params.get("supabaseKey") || "").trim();
+
+            if (fromUrl) {
+                localStorage.setItem(APP_CONFIG.SUPABASE_URL_STORAGE_KEY, fromUrl.replace(/\/$/, ""));
+            }
+            if (fromKey) {
+                localStorage.setItem(APP_CONFIG.SUPABASE_ANON_KEY_STORAGE_KEY, fromKey);
+            }
+
+            if (fromUrl || fromKey) {
+                ["sbUrl", "supabaseUrl", "sbKey", "supabaseKey"].forEach((key) => params.delete(key));
+                const cleanUrl = `${currentUrl.pathname}${params.toString() ? `?${params.toString()}` : ""}${currentUrl.hash || ""}`;
+                window.history.replaceState(null, "", cleanUrl);
+            }
+        } catch (error) {
+            // ignore URL parse errors
+        }
+
+        this.cloudConfig = this.resolveCloudConfig();
+    }
+
     isCloudSyncConfigured() {
-        const url = String(APP_CONFIG.SUPABASE_URL || "").trim();
-        const key = String(APP_CONFIG.SUPABASE_ANON_KEY || "").trim();
+        this.cloudConfig = this.resolveCloudConfig();
+        const url = String(this.cloudConfig?.url || "").trim();
+        const key = String(this.cloudConfig?.anonKey || "").trim();
         return /^https?:\/\//i.test(url) && !!key;
     }
 
     getCloudBaseUrl() {
-        return String(APP_CONFIG.SUPABASE_URL || "").trim().replace(/\/$/, "");
+        this.cloudConfig = this.resolveCloudConfig();
+        return String(this.cloudConfig?.url || "").trim().replace(/\/$/, "");
     }
 
     getCloudHeaders() {
-        const anonKey = String(APP_CONFIG.SUPABASE_ANON_KEY || "").trim();
+        this.cloudConfig = this.resolveCloudConfig();
+        const anonKey = String(this.cloudConfig?.anonKey || "").trim();
         return {
             "Content-Type": "application/json",
             "apikey": anonKey,
