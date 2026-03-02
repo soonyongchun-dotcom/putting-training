@@ -369,6 +369,15 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     border-bottom:1px dashed #d6e0f3;
 }
 .mission-upload-item:last-child { border-bottom:none; }
+.broadcast-inline {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+}
+.broadcast-inline input[type="checkbox"] {
+    margin:0;
+}
 .section-action-row { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 </style>
 </head>
@@ -818,7 +827,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
               <input type="text" id="missionTargetPlayer" placeholder="예: 전순용">
           </div>
           <div class="field" style="grid-column: 1 / -1;" id="missionBroadcastWrap">
-              <label><input type="checkbox" id="missionBroadcastAll"> <span id="missionBroadcastLabel">전체선수 공지</span></label>
+              <label for="missionBroadcastAll" class="broadcast-inline"><span id="missionBroadcastLabel">전체선수 공지</span><input type="checkbox" id="missionBroadcastAll"></label>
           </div>
       </div>
       <div class="mission-meta" id="missionMeta"></div>
@@ -873,6 +882,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
 const APP_CONFIG = {
@@ -889,6 +899,129 @@ const APP_CONFIG = {
     COACH_DELETE_CODE: "1013",
     COACH_DELETE_ALLOWED_USER: "전순용"
 };
+
+const DEPLOY_CONFIG = {
+    cloudSyncEnabled: false,
+    supabaseUrl: "",
+    supabaseAnonKey: "",
+    syncNamespace: "golfworks-prod",
+    syncDebounceMs: 300,
+    syncKeys: [
+        "greenMissions",
+        APP_CONFIG.LOGIN_DRAFT_KEY,
+        APP_CONFIG.FORM_DRAFTS_KEY,
+        APP_CONFIG.REGISTERED_PLAYERS_KEY,
+        APP_CONFIG.COACH_MISSIONS_KEY,
+        APP_CONFIG.MISSION_RESULT_UPLOADS_KEY
+    ]
+};
+
+class CloudStateService {
+    constructor(config) {
+        this.config = config || {};
+        this.client = null;
+        this.enabled = false;
+        this.flushTimerMap = new Map();
+        this.pendingValueMap = new Map();
+    }
+
+    isConfigured() {
+        return !!(
+            this.config.cloudSyncEnabled
+            && this.config.supabaseUrl
+            && this.config.supabaseAnonKey
+            && window.supabase
+        );
+    }
+
+    buildCloudKey(localKey) {
+        return `${this.config.syncNamespace || "default"}:${localKey}`;
+    }
+
+    getSyncKeys() {
+        return Array.isArray(this.config.syncKeys) ? this.config.syncKeys : [];
+    }
+
+    shouldSyncKey(key) {
+        return this.getSyncKeys().includes(String(key || ""));
+    }
+
+    async init() {
+        if (!this.isConfigured()) return;
+
+        this.client = window.supabase.createClient(this.config.supabaseUrl, this.config.supabaseAnonKey);
+        await this.pullFromCloud();
+        this.enabled = true;
+    }
+
+    async pullFromCloud() {
+        const syncKeys = this.getSyncKeys();
+        if (!syncKeys.length) return;
+
+        const cloudKeys = syncKeys.map((key) => this.buildCloudKey(key));
+        const { data, error } = await this.client
+            .from("app_kv_store")
+            .select("storage_key, storage_value")
+            .in("storage_key", cloudKeys);
+
+        if (error || !Array.isArray(data)) return;
+
+        data.forEach((row) => {
+            const cloudKey = String(row.storage_key || "");
+            const localKey = cloudKey.startsWith(`${this.config.syncNamespace}:`)
+                ? cloudKey.slice(String(this.config.syncNamespace).length + 1)
+                : cloudKey;
+            const value = String(row.storage_value || "");
+            localStorage.setItem(localKey, value);
+        });
+    }
+
+    queueSetItem(key, value) {
+        if (!this.enabled || !this.shouldSyncKey(key)) return;
+
+        const localKey = String(key || "");
+        this.pendingValueMap.set(localKey, String(value ?? ""));
+
+        if (this.flushTimerMap.has(localKey)) {
+            clearTimeout(this.flushTimerMap.get(localKey));
+        }
+
+        const delay = Number(this.config.syncDebounceMs) || 300;
+        const timerId = setTimeout(() => {
+            this.flushTimerMap.delete(localKey);
+            this.flushKey(localKey);
+        }, delay);
+        this.flushTimerMap.set(localKey, timerId);
+    }
+
+    async flushKey(localKey) {
+        if (!this.enabled || !this.pendingValueMap.has(localKey)) return;
+
+        const storageValue = this.pendingValueMap.get(localKey);
+        this.pendingValueMap.delete(localKey);
+
+        await this.client.from("app_kv_store").upsert({
+            storage_key: this.buildCloudKey(localKey),
+            storage_value: storageValue,
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: "storage_key"
+        });
+    }
+}
+
+let CLOUD_STATE_SERVICE = null;
+
+function storageGetItem(key) {
+    return localStorage.getItem(key);
+}
+
+function storageSetItem(key, value) {
+    localStorage.setItem(key, value);
+    if (CLOUD_STATE_SERVICE) {
+        CLOUD_STATE_SERVICE.queueSetItem(key, value);
+    }
+}
 
 let CURRENT_LANG = "ko";
 
@@ -1318,12 +1451,12 @@ class StorageService {
     }
 
     getRecords() {
-        const raw = JSON.parse(localStorage.getItem(this.storageKey)) || [];
+        const raw = JSON.parse(storageGetItem(this.storageKey)) || [];
         return raw.map(item => new MissionRecord(item));
     }
 
     saveRecords(records) {
-        localStorage.setItem(this.storageKey, JSON.stringify(records));
+        storageSetItem(this.storageKey, JSON.stringify(records));
     }
 }
 
@@ -2136,8 +2269,8 @@ class PuttingTrainingApp {
         this.heatmap = new HeatmapComponent("heatmapCanvas");
         this.sectionNavigator = new SectionNavigator("sectionNav");
         this.records = this.storageService.getRecords();
-        this.coachMissionFiles = JSON.parse(localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY)) || [];
-        this.missionResultUploads = JSON.parse(localStorage.getItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
+        this.coachMissionFiles = JSON.parse(storageGetItem(APP_CONFIG.COACH_MISSIONS_KEY)) || [];
+        this.missionResultUploads = JSON.parse(storageGetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
         this.registeredPlayers = this.loadRegisteredPlayers();
         this.activeMissionFileId = null;
         this.coachSelectedPlayer = "";
@@ -2762,7 +2895,7 @@ class PuttingTrainingApp {
     loadRegisteredPlayers() {
         let parsed;
         try {
-            parsed = JSON.parse(localStorage.getItem(APP_CONFIG.REGISTERED_PLAYERS_KEY)) || [];
+            parsed = JSON.parse(storageGetItem(APP_CONFIG.REGISTERED_PLAYERS_KEY)) || [];
         } catch (error) {
             parsed = [];
         }
@@ -2785,7 +2918,7 @@ class PuttingTrainingApp {
     }
 
     saveRegisteredPlayers() {
-        localStorage.setItem(APP_CONFIG.REGISTERED_PLAYERS_KEY, JSON.stringify(this.registeredPlayers));
+        storageSetItem(APP_CONFIG.REGISTERED_PLAYERS_KEY, JSON.stringify(this.registeredPlayers));
     }
 
     findRegisteredPlayer(name) {
@@ -3104,7 +3237,7 @@ class PuttingTrainingApp {
     }
 
     saveMissionResultUploads() {
-        localStorage.setItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, JSON.stringify(this.missionResultUploads));
+        storageSetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, JSON.stringify(this.missionResultUploads));
     }
 
     renderMissionResultUploadList() {
@@ -3134,7 +3267,7 @@ class PuttingTrainingApp {
     }
 
     getLoginDraft() {
-        return JSON.parse(localStorage.getItem(APP_CONFIG.LOGIN_DRAFT_KEY)) || {};
+        return JSON.parse(storageGetItem(APP_CONFIG.LOGIN_DRAFT_KEY)) || {};
     }
 
     saveLoginDraft() {
@@ -3142,7 +3275,7 @@ class PuttingTrainingApp {
         const sessionDate = document.getElementById("loginDate")?.value || "";
         const language = document.getElementById("loginLanguage")?.value || this.language || "ko";
         const role = document.getElementById("loginRole")?.value === "coach" ? "coach" : "player";
-        localStorage.setItem(APP_CONFIG.LOGIN_DRAFT_KEY, JSON.stringify({ playerName, sessionDate, language, role }));
+        storageSetItem(APP_CONFIG.LOGIN_DRAFT_KEY, JSON.stringify({ playerName, sessionDate, language, role }));
     }
 
     restoreLoginDraft() {
@@ -3167,7 +3300,7 @@ class PuttingTrainingApp {
     }
 
     saveCoachMissionFiles() {
-        localStorage.setItem(APP_CONFIG.COACH_MISSIONS_KEY, JSON.stringify(this.coachMissionFiles));
+        storageSetItem(APP_CONFIG.COACH_MISSIONS_KEY, JSON.stringify(this.coachMissionFiles));
     }
 
     getMissionFileDateKey(file) {
@@ -3963,11 +4096,11 @@ class PuttingTrainingApp {
     }
 
     getDraftsMap() {
-        return JSON.parse(localStorage.getItem(APP_CONFIG.FORM_DRAFTS_KEY)) || {};
+        return JSON.parse(storageGetItem(APP_CONFIG.FORM_DRAFTS_KEY)) || {};
     }
 
     setDraftsMap(map) {
-        localStorage.setItem(APP_CONFIG.FORM_DRAFTS_KEY, JSON.stringify(map));
+        storageSetItem(APP_CONFIG.FORM_DRAFTS_KEY, JSON.stringify(map));
     }
 
     collectCurrentFormState() {
@@ -4846,8 +4979,13 @@ class PuttingTrainingApp {
     }
 }
 
-const app = new PuttingTrainingApp();
-app.init();
+(async () => {
+    CLOUD_STATE_SERVICE = new CloudStateService(DEPLOY_CONFIG);
+    await CLOUD_STATE_SERVICE.init();
+
+    const app = new PuttingTrainingApp();
+    app.init();
+})();
 
 </script>
 
