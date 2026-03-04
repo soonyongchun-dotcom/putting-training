@@ -383,6 +383,12 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     margin:0;
 }
 .section-action-row { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+/* 선수 관리 섹션 */
+.players-section-title { font-size:14px; font-weight:700; color:#1f4db8; border-bottom:2px solid #d7e0f2; padding-bottom:6px; margin:14px 0 10px; }
+.player-count-badge { display:inline-block; background:#1f4db8; color:#fff; border-radius:12px; padding:1px 9px; font-size:12px; font-weight:700; margin-left:8px; }
+.player-badge-pending { display:inline-block; background:#f59e0b; color:#fff; border-radius:12px; padding:1px 9px; font-size:11px; font-weight:700; margin-left:6px; }
+.player-badge-approved { display:inline-block; background:#16a34a; color:#fff; border-radius:12px; padding:1px 9px; font-size:11px; font-weight:700; margin-left:6px; }
+.players-empty { color:#999; font-size:13px; padding:10px 0; }
 </style>
 </head>
 
@@ -510,6 +516,10 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     <button class="nav-card" data-target="section-export" type="button">
         <div class="nav-title">7) 데이터</div>
         <div class="nav-desc">CSV 내보내기</div>
+    </button>
+    <button class="nav-card" data-target="section-players" type="button" id="navPlayersBtn">
+        <div class="nav-title">8) 선수 관리</div>
+        <div class="nav-desc">등록/신청 승인</div>
     </button>
 </div>
 
@@ -775,36 +785,13 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     <div class="coach-role-note" id="coachRoleNote"></div>
 
   <div class="coach-group" id="coachPlayerManageGroup">
-      <div class="mission-section-title" id="coachPlayerManageTitle">선수 선택/등록</div>
-
-      <!-- 등록 신청 승인 관리 (지도자에게만 표시) -->
-      <div id="pendingApprovalWrap" style="display:none; margin-bottom:12px;">
-          <div class="mission-section-title" style="color:#b45309; border-color:#f59e0b;">🔔 등록 신청 승인 관리</div>
-          <div class="small" style="margin-bottom:6px; color:#78350f;">선수가 자승 가입한 신청 목록입니다. 승인하면 로그인이 허용됩니다.</div>
-          <div class="mission-upload-list" id="pendingPlayerList"></div>
-      </div>
+      <div class="mission-section-title" id="coachPlayerManageTitle">선수 선택</div>
 
       <div class="form-grid" id="coachPlayerFilterWrap" style="margin-top:6px; display:none;">
           <div class="field" style="grid-column: 1 / -1;">
               <label for="coachPlayerFilter">선수 선택</label>
               <select id="coachPlayerFilter"></select>
           </div>
-      </div>
-
-      <div class="form-grid" id="coachPlayerRegisterWrap" style="margin-top:6px; display:none;">
-          <div class="field">
-              <label for="registerPlayerName">선수 등록 이름</label>
-              <input type="text" id="registerPlayerName" placeholder="예: 유수연">
-          </div>
-          <div class="field">
-              <label for="registerPlayerPass">선수 비밀번호</label>
-              <input type="password" id="registerPlayerPass" placeholder="예: 1234">
-          </div>
-          <div class="field" style="grid-column: 1 / -1;">
-              <button id="registerPlayerBtn" type="button" class="secondary-btn">선수등록</button>
-          </div>
-          <div class="result" id="registerPlayerResult"></div>
-          <div class="mission-upload-list" id="registeredPlayerList"></div>
       </div>
   </div>
 
@@ -891,6 +878,38 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
       </div>
       <div class="result" id="missionSaveResult"></div>
   </div>
+</div>
+</div>
+
+<div class="section" id="section-players">
+<div class="panel panel-data">
+    <h2>👥 선수 관리</h2>
+    <div class="small">가입 신청 승인 및 등록된 선수 명단을 관리합니다. (지도자 전용)</div>
+
+    <!-- 등록 신청 승인 관리 -->
+    <div class="players-section-title">🔔 등록 신청 대기 <span class="player-badge-pending" id="pendingCountBadge">0</span></div>
+    <div class="small" style="margin-bottom:8px; color:#78350f;">선수가 자가 가입한 신청 목록입니다. 승인하면 로그인이 허용됩니다.</div>
+    <div id="pendingApprovalWrap">
+        <div class="mission-upload-list" id="pendingPlayerList"></div>
+    </div>
+
+    <!-- 등록된 선수 명단 -->
+    <div class="players-section-title" style="margin-top:20px;">📋 등록된 선수 <span class="player-count-badge" id="registeredCountBadge">0</span></div>
+    <div class="form-grid" style="margin-top:8px;" id="coachPlayerRegisterWrap">
+        <div class="field">
+            <label for="registerPlayerName">선수 이름</label>
+            <input type="text" id="registerPlayerName" placeholder="예: 유수연">
+        </div>
+        <div class="field">
+            <label for="registerPlayerPass">선수 비밀번호</label>
+            <input type="password" id="registerPlayerPass" placeholder="예: 1234">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+            <button id="registerPlayerBtn" type="button" class="secondary-btn">선수 직접 등록</button>
+        </div>
+        <div class="result" id="registerPlayerResult" style="grid-column: 1 / -1;"></div>
+        <div class="mission-upload-list" id="registeredPlayerList" style="grid-column: 1 / -1;"></div>
+    </div>
 </div>
 </div>
 
@@ -2799,7 +2818,6 @@ class PuttingTrainingApp {
         const missionBroadcastAll = document.getElementById("missionBroadcastAll");
         const directField = document.getElementById("coachMissionDirectField");
         const filterWrap = document.getElementById("coachPlayerFilterWrap");
-        const registerWrap = document.getElementById("coachPlayerRegisterWrap");
         const playerManageGroup = document.getElementById("coachPlayerManageGroup");
         const missionManageGroup = document.getElementById("coachMissionManageGroup");
         const missionTaskTitle = document.getElementById("missionTaskTitle");
@@ -2833,9 +2851,6 @@ class PuttingTrainingApp {
         }
         if (filterWrap) {
             filterWrap.style.display = isCoach ? "grid" : "none";
-        }
-        if (registerWrap) {
-            registerWrap.style.display = isCoach ? "grid" : "none";
         }
         if (playerManageGroup) {
             playerManageGroup.style.display = isCoach ? "block" : "none";
@@ -2892,9 +2907,11 @@ class PuttingTrainingApp {
         this.renderPendingPlayerList();
         this.renderCoachMissionFiles();
         this.renderMissionResultUploadList();
-        // 등록 신청 패널 표시/숨김
-        const pendingWrap = document.getElementById("pendingApprovalWrap");
-        if (pendingWrap) pendingWrap.style.display = isCoach ? "block" : "none";
+        // 선수 관리 배지 카운트 업데이트
+        const pendingBadge = document.getElementById("pendingCountBadge");
+        if (pendingBadge) pendingBadge.textContent = this.pendingPlayers.length;
+        const registeredBadge = document.getElementById("registeredCountBadge");
+        if (registeredBadge) registeredBadge.textContent = this.registeredPlayers.length;
     }
 
     getVisibleCoachMissionFiles() {
@@ -2991,6 +3008,8 @@ class PuttingTrainingApp {
 
     renderPendingPlayerList() {
         const target = document.getElementById("pendingPlayerList");
+        const badge = document.getElementById("pendingCountBadge");
+        if (badge) badge.textContent = this.pendingPlayers.length;
         if (!target) return;
         if (!this.pendingPlayers.length) {
             target.innerHTML = `<div class="mission-thread-empty">등록 신청이 없습니다.</div>`;
@@ -3084,6 +3103,8 @@ class PuttingTrainingApp {
 
     renderRegisteredPlayerList() {
         const target = document.getElementById("registeredPlayerList");
+        const badge = document.getElementById("registeredCountBadge");
+        if (badge) badge.textContent = this.registeredPlayers.length;
         if (!target) return;
 
         const escapeHtml = (value) => String(value)
@@ -3348,10 +3369,16 @@ class PuttingTrainingApp {
         if (analysisSection) analysisSection.style.display = isCoach ? "" : "none";
         if (visualSection)   visualSection.style.display   = isCoach ? "" : "none";
 
-        // 분석 섹션이 활성화된 상태에서 선수 로그인 시 → Framework로 이동
+        // 8번(선수 관리) — 지도자 전용
+        const playersNav = document.getElementById("navPlayersBtn");
+        const playersSection = document.getElementById("section-players");
+        if (playersNav) playersNav.style.display = isCoach ? "" : "none";
+        if (playersSection) playersSection.style.display = isCoach ? "" : "none";
+
+        // 분석/선수관리 섹션이 활성화된 상태에서 선수 로그인 시 → Framework로 이동
         if (!isCoach) {
             const activeSection = document.querySelector('.section.active');
-            if (activeSection && (activeSection.id === 'section-analysis' || activeSection.id === 'section-visual')) {
+            if (activeSection && (activeSection.id === 'section-analysis' || activeSection.id === 'section-visual' || activeSection.id === 'section-players')) {
                 this.sectionNavigator.show('section-framework');
             }
         }
