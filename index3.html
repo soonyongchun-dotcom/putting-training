@@ -793,17 +793,6 @@
         end_date:payload.endDate!=null?payload.endDate:prev.endDate
       },{onConflict:'player_id'});
     }
-    async function ensureDefaultCoach(){
-      const {data}=await sb.from('sytpt_users').select('id').eq('id','전순용').maybeSingle();
-      if(!data){
-        await sb.from('sytpt_users').insert({
-          id:'전순용', password:'1013', name:'전순용', role:'coach',
-          track:'All', level:'상급', approval_status:'approved',
-          today_completion:'0%', risk_level:'정상', status_label:'코치'
-        });
-      }
-    }
-
     // ====== 유틸 ======
     function isChatMessage(m){
       const mt=m.messageType||m.message_type;
@@ -1684,7 +1673,6 @@
     renderBars('monthChart',   [48,55,63,77],'#22c55e');
 
     async function init(){
-      await ensureDefaultCoach();
       setupRealtimeSubscriptions();
       await applySessionUI();
     }
