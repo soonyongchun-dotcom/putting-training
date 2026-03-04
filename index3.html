@@ -1396,13 +1396,16 @@
 
     // ====== 이벤트 핸들러 ======
     document.getElementById('sendPlayerQuestion').addEventListener('click', async function(){
-      var session=getSession(); if(!session||session.role!=='player') return;
+      console.log('sendPlayerQuestion clicked');
+      var session=getSession(); console.log('session data', session);
+      if(!session||session.role!=='player') return;
       var ta=document.getElementById('playerQuestion'); if(!ta) return;
       var text=ta.value.trim(); if(!text) return;
       var attachments=[];
       try{
         var fileInput=document.getElementById('playerQuestionFile');
         attachments = await readMissionAttachments(fileInput&&fileInput.files);
+        console.log('attachments read', attachments);
       }catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
       try {
         const result = await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
