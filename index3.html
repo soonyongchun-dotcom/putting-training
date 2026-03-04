@@ -213,6 +213,10 @@
     .badge-coach{background:#dbeafe;color:#1d4ed8}
     .badge-player{background:#dcfce7;color:#15803d}
     .comm-group{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;margin-bottom:6px}
+    #coachInbox{max-height:600px; /* allow room for ~3 players */}
+    #coachInbox .comm-group-body{max-height:200px;overflow-y:auto;}
+    #coachInbox .comm-group-body::-webkit-scrollbar{width:6px;height:6px}
+    #coachInbox .comm-group-body::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}    
     .comm-group-header{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
     .btn-xs{border:none;background:#e0e7ff;color:#3730a3;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
     .btn-xs:hover{background:#c7d2fe}
@@ -1310,7 +1314,7 @@
           var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
           return '<div class="message '+(ic?'msg-coach':'msg-player')+'" style="margin-bottom:4px"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
         }).join('');
-        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span><button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'">답변하기</button></div><div style="max-height:150px;overflow-y:auto">'+msgsHtml+'</div></div>';
+        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span><button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'">답변하기</button></div><div class="comm-group-body">'+msgsHtml+'</div></div>';
       }).join('');
       root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',function(){
         var pid=btn.dataset.playerId;
