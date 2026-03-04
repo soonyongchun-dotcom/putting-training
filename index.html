@@ -777,6 +777,13 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
   <div class="coach-group" id="coachPlayerManageGroup">
       <div class="mission-section-title" id="coachPlayerManageTitle">선수 선택/등록</div>
 
+      <!-- 등록 신청 승인 관리 (지도자에게만 표시) -->
+      <div id="pendingApprovalWrap" style="display:none; margin-bottom:12px;">
+          <div class="mission-section-title" style="color:#b45309; border-color:#f59e0b;">🔔 등록 신청 승인 관리</div>
+          <div class="small" style="margin-bottom:6px; color:#78350f;">선수가 자승 가입한 신청 목록입니다. 승인하면 로그인이 허용됩니다.</div>
+          <div class="mission-upload-list" id="pendingPlayerList"></div>
+      </div>
+
       <div class="form-grid" id="coachPlayerFilterWrap" style="margin-top:6px; display:none;">
           <div class="field" style="grid-column: 1 / -1;">
               <label for="coachPlayerFilter">선수 선택</label>
@@ -933,6 +940,7 @@ const APP_CONFIG = {
     LOGIN_DRAFT_KEY: "greenMissionLoginDraft",
     FORM_DRAFTS_KEY: "greenMissionDrafts",
     REGISTERED_PLAYERS_KEY: "registeredPlayers",
+    PENDING_PLAYERS_KEY: "pendingPlayers",
     COACH_MISSIONS_KEY: "coachMissionFiles",
     MISSION_RESULT_UPLOADS_KEY: "missionResultUploads"
 };
@@ -957,6 +965,7 @@ const DEPLOY_CONFIG = {
         APP_CONFIG.LOGIN_DRAFT_KEY,
         APP_CONFIG.FORM_DRAFTS_KEY,
         APP_CONFIG.REGISTERED_PLAYERS_KEY,
+        APP_CONFIG.PENDING_PLAYERS_KEY,
         APP_CONFIG.COACH_MISSIONS_KEY,
         APP_CONFIG.MISSION_RESULT_UPLOADS_KEY
     ]
@@ -2318,6 +2327,7 @@ class PuttingTrainingApp {
         this.coachMissionFiles = JSON.parse(storageGetItem(APP_CONFIG.COACH_MISSIONS_KEY)) || [];
         this.missionResultUploads = JSON.parse(storageGetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
         this.registeredPlayers = this.loadRegisteredPlayers();
+        this.pendingPlayers = this.loadPendingPlayers();
         this.activeMissionFileId = null;
         this.coachSelectedPlayer = "";
         this.selectedPlayerMissionDate = "";
@@ -2879,8 +2889,12 @@ class PuttingTrainingApp {
 
         this.populateCoachPlayerFilter();
         this.renderRegisteredPlayerList();
+        this.renderPendingPlayerList();
         this.renderCoachMissionFiles();
         this.renderMissionResultUploadList();
+        // 등록 신청 패널 표시/숨김
+        const pendingWrap = document.getElementById("pendingApprovalWrap");
+        if (pendingWrap) pendingWrap.style.display = isCoach ? "block" : "none";
     }
 
     getVisibleCoachMissionFiles() {
@@ -2957,6 +2971,80 @@ class PuttingTrainingApp {
             ? selected
             : String(rows[rows.length - 1].fileName || "").trim();
         select.value = this.selectedMissionResultFile;
+    }
+
+    loadPendingPlayers() {
+        try {
+            const parsed = JSON.parse(storageGetItem(APP_CONFIG.PENDING_PLAYERS_KEY)) || [];
+            if (!Array.isArray(parsed)) return [];
+            return parsed.map(item => ({
+                name:      String(item?.name || "").trim(),
+                passcode:  String(item?.passcode || "").trim(),
+                createdAt: String(item?.createdAt || "").trim() || new Date().toLocaleString()
+            })).filter(p => p.name);
+        } catch (e) { return []; }
+    }
+
+    savePendingPlayers() {
+        storageSetItem(APP_CONFIG.PENDING_PLAYERS_KEY, JSON.stringify(this.pendingPlayers));
+    }
+
+    renderPendingPlayerList() {
+        const target = document.getElementById("pendingPlayerList");
+        if (!target) return;
+        if (!this.pendingPlayers.length) {
+            target.innerHTML = `<div class="mission-thread-empty">등록 신청이 없습니다.</div>`;
+            return;
+        }
+        const esc = v => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+        target.innerHTML = this.pendingPlayers.map(p => `
+            <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                <div>
+                    <b>${esc(p.name)}</b>
+                    <span style="font-size:11px; color:#888; margin-left:8px;">신청일: ${esc(p.createdAt)}</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="secondary-btn" style="background:#16a34a; color:#fff;" data-pending-action="approve" data-pending-name="${esc(p.name)}">✅ 승인</button>
+                    <button type="button" class="secondary-btn" style="background:#dc2626; color:#fff;" data-pending-action="reject" data-pending-name="${esc(p.name)}">❌ 거절</button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    handlePendingPlayerAction(event) {
+        if (!this.isCoachMode()) return;
+        const btn = event.target?.closest?.("button[data-pending-action]");
+        if (!btn) return;
+        const action = btn.dataset.pendingAction;
+        const name   = btn.dataset.pendingName;
+        if (!name) return;
+        if (action === "approve") this.approvePendingPlayer(name);
+        if (action === "reject")  this.rejectPendingPlayer(name);
+    }
+
+    approvePendingPlayer(name) {
+        const idx = this.pendingPlayers.findIndex(p => String(p.name||"").trim() === name);
+        if (idx < 0) return;
+        const player = this.pendingPlayers[idx];
+        // 이미 registered에 없는 경우만 이동
+        if (!this.findRegisteredPlayer(name)) {
+            this.registeredPlayers.push({ name: player.name, passcode: player.passcode, createdAt: player.createdAt });
+            this.registeredPlayers.sort((a, b) => String(a.name||"").localeCompare(String(b.name||""), this.language));
+            this.saveRegisteredPlayers();
+        }
+        this.pendingPlayers.splice(idx, 1);
+        this.savePendingPlayers();
+        this.renderPendingPlayerList();
+        this.renderRegisteredPlayerList();
+        this.populateCoachPlayerFilter();
+    }
+
+    rejectPendingPlayer(name) {
+        const confirmed = window.confirm(`'${name}' 선수의 등록 신청을 거절하시겠습니까?`);
+        if (!confirmed) return;
+        this.pendingPlayers = this.pendingPlayers.filter(p => String(p.name||"").trim() !== name);
+        this.savePendingPlayers();
+        this.renderPendingPlayerList();
     }
 
     loadRegisteredPlayers() {
@@ -4317,6 +4405,14 @@ class PuttingTrainingApp {
         } else {
             const registeredPlayer = this.findRegisteredPlayer(playerName);
             if (!registeredPlayer) {
+                // 승인 대기 중인지 확인
+                const isPending = this.pendingPlayers.some(p => String(p.name||"").trim() === playerName);
+                if (isPending) {
+                    errorTarget.textContent = this.language === "en"
+                        ? "Your signup is pending coach approval. Please wait."
+                        : "등록 승인 대기 중입니다. 지도자 승인 훈 로그인하세요.";
+                    return;
+                }
                 this.failedLoginAttempts += 1;
                 if (this.failedLoginAttempts >= APP_CONFIG.MAX_LOGIN_ATTEMPTS) {
                     this.lockUntil = Date.now() + APP_CONFIG.LOCKOUT_SECONDS * 1000;
@@ -4393,32 +4489,36 @@ class PuttingTrainingApp {
             return;
         }
 
-        // 이미 등록된 선수 여부 확인
+        // 이미 승인된 선수 여부
         const existing = this.findRegisteredPlayer(name);
         if (existing) {
-            setErr(this.language === "en" ? `'${name}' is already registered. Please log in.` : `'${name}'은(는) 이미 가입된 선수입니다. 로그인하세요.`);
+            setErr(this.language === "en" ? `'${name}' is already registered. Please log in.` : `'${name}'은(는) 이미 승인된 선수입니다. 로그인하세요.`);
+            return;
+        }
+        // 이미 승인 대기 중 여부
+        const alreadyPending = this.pendingPlayers.find(p => String(p.name||"").trim() === name);
+        if (alreadyPending) {
+            setErr(this.language === "en" ? `'${name}' is pending approval. Please wait for coach approval.` : `'${name}'은(는) 이미 승인 대기 중입니다. 지도자 승인을 기다리세요.`);
             return;
         }
 
-        // 등록 처리
+        // 대기 목록에 저장
         const now = new Date().toLocaleString();
-        this.registeredPlayers.push({ name, passcode: pw, createdAt: now });
-        this.registeredPlayers.sort((a, b) => String(a.name||")").localeCompare(String(b.name||""), this.language));
-        this.saveRegisteredPlayers();
+        this.pendingPlayers.push({ name, passcode: pw, createdAt: now });
+        this.pendingPlayers.sort((a, b) => String(a.name||"").localeCompare(String(b.name||""), this.language));
+        this.savePendingPlayers();
 
         setErr("");
-        if (errEl) { errEl.style.color = "#1a8a4a"; errEl.textContent = this.language === "en" ? `Signup complete: ${name}. You can now log in.` : `가입 완료: ${name}. 로그인 탭에서 로그인하세요.`; }
+        if (errEl) {
+            errEl.style.color = "#b45309";
+            errEl.textContent = this.language === "en"
+                ? `Signup request submitted: ${name}. Please wait for coach approval before logging in.`
+                : `등록 신청 완료: ${name}. 지도자 승인 훈 로그인하세요.`;
+        }
         document.getElementById("signupName").value = "";
         document.getElementById("signupPassword").value = "";
         document.getElementById("signupPasswordConfirm").value = "";
         document.getElementById("signupCode").value = "";
-
-        // 자동으로 로그인 탭으로 전환
-        setTimeout(() => {
-            document.getElementById("loginPlayerName").value = name;
-            document.getElementById("tabLoginBtn").click();
-            document.getElementById("loginPasscode").focus();
-        }, 1200);
     }
 
     handleLogout() {
@@ -4523,6 +4623,7 @@ class PuttingTrainingApp {
             document.getElementById("missionExcelInput").addEventListener("change", (event) => this.handleMissionFileUpload(event));
             document.getElementById("registerPlayerBtn").addEventListener("click", () => this.registerPlayerAccount());
             document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
+            document.getElementById("pendingPlayerList").addEventListener("click", (event) => this.handlePendingPlayerAction(event));
             document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
             document.getElementById("deleteMissionFileBtn").addEventListener("click", () => this.deleteSelectedMissionFile());
