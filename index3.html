@@ -727,13 +727,27 @@
       const {data}=await sb.from('sytpt_messages').select('*').order('created_at'); return data||[];
     }
     async function addMessage(msg){
-      // allow optional attachments array
-      await sb.from('sytpt_messages').insert({
-        player_id:msg.playerId, author:msg.author, text:msg.text,
-        message_type:msg.messageType||'chat',
-        attachments: msg.attachments || [],
-        created_at:msg.createdAt||new Date().toISOString()
-      });
+      // allow optional attachments array; retry without it if the column is missing
+      try {
+        await sb.from('sytpt_messages').insert({
+          player_id:msg.playerId, author:msg.author, text:msg.text,
+          message_type:msg.messageType||'chat',
+          attachments: msg.attachments || [],
+          created_at:msg.createdAt||new Date().toISOString()
+        });
+      } catch(e) {
+        console.error('addMessage error', e);
+        if(e && e.error && /column\s+"attachments"/i.test(e.error.message)) {
+          const {attachments, ...rest} = msg;
+          await sb.from('sytpt_messages').insert({
+            player_id:rest.playerId, author:rest.author, text:rest.text,
+            message_type:rest.messageType||'chat',
+            created_at:rest.createdAt||new Date().toISOString()
+          });
+        } else {
+          throw e;
+        }
+      }
     }
     async function getAssignedMissions(){
       const {data}=await sb.from('sytpt_assigned_missions').select('*').order('created_at'); return data||[];
@@ -1386,7 +1400,12 @@
         var fileInput=document.getElementById('playerQuestionFile');
         attachments = await readMissionAttachments(fileInput&&fileInput.files);
       }catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
-      await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
+      try {
+        await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
+      } catch(err) {
+        console.error('message send failed', err);
+        alert('메시지 전송 중 오류가 발생했습니다. 파일 첨부 칼럼이 없을 수 있습니다. 관리자에게 문의하세요.');
+      }
       ta.value='';
       var fileInputEl=document.getElementById('playerQuestionFile'); if(fileInputEl) fileInputEl.value='';
       renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();
