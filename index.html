@@ -183,6 +183,10 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .login-note { margin:0 0 12px; color:#425d97; font-size:13px; }
 .login-actions { margin-top:10px; display:flex; align-items:center; gap:8px; }
 .error-text { color:#c93232; font-size:13px; min-height:18px; }
+.login-tabs { display:flex; gap:4px; margin-bottom:14px; border-bottom:2px solid #d7e0f2; }
+.login-tab { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:7px 18px; font-size:14px; color:#6a82b4; cursor:pointer; border-radius:6px 6px 0 0; font-weight:600; transition:color .15s; }
+.login-tab.active { color:#1f4db8; border-bottom-color:#1f4db8; background:#eef4ff; }
+.login-tab:hover:not(.active) { background:#f2f5ff; color:#2d55c4; }
 .session-info { margin-bottom:10px; color:#3c5b97; font-weight:bold; }
 .top-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .top-actions { display:flex; align-items:center; gap:8px; }
@@ -386,40 +390,77 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div id="loginScreen">
     <div class="login-card">
-        <h2 class="login-title">SY-PTS 접속</h2>
-        <p class="login-note">선수 정보와 패스코드를 입력하면 훈련 화면으로 진입합니다.</p>
-        <div class="form-grid">
-            <div class="field">
-                <label for="loginPlayerName">선수 이름</label>
-                <input type="text" id="loginPlayerName" placeholder="예: 전순용">
-            </div>
-            <div class="field">
-                <label for="loginLanguage">언어</label>
-                <select id="loginLanguage">
-                    <option value="ko">한국어</option>
-                    <option value="en">English</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="loginDate">날짜</label>
-                <input type="date" id="loginDate">
-            </div>
-            <div class="field">
-                <label for="loginRole">접속 역할</label>
-                <select id="loginRole">
-                    <option value="player">선수</option>
-                    <option value="coach">지도자</option>
-                </select>
-            </div>
-            <div class="field" style="grid-column: 1 / -1;">
-                <label for="loginPasscode">패스코드</label>
-                <input type="password" id="loginPasscode" placeholder="4자리 코드">
-            </div>
+        <!-- 탭 -->
+        <div class="login-tabs">
+            <button class="login-tab active" id="tabLoginBtn" type="button">🔑 로그인</button>
+            <button class="login-tab" id="tabSignupBtn" type="button">✏️ 선수 가입</button>
         </div>
-        <div class="login-actions">
-            <button id="loginButton" type="button">입장</button>
+
+        <!-- 로그인 패널 -->
+        <div id="loginPanel">
+            <h2 class="login-title">SY-PTS 접속</h2>
+            <p class="login-note">선수 정보와 패스코드를 입력하면 훈련 화면으로 진입합니다.</p>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="loginPlayerName">선수 이름</label>
+                    <input type="text" id="loginPlayerName" placeholder="예: 전순용">
+                </div>
+                <div class="field">
+                    <label for="loginLanguage">언어</label>
+                    <select id="loginLanguage">
+                        <option value="ko">한국어</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="loginDate">날짜</label>
+                    <input type="date" id="loginDate">
+                </div>
+                <div class="field">
+                    <label for="loginRole">접속 역할</label>
+                    <select id="loginRole">
+                        <option value="player">선수</option>
+                        <option value="coach">지도자</option>
+                    </select>
+                </div>
+                <div class="field" style="grid-column: 1 / -1;">
+                    <label for="loginPasscode">패스코드</label>
+                    <input type="password" id="loginPasscode" placeholder="4자리 코드">
+                </div>
+            </div>
+            <div class="login-actions">
+                <button id="loginButton" type="button">입장</button>
+            </div>
+            <div class="error-text" id="loginError"></div>
         </div>
-        <div class="error-text" id="loginError"></div>
+
+        <!-- 선수 가입 패널 -->
+        <div id="signupPanel" style="display:none;">
+            <h2 class="login-title">선수 가입</h2>
+            <p class="login-note">지도자에게 받은 가입 코드로 계정을 만드세요.</p>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="signupName">선수 이름</label>
+                    <input type="text" id="signupName" placeholder="예: 홍길동">
+                </div>
+                <div class="field">
+                    <label for="signupPassword">비밀번호 설정</label>
+                    <input type="password" id="signupPassword" placeholder="4자리 이상">
+                </div>
+                <div class="field">
+                    <label for="signupPasswordConfirm">비밀번호 확인</label>
+                    <input type="password" id="signupPasswordConfirm" placeholder="동일하게 입력">
+                </div>
+                <div class="field">
+                    <label for="signupCode">가입 코드</label>
+                    <input type="password" id="signupCode" placeholder="지도자에게 문의">
+                </div>
+            </div>
+            <div class="login-actions">
+                <button id="signupButton" type="button">가입하기</button>
+            </div>
+            <div class="error-text" id="signupError"></div>
+        </div>
     </div>
 </div>
 
@@ -901,7 +942,8 @@ let RUNTIME_COACH_CONFIG = {
     coachName: "",
     coachPasscode: "",
     deleteCode: "",
-    accessPasscode: ""
+    accessPasscode: "",
+    signupCode: ""   // 선수 자가 가입용 코드 (지도자가 Supabase에 설정)
 };
 
 const DEPLOY_CONFIG = {
@@ -2334,6 +2376,27 @@ class PuttingTrainingApp {
             this.saveLoginDraft();
             this.saveDraftForCurrentPlayer();
         });
+
+        // 탭 전환
+        document.getElementById("tabLoginBtn").addEventListener("click", () => {
+            document.getElementById("loginPanel").style.display = "";
+            document.getElementById("signupPanel").style.display = "none";
+            document.getElementById("tabLoginBtn").classList.add("active");
+            document.getElementById("tabSignupBtn").classList.remove("active");
+        });
+        document.getElementById("tabSignupBtn").addEventListener("click", () => {
+            document.getElementById("loginPanel").style.display = "none";
+            document.getElementById("signupPanel").style.display = "";
+            document.getElementById("tabLoginBtn").classList.remove("active");
+            document.getElementById("tabSignupBtn").classList.add("active");
+        });
+
+        // 선수 가입
+        document.getElementById("signupButton").addEventListener("click", () => this.handleSignup());
+        document.getElementById("signupCode").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") this.handleSignup();
+        });
+
         this.updateLockoutUI();
     }
 
@@ -3186,6 +3249,24 @@ class PuttingTrainingApp {
         if (exportSection) exportSection.style.display = "";
         if (coachDataControls) coachDataControls.style.display = isCoach ? "block" : "none";
         if (playerTransferBox) playerTransferBox.style.display = isCoach ? "none" : "block";
+
+        // 4번(분석), 5번(시각화) — 선수 모드에서는 숨김
+        const analysisNav = document.querySelector('#sectionNav .nav-card[data-target="section-analysis"]');
+        const visualNav   = document.querySelector('#sectionNav .nav-card[data-target="section-visual"]');
+        const analysisSection = document.getElementById("section-analysis");
+        const visualSection   = document.getElementById("section-visual");
+        if (analysisNav) analysisNav.style.display = isCoach ? "" : "none";
+        if (visualNav)   visualNav.style.display   = isCoach ? "" : "none";
+        if (analysisSection) analysisSection.style.display = isCoach ? "" : "none";
+        if (visualSection)   visualSection.style.display   = isCoach ? "" : "none";
+
+        // 분석 섹션이 활성화된 상태에서 선수 로그인 시 → Framework로 이동
+        if (!isCoach) {
+            const activeSection = document.querySelector('.section.active');
+            if (activeSection && (activeSection.id === 'section-analysis' || activeSection.id === 'section-visual')) {
+                this.sectionNavigator.show('section-framework');
+            }
+        }
     }
 
     buildPlayerTransferFileName() {
@@ -4286,8 +4367,65 @@ class PuttingTrainingApp {
         this.updateDeleteButtonAccess();
     }
 
+    handleSignup() {
+        const name     = String(document.getElementById("signupName")?.value || "").trim();
+        const pw       = String(document.getElementById("signupPassword")?.value || "").trim();
+        const pwConf   = String(document.getElementById("signupPasswordConfirm")?.value || "").trim();
+        const code     = String(document.getElementById("signupCode")?.value || "").trim();
+        const errEl    = document.getElementById("signupError");
+        const clearErr = () => { if (errEl) errEl.textContent = ""; };
+        const setErr   = (msg) => { if (errEl) errEl.textContent = msg; };
+        clearErr();
+
+        if (!name)  { setErr(this.language === "en" ? "Please enter your name." : "이름을 입력하세요."); return; }
+        if (!pw)    { setErr(this.language === "en" ? "Please enter a password." : "비밀번호를 입력하세요."); return; }
+        if (pw !== pwConf) { setErr(this.language === "en" ? "Passwords do not match." : "비밀번호가 일치하지 않습니다."); return; }
+        if (!RUNTIME_COACH_CONFIG.signupCode) {
+            setErr(this.language === "en" ? "Signup not available yet. Contact coach." : "가입 코드가 설정되지 않았습니다. 지도자에게 문의하세요.");
+            return;
+        }
+        if (code !== RUNTIME_COACH_CONFIG.signupCode) {
+            setErr(this.language === "en" ? "Invalid signup code." : "가입 코드가 올바르지 않습니다.");
+            return;
+        }
+        if (name === RUNTIME_COACH_CONFIG.coachName) {
+            setErr(this.language === "en" ? "That name is reserved." : "사용할 수 없는 이름입니다.");
+            return;
+        }
+
+        // 이미 등록된 선수 여부 확인
+        const existing = this.findRegisteredPlayer(name);
+        if (existing) {
+            setErr(this.language === "en" ? `'${name}' is already registered. Please log in.` : `'${name}'은(는) 이미 가입된 선수입니다. 로그인하세요.`);
+            return;
+        }
+
+        // 등록 처리
+        const now = new Date().toLocaleString();
+        this.registeredPlayers.push({ name, passcode: pw, createdAt: now });
+        this.registeredPlayers.sort((a, b) => String(a.name||")").localeCompare(String(b.name||""), this.language));
+        this.saveRegisteredPlayers();
+
+        setErr("");
+        if (errEl) { errEl.style.color = "#1a8a4a"; errEl.textContent = this.language === "en" ? `Signup complete: ${name}. You can now log in.` : `가입 완료: ${name}. 로그인 탭에서 로그인하세요.`; }
+        document.getElementById("signupName").value = "";
+        document.getElementById("signupPassword").value = "";
+        document.getElementById("signupPasswordConfirm").value = "";
+        document.getElementById("signupCode").value = "";
+
+        // 자동으로 로그인 탭으로 전환
+        setTimeout(() => {
+            document.getElementById("loginPlayerName").value = name;
+            document.getElementById("tabLoginBtn").click();
+            document.getElementById("loginPasscode").focus();
+        }, 1200);
+    }
+
     handleLogout() {
         this.session = { playerName: "", sessionDate: "", language: this.language, role: "player" };
+        // 가입 오류 메시지 색상 리셋
+        const signupErr = document.getElementById("signupError");
+        if (signupErr) { signupErr.style.color = ""; signupErr.textContent = ""; }
         this.coachSelectedPlayer = "";
         this.selectedMissionResultFile = "";
         document.getElementById("sessionInfo").textContent = "";
@@ -4994,7 +5132,8 @@ class PuttingTrainingApp {
             `${ns}:auth_coach_name`,
             `${ns}:auth_coach_passcode`,
             `${ns}:auth_delete_code`,
-            `${ns}:auth_access_passcode`
+            `${ns}:auth_access_passcode`,
+            `${ns}:auth_signup_code`
         ];
         try {
             const { data } = await CLOUD_STATE_SERVICE.client
@@ -5009,6 +5148,7 @@ class PuttingTrainingApp {
                     if (key.endsWith(":auth_coach_passcode")) RUNTIME_COACH_CONFIG.coachPasscode  = value;
                     if (key.endsWith(":auth_delete_code"))    RUNTIME_COACH_CONFIG.deleteCode     = value;
                     if (key.endsWith(":auth_access_passcode"))RUNTIME_COACH_CONFIG.accessPasscode = value;
+                    if (key.endsWith(":auth_signup_code"))    RUNTIME_COACH_CONFIG.signupCode     = value;
                 });
             }
         } catch (e) {
