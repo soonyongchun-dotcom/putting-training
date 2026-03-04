@@ -496,7 +496,7 @@
               <textarea id="playerQuestion" rows="3" placeholder="예) 8번 아이언 샷 루틴 중 루틴 선택을 다시 정해주세요"></textarea>
             </div>
             <div class="field" style="margin:0">
-              <label>첨부 파일 (PDF/Word/Excel, 각 5MB 이하)</label>
+              <label>첨부 파일 (PDF/Word/Excel, 각 2MB 이하)</label>
               <input id="playerQuestionFile" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -632,7 +632,7 @@
               <textarea id="coachDirectiveInput" rows="3" placeholder="개별 선수 또는 전체 선수에게 보낼 지시 내용을 입력하세요"></textarea>
             </div>
             <div class="field" style="margin-bottom:8px">
-              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel · 각 5MB 이하)</span></label>
+              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel · 각 2MB 이하)</span></label>
               <input id="directiveFileInput" type="file" multiple
                 accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </div>
@@ -859,40 +859,10 @@
       const files=Array.from(fileList||[]); if(!files.length) return [];
       const inv=files.find(f=>!isAllowedAttachment(f));
       if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel만 지원합니다.');
-      const over=files.find(f=>f.size>5*1024*1024);
-      if(over) throw new Error('첨부파일은 1개당 30MB 이하로 업로드해주세요.');
+      const over=files.find(f=>f.size>2*1024*1024);
+      if(over) throw new Error('첨부파일은 1개당 2MB 이하로 업로드해주세요.');
       const out=[];
       for(const f of files){const d=await fileToDataUrl(f);out.push({name:f.name,mimeType:f.type||'application/octet-stream',dataUrl:d});}
-      return out;
-    }
-
-    // validate raw FileList, throws on error
-    async function validateAttachments(fileList){
-      const files=Array.from(fileList||[]); if(!files.length) return [];
-      const inv=files.find(f=>!isAllowedAttachment(f));
-      if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel만 지원합니다.');
-      const over=files.find(f=>f.size>5*1024*1024);
-      if(over) throw new Error('첨부파일은 1개당 5MB 이하로 업로드해주세요.');
-      return files;
-    }
-
-    // upload to storage and return metadata objects
-    async function uploadFiles(fileList){
-      const files = await validateAttachments(fileList);
-      if(!files.length) return [];
-      const out=[];
-      for(const f of files){
-        // encode filename so storage path is URL-safe
-        const safeName = encodeURIComponent(f.name);
-        // do not include bucket name in the path; bucket is specified separately
-        const path = Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+safeName;
-        const { data, error } = await sb.storage.from('attachments').upload(path, f);
-        if(error) throw error;
-        let url = sb.storage.from('attachments').getPublicUrl(path).data.publicUrl;
-        // make sure URL is properly encoded for browser
-        url = encodeURI(url);
-        out.push({name:f.name,url});
-      }
       return out;
     }
     function parseDateValue(raw){
@@ -1074,7 +1044,7 @@
           var attachHtml='';
           if(m.attachments&&m.attachments.length){
             attachHtml='<div class="muted" style="margin-top:6px">📎 첨부파일</div><div class="message-list" style="max-height:120px;margin-top:6px">'+
-              m.attachments.map(function(f,i){return '<div class="message" style="padding:6px"><a href="'+(f.url||f.dataUrl)+'" target="_blank" download="'+f.name+'">'+(i+1)+'. '+f.name+'</a></div>';}).join('')+'</div>';
+              m.attachments.map(function(f,i){return '<div class="message" style="padding:6px"><a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'">'+(i+1)+'. '+f.name+'</a></div>';}).join('')+'</div>';
           }
           var statusHtml=m.completed?
             ('<span style="color:#16a34a;font-weight:700;font-size:13px">✅ 완료</span>'+(m.completedAt?'<span class="muted" style="font-size:12px">('+formatTime(m.completedAt)+')</span>':'')):
@@ -1134,7 +1104,7 @@
         var replies=Array.isArray(item.replies)?item.replies:[];
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
-        var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+(f.url||f.dataUrl)+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
+        var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
         return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
     }
@@ -1273,7 +1243,7 @@
         const mission=missions.find(function(m){return m.missionKey===mk;});
         if(!mission||!detailRoot) return;
         var attHtml=mission.attachments&&mission.attachments.length?
-          '<div class="muted" style="margin-bottom:4px">첨부 결과 파일</div><div class="message-list" style="max-height:140px">'+mission.attachments.map(function(f,i){return '<div class="message" style="padding:6px"><a href="'+(f.url||f.dataUrl)+'" target="_blank" download="'+f.name+'">'+(i+1)+'. '+f.name+'</a></div>';}).join('')+'</div>':
+          '<div class="muted" style="margin-bottom:4px">첨부 결과 파일</div><div class="message-list" style="max-height:140px">'+mission.attachments.map(function(f,i){return '<div class="message" style="padding:6px"><a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'">'+(i+1)+'. '+f.name+'</a></div>';}).join('')+'</div>':
           '<p class="muted" style="margin:0">첨부된 결과 파일이 없습니다.</p>';
         detailRoot.innerHTML='<div class="meta">미션: '+mission.code+' ('+mission.mode+')</div><div class="muted" style="margin:4px 0 6px">수행 상태: '+(mission.completed?'완료':'미완료')+'</div>'+(mission.feedback?'<div style="margin-bottom:8px">'+mission.feedback+'</div>':'')+attHtml;
       });});
@@ -1292,7 +1262,7 @@
       root.innerHTML=thread.map(function(m){
         var ic=m.author==='코치';
         var atts=Array.isArray(m.attachments)?m.attachments:[];
-        var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 첨부파일: '+atts.map(function(f){return '<a href="'+(f.url||f.dataUrl)+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
+        var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 첨부파일: '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
         return '<div class="message '+(ic?'msg-coach':'msg-player')+'"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:4px">'+m.text+'</div>'+attHtml+'</div>';
       }).join('');
       root.scrollTop=root.scrollHeight;
@@ -1342,7 +1312,7 @@
         var msgsHtml=g.thread.map(function(m){
           var ic=m.author==='코치';
           var atts=Array.isArray(m.attachments)?m.attachments:[];
-          var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f){return '<a href="'+(f.url||f.dataUrl)+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
+          var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
           return '<div class="message '+(ic?'msg-coach':'msg-player')+'" style="margin-bottom:4px"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
         }).join('');
         return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span><button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'">답변하기</button></div><div class="comm-group-body">'+msgsHtml+'</div></div>';
@@ -1443,10 +1413,8 @@
       var attachments=[];
       try{
         var fileInput=document.getElementById('playerQuestionFile');
-        if(fileInput && fileInput.files.length){
-          attachments = await uploadFiles(fileInput.files);
-          console.log('attachments uploaded', attachments);
-        }
+        attachments = await readMissionAttachments(fileInput&&fileInput.files);
+        console.log('attachments read', attachments);
       }catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
       try {
         const result = await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
@@ -1482,7 +1450,7 @@
       var fileInput=document.getElementById('missionFileInput');
       if(!rawCode&&!message&&!(fileInput&&fileInput.files&&fileInput.files.length)) return;
       var attachments=[];
-      try{ if(fileInput && fileInput.files.length){attachments=await uploadFiles(fileInput.files);} }
+      try{attachments=await readMissionAttachments(fileInput&&fileInput.files);}
       catch(e){alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.');return;}
       await addAssignedMission({
         missionId:'ASG-'+Date.now()+'-'+Math.floor(Math.random()*1000),
@@ -1504,7 +1472,7 @@
       var fileInput=document.getElementById('directiveFileInput');
       if(!target||!text) return;
       var attachments=[];
-      try{ if(fileInput && fileInput.files.length){ attachments=await uploadFiles(fileInput.files); } }
+      try{ attachments=await readMissionAttachments(fileInput&&fileInput.files); }
       catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
       var users=await getUsers();
       var ap=getApprovedPlayers(users);
