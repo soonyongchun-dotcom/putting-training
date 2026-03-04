@@ -886,18 +886,22 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 <script>
 
 const APP_CONFIG = {
-    ACCESS_PASSCODE: "0403",
-    COACH_LOGIN_PASSCODE: "1013",
-    COACH_LOGIN_ALLOWED_USER: "전순용",
+    // 인증 정보는 Supabase에서 런타임에 로드됩니다 (소스코드에 노출되지 않음)
     MAX_LOGIN_ATTEMPTS: 3,
     LOCKOUT_SECONDS: 30,
     LOGIN_DRAFT_KEY: "greenMissionLoginDraft",
     FORM_DRAFTS_KEY: "greenMissionDrafts",
     REGISTERED_PLAYERS_KEY: "registeredPlayers",
     COACH_MISSIONS_KEY: "coachMissionFiles",
-    MISSION_RESULT_UPLOADS_KEY: "missionResultUploads",
-    COACH_DELETE_CODE: "1013",
-    COACH_DELETE_ALLOWED_USER: "전순용"
+    MISSION_RESULT_UPLOADS_KEY: "missionResultUploads"
+};
+
+// 런타임 자격증명 — Supabase app_kv_store에서 앱 시작 시 로드됩니다
+let RUNTIME_COACH_CONFIG = {
+    coachName: "",
+    coachPasscode: "",
+    deleteCode: "",
+    accessPasscode: ""
 };
 
 const DEPLOY_CONFIG = {
@@ -2985,7 +2989,7 @@ class PuttingTrainingApp {
         const playerName = String(name || "").trim();
         if (!playerName) return;
 
-        if (playerName === APP_CONFIG.COACH_LOGIN_ALLOWED_USER) {
+        if (playerName === RUNTIME_COACH_CONFIG.coachName) {
             if (resultTarget) resultTarget.textContent = this.t("registerPlayerProtected", { name: playerName });
             return;
         }
@@ -3140,7 +3144,7 @@ class PuttingTrainingApp {
     }
 
     getManagedPlayers() {
-        return this.getRegisteredPlayers().filter((name) => String(name || "").trim() !== APP_CONFIG.COACH_LOGIN_ALLOWED_USER);
+        return this.getRegisteredPlayers().filter((name) => String(name || "").trim() !== RUNTIME_COACH_CONFIG.coachName);
     }
 
     getSelectedCoachPlayer() {
@@ -3861,7 +3865,7 @@ class PuttingTrainingApp {
 
         const code = window.prompt(this.t("promptDeleteCode"));
         if (code === null) return;
-        if (code.trim() !== APP_CONFIG.COACH_DELETE_CODE) {
+        if (code.trim() !== RUNTIME_COACH_CONFIG.deleteCode) {
             resultTarget.textContent = this.t("deleteCodeMismatch");
             return;
         }
@@ -4218,8 +4222,8 @@ class PuttingTrainingApp {
         }
 
         const isCoachLogin = role === "coach";
-        if (isCoachLogin && playerName !== APP_CONFIG.COACH_LOGIN_ALLOWED_USER) {
-            errorTarget.textContent = this.t("coachNameOnly", { name: APP_CONFIG.COACH_LOGIN_ALLOWED_USER });
+        if (isCoachLogin && playerName !== RUNTIME_COACH_CONFIG.coachName) {
+            errorTarget.textContent = this.t("coachNameOnly", { name: RUNTIME_COACH_CONFIG.coachName });
             return;
         }
 
@@ -4227,7 +4231,7 @@ class PuttingTrainingApp {
         let failMessageKey = "passcodeWrong";
 
         if (isCoachLogin) {
-            passcodeMatch = passcode === APP_CONFIG.COACH_LOGIN_PASSCODE;
+            passcodeMatch = passcode === RUNTIME_COACH_CONFIG.coachPasscode;
             failMessageKey = "coachPasscodeWrong";
         } else {
             const registeredPlayer = this.findRegisteredPlayer(playerName);
@@ -4982,6 +4986,35 @@ class PuttingTrainingApp {
 (async () => {
     CLOUD_STATE_SERVICE = new CloudStateService(DEPLOY_CONFIG);
     await CLOUD_STATE_SERVICE.init();
+
+    // Supabase에서 코치 자격증명 로드 (소스코드에 평문 노출 방지)
+    if (CLOUD_STATE_SERVICE.client) {
+        const ns = DEPLOY_CONFIG.syncNamespace || "default";
+        const authKeys = [
+            `${ns}:auth_coach_name`,
+            `${ns}:auth_coach_passcode`,
+            `${ns}:auth_delete_code`,
+            `${ns}:auth_access_passcode`
+        ];
+        try {
+            const { data } = await CLOUD_STATE_SERVICE.client
+                .from("app_kv_store")
+                .select("storage_key, storage_value")
+                .in("storage_key", authKeys);
+            if (Array.isArray(data)) {
+                data.forEach(row => {
+                    const key = String(row.storage_key || "");
+                    const value = String(row.storage_value || "");
+                    if (key.endsWith(":auth_coach_name"))     RUNTIME_COACH_CONFIG.coachName      = value;
+                    if (key.endsWith(":auth_coach_passcode")) RUNTIME_COACH_CONFIG.coachPasscode  = value;
+                    if (key.endsWith(":auth_delete_code"))    RUNTIME_COACH_CONFIG.deleteCode     = value;
+                    if (key.endsWith(":auth_access_passcode"))RUNTIME_COACH_CONFIG.accessPasscode = value;
+                });
+            }
+        } catch (e) {
+            console.warn("코치 자격증명 로드 실패:", e);
+        }
+    }
 
     const app = new PuttingTrainingApp();
     app.init();
