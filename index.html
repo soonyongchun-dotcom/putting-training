@@ -2968,14 +2968,43 @@ class PuttingTrainingApp {
             return;
         }
         target.innerHTML = rows.map(item => `
-            <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+            <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; cursor:pointer;" data-file-name="${esc(item.fileName || "")}" data-uploaded-by="${esc(item.uploadedBy || "")}" title="클릭하면 4)엄석/5)시각화에 표시됩니다">
                 <div>
                     <b>${esc(item.fileName || "-")}</b>
                     <span class="player-badge-approved" style="font-size:11px;">${esc(item.uploadedBy || "-")}</span>
                 </div>
-                <div style="font-size:11px; color:#666;">${esc(item.uploadedAt || "-")} &nbsp; ${esc(item.rowCount ?? 0)}건</div>
+                <div style="font-size:11px; color:#666;">${esc(item.uploadedAt || "-")} &nbsp; ${esc(item.rowCount ?? 0)}건 확인▶</div>
             </div>
         `).join("");
+    }
+
+    loadPlayerDataForAnalysis(fileName, uploadedBy) {
+        if (!this.isCoachMode()) return;
+        // 파일명 형식: {player}_{YYYY-MM-DD}.csv
+        const base = String(fileName || "").replace(/\.csv$/i, "");
+        // 날짜는 마지막 10자 (YYYY-MM-DD)
+        const dateMatch = base.match(/(\d{4}-\d{2}-\d{2})$/);
+        const sessionDate = dateMatch ? dateMatch[1] : "";
+        // 선수명: 파일명에서 연동 또는 uploadedBy 사용
+        const playerName = uploadedBy
+            || (dateMatch ? base.slice(0, base.length - 11) : base);
+        if (!playerName || !sessionDate) {
+            alert("파일명에서 날짜를 파싱할 수 없습니다.\n" + fileName);
+            return;
+        }
+        this.session.playerName = playerName;
+        this.session.sessionDate = sessionDate;
+        this.refreshDashboard();
+        // 4)분석 섹션으로 이동 후 선택된 파일 하이라이트
+        this.sectionNavigator.show("section-analysis");
+        // 열람한 행 하이라이트
+        document.querySelectorAll("#playerDataUploadList .mission-upload-item").forEach(el => {
+            el.style.background = el.dataset.fileName === fileName ? "#dbeafe" : "";
+            el.style.borderColor = el.dataset.fileName === fileName ? "#93c5fd" : "";
+        });
+        // 세션 정보 표시
+        const result = document.getElementById("syncPlayerDataResult");
+        if (result) result.textContent = `✅ ${playerName} 담 ${sessionDate} 데이터 표시 중 — 4)분석 / 5)시각화를 확인하세요`;
     }
 
     async syncPlayerData() {
@@ -4719,6 +4748,13 @@ class PuttingTrainingApp {
             document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
             document.getElementById("pendingPlayerList").addEventListener("click", (event) => this.handlePendingPlayerAction(event));
             document.getElementById("syncPlayerDataBtn").addEventListener("click", () => this.syncPlayerData());
+            document.getElementById("playerDataUploadList").addEventListener("click", (event) => {
+                const row = event.target?.closest("[data-file-name]");
+                if (!row) return;
+                const fileName   = row.dataset.fileName   || "";
+                const uploadedBy = row.dataset.uploadedBy || "";
+                this.loadPlayerDataForAnalysis(fileName, uploadedBy);
+            });
             document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
             document.getElementById("deleteMissionFileBtn").addEventListener("click", () => this.deleteSelectedMissionFile());
