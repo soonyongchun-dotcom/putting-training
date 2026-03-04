@@ -911,6 +911,15 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         <div class="result" id="registerPlayerResult" style="grid-column: 1 / -1;"></div>
         <div class="mission-upload-list" id="registeredPlayerList" style="grid-column: 1 / -1;"></div>
     </div>
+
+    <!-- 선수 전송 데이터 목록 -->
+    <div class="players-section-title" style="margin-top:20px;">📥 전송된 선수 데이터</div>
+    <div class="small" style="margin-bottom:8px; color:#3d5fa1;">선수가 7)데이터 메뉴에서 전송한 M1/M2 결과 파일 목록입니다. 최신 데이터 확인 시 동기화 버튼을 눌러주세요.</div>
+    <div style="margin-bottom:8px;">
+        <button id="syncPlayerDataBtn" type="button" class="secondary-btn">☁️ 최신 데이터 동기화</button>
+        <span id="syncPlayerDataResult" style="margin-left:10px; font-size:12px; color:#3d5fa1;"></span>
+    </div>
+    <div class="mission-upload-list" id="playerDataUploadList"></div>
 </div>
 </div>
 
@@ -2916,6 +2925,7 @@ class PuttingTrainingApp {
         if (pendingBadge) pendingBadge.textContent = this.pendingPlayers.length;
         const registeredBadge = document.getElementById("registeredCountBadge");
         if (registeredBadge) registeredBadge.textContent = this.registeredPlayers.length;
+        this.renderPlayerDataList();
     }
 
     getVisibleCoachMissionFiles() {
@@ -2946,6 +2956,50 @@ class PuttingTrainingApp {
             ));
             return hasPlayerRecord;
         });
+    }
+
+    renderPlayerDataList() {
+        const target = document.getElementById("playerDataUploadList");
+        if (!target) return;
+        const esc = v => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+        const rows = (this.missionResultUploads || []).slice().reverse().slice(0, 30);
+        if (!rows.length) {
+            target.innerHTML = `<div class="mission-thread-empty">전송된 데이터가 없습니다.</div>`;
+            return;
+        }
+        target.innerHTML = rows.map(item => `
+            <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <div>
+                    <b>${esc(item.fileName || "-")}</b>
+                    <span class="player-badge-approved" style="font-size:11px;">${esc(item.uploadedBy || "-")}</span>
+                </div>
+                <div style="font-size:11px; color:#666;">${esc(item.uploadedAt || "-")} &nbsp; ${esc(item.rowCount ?? 0)}건</div>
+            </div>
+        `).join("");
+    }
+
+    async syncPlayerData() {
+        const resultEl = document.getElementById("syncPlayerDataResult");
+        const btn = document.getElementById("syncPlayerDataBtn");
+        if (btn) btn.disabled = true;
+        if (resultEl) resultEl.textContent = "동기화 중…";
+        try {
+            if (CLOUD_STATE_SERVICE && CLOUD_STATE_SERVICE.enabled) {
+                await CLOUD_STATE_SERVICE.pullFromCloud();
+                this.missionResultUploads = JSON.parse(storageGetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
+                this.records = this.storageService.loadRecords();
+                this.renderPlayerDataList();
+                this.renderMissionResultUploadList();
+                this.refreshDashboard();
+                if (resultEl) resultEl.textContent = "✅ 동기화 완료 (" + new Date().toLocaleTimeString() + ")";
+            } else {
+                if (resultEl) resultEl.textContent = "⚠️ 클라우드 미연결";
+            }
+        } catch(e) {
+            if (resultEl) resultEl.textContent = "❌ 동기화 실패: " + e.message;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     }
 
     getVisibleMissionResultUploads() {
@@ -3462,6 +3516,7 @@ class PuttingTrainingApp {
             .slice(0, 20);
 
         this.renderMissionResultDownloadOptions();
+        this.renderPlayerDataList();
 
         if (!rows.length) {
             target.innerHTML = `<div class="mission-thread-empty">${this.t("noMissionResultUploads")}</div>`;
@@ -4663,6 +4718,7 @@ class PuttingTrainingApp {
             document.getElementById("registerPlayerBtn").addEventListener("click", () => this.registerPlayerAccount());
             document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
             document.getElementById("pendingPlayerList").addEventListener("click", (event) => this.handlePendingPlayerAction(event));
+            document.getElementById("syncPlayerDataBtn").addEventListener("click", () => this.syncPlayerData());
             document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
             document.getElementById("deleteMissionFileBtn").addEventListener("click", () => this.deleteSelectedMissionFile());
