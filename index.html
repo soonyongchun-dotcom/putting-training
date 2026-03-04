@@ -2488,7 +2488,8 @@ class PuttingTrainingApp {
                     ["4) Analysis", "Metrics/miss-cause/distance analysis"],
                     ["5) Visualization", "Heatmap/Bayesian update"],
                     ["6) Coach Mission", "Mission/feedback hub"],
-                    ["7) Data", "Export CSV"]
+                    ["7) Data", "Export CSV"],
+                    ["8) Players", "Register/approval manage"]
                 ]
                 : [
                     ["1) Framework", "훈련 원칙 확인"],
@@ -2497,9 +2498,11 @@ class PuttingTrainingApp {
                     ["4) 분석 보기", "지표/미스원인/거리별 분석"],
                     ["5) 시각화", "히트맵/베이지안 업데이트"],
                     ["6) 코치 미션", "미션/피드백 허브"],
-                    ["7) 데이터", "CSV 내보내기"]
+                    ["7) 데이터", "CSV 내보내기"],
+                    ["8) 선수 관리", "등록/신청 승인"]
                 ];
             navCards.forEach((card, index) => {
+                if (!navText[index]) return;
                 const title = card.querySelector(".nav-title");
                 const desc = card.querySelector(".nav-desc");
                 if (title) title.textContent = navText[index][0];
