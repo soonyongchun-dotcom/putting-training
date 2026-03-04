@@ -727,6 +727,7 @@
       const {data}=await sb.from('sytpt_messages').select('*').order('created_at'); return data||[];
     }
     async function addMessage(msg){
+      console.log('addMessage invoked with', msg);
       // allow optional attachments array; retry without it if the column is missing
       try {
         const res = await sb.from('sytpt_messages').insert({
@@ -735,6 +736,7 @@
           attachments: msg.attachments || [],
           created_at:msg.createdAt||new Date().toISOString()
         });
+        console.log('addMessage insert response', res);
         if(res.error) throw res.error;
         return res;
       } catch(e) {
