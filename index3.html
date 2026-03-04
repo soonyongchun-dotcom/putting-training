@@ -882,10 +882,14 @@
       if(!files.length) return [];
       const out=[];
       for(const f of files){
-        const path = 'attachments/'+Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+f.name;
+        // encode filename so storage path is URL-safe
+        const safeName = encodeURIComponent(f.name);
+        const path = 'attachments/'+Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+safeName;
         const { data, error } = await sb.storage.from('attachments').upload(path, f);
         if(error) throw error;
-        const url = sb.storage.from('attachments').getPublicUrl(path).data.publicUrl;
+        let url = sb.storage.from('attachments').getPublicUrl(path).data.publicUrl;
+        // make sure URL is properly encoded for browser
+        url = encodeURI(url);
         out.push({name:f.name,url});
       }
       return out;
