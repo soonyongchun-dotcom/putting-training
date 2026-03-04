@@ -496,7 +496,7 @@
               <textarea id="playerQuestion" rows="3" placeholder="예) 8번 아이언 샷 루틴 중 루틴 선택을 다시 정해주세요"></textarea>
             </div>
             <div class="field" style="margin:0">
-              <label>첨부 파일 (PDF/Word/Excel, 각 5MB 이하)</label>
+              <label>첨부 파일 (PDF/Word/Excel, 각 30MB 이하)</label>
               <input id="playerQuestionFile" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -632,7 +632,7 @@
               <textarea id="coachDirectiveInput" rows="3" placeholder="개별 선수 또는 전체 선수에게 보낼 지시 내용을 입력하세요"></textarea>
             </div>
             <div class="field" style="margin-bottom:8px">
-              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel · 각 5MB 이하)</span></label>
+              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel · 각 30MB 이하)</span></label>
               <input id="directiveFileInput" type="file" multiple
                 accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </div>
@@ -859,8 +859,8 @@
       const files=Array.from(fileList||[]); if(!files.length) return [];
       const inv=files.find(f=>!isAllowedAttachment(f));
       if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel만 지원합니다.');
-      const over=files.find(f=>f.size>5*1024*1024);
-      if(over) throw new Error('첨부파일은 1개당 5MB 이하로 업로드해주세요.');
+      const over=files.find(f=>f.size>30*1024*1024);
+      if(over) throw new Error('첨부파일은 1개당 30MB 이하로 업로드해주세요.');
       const out=[];
       for(const f of files){const d=await fileToDataUrl(f);out.push({name:f.name,mimeType:f.type||'application/octet-stream',dataUrl:d});}
       return out;
