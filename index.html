@@ -389,6 +389,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .player-badge-pending { display:inline-block; background:#f59e0b; color:#fff; border-radius:12px; padding:1px 9px; font-size:11px; font-weight:700; margin-left:6px; }
 .player-badge-approved { display:inline-block; background:#16a34a; color:#fff; border-radius:12px; padding:1px 9px; font-size:11px; font-weight:700; margin-left:6px; }
 .players-empty { color:#999; font-size:13px; padding:10px 0; }
+.nav-card.nav-disabled { opacity:0.38; cursor:not-allowed; pointer-events:none; filter:grayscale(60%); }
 </style>
 </head>
 
@@ -3362,13 +3363,21 @@ class PuttingTrainingApp {
         if (coachDataControls) coachDataControls.style.display = isCoach ? "block" : "none";
         if (playerTransferBox) playerTransferBox.style.display = isCoach ? "none" : "block";
 
-        // 4번(분석), 5번(시각화) — 선수 모드에서는 숨김
+        // 4번(분석), 5번(시각화) — 선수 모드에서는 버튼 비활성화, 섹션 숨김
         const analysisNav = document.querySelector('#sectionNav .nav-card[data-target="section-analysis"]');
         const visualNav   = document.querySelector('#sectionNav .nav-card[data-target="section-visual"]');
         const analysisSection = document.getElementById("section-analysis");
         const visualSection   = document.getElementById("section-visual");
-        if (analysisNav) analysisNav.style.display = isCoach ? "" : "none";
-        if (visualNav)   visualNav.style.display   = isCoach ? "" : "none";
+        if (analysisNav) {
+            analysisNav.style.display = "";
+            analysisNav.classList.toggle("nav-disabled", !isCoach);
+            analysisNav.title = isCoach ? "" : "지도자 전용 메뉴입니다";
+        }
+        if (visualNav) {
+            visualNav.style.display = "";
+            visualNav.classList.toggle("nav-disabled", !isCoach);
+            visualNav.title = isCoach ? "" : "지도자 전용 메뉴입니다";
+        }
         if (analysisSection) analysisSection.style.display = isCoach ? "" : "none";
         if (visualSection)   visualSection.style.display   = isCoach ? "" : "none";
 
