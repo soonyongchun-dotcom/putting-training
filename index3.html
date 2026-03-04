@@ -525,7 +525,7 @@
         <button class="coach-tab-btn" data-coach-tab="mission">오늘 미션 배정</button>
         <button class="coach-tab-btn" data-coach-tab="match">경기 시합 준비 현황</button>
         <button class="coach-tab-btn" data-coach-tab="completed">선수별 완료미션 현황</button>
-        <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션/지시사항<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
+        <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
       </div>
 
       <!-- 탭 1: 선수 현황 목록 + 승인 대기 -->
@@ -610,11 +610,11 @@
         </div>
       </div>
 
-      <!-- 탭 5: 선수 커뮤니케이션/코치 지시사항 -->
+      <!-- 탭 5: 선수 커뮤니케이션 -->
       <div class="coach-tab-panel" id="coachTab-comm">
         <div class="split-2">
           <div class="card">
-            <h3 style="margin-top:0">선수 커뮤니케이션 / 코치 지시사항</h3>
+            <h3 style="margin-top:0">선수 커뮤니케이션</h3>
             <div class="message-list" id="coachInbox"></div>
           </div>
           <div class="card">
@@ -1292,12 +1292,12 @@
       const users=await getUsers();
       const ap=getApprovedPlayers(users);
       if(!ap.length){root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>승인된 선수가 없습니다.</div></div>';return;}
-      const dirsRaw=await getCoachDirectives();
       const msgsRaw=await getMessages();
       const groups=ap.map(function(player){
-        const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',text:r.text,createdAt:r.created_at||''};});
-        const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||''};});
-        const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));}).slice(-5);
+        const chats=msgsRaw
+          .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r)) && r.author==='선수';})
+          .map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||''};});
+        const thread=chats.sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));}).slice(-5);
         return {player:player,thread:thread};
       }).filter(function(g){return g.thread.length>0;});
       if(!groups.length){root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';return;}
