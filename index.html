@@ -3016,7 +3016,7 @@ class PuttingTrainingApp {
             if (CLOUD_STATE_SERVICE && CLOUD_STATE_SERVICE.enabled) {
                 await CLOUD_STATE_SERVICE.pullFromCloud();
                 this.missionResultUploads = JSON.parse(storageGetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
-                this.records = this.storageService.loadRecords();
+                this.records = this.storageService.getRecords();
                 this.renderPlayerDataList();
                 this.renderMissionResultUploadList();
                 this.refreshDashboard();
