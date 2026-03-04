@@ -884,7 +884,8 @@
       for(const f of files){
         // encode filename so storage path is URL-safe
         const safeName = encodeURIComponent(f.name);
-        const path = 'attachments/'+Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+safeName;
+        // do not include bucket name in the path; bucket is specified separately
+        const path = Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+safeName;
         const { data, error } = await sb.storage.from('attachments').upload(path, f);
         if(error) throw error;
         let url = sb.storage.from('attachments').getPublicUrl(path).data.publicUrl;
