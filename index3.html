@@ -496,8 +496,8 @@
               <textarea id="playerQuestion" rows="3" placeholder="예) 8번 아이언 샷 루틴 중 루틴 선택을 다시 정해주세요"></textarea>
             </div>
             <div class="field" style="margin:0">
-              <label>첨부 파일 (PDF/Word/Excel, 각 2MB 이하)</label>
-              <input id="playerQuestionFile" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+              <label>첨부 파일 (PDF/Word/Excel/PNG, 각 5MB 이하)</label>
+              <input id="playerQuestionFile" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png" />
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px">
               <button class="btn" id="sendPlayerQuestion">전송</button>
@@ -583,8 +583,8 @@
             <textarea id="coachMessageInput" rows="4" placeholder="예) 손목 통증 빠진다면 루틴 선택 권장"></textarea>
           </div>
           <div class="field">
-            <label>첨부 파일 (PDF/Word/Excel)</label>
-            <input id="missionFileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            <label>첨부 파일 (PDF/Word/Excel/PNG, 각 5MB 이하)</label>
+            <input id="missionFileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png" />
           </div>
           <button class="btn" id="saveCoachMessage">미션 배정 전송</button>
         </div>
@@ -632,9 +632,9 @@
               <textarea id="coachDirectiveInput" rows="3" placeholder="개별 선수 또는 전체 선수에게 보낼 지시 내용을 입력하세요"></textarea>
             </div>
             <div class="field" style="margin-bottom:8px">
-              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel · 각 2MB 이하)</span></label>
+              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel/PNG · 각 5MB 이하)</span></label>
               <input id="directiveFileInput" type="file" multiple
-                accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png" />
             </div>
             <button class="btn" id="sendCoachDirectiveBtn">전송</button>
             <div style="height:10px"></div>
@@ -850,7 +850,8 @@
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
+      // allow common docs plus PNG images
+      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
@@ -858,9 +859,9 @@
     async function readMissionAttachments(fileList){
       const files=Array.from(fileList||[]); if(!files.length) return [];
       const inv=files.find(f=>!isAllowedAttachment(f));
-      if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel만 지원합니다.');
-      const over=files.find(f=>f.size>2*1024*1024);
-      if(over) throw new Error('첨부파일은 1개당 2MB 이하로 업로드해주세요.');
+      if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel 또는 PNG만 지원합니다.');
+      const over=files.find(f=>f.size>5*1024*1024);
+      if(over) throw new Error('첨부파일은 1개당 5MB 이하로 업로드해주세요.');
       const out=[];
       for(const f of files){const d=await fileToDataUrl(f);out.push({name:f.name,mimeType:f.type||'application/octet-stream',dataUrl:d});}
       return out;
