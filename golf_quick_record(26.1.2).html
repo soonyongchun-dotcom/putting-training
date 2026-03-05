@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>골프 라운드 간편 기록</title>
+<style>
+:root{
+  --bg:#071018;
+  --card:#0d2328;
+  --accent:#1fb57a;
+  --accent-dark:#167a53;
+  --text:#E8F0F3;
+  --muted:#8fa3ad;
+  --danger:#ff7b7b;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  background:var(--bg);
+  color:var(--text);
+  padding:12px;
+  font-size:16px;
+  height:100%;
+  overflow-y:auto;
+}
+.container{
+  max-width:600px;
+  margin:0 auto;
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:16px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+h1{
+  font-size:24px;
+  color:var(--accent);
+  margin-bottom:8px;
+  text-align:center;
+}
+.subtitle{
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:20px;
+}
+.section{
+  margin-bottom:20px;
+  padding:12px;
+  background:rgba(255,255,255,0.02);
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+.section-title{
+  font-size:14px;
+  color:var(--accent);
+  font-weight:700;
+  margin-bottom:12px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.form-group{
+  margin-bottom:12px;
+}
+.form-label{
+  display:block;
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:4px;
+  font-weight:600;
+}
+input, select, textarea{
+  width:100%;
+  padding:10px;
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:6px;
+  background:rgba(13,35,40,0.9);
+  color:#ffffff;
+  font-size:15px;
+  font-family:inherit;
+  font-weight:500;
+}
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color:var(--accent);
+  background:rgba(13,35,40,1);
+}
+select option{
+  background:#0d2328;
+  color:#ffffff;
+  padding:8px;
+}
+textarea{
+  resize:vertical;
+  min-height:60px;
+}
+.btn{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:8px;
+  background:var(--accent);
+  color:#04221a;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  margin-top:8px;
+  transition:all 0.2s;
+}
+.btn:active{
+  transform:scale(0.98);
+}
+.btn-secondary{
+  background:rgba(255,255,255,0.1);
+  color:var(--text);
+}
+.btn-danger{
+  background:var(--danger);
+  color:#fff;
+}
+.hole-nav{
+  display:flex;
+  gap:8px;
+  margin-bottom:16px;
+}
+.hole-nav button{
+  flex:1;
+  padding:12px;
+  font-size:15px;
+}
+.hole-info{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px;
+  background:rgba(31,181,122,0.1);
+  border-radius:8px;
+  margin-bottom:16px;
+  border:1px solid rgba(31,181,122,0.2);
+}
+.hole-number{
+  font-size:28px;
+  font-weight:800;
+  color:var(--accent);
+}
+.hole-details{
+  text-align:right;
+  font-size:14px;
+}
+.hole-details div{
+  color:var(--muted);
+  margin-bottom:2px;
+}
+.shot-list{
+  margin-top:12px;
+}
+.shot-item{
+  background:rgba(0,0,0,0.3);
+  padding:10px;
+  border-radius:6px;
+  margin-bottom:8px;
+  border:1px solid rgba(255,255,255,0.05);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition:all 0.2s ease;
+}
+.shot-item.selected{
+  background:rgba(31,181,122,0.2);
+  border:2px solid var(--accent);
+  box-shadow:0 0 10px rgba(31,181,122,0.3);
+}
+.shot-info{
+  flex:1;
+}
+.shot-info div:first-child{
+  font-weight:700;
+  color:var(--accent);
+  margin-bottom:2px;
+}
+.shot-info div:last-child{
+  font-size:13px;
+  color:var(--muted);
+}
+.shot-delete{
+  padding:6px 12px;
+  background:var(--danger);
+  border:none;
+  border-radius:4px;
+  color:#fff;
+  font-size:12px;
+  cursor:pointer;
+}
+.quick-buttons{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-bottom:16px;
+}
+.quick-btn{
+  padding:12px;
+  background:rgba(255,255,255,0.05);
+  border:none;
+  border-radius:6px;
+  color:var(--text);
+  font-size:14px;
+  cursor:pointer;
+  transition:all 0.2s;
+  font-weight:600;
+}
+.quick-btn:active{
+  background:var(--accent);
+  color:#000;
+}
+.status-bar{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 12px;
+  background:rgba(0,0,0,0.3);
+  border-radius:6px;
+  margin-bottom:16px;
+  font-size:13px;
+}
+.status-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.status-label{
+  color:var(--muted);
+  font-size:11px;
+}
+.status-value{
+  font-weight:700;
+  color:var(--accent);
+  font-size:16px;
+}
+.hidden{display:none;}
+.club-select-group{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-bottom:12px;
+}
+.club-select-group select{
+  font-size:14px;
+  padding:8px;
+  font-weight:600;
+  border:2px solid rgba(31,181,122,0.3);
+}
+.club-select-group select:focus{
+  border-color:var(--accent);
+}
+.putter-btn-container{
+  margin-top:16px;
+  margin-bottom:16px;
+  padding:12px;
+  background:rgba(255,255,255,0.02);
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+.putter-btn{
+  width:100%;
+  padding:16px;
+  background:rgba(255,255,255,0.1);
+  border:2px solid rgba(31,181,122,0.3);
+  border-radius:8px;
+  color:var(--text);
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.putter-btn.active{
+  background:var(--accent);
+  color:#04221a;
+  border-color:var(--accent);
+  transform:scale(1.02);
+}
+#btnLayup{
+  transition:all 0.2s;
+}
+#btnLayup:hover{
+  background:rgba(255,193,7,0.3);
+}
+#btnLayup.active{
+  background:rgba(255,193,7,0.5);
+  border-color:rgba(255,193,7,0.6);
+  transform:scale(1.02);
+}
+.putter-count{
+  text-align:center;
+  margin-top:8px;
+  font-size:14px;
+  color:var(--muted);
+}
+.putter-count span{
+  font-weight:700;
+  color:var(--accent);
+  font-size:18px;
+}
+
+/* 클럽 추천 버튼 호버 효과 */
+#clubRecommendButtons button:hover{
+  background:var(--accent-dark) !important;
+  transform:scale(1.05);
+}
+#clubRecommendButtons button:active{
+  transform:scale(0.95);
+}
+
+/* 퍼터 버튼 애니메이션 */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(31,181,122,0.6); }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>⛳ 골프 간편 기록</h1>
+  <p class="subtitle">경기 중 빠른 샷 기록용</p>
+
+  <!-- 라운드 기본 정보 -->
+  <div class="section" id="roundInfo">
+    <div class="section-title">라운드 정보</div>
+    <div class="form-group">
+      <label class="form-label">선수 이름</label>
+      <input type="text" id="playerName" placeholder="이름 입력">
+    </div>
+    <div class="form-group">
+      <label class="form-label">날짜</label>
+      <input type="date" id="roundDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">코스 이름</label>
+      <input type="text" id="courseName" placeholder="코스 이름">
+    </div>
+    <div class="form-group">
+      <label class="form-label">거리 단위</label>
+      <select id="distanceUnit">
+        <option value="yd">Yard (야드)</option>
+        <option value="m">Meter (미터)</option>
+      </select>
+    </div>
+    <button class="btn" id="btnStartRound">라운드 시작</button>
+  </div>
+
+  <!-- 홀 기록 화면 -->
+  <div class="section hidden" id="recordSection">
+    <!-- 진행 상태 바 -->
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">현재 홀</span>
+        <span class="status-value" id="currentHoleNum">1</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">총 샷</span>
+        <span class="status-value" id="totalShots">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">완료</span>
+        <span class="status-value" id="completedHoles">0 / 18</span>
+      </div>
+    </div>
+
+    <!-- 홀 정보 -->
+    <div class="hole-info">
+      <div class="hole-number" id="holeNumber">0</div>
+      <div class="hole-details">
+        <div style="display:flex;gap:6px;align-items:center;justify-content:flex-end;">
+          <span>Hole <span id="holeNumLabel" style="font-weight:700;">1</span></span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:4px;">
+          <span>Par</span>
+          <select id="holeParInput" style="width:60px;padding:4px;font-size:14px;">
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;justify-content:flex-end;margin-top:4px;flex-wrap:wrap;">
+          <input type="number" id="holeYardInput" value="400" min="50" max="700" style="width:65px;padding:4px;font-size:14px;text-align:right;" inputmode="decimal">
+          <select id="holeInputUnit" style="width:45px;padding:2px;font-size:12px;">
+            <option value="yd">yd</option>
+            <option value="m">m</option>
+          </select>
+          <button id="btnConvertDistance" style="padding:2px 6px;font-size:11px;background:var(--accent);border:none;border-radius:4px;cursor:pointer;color:#000;font-weight:600;">⇄</button>
+          <span style="font-size:11px;color:var(--muted);">=</span>
+          <span id="convertedDistance" style="font-size:12px;font-weight:600;color:var(--accent);">-</span>
+          <span id="holeDistanceUnitLabel" style="font-size:12px;">yd</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 홀 탐색 -->
+    <div class="hole-nav">
+      <button class="btn btn-secondary" id="btnPrevHole">◀ 이전</button>
+      <button class="btn btn-secondary" id="btnNextHole">다음 ▶</button>
+    </div>
+
+    <!-- 샷 입력 폼 -->
+    <div class="section-title">샷 기록</div>
+    
+    <!-- 단계 1: 거리 입력 (2타 이후) -->
+    <div id="distanceInputSection" class="hidden" style="margin-bottom:16px;">
+      <div class="form-group">
+        <label class="form-label" style="color:var(--accent); font-size:15px; font-weight:700;">홀까지 남은 거리 입력</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="number" id="distanceToHole" placeholder="예: 120 또는 -10" style="flex:1;">
+          <span id="shotDistanceUnitLabel" style="font-weight:600;">yd</span>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">※ 홀을 지나친 경우 음수(-)로 입력</div>
+      </div>
+      <button class="btn" id="btnConfirmDistance">확인</button>
+    </div>
+    
+    <!-- 단계 2: 추천 클럽 (거리 입력 후) -->
+    <div id="clubRecommendSection" class="hidden" style="margin-bottom:16px;">
+      <div style="padding:12px; background:rgba(31,181,122,0.15); border:1px solid rgba(31,181,122,0.3); border-radius:6px;">
+        <div style="font-size:14px; color:var(--accent); font-weight:700; margin-bottom:8px; text-align:center;">추천 클럽</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:8px; text-align:center;">남은 거리: <span id="displayDistance" style="color:var(--accent); font-weight:700;"></span></div>
+        <div id="clubRecommendButtons" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center;"></div>
+        <button type="button" id="btnManualClubSelect" style="width:100%; margin-top:12px; padding:10px; background:rgba(255,255,255,0.1); color:var(--text); border:1px solid rgba(255,255,255,0.3); border-radius:6px; cursor:pointer; font-size:14px; font-weight:600;">📋 직접 선택</button>
+      </div>
+    </div>
+    
+    <!-- 단계 3: 클럽 선택 -->
+    <div id="clubSelectSection" class="form-group">
+      <label class="form-label">클럽</label>
+      <div class="club-select-group">
+        <select id="clubWood">
+          <option value="">티샷</option>
+          <option value="Driver">드라이버</option>
+          <option value="3Wood">3W</option>
+          <option value="5Wood">5W</option>
+          <option value="Utility1">UT1</option>
+          <option value="Utility2">UT2</option>
+        </select>
+        <select id="clubIronWedge">
+          <option value="">세컨/써드샷</option>
+          <option value="4Iron">4I</option>
+          <option value="5Iron">5I</option>
+          <option value="6Iron">6I</option>
+          <option value="7Iron">7I</option>
+          <option value="8Iron">8I</option>
+          <option value="9Iron">9I</option>
+          <option value="PW">PW</option>
+          <option value="Wedge1">웨지1</option>
+          <option value="Wedge2">웨지2</option>
+          <option value="Wedge3">웨지3</option>
+          <option value="SW">SW</option>
+          <option value="AW">AW</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- 단계 4: 결과 입력 -->
+    <div id="resultInputSection">
+      <div class="form-group">
+        <label class="form-label">결과</label>
+        <select id="shotResult">
+          <option value="Fairway">페어웨이</option>
+          <option value="LeftRough">좌측 러프</option>
+          <option value="RightRough">우측 러프</option>
+          <option value="Green">그린</option>
+          <option value="AroundGreen">그린 주변</option>
+          <option value="InHole">홀인</option>
+          <option value="Bunker_Fairway">페어웨이 벙커</option>
+          <option value="Bunker_Greenside">그린사이드 벙커</option>
+          <option value="Water">워터</option>
+          <option value="Out">OB</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">페널티</label>
+        <input type="number" id="penalty" value="0" min="0" inputmode="decimal">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea id="shotNote" placeholder="선택 사항"></textarea>
+      </div>
+
+      <button class="btn" id="btnAddShot">저장</button>
+    </div>
+    
+    <div class="form-group" style="margin-top:16px;">
+      <label class="form-label">퍼팅 정보</label>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <select id="puttLie" style="flex:1;">
+          <option value="OnGreen">그린</option>
+          <option value="Fringe">프린지</option>
+          <option value="Bare">맨땅</option>
+          <option value="Rough">러프</option>
+          <option value="Other">기타</option>
+        </select>
+        <select id="puttSlope" style="flex:1;">
+          <option value="Flat">평지</option>
+          <option value="Uphill">오르막</option>
+          <option value="Downhill">내리막</option>
+          <option value="Sidehill">사이드힐</option>
+        </select>
+        <input type="number" id="puttDistance" placeholder="거리" min="0" style="flex:1;" inputmode="numeric">
+        <span id="puttDistanceUnitLabel" style="font-size:12px; color:var(--muted); align-self:center;">yd</span>
+      </div>
+    </div>
+    
+    <div style="display:flex; gap:8px; margin-top:16px; margin-bottom:16px;">
+      <div class="putter-btn-container" style="flex:1; margin:0;">
+        <button type="button" class="putter-btn" id="btnPutter">⛳ 퍼터</button>
+        <div class="putter-count">퍼팅: <span id="putterCount">0</span>타</div>
+      </div>
+      <div class="putter-btn-container" style="flex:1; margin:0;">
+        <button type="button" class="putter-btn" id="btnLayup" style="background:rgba(255,193,7,0.2); border-color:rgba(255,193,7,0.4);">🎯 레이업</button>
+        <div class="putter-count" style="font-size:11px; color:var(--muted);">통계 제외</div>
+      </div>
+    </div>
+
+    <!-- 기록된 샷 리스트 -->
+    <div class="shot-list" id="shotList"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-secondary" id="btnCompleteHole" style="flex:1;margin:0;">홀 완료</button>
+      <button class="btn" id="btnEditHole" style="flex:1;margin:0;background:var(--accent-dark);">수정</button>
+    </div>
+  </div>
+
+  <!-- 저장 및 내보내기 -->
+  <div class="section hidden" id="exportSection">
+    <div class="section-title">저장 및 내보내기</div>
+    <button class="btn" id="btnExportCSV">CSV 파일로 저장</button>
+    <button class="btn btn-secondary" id="btnReset">새 라운드 시작</button>
+  </div>
+</div>
+
+<script>
+// 데이터 구조
+let roundData = {
+  player: '',
+  date: '',
+  course: '',
+  distanceUnit: 'yd', // 기본 단위: 야드
+  holes: []
+};
+
+// 18홀 초기화
+for(let i = 1; i <= 18; i++){
+  roundData.holes.push({
+    hole: i,
+    par: 4,
+    yard: 400,
+    shots: []
+  });
+}
+
+let currentHole = 0; // 0-17 인덱스
+
+// DOM 요소
+const roundInfo = document.getElementById('roundInfo');
+const recordSection = document.getElementById('recordSection');
+const exportSection = document.getElementById('exportSection');
+const btnStartRound = document.getElementById('btnStartRound');
+const btnPrevHole = document.getElementById('btnPrevHole');
+const btnNextHole = document.getElementById('btnNextHole');
+const btnAddShot = document.getElementById('btnAddShot');
+const btnCompleteHole = document.getElementById('btnCompleteHole');
+const btnEditHole = document.getElementById('btnEditHole');
+const btnExportCSV = document.getElementById('btnExportCSV');
+const btnReset = document.getElementById('btnReset');
+const btnConfirmDistance = document.getElementById('btnConfirmDistance');
+const btnManualClubSelect = document.getElementById('btnManualClubSelect');
+
+const distanceInputSection = document.getElementById('distanceInputSection');
+const clubRecommendSection = document.getElementById('clubRecommendSection');
+const clubSelectSection = document.getElementById('clubSelectSection');
+const resultInputSection = document.getElementById('resultInputSection');
+const clubRecommendButtons = document.getElementById('clubRecommendButtons');
+const displayDistance = document.getElementById('displayDistance');
+
+const playerNameInput = document.getElementById('playerName');
+const roundDateInput = document.getElementById('roundDate');
+const courseNameInput = document.getElementById('courseName');
+const distanceUnitSel = document.getElementById('distanceUnit');
+const holeDistanceUnitLabel = document.getElementById('holeDistanceUnitLabel');
+const shotDistanceUnitLabel = document.getElementById('shotDistanceUnitLabel');
+
+const clubWoodSel = document.getElementById('clubWood');
+const clubIronWedgeSel = document.getElementById('clubIronWedge');
+const btnPutter = document.getElementById('btnPutter');
+const btnLayup = document.getElementById('btnLayup');
+const putterCountEl = document.getElementById('putterCount');
+const puttLieEl = document.getElementById('puttLie');
+const puttSlopeEl = document.getElementById('puttSlope');
+const puttDistanceEl = document.getElementById('puttDistance');
+const puttDistanceUnitLabel = document.getElementById('puttDistanceUnitLabel');
+const shotResultSel = document.getElementById('shotResult');
+const distanceInput = document.getElementById('distanceToHole');
+const penaltyInput = document.getElementById('penalty');
+const shotNoteInput = document.getElementById('shotNote');
+
+// 퍼터 카운터 변수
+let putterCount = 0;
+
+// 샷 추가 버튼 상태 (true: 저장 모드, false: 샷 추가 모드)
+let isSaveMode = true;
+// 편집 중인 샷의 인덱스 (-1: 새 샷 추가, 0 이상: 해당 인덱스 샷 수정)
+let editingIndex = -1;
+// 현재 입력 단계 (distance: 거리 입력, club: 클럽 선택, result: 결과 입력)
+let currentInputStep = 'club';
+// 방금 저장한 샷의 인덱스 (거리 업데이트용)
+let lastShotIndex = -1;
+
+const holeNumberEl = document.getElementById('holeNumber'); // 큰 숫자: 샷 개수 표시
+const holeNumLabelEl = document.getElementById('holeNumLabel'); // 홀 번호 표시
+const holeParInputEl = document.getElementById('holeParInput');
+const holeYardInputEl = document.getElementById('holeYardInput');
+const holeInputUnitEl = document.getElementById('holeInputUnit');
+const btnConvertDistance = document.getElementById('btnConvertDistance');
+const convertedDistanceEl = document.getElementById('convertedDistance');
+const shotListEl = document.getElementById('shotList');
+
+const currentHoleNumEl = document.getElementById('currentHoleNum');
+const totalShotsEl = document.getElementById('totalShots');
+const completedHolesEl = document.getElementById('completedHoles');
+
+// 오늘 날짜 기본값
+roundDateInput.value = new Date().toISOString().slice(0,10);
+
+// 로컬 저장소 키
+const STORAGE_KEY = 'golf_quick_record_data';
+
+// 라운드 시작
+btnStartRound.addEventListener('click', ()=>{
+  roundData.player = playerNameInput.value.trim();
+  roundData.date = roundDateInput.value;
+  roundData.course = courseNameInput.value.trim();
+  roundData.distanceUnit = distanceUnitSel.value; // 단위 저장
+  
+  // 단위 라벨 업데이트
+  updateDistanceUnitLabels();
+  
+  // 모든 홀의 샷 데이터 초기화
+  for(let i = 0; i < 18; i++){
+    roundData.holes[i].shots = [];
+  }
+  
+  roundInfo.classList.add('hidden');
+  recordSection.classList.remove('hidden');
+  exportSection.classList.remove('hidden');
+  
+  currentHole = 0;
+  updateHoleDisplay();
+  saveData();
+});
+
+// 거리 단위 라벨 업데이트
+function updateDistanceUnitLabels(){
+  const unit = roundData.distanceUnit || 'yd';
+  holeDistanceUnitLabel.textContent = unit;
+  shotDistanceUnitLabel.textContent = unit;
+  puttDistanceUnitLabel.textContent = unit;
+  // 입력 단위 기본값을 라운드 단위로 설정
+  holeInputUnitEl.value = unit;
+  updateConvertedDistance();
+}
+
+// 거리 변환 함수
+function convertDistance(value, fromUnit, toUnit){
+  if(fromUnit === toUnit) return value;
+  if(fromUnit === 'yd' && toUnit === 'm'){
+    return Math.round(value * 0.9144);
+  }
+  if(fromUnit === 'm' && toUnit === 'yd'){
+    return Math.round(value * 1.09361);
+  }
+  return value;
+}
+
+// 변환된 거리 표시 업데이트
+function updateConvertedDistance(){
+  const inputValue = Number(holeYardInput.value) || 0;
+  const inputUnit = holeInputUnitEl.value;
+  const targetUnit = roundData.distanceUnit || 'yd';
+  
+  if(inputValue > 0){
+    const converted = convertDistance(inputValue, inputUnit, targetUnit);
+    convertedDistanceEl.textContent = converted;
+  } else {
+    convertedDistanceEl.textContent = '-';
+  }
+}
+
+// 거리 변환 버튼 클릭
+btnConvertDistance.addEventListener('click', ()=>{
+  const inputValue = Number(holeYardInput.value) || 0;
+  const inputUnit = holeInputUnitEl.value;
+  const targetUnit = roundData.distanceUnit || 'yd';
+  
+  if(inputValue > 0){
+    const converted = convertDistance(inputValue, inputUnit, targetUnit);
+    // 변환된 값으로 저장
+    roundData.holes[currentHole].yard = converted;
+    holeYardInput.value = converted;
+    holeInputUnitEl.value = targetUnit; // 입력 단위를 목표 단위로 변경
+    saveData();
+    updateConvertedDistance();
+  }
+});
+
+// 입력값이나 단위 변경 시 변환 값 업데이트
+holeYardInput.addEventListener('input', updateConvertedDistance);
+holeInputUnitEl.addEventListener('change', updateConvertedDistance);
+
+// 레이업 버튼 클릭 - 샷수만 증가, 거리 통계 제외
+btnLayup.addEventListener('click', ()=>{
+  const hole = roundData.holes[currentHole];
+  
+  // 레이업 샷 자동 추가 - distanceToHole은 나중에 업데이트
+  const shot = {
+    club: 'LayUp',
+    result: 'Layup',
+    distanceToHole: null, // 나중에 거리 입력 후 업데이트 (통계에서 제외하려면 null 유지)
+    putts: 0,
+    penalty: 0,
+    note: '레이업 (통계 제외)',
+    lie: '',
+    slope: '',
+    puttStartDistance: null,
+    isLayup: true,
+    timestamp: new Date().toISOString()
+  };
+  
+  hole.shots.push(shot);
+  lastShotIndex = hole.shots.length - 1;
+  
+  // 입력 필드 초기화
+  clubWoodSel.value = '';
+  clubIronWedgeSel.value = '';
+  
+  // 화면 업데이트
+  holeNumberEl.textContent = hole.shots.length;
+  updateStatusBar();
+  renderShots();
+  saveData();
+  
+  // 거리 입력 단계로 (레이업은 통계 제외이지만 거리는 입력 가능)
+  proceedToDistanceInput();
+});
+
+// 퍼터 버튼 클릭 - 자동으로 샷 추가
+btnPutter.addEventListener('click', ()=>{
+  const hole = roundData.holes[currentHole];
+  
+  // 퍼터 샷 자동 추가
+  const shot = {
+    club: 'Putter',
+    result: shotResultSel.value || 'Green',
+    distanceToHole: null, // 나중에 거리 입력 후 업데이트
+    putts: 1,
+    penalty: penaltyInput.value ? Number(penaltyInput.value) : 0,
+    note: shotNoteInput.value.trim(),
+    lie: puttLieEl.value || 'OnGreen',
+    slope: puttSlopeEl.value || 'Flat',
+    puttStartDistance: (puttDistanceEl.value !== '' && puttDistanceEl.value !== null && puttDistanceEl.value !== undefined) ? Number(puttDistanceEl.value) : null,
+    timestamp: new Date().toISOString()
+  };
+  
+  if(shot.club){
+    hole.shots.push(shot);
+    lastShotIndex = hole.shots.length - 1;
+    putterCount++;
+    putterCountEl.textContent = putterCount;
+  }
+  
+  // 입력 필드 초기화
+  clubWoodSel.value = '';
+  clubIronWedgeSel.value = '';
+  penaltyInput.value = '0';
+  shotNoteInput.value = '';
+  puttDistanceEl.value = '';
+  
+  // 화면 업데이트
+  holeNumberEl.textContent = hole.shots.length;
+  updateStatusBar();
+  renderShots();
+  saveData();
+  
+  // 홀인이 아니면 거리 입력 단계로
+  if(shotResultSel.value === 'InHole'){
+    // 홀인이면 distanceToHole를 0으로 설정하고 폼 초기화
+    hole.shots[lastShotIndex].distanceToHole = 0;
+    saveData();
+    clearShotForm();
+  } else {
+    proceedToDistanceInput();
+  }
+});
+
+// 결과 선택 시 홀인이면 퍼터 카운트 초기화
+shotResultSel.addEventListener('change', ()=>{
+  if(shotResultSel.value === 'InHole'){
+    // 홀인 선택 시 퍼터 카운트 초기화
+    putterCount = 0;
+    putterCountEl.textContent = putterCount;
+  }
+});
+
+// 홀 표시 업데이트
+function updateHoleDisplay(){
+  const hole = roundData.holes[currentHole];
+  // 모든 샷(퍼터 포함)을 샷 개수로 표시
+  holeNumberEl.textContent = hole.shots.length; // 큰 숫자: 전체 샷 개수
+  holeNumLabelEl.textContent = hole.hole; // 작은 글씨: 홀 번호
+  holeParInputEl.value = hole.par;
+  holeYardInputEl.value = hole.yard;
+  holeInputUnitEl.value = roundData.distanceUnit || 'yd'; // 입력 단위 초기화
+  currentHoleNumEl.textContent = hole.hole;
+  updateConvertedDistance(); // 변환값 업데이트
+  
+  // 퍼터 카운트 초기화
+  putterCount = 0;
+  putterCountEl.textContent = putterCount;
+  
+  updateStatusBar();
+  renderShots();
+  clearShotForm();
+  
+  // 버튼 활성화 제어
+  btnPrevHole.disabled = currentHole === 0;
+  btnNextHole.disabled = currentHole === 17;
+}
+
+// Par와 야드 변경 이벤트 리스너
+holeParInputEl.addEventListener('change', ()=>{
+  roundData.holes[currentHole].par = Number(holeParInputEl.value);
+  clearShotForm(); // Par 변경 시 디폴트 클럽 재설정
+  saveData();
+});
+
+holeYardInputEl.addEventListener('change', ()=>{
+  const inputValue = Number(holeYardInputEl.value) || 0;
+  const inputUnit = holeInputUnitEl.value;
+  const targetUnit = roundData.distanceUnit || 'yd';
+  
+  // 입력 단위가 라운드 단위와 다르면 변환해서 저장
+  const savedValue = convertDistance(inputValue, inputUnit, targetUnit);
+  roundData.holes[currentHole].yard = savedValue;
+  saveData();
+  updateConvertedDistance();
+});
+
+// 홀 전장 입력 필드 포커스 시 전체 선택
+holeYardInputEl.addEventListener('focus', function() {
+  this.select();
+});
+
+// 상태바 업데이트
+function updateStatusBar(){
+  let totalShots = 0;
+  let completed = 0;
+  roundData.holes.forEach(h => {
+    // 모든 샷(퍼터 포함)을 총 샷수에 포함
+    totalShots += h.shots.length;
+    if(h.shots.length > 0) completed++;
+  });
+  totalShotsEl.textContent = totalShots;
+  completedHolesEl.textContent = `${completed} / 18`;
+}
+
+// 샷 리스트 렌더링
+function renderShots(){
+  const hole = roundData.holes[currentHole];
+  shotListEl.innerHTML = '';
+  
+  hole.shots.forEach((shot, idx) => {
+    const div = document.createElement('div');
+    div.className = 'shot-item';
+    
+    // 편집 중인 샷이면 선택된 표시
+    if(editingIndex === idx){
+      div.classList.add('selected');
+    }
+    
+    const info = document.createElement('div');
+    info.className = 'shot-info';
+    
+    const club = shot.club || '클럽';
+    const result = shot.result || '';
+    const unit = roundData.distanceUnit || 'yd';
+    const dist = shot.distanceToHole != null ? `${shot.distanceToHole}${unit}` : '';
+    const puttsInfo = shot.putts > 0 ? ` (${shot.putts}퍼트)` : '';
+    
+    // 레이업 샷일 경우 특별 표시
+    let additionalInfo = '';
+    let secondLine = '';
+    if(shot.club === 'LayUp' || shot.isLayup){
+      // 레이업 샷: 통계 제외 표시
+      secondLine = `<div style="font-size:0.9em; color:#ffc107;">레이업 (통계 제외)</div>`;
+    } else if(shot.club === 'Putter'){
+      // 퍼터 샷: result 표시 안함, 퍼팅 정보만 표시
+      const puttDetails = [];
+      if(shot.lie) puttDetails.push(shot.lie);
+      if(shot.slope) puttDetails.push(shot.slope);
+      if(shot.puttStartDistance != null) puttDetails.push(`${shot.puttStartDistance}${unit}`);
+      secondLine = puttDetails.length > 0 ? `<div style="font-size:0.9em; color:var(--muted);">${puttDetails.join(', ')}</div>` : '';
+    } else {
+      // 일반 샷: result와 거리 표시
+      secondLine = `<div>${result} ${dist}</div>`;
+    }
+    
+    info.innerHTML = `
+      <div>#${idx + 1} ${club}${puttsInfo}</div>
+      ${secondLine}
+    `;
+    
+    // 샷 정보 클릭 시 편집 모드로 진입
+    info.onclick = () => loadShotForEdit(idx);
+    info.style.cursor = 'pointer';
+    
+    const delBtn = document.createElement('button');
+    delBtn.className = 'shot-delete';
+    delBtn.textContent = '삭제';
+    delBtn.onclick = () => deleteShot(idx);
+    
+    div.appendChild(info);
+    div.appendChild(delBtn);
+    shotListEl.appendChild(div);
+  });
+}
+
+// 샷 편집을 위해 폼에 기존 데이터 로드
+function loadShotForEdit(idx){
+  const hole = roundData.holes[currentHole];
+  const shot = hole.shots[idx];
+  
+  // 퍼터 샷은 편집 불가 (별도 버튼으로 관리)
+  if(shot.club === 'Putter'){
+    alert('퍼터 샷은 퍼터 버튼으로만 추가/삭제할 수 있습니다.');
+    return;
+  }
+  
+  // 레이업 샷은 편집 불가 (별도 버튼으로 관리)
+  if(shot.club === 'LayUp' || shot.isLayup){
+    alert('레이업 샷은 레이업 버튼으로만 추가/삭제할 수 있습니다.');
+    return;
+  }
+  
+  // 모든 섹션 표시
+  distanceInputSection.classList.add('hidden');
+  clubRecommendSection.classList.add('hidden');
+  clubSelectSection.classList.remove('hidden');
+  resultInputSection.classList.remove('hidden');
+  
+  // 폼에 데이터 로드
+  if(['Driver', '3Wood', '5Wood', 'Utility1', 'Utility2'].includes(shot.club)){
+    clubWoodSel.value = shot.club;
+    clubIronWedgeSel.value = '';
+  } else {
+    clubWoodSel.value = '';
+    clubIronWedgeSel.value = shot.club;
+  }
+  
+  shotResultSel.value = shot.result || 'Fairway';
+  penaltyInput.value = shot.penalty || 0;
+  shotNoteInput.value = shot.note || '';
+  
+  // 편집 모드 설정
+  editingIndex = idx;
+  lastShotIndex = idx; // 편집 시에도 lastShotIndex 설정
+  isSaveMode = true;
+  btnAddShot.textContent = '수정 저장';
+  
+  // 샷 리스트 재렌더링하여 선택 표시
+  renderShots();
+}
+
+// 거리 확인 버튼 클릭
+btnConfirmDistance.addEventListener('click', ()=>{
+  const distance = Number(distanceInput.value);
+  // 0이 아니고 유효한 숫자인지만 체크 (음수 허용)
+  if(distanceInput.value === '' || isNaN(distance)){
+    alert('거리를 입력해주세요');
+    return;
+  }
+  
+  // 방금 저장한 샷의 distanceToHole 업데이트
+  const hole = roundData.holes[currentHole];
+  if(lastShotIndex >= 0 && lastShotIndex < hole.shots.length){
+    hole.shots[lastShotIndex].distanceToHole = distance;
+    saveData();
+  }
+  
+  // 거리 입력 섹션 숨기고 클럽 추천 섹션 표시
+  distanceInputSection.classList.add('hidden');
+  showClubRecommendation(distance);
+});
+
+// 직접 선택 버튼 클릭
+btnManualClubSelect.addEventListener('click', ()=>{
+  // 추천 클럽 섹션 숨기고 클럽 선택 및 결과 입력 섹션 표시
+  clubRecommendSection.classList.add('hidden');
+  clubSelectSection.classList.remove('hidden');
+  resultInputSection.classList.remove('hidden');
+});
+
+// 샷 추가 (우드, 아이언/웨지 전용)
+btnAddShot.addEventListener('click', ()=>{
+  const club = clubWoodSel.value || clubIronWedgeSel.value;
+  
+  if(!club){
+    alert('클럽을 선택해주세요');
+    return;
+  }
+  
+  const hole = roundData.holes[currentHole];
+  
+  // 편집 모드인 경우 기존 distanceToHole 유지
+  const existingDistance = (editingIndex >= 0 && hole.shots[editingIndex]) 
+    ? hole.shots[editingIndex].distanceToHole 
+    : null;
+  
+  const shot = {
+    club: club,
+    result: shotResultSel.value || 'Fairway',
+    distanceToHole: existingDistance, // 편집 시 기존 값, 새 샷은 null (나중에 업데이트)
+    putts: 0,
+    penalty: penaltyInput.value ? Number(penaltyInput.value) : 0,
+    note: shotNoteInput.value.trim(),
+    lie: '',
+    slope: '',
+    puttStartDistance: null,
+    timestamp: new Date().toISOString()
+  };
+  
+  if(editingIndex >= 0){
+    hole.shots[editingIndex] = shot;
+    lastShotIndex = editingIndex;
+    editingIndex = -1;
+    
+    // 편집 완료 후 폼 초기화
+    updateHoleDisplay();
+    saveData();
+    clearShotForm();
+    return;
+  } else {
+    hole.shots.push(shot);
+    lastShotIndex = hole.shots.length - 1;
+  }
+  
+  if(shotResultSel.value === 'InHole'){
+    putterCount = 0;
+    putterCountEl.textContent = putterCount;
+  }
+  
+  updateHoleDisplay();
+  saveData();
+  
+  // 홀인이 아니면 거리 입력 단계로
+  if(shotResultSel.value === 'InHole'){
+    // 홀인이면 distanceToHole를 0으로 설정하고 폼 초기화
+    hole.shots[lastShotIndex].distanceToHole = 0;
+    saveData();
+    clearShotForm();
+  } else {
+    // 거리 입력 단계로
+    proceedToDistanceInput();
+  }
+});
+
+// 샷 삭제
+function deleteShot(idx){
+  if(confirm('이 샷을 삭제하시겠습니까?')){
+    roundData.holes[currentHole].shots.splice(idx, 1);
+    updateHoleDisplay();
+    saveData();
+  }
+}
+
+// 거리 입력 단계로 진행
+function proceedToDistanceInput(){
+  // 모든 입력 섹션 숨기기
+  clubRecommendSection.classList.add('hidden');
+  clubSelectSection.classList.add('hidden');
+  resultInputSection.classList.add('hidden');
+  
+  // 거리 입력 섹션 표시
+  distanceInputSection.classList.remove('hidden');
+  distanceInput.value = '';
+  distanceInput.focus();
+  
+  // 폼 초기화 (거리 제외)
+  clubWoodSel.value = '';
+  clubIronWedgeSel.value = '';
+  shotResultSel.value = 'Fairway';
+  penaltyInput.value = '0';
+  shotNoteInput.value = '';
+}
+
+// 클럽 추천 표시
+function showClubRecommendation(distance){
+  const unit = roundData.distanceUnit || 'yd';
+  // 음수인 경우도 표시
+  const displayText = distance < 0 ? `${distance} ${unit} (홀 지나침)` : `${distance} ${unit}`;
+  displayDistance.textContent = displayText;
+  
+  let clubButtons = [];
+  
+  // 절대값으로 거리 기반 클럽 추천
+  const absDistance = Math.abs(distance);
+  
+  // 거리에 따른 클럽 추천
+  if(absDistance <= 10){
+    clubButtons = [{label: '퍼터', code: 'Putter'}];
+  } else if(absDistance <= 50){
+    clubButtons = [{label: 'SW', code: 'SW'}, {label: 'AW', code: 'AW'}, {label: 'Wedge3', code: 'Wedge3'}, {label: 'Wedge2', code: 'Wedge2'}];
+  } else if(absDistance <= 70){
+    clubButtons = [{label: 'AW', code: 'AW'}, {label: 'Wedge1', code: 'Wedge1'}, {label: 'Wedge2', code: 'Wedge2'}, {label: 'Wedge3', code: 'Wedge3'}];
+  } else if(absDistance <= 90){
+    clubButtons = [{label: 'Wedge1', code: 'Wedge1'}, {label: 'Wedge2', code: 'Wedge2'}, {label: 'PW', code: 'PW'}, {label: '9I', code: '9Iron'}];
+  } else if(absDistance <= 110){
+    clubButtons = [{label: 'PW', code: 'PW'}, {label: '9I', code: '9Iron'}, {label: 'Wedge1', code: 'Wedge1'}, {label: '8I', code: '8Iron'}];
+  } else if(absDistance <= 130){
+    clubButtons = [{label: '9I', code: '9Iron'}, {label: '8I', code: '8Iron'}, {label: 'PW', code: 'PW'}, {label: '7I', code: '7Iron'}];
+  } else if(absDistance <= 150){
+    clubButtons = [{label: '8I', code: '8Iron'}, {label: '7I', code: '7Iron'}, {label: '9I', code: '9Iron'}, {label: '6I', code: '6Iron'}];
+  } else if(absDistance <= 170){
+    clubButtons = [{label: '7I', code: '7Iron'}, {label: '6I', code: '6Iron'}, {label: '8I', code: '8Iron'}, {label: '5I', code: '5Iron'}];
+  } else if(absDistance <= 190){
+    clubButtons = [{label: '6I', code: '6Iron'}, {label: '5I', code: '5Iron'}, {label: '7I', code: '7Iron'}, {label: '4I', code: '4Iron'}];
+  } else if(absDistance <= 210){
+    clubButtons = [{label: '5I', code: '5Iron'}, {label: '4I', code: '4Iron'}, {label: '6I', code: '6Iron'}, {label: 'UT1', code: 'Utility1'}];
+  } else if(absDistance <= 230){
+    clubButtons = [{label: '4I', code: '4Iron'}, {label: 'UT1', code: 'Utility1'}, {label: '5I', code: '5Iron'}, {label: 'UT2', code: 'Utility2'}];
+  } else if(absDistance <= 250){
+    clubButtons = [{label: 'UT1', code: 'Utility1'}, {label: 'UT2', code: 'Utility2'}, {label: '5W', code: '5Wood'}, {label: '4I', code: '4Iron'}];
+  } else {
+    clubButtons = [{label: '5W', code: '5Wood'}, {label: '3W', code: '3Wood'}, {label: 'UT1', code: 'Utility1'}, {label: 'Driver', code: 'Driver'}];
+  }
+  
+  // 클럽 버튼 HTML 생성
+  clubRecommendButtons.innerHTML = clubButtons.map(club => 
+    `<button type="button" onclick="selectRecommendedClub('${club.code}')" style="padding:8px 14px; background:var(--accent); color:#04221a; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:700; transition:all 0.2s ease;">${club.label}</button>`
+  ).join('');
+  
+  clubRecommendSection.classList.remove('hidden');
+}
+
+// 추천 클럽 선택
+function selectRecommendedClub(clubCode){
+  // 퍼터인 경우 퍼터 버튼 강조
+  if(clubCode === 'Putter'){
+    clubRecommendSection.classList.add('hidden');
+    clubSelectSection.classList.add('hidden');
+    resultInputSection.classList.add('hidden');
+    btnPutter.style.animation = 'pulse 0.5s ease-in-out 3';
+    btnPutter.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  
+  // 우드/유틸리티 계열
+  if(['Driver', '3Wood', '5Wood', 'Utility1', 'Utility2'].includes(clubCode)){
+    clubWoodSel.value = clubCode;
+    clubIronWedgeSel.value = '';
+  } 
+  // 아이언/웨지 계열
+  else {
+    clubWoodSel.value = '';
+    clubIronWedgeSel.value = clubCode;
+  }
+  
+  // 클럽 추천 섹션 숨기고 클럽 선택과 결과 입력 섹션 표시
+  clubRecommendSection.classList.add('hidden');
+  clubSelectSection.classList.remove('hidden');
+  resultInputSection.classList.remove('hidden');
+}
+
+
+
+// 샷 입력 폼 초기화
+function clearShotForm(){
+  const hole = roundData.holes[currentHole];
+  const isFirstShot = hole.shots.length === 0;
+  
+  // 모든 섹션 초기화
+  distanceInputSection.classList.add('hidden');
+  clubRecommendSection.classList.add('hidden');
+  
+  // 첫 번째 샷일 때
+  if(isFirstShot){
+    // 클럽 선택과 결과 입력 섹션 표시
+    clubSelectSection.classList.remove('hidden');
+    resultInputSection.classList.remove('hidden');
+    
+    // Par에 따라 디폴트 클럽 선택
+    if(hole.par === 3){
+      clubWoodSel.value = '';
+      clubIronWedgeSel.value = '7Iron';
+    } else if(hole.par === 4 || hole.par === 5){
+      clubWoodSel.value = 'Driver';
+      clubIronWedgeSel.value = '';
+    } else {
+      clubWoodSel.value = '';
+      clubIronWedgeSel.value = '';
+    }
+  } else {
+    // 첫 번째 샷이 아닌 경우: 거리 입력부터 시작
+    clubSelectSection.classList.add('hidden');
+    resultInputSection.classList.add('hidden');
+    proceedToDistanceInput();
+  }
+  
+  shotResultSel.value = 'Fairway';
+  distanceInput.value = '';
+  penaltyInput.value = '0';
+  shotNoteInput.value = '';
+  
+  isSaveMode = true;
+  editingIndex = -1;
+  btnAddShot.textContent = '저장';
+  
+  renderShots();
+}
+
+// 스코어 타입 계산 함수
+function getScoreType(strokes, par) {
+  const diff = strokes - par;
+  if (diff <= -3) return 'albatross';
+  if (diff === -2) return 'eagle';
+  if (diff === -1) return 'birdie';
+  if (diff === 0) return 'par';
+  if (diff === 1) return 'bogey';
+  if (diff === 2) return 'double';
+  if (diff === 3) return 'triple';
+  return 'over';
+}
+
+// 스코어 메시지 생성 함수
+function getScoreMessage(strokes, par) {
+  const scoreType = getScoreType(strokes, par);
+  const diff = strokes - par;
+  
+  const messages = {
+    'albatross': `🦅 Amazing! Albatross!\nCompleted Par ${par} in ${strokes} strokes!`,
+    'eagle': `🦅 Excellent! Eagle!\nCompleted Par ${par} in ${strokes} strokes!`,
+    'birdie': `👏 Great! Birdie!\nCompleted Par ${par} in ${strokes} strokes!`,
+    'par': `✨ Nice! Par!\nCompleted Par ${par} in ${strokes} strokes!`,
+    'bogey': `💪 Bogey. Keep it up on the next hole!\nFinished Par ${par} in ${strokes} strokes.`,
+    'double': `🙂 Double Bogey. That's okay!\nFinished Par ${par} in ${strokes} strokes.`,
+    'triple': `😊 Triple Bogey. You'll do better next time!\nFinished Par ${par} in ${strokes} strokes.`,
+    'over': `🌟 ${Math.abs(diff)} Over. Keep going!\nFinished Par ${par} in ${strokes} strokes.`
+  };
+  
+  return messages[scoreType] || `Completed Par ${par} in ${strokes} strokes.`;
+}
+
+// 홀 완료 (다음 홀로)
+btnCompleteHole.addEventListener('click', ()=>{
+  // 현재 홀의 마지막 퍼팅을 자동으로 홀인 처리
+  const currentHoleData = roundData.holes[currentHole];
+  if(currentHoleData && currentHoleData.shots && currentHoleData.shots.length > 0){
+    // 마지막 퍼터 샷 찾기
+    for(let i = currentHoleData.shots.length - 1; i >= 0; i--){
+      const shot = currentHoleData.shots[i];
+      if(shot && shot.club === 'Putter'){
+        // result를 'InHole'로 설정 (비어있거나 이미 값이 있어도 덮어씀)
+        shot.result = 'InHole';
+        break;
+      }
+    }
+    
+    // 스코어 계산 및 메시지 표시
+    const strokes = currentHoleData.shots.length;
+    const par = currentHoleData.par;
+    const scoreMessage = getScoreMessage(strokes, par);
+    
+    // 스코어 메시지 즉시 표시
+    alert(scoreMessage);
+  }
+  
+  // 변경사항 저장
+  saveData();
+  
+  if(currentHole < 17){
+    currentHole++;
+    updateHoleDisplay();
+  } else {
+    alert('🎉 Congratulations! You completed all 18 holes!');
+  }
+});
+
+// 이전/다음 홀
+btnPrevHole.addEventListener('click', ()=>{
+  if(currentHole > 0){
+    currentHole--;
+    updateHoleDisplay();
+  }
+});
+
+btnNextHole.addEventListener('click', ()=>{
+  // 현재 홀의 마지막 퍼팅을 자동으로 홀인 처리
+  const currentHoleData = roundData.holes[currentHole];
+  if(currentHoleData && currentHoleData.shots && currentHoleData.shots.length > 0){
+    // 마지막 퍼터 샷 찾기
+    for(let i = currentHoleData.shots.length - 1; i >= 0; i--){
+      const shot = currentHoleData.shots[i];
+      if(shot && shot.club === 'Putter'){
+        // result를 'InHole'로 설정 (비어있거나 이미 값이 있어도 덮어씀)
+        shot.result = 'InHole';
+        break;
+      }
+    }
+    
+    // 스코어 계산 및 메시지 표시
+    const strokes = currentHoleData.shots.length;
+    const par = currentHoleData.par;
+    const scoreMessage = getScoreMessage(strokes, par);
+    
+    // 스코어 메시지 즉시 표시
+    alert(scoreMessage);
+  }
+  
+  // 변경사항 저장
+  saveData();
+  
+  if(currentHole < 17){
+    currentHole++;
+    updateHoleDisplay();
+  }
+});
+
+// 수정 버튼 (현재 홀 수정)
+btnEditHole.addEventListener('click', ()=>{
+  // 샷 리스트로 스크롤하여 수정하기 쉽게 함
+  const shotListEl = document.getElementById('shotList');
+  if(shotListEl){
+    shotListEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
+// CSV 내보내기 (원본 분석 파일과 호환되는 형식)
+btnExportCSV.addEventListener('click', ()=>{
+  const lines = [];
+  
+  // 헤더
+  const unit = roundData.distanceUnit || 'yd';
+  lines.push(['Player', roundData.player, '', 'Date', roundData.date, '', 'Course', roundData.course, '', 'Unit', unit].join(','));
+  lines.push('');
+  
+  // 샷 데이터 헤더 (원본 파일과 동일한 형식)
+  const hdr = ['Hole','Par','HoleYard','ShotNumber','ShotType','Result','DistanceToHole','Putts','Penalty','Note','Lie','Slope','PuttStartDistance','Timestamp'];
+  lines.push(hdr.join(','));
+  
+  // 각 홀의 샷 데이터 - 유효한 샷만 포함
+  roundData.holes.forEach(hole => {
+    if(!hole.shots || hole.shots.length === 0) return;
+    
+    // 유효한 샷만 필터링 (club/shotType이 있는 것만)
+    const validShots = hole.shots.filter(shot => shot && (shot.club || shot.shotType));
+    
+    validShots.forEach((shot, idx) => {
+      // 각 필드를 안전하게 처리
+      const shotType = shot.club || shot.shotType || '';
+      const result = (shot.result || '').toString().replace(/"/g, '""');
+      const distanceVal = (shot.distanceToHole !== null && shot.distanceToHole !== undefined) ? shot.distanceToHole : '';
+      const puttsVal = (shot.club === 'Putter') ? (shot.putts || 1) : 0; // 퍼터 샷은 최소 1, 일반 샷은 0
+      const penaltyVal = shot.penalty || 0;
+      const noteVal = (shot.note || '').toString().replace(/"/g, '""');
+      const lieVal = shot.lie || '';
+      const slopeVal = shot.slope || '';
+      const puttStartVal = (shot.puttStartDistance !== null && shot.puttStartDistance !== undefined) ? shot.puttStartDistance : '';
+      const timestampVal = shot.timestamp || new Date().toISOString();
+      
+      const row = [
+        hole.hole,
+        hole.par,
+        hole.yard || '',
+        idx + 1,  // 실제 순서대로 번호 부여
+        shotType,
+        `"${result}"`,
+        distanceVal,
+        puttsVal,
+        penaltyVal,
+        `"${noteVal}"`,
+        lieVal,
+        slopeVal,
+        puttStartVal,
+        timestampVal
+      ];
+      lines.push(row.join(','));
+    });
+  });
+  
+  // 홀 요약 섹션
+  lines.push('');
+  const holeSummaryHdr = ['Hole','Par','Yard','TotalShots','TotalPutts','TotalPenalties'];
+  lines.push(holeSummaryHdr.join(','));
+  
+  roundData.holes.forEach(hole => {
+    if(!hole.shots) return;
+    const validShots = hole.shots.filter(shot => shot && (shot.club || shot.shotType));
+    const totalShots = validShots.length;
+    const totalPutts = validShots.reduce((sum, s) => sum + (s.putts || 0), 0);
+    const totalPenalties = validShots.reduce((sum, s) => sum + (s.penalty || 0), 0);
+    
+    // 샷이 있는 홀만 요약에 포함
+    if(totalShots > 0){
+      lines.push([hole.hole, hole.par, hole.yard || '', totalShots, totalPutts, totalPenalties].join(','));
+    }
+  });
+  
+  // 데이터 검증: 최소한 하나의 샷이 있는지 확인
+  const totalShotsCount = roundData.holes.reduce((count, hole) => {
+    if(!hole.shots) return count;
+    const validShots = hole.shots.filter(shot => shot && (shot.club || shot.shotType));
+    return count + validShots.length;
+  }, 0);
+  
+  if(totalShotsCount === 0){
+    alert('기록된 샷이 없습니다. 먼저 샷을 입력해주세요.');
+    return;
+  }
+  
+  // UTF-8 BOM 추가 (한글 깨짐 방지)
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const filename = `golf_quick_${roundData.date || new Date().toISOString().slice(0,10)}.csv`;
+  
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 100);
+  
+  // 저장 성공 메시지와 함께 통계 정보 표시
+  const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
+  alert(`CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`);
+});
+
+// 새 라운드
+btnReset.addEventListener('click', ()=>{
+  if(confirm('현재 기록을 모두 삭제하고 새 라운드를 시작하시겠습니까?')){
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+});
+
+// 데이터 저장 (로컬 스토리지)
+function saveData(){
+  try{
+    // recordSection이 보이면 라운드가 시작된 것으로 판단
+    const isStarted = recordSection && !recordSection.classList.contains('hidden');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      roundData: roundData,
+      currentHole: currentHole,
+      started: isStarted
+    }));
+  }catch(e){
+    console.error('저장 실패:', e);
+  }
+}
+
+// 데이터 복구
+function restoreData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    
+    const saved = JSON.parse(raw);
+    if(saved.roundData){
+      roundData = saved.roundData;
+      currentHole = saved.currentHole || 0;
+      
+      playerNameInput.value = roundData.player || '';
+      roundDateInput.value = roundData.date || new Date().toISOString().slice(0,10);
+      courseNameInput.value = roundData.course || '';
+      distanceUnitSel.value = roundData.distanceUnit || 'yd';
+      
+      if(saved.started){
+        roundInfo.classList.add('hidden');
+        recordSection.classList.remove('hidden');
+        exportSection.classList.remove('hidden');
+        updateDistanceUnitLabels(); // 단위 라벨 복원
+        updateHoleDisplay();
+      }
+    }
+  }catch(e){
+    console.error('복구 실패:', e);
+  }
+}
+
+// 클럽 선택 시 다른 선택 해제 및 결과 입력 섹션 표시
+clubWoodSel.addEventListener('change', ()=>{
+  if(clubWoodSel.value){
+    clubIronWedgeSel.value = '';
+    // 첫 샷이 아니고, 클럽 추천에서 선택한 경우 결과 입력 자동 표시
+    if(clubRecommendSection && !clubRecommendSection.classList.contains('hidden')){
+      clubRecommendSection.classList.add('hidden');
+      resultInputSection.classList.remove('hidden');
+    }
+  }
+});
+clubIronWedgeSel.addEventListener('change', ()=>{
+  if(clubIronWedgeSel.value){
+    clubWoodSel.value = '';
+    // 첫 샷이 아니고, 클럽 추천에서 선택한 경우 결과 입력 자동 표시
+    if(clubRecommendSection && !clubRecommendSection.classList.contains('hidden')){
+      clubRecommendSection.classList.add('hidden');
+      resultInputSection.classList.remove('hidden');
+    }
+  }
+});
+
+// 페이지 로드 시 이전 데이터 확인
+function checkAndRestorePreviousData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    console.log('저장된 데이터:', raw); // 디버깅용
+    if(raw){
+      const saved = JSON.parse(raw);
+      console.log('파싱된 데이터:', saved); // 디버깅용
+      // 라운드가 시작된 상태였는지 확인
+      if(saved.started && saved.roundData){
+        const playerName = saved.roundData.player || '이름없음';
+        const roundDate = saved.roundData.date || '날짜없음';
+        const courseName = saved.roundData.course || '코스없음';
+        
+        const message = `저장된 라운드 데이터가 있습니다.\n\n플레이어: ${playerName}\n날짜: ${roundDate}\n코스: ${courseName}\n\n이전 데이터를 불러오시겠습니까?`;
+        
+        if(confirm(message)){
+          restoreData();
+        } else {
+          // 사용자가 거부하면 저장된 데이터 삭제
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    }
+  }catch(e){
+    console.error('데이터 확인 실패:', e);
+  }
+}
+
+// DOM이 준비되면 이전 데이터 확인
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', checkAndRestorePreviousData);
+} else {
+  // 이미 로드된 경우 즉시 실행
+  checkAndRestorePreviousData();
+}
+
+// 자동 저장 (5초마다)
+setInterval(saveData, 5000);
+</script>
+</body>
+</html>

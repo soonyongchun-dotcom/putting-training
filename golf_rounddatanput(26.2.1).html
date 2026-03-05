@@ -1,0 +1,3391 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SY-Golf Round Logger</title>
+<!-- Local-first CSS loader: tries libs/ then falls back to CDN -->
+<script>
+  (function(){
+    function loadCss(localHref, cdnHref){
+      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = localHref; l.onload = function(){}; l.onerror = function(){ l.href = cdnHref; };
+      document.head.appendChild(l);
+    }
+    loadCss('libs/modern-normalize.min.css', 'https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/1.1.0/modern-normalize.min.css');
+    loadCss('libs/pretendardvariable.css', 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/variable/pretendardvariable.css');
+  })();
+</script>
+<style>
+  :root{
+    --bg:#071018;
+    --card:#0d2328; /* slightly bluish-dark to separate from page bg */
+    --accent:#1fb57a; /* softened green accent */
+    --accent-dark:#167a53; /* darker accent */
+    --text:#E8F0F3; /* softer white */
+    --muted:#8fa3ad; /* softened muted */
+    --glass: rgba(255,255,255,0.02);
+    --danger:#ff7b7b;
+    --ok:#7adf9a;
+    --radius:8px;
+    --gap:8px;
+  }
+  /* Prevent iOS from auto-shrinking text and allow consistent scaling */
+  html{ -webkit-text-size-adjust:100%; }
+  html,body{height:100%;}
+  body{font-family:Pretendard, Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Noto Sans", Helvetica, Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; margin:0; background:linear-gradient(180deg,var(--bg),#061018); color:var(--text); padding:10px; font-size:15px;}
+  /* Ensure container visually contains all child sections and cards */
+  .container{position:relative; max-width:880px; margin:12px auto; padding:12px; background:linear-gradient(180deg, rgba(6,12,14,0.55), rgba(4,8,10,0.55)); border-radius:14px;}
+  .container > *{box-sizing:border-box; max-width:100%;}
+  /* Make each section a visible card inside the centered panel */
+  .container section, .container .card{position:relative; width:100%; margin:8px 0; box-sizing:border-box;}
+  .card{overflow:visible; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); padding:14px; border-radius:12px;}
+  .card + .card{margin-top:12px}
+  .card-header{padding:6px 0 10px 0; border-bottom:1px solid rgba(255,255,255,0.02); margin-bottom:10px;}
+  /* reduce large vertical gaps and keep controls compact */
+  .form-row, .shot-form, .summary{margin-bottom:6px}
+  .right-actions{margin-top:6px}
+
+  /* Constrain inner content so controls don't stretch edge-to-edge */
+  .card > .form-row, .card .shot-form, .card .summary, #holesList, #currentHoleShots, .card > .right-actions, .card .export-row{max-width:820px; margin-left:auto; margin-right:auto; padding-left:6px; padding-right:6px}
+
+  /* Desktop/tablet: keep form labels inline and compact to avoid huge empty space */
+  @media (min-width:641px){
+    .form-row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .form-row label{flex:1 1 160px; min-width:140px; margin-bottom:0}
+    .form-row label > input, .form-row label > select, .form-row label > textarea{width:100%;}
+    .shot-form{max-width:820px; grid-template-columns:repeat(2,1fr)}
+    .right-actions, .export-row{justify-content:center; gap:10px}
+    /* keep export buttons inline on larger screens */
+    #analysisCard .export-row .btn{width:auto !important; flex:0 0 auto}
+  }
+
+  /* Performance Summary: constrain and arrange stat cards neatly */
+  #analysisCard .summary{max-width:820px; margin-left:auto; margin-right:auto; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; justify-content:flex-start;}
+  #analysisCard .summary .stat{flex:0 0 auto; width:calc(33% - 12px); min-width:160px; max-width:240px;}
+  #analysisCard .summary .stat strong{font-size:18px}
+  #analysisCard .export-row, #analysisCard #clubStats{max-width:820px; margin-left:auto; margin-right:auto; display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  /* align export buttons to the left inside analysis card */
+  #analysisCard .export-row{justify-content:flex-start; margin-left:0 !important}
+  @media (max-width:640px){
+    #analysisCard .summary .stat{width:100%;}
+    #analysisCard .export-row{justify-content:stretch}
+  }
+
+  /* Force shot-top area to stack vertically so shot selects expand downward */
+  .shot-top-row{display:flex; flex-direction:column; gap:12px; align-items:stretch}
+  .shot-top-row .btn-col{width:100% !important}
+  .shot-top-row .selects-col{display:flex; gap:10px; flex-wrap:wrap; width:100%}
+  .shot-top-row .selects-col > div{flex:1 1 180px; min-width:140px}
+  /* Ensure individual shot items don't stretch full width and keep compact actions */
+  .shot-item{max-width:820px; margin-left:auto; margin-right:auto; padding:10px 12px}
+  .shot-item > div { width:100% }
+  .shot-item .btn{min-width:88px}
+
+  /* Button styling: softer tones and grouped layout */
+  .btn{background:var(--accent); color:#04221a; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; box-shadow:0 6px 14px rgba(8,20,16,0.12);}
+  .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--text); font-weight:600;}
+  .btn:hover{filter:brightness(1.03)}
+  .card .right-actions .btn, .card .export-row .btn{min-width:120px}
+
+  /* Keep export buttons inline (don't let the styled save button push to a new row) */
+  .export-row{display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap}
+  .export-row .btn{width:auto !important; flex:0 0 auto}
+  /* Main centered panel that contains the entire UI */
+  .container{max-width:940px; margin:18px auto !important; background:var(--card) !important; padding:16px !important; border-radius:12px !important; box-shadow:0 12px 30px rgba(2,6,12,0.6) !important; box-sizing:border-box !important;}
+  /* Individual sections inside the container */
+  .card{background:rgba(255,255,255,0.02) !important; padding:12px !important; border-radius:10px !important;}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
+  header h1{font-size:16px; margin:0; color:var(--accent); font-weight:800;}
+  header p{margin:0; color:var(--muted); font-size:13px;}
+  .divider{border:none; border-top:1px solid rgba(255,255,255,0.04); margin:10px 0;}
+
+  .btn{background:var(--accent); color:#052; border:none; padding:8px 12px; border-radius:10px; font-weight:800; cursor:pointer; font-size:13px;}
+  .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.08); color:var(--text); font-weight:700;}
+  .btn.warn{background:var(--danger); color:#fff;}
+  .stat{font-weight:700;}
+  /* Prevent mobile/UA focus from making buttons white and ensure contrast on active/focus */
+  .btn{ -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color: transparent; transition: background .12s, color .12s, box-shadow .12s; }
+  .btn:focus, .btn:active{ outline:none; box-shadow: 0 6px 12px rgba(0,0,0,0.25); background:var(--accent) !important; color:#052 !important; }
+  .btn.ghost:focus, .btn.ghost:active{ background: rgba(255,255,255,0.04) !important; color:var(--muted) !important; border-color: rgba(255,255,255,0.08) !important; }
+
+  .hole-row{display:flex; gap:var(--gap); align-items:center; justify-content:space-between; padding:8px; background:var(--glass); border-radius:8px; margin-bottom:8px;}
+  .hole-row{position:relative;}
+  .hole-left{display:flex; gap:8px; align-items:center;}
+  .hole-number{width:30px;height:30px;border-radius:50%; background:rgba(255,255,255,0.03); display:flex;align-items:center;justify-content:center;font-weight:700; font-size:13px;}
+  .hole-number{cursor:pointer}
+  .hole-meta{font-size:13px; color:var(--muted);}
+
+  .small{font-size:13px;color:var(--muted);} 
+  .tiny{font-size:12px;color:var(--muted);} 
+
+  .shot-list{margin-top:8px; display:flex; flex-direction:column; gap:6px;}
+  .shot-item{display:flex; gap:8px; align-items:center; justify-content:space-between; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px; font-size:13px;}
+  .shot-item .shot-num{width:46px; min-width:46px; text-align:right; font-weight:800; color:var(--muted);} 
+  .shot-item .shot-content{flex:1; display:flex; flex-direction:column; gap:4px;}
+  .shot-item .shot-line{display:flex; align-items:center; gap:8px; justify-content:flex-start;}
+  .shot-item .shot-meta{display:flex; gap:6px; align-items:center; justify-content:flex-start; color:var(--muted); font-size:13px}
+
+  .form-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;}
+  label{font-size:14px; color:var(--text); font-weight:600;} 
+
+  input[type="number"], input[type="text"], select, textarea{
+    background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); color:var(--text); padding:8px 10px; border-radius:6px; min-width:100px; font-size:14px; position:relative; z-index:2;
+  }
+  select{appearance:none; -webkit-appearance:none;}
+  select:focus{background:var(--accent-dark); color:#fff;}
+  option{background:var(--card); color:var(--text);}
+  textarea{min-height:60px; width:100%; resize:vertical;}
+
+  .shot-form{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+  .right-actions{display:flex; gap:8px; margin-top:8px; justify-content:flex-end; align-items:center;}
+  .hole-actions{display:flex; gap:8px; align-items:center;}
+  .export-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;}
+  .summary{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;}
+  .stat{background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:8px; font-size:13px;}
+  /* make stats clearer on narrow screens */
+  .summary { gap:12px; }
+  .stat { min-width:120px; padding:10px 12px; font-size:14px; }
+  .stat strong { font-size:15px; color:var(--accent); display:block; margin-top:6px; }
+  .muted{color:var(--muted);} 
+  .danger{color:var(--danger);} 
+  .ok{color:var(--ok);} 
+  footer{margin-top:16px; color:var(--muted); font-size:12px; text-align:center;}
+
+  .input--short{width:56px;}
+  .input--yard{width:90px;}
+  .input--score{width:64px;}
+  .hidden{display:none !important;}
+  /* button active/selected styles */
+  .btn{ -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color: transparent; transition: background .12s, color .12s, box-shadow .12s; }
+  .btn:focus, .btn:active{ outline:none; box-shadow: 0 6px 18px rgba(0,0,0,0.5); background:var(--accent-dark) !important; color:#fff !important; }
+  .btn.ghost:focus, .btn.ghost:active{ background: rgba(255,255,255,0.06) !important; color:#fff !important; border-color: rgba(255,255,255,0.12) !important; }
+  .mt8{margin-top:10px;}
+
+  @media (max-width:640px){
+    body{font-size:24px;}
+    /* Aggressive mobile typography for easier reading */
+    .small{font-size:18px;}
+    .tiny{font-size:16px;}
+    .shot-form{grid-template-columns:1fr; gap:12px;} 
+    .form-row{flex-direction:column;}
+    .form-row label{width:100%;}
+    .form-row label{margin-bottom:6px;}
+    .form-row label > *{margin-top:6px;}
+    .controls{flex-direction:column; align-items:stretch;} 
+    header{flex-direction:column; align-items:flex-start; gap:6px;} 
+    .card{padding:8px;}
+    .hole-row{padding:6px;}
+    input[type="number"], input[type="text"], select, textarea{width:100%; min-width:0; font-size:20px; padding:14px 16px;}
+    .input--short, .input--yard, .input--score{width:100%;}
+    .right-actions, .export-row{flex-direction:column; align-items:stretch;}
+    .btn{min-height:64px; font-size:22px;}
+    .btn{width:100%;}
+    /* shot entry specific adjustments to avoid cramped controls */
+    .shot-form label{font-size:15px;}
+    .shot-form textarea{min-height:140px;}
+    .hole-number{width:56px;height:56px;font-size:20px;}
+    .stat{font-size:18px; min-width:160px; padding:14px 16px;}
+    /* 상세(세부) 텍스트를 더 키워 가독성 개선 */
+    label{font-size:20px;}
+    .hole-meta{font-size:18px;}
+    .shot-item{font-size:20px; padding:12px 14px;}
+    .shot-list{gap:10px;}
+    #currentHoleHeader{font-size:18px;}
+    .shot-item .tiny, .shot-item .small{font-size:16px;}
+    .summary .stat strong{font-size:20px;}
+    pre, code{font-size:16px;}
+    .shot-top-row{flex-direction:column; gap:8px;}
+    .btn-col{width:100% !important;}
+    .selects-col{width:100%;}
+    /* hide previous/next hole navigation on small screens to reduce clutter */
+    .hole-controls #btnPrevHole, .hole-controls #btnNextHole{display:none !important;}
+  /* Summary preview modal */
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999;}
+  .modal-box{width:90%; max-width:900px; background:var(--card); color:var(--text); border-radius:10px; padding:14px; box-shadow:0 12px 40px rgba(0,0,0,0.6);}
+  .modal-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:10px;}
+  /* putter button selected state */
+  .putter-btn.selected{ background:#ffea5c !important; color:#000 !important; border-color: rgba(255,235,59,0.6) !important; }
+  .putter-picker .small{margin-top:6px; font-weight:700; color:var(--muted);} 
+  
+}
+/* Tablet and desktop breakpoints: larger UI for bigger screens */
+@media (min-width:641px) and (max-width:1024px) {
+  body{font-size:22px; padding:16px;}
+  input[type="number"], input[type="text"], select, textarea{font-size:18px; padding:12px 14px;}
+  .btn{min-height:56px; font-size:20px;}
+  .hole-number{width:48px;height:48px;font-size:18px;}
+  .stat{font-size:16px; min-width:150px; padding:12px 14px;}
+}
+@media (min-width:1025px){
+  /* 데스크톱/노트북에서는 원래(작은) UI 크기 유지 */
+  body{font-size:15px; padding:10px;}
+  input[type="number"], input[type="text"], select, textarea{font-size:14px; padding:8px 10px;}
+  .btn{min-height:44px; font-size:13px;}
+  .hole-number{width:30px;height:30px;font-size:13px;}
+  .stat{font-size:14px; min-width:120px; padding:10px 12px;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>SY-Golf Round Logger</h1>
+      <p>18-hole: quick mobile input → analysis & export</p>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
+      <div class="tiny muted">버전 26.2.1</div>
+    </div>
+  </header>
+
+  <section class="card" id="roundInfoCard">
+    <div class="small">Round Info</div>
+    <div class="form-row">
+      <label>
+        Player Name<br>
+        <input id="playerName" type="text" placeholder="Enter name (optional)" aria-label="Player name">
+      </label>
+      <label>
+        Date<br>
+        <input id="roundDate" type="date" aria-label="Round date">
+      </label>
+      <label>
+        Course<br>
+        <input id="courseName" type="text" placeholder="Course name (optional)" aria-label="Course name">
+      </label>
+      <label>
+        Round Par<br>
+        <input id="roundPar" type="number" min="9" max="90" value="72" class="input--short" inputmode="numeric" pattern="[0-9]*" aria-label="Round par">
+      </label>
+      <label>
+        Distance Unit (거리 단위)<br>
+        <select id="distanceUnit" aria-label="Distance unit">
+          <option value="yd" selected>야드 (yd)</option>
+          <option value="m">미터 (m)</option>
+        </select>
+      </label>
+      <label>
+        Total Yard (yd)<br>
+        <input id="roundYard" type="number" min="0" value="6500" class="input--yard" inputmode="numeric" pattern="[0-9]*" aria-label="Total yard">
+        
+      </label>
+      <label>
+        Weather<br>
+        <select id="roundWeather">
+          <option value="">Select</option>
+          <option>Sunny</option>
+          <option>Cloudy</option>
+          <option>Rain</option>
+          <option>Windy</option>
+        </select>
+      </label>
+      
+    </div>
+    <div class="right-actions mt8">
+      <button class="btn" id="btnStartRound" aria-label="Start round">라운드 시작 (Start Round)</button>
+    </div>
+    </div>
+  </section>
+
+    <section class="card hidden" id="holesContainer">
+    <div class="card-header">
+      <div><strong>Hole Entry</strong> <span class="tiny muted">Enter par and yard for each hole; click hole number to record shots</span></div>
+      <div class="small muted">Progress: <span id="progressLabel">0 / 18</span></div>
+    </div>
+      <div class="hole-controls mt8">
+        <button class="btn ghost" id="btnPrevHole" aria-label="Previous hole">이전 (Prev)</button>
+        <button class="btn ghost" id="btnNextHole" aria-label="Next hole">다음 (Next)</button>
+        <button class="btn ghost" id="btnToggleAllHoles" aria-label="Toggle all holes">전체 펼치기 (Expand All)</button>
+      </div>
+
+    <div id="holesList" class="mt8">
+      <!-- JS will populate 18 hole rows -->
+    </div>
+
+      <div class="right-actions">
+      <button class="btn ghost" id="btnClearAll" aria-label="Reset all">전체초기화</button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="shotEntryCard">
+    <div class="card-header">
+      <div>
+        <strong id="activeHoleLabel">Hole 1</strong>
+        <div class="tiny muted" id="holeMetaSmall">Par 4 · 420 yd</div>
+      </div>
+      <div></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="shot-form" id="shotForm">
+    <div class="shot-top-row" style="display:flex; gap:8px; align-items:start;">
+      <div class="btn-col" style="width:120px;">
+        <button id="btnShotAction" class="btn primary" style="width:100%" aria-label="Shot action">Shots</button>
+      </div>
+      <div id="shotSelectsContainer" class="selects-col" style="display:none; flex:1; gap:12px; align-items:flex-start;">
+        <div style="flex:1; min-width:120px; display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+          <div class="tiny muted" style="text-align:center">Wood</div>
+          <select id="shotTypeWood">
+            <option value="">선택</option>
+            <option value="Driver">드라이버</option>
+            <option value="3Wood">3번 우드</option>
+            <option value="5Wood">5번 우드</option>
+            <option value="Utility1">유틸리티1</option>
+            <option value="Utility2">유틸리티2</option>
+            <option value="Other">레이업</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:120px; display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+          <div class="tiny muted">Iron / Wedge</div>
+          <select id="shotTypeIron">
+            <option value="">선택</option>
+            <option value="4Iron">4번 아이언</option>
+            <option value="5Iron">5번 아이언</option>
+            <option value="6Iron">6번 아이언</option>
+            <option value="7Iron">7번 아이언</option>
+            <option value="8Iron">8번 아이언</option>
+            <option value="9Iron">9번 아이언</option>
+            <option value="PW">PW</option>
+            <option value="Wedge1">웨지1</option>
+            <option value="Wedge2">웨지2</option>
+            <option value="Wedge3">웨지3</option>
+            <option value="SW">SW</option>
+            <option value="AW">AW</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:100px; display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+          <div class="tiny muted" style="text-align:center">Putter</div>
+          <select id="shotTypePutter">
+            <option value="">선택</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">3+</option>
+          </select>
+        </div>
+      </div>
+
+      
+
+      <label>
+        Result<br>
+        <select id="shotResult">
+          <option value="Fairway">Fairway</option>
+          <option value="LeftRough">Left Rough</option>
+          <option value="RightRough">Right Rough</option>
+          <option value="Green">On Green</option>
+          <option value="AroundGreen">Around the Green</option>
+          <option value="InHole">In Hole</option>
+          <option value="Bunker_Fairway">Fairway Bunker</option>
+          <option value="Bunker_Greenside">Greenside Bunker</option>
+          <option value="Water">Water</option>
+          <option value="Out">Out</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
+
+      <label>
+        Distance to hole<br>
+        <input id="distanceToHole" type="number" min="0" placeholder="e.g. 120" inputmode="numeric" pattern="[0-9]*" aria-label="Distance to hole">
+      </label>
+
+      <!-- Putts now selected via Putter picker buttons; keep hidden input for existing logic -->
+      <input id="puttsThis" type="hidden" value="">
+
+      <!-- Putt panel: enter lie, slope, start distance and count strokes -->
+      <div id="puttPanel" style="display:none; width:100%; margin-top:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <label style="flex:1 1 160px; min-width:120px;">
+            라이 (Lie)<br>
+            <select id="puttLie">
+              <option value="OnGreen">그린</option>
+              <option value="Fringe">프린지</option>
+              <option value="Bare">맨땅</option>
+              <option value="Rough">러프</option>
+              <option value="Other">기타</option>
+            </select>
+          </label>
+          <label style="flex:1 1 160px; min-width:120px;">
+            경사 (Slope)<br>
+            <select id="puttSlope">
+              <option value="Flat">평지</option>
+              <option value="Uphill">오르막</option>
+              <option value="Downhill">내리막</option>
+              <option value="Sidehill">사이드힐</option>
+            </select>
+          </label>
+          <label style="flex:1 1 120px; min-width:100px;">
+            시작거리 (yd)<br>
+            <input id="puttStartDist" type="number" min="0" placeholder="예: 6" inputmode="numeric" pattern="[0-9]*">
+          </label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <div class="tiny muted">스트로크</div>
+            <div id="puttStrokeCount" style="min-width:44px; text-align:center; font-weight:800;">0</div>
+            <button id="btnPuttAdd" class="btn ghost">추가 +</button>
+            <button id="btnPuttReset" class="btn ghost">초기화</button>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button id="btnPuttMade" class="btn">성공 (Made)</button>
+            <button id="btnPuttMiss" class="btn ghost">미스 (Miss)</button>
+          </div>
+        </div>
+      </div>
+
+      <label>
+        Penalty?<br>
+        <select id="penaltyFlag">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </label>
+
+      <label style="grid-column:1/3">
+        Notes<br>
+        <textarea id="shotNote" placeholder="Shot note (optional)"></textarea>
+      </label>
+    </div>
+
+    <div class="right-actions">
+      <button class="btn ghost hidden" id="btnUpdateShot" aria-label="Update shot">저장 (Save Shot)</button>
+      <button class="btn" id="btnSaveShot" aria-label="Finish hole">홀 마침</button>
+    </div>
+
+    <div class="mt8">
+      <div class="small muted" id="currentHoleHeader">Shots this hole</div>
+      <div id="currentHoleShots" class="shot-list"></div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="analysisCard">
+    <div class="card-header">
+      <div><strong>Analysis & Export</strong></div>
+      <div class="tiny muted"><strong>Total: <span id="totalScoreLabel">0</span> (Par diff: <span id="parDiff">0</span>)</strong></div>
+    </div>
+
+    <div class="summary mt8" id="roundSummary">
+      <div class="stat">Total Strokes: <strong id="statTotalStrokes">0</strong></div>
+      <div class="stat" style="display:none">Fairways: <strong id="statFairways">0</strong></div>
+      <div class="stat">Driver Fairway%: <strong id="statDriverFairPct">-</strong></div>
+      <div class="stat">GIR: <strong id="statGIR">0</strong></div>
+      <div class="stat">GIR%: <strong id="statGIRPct">-</strong></div>
+      <div class="stat">Total Putts: <strong id="statPutts">0</strong></div>
+      <div class="stat">1-Putt%: <strong id="statOnePuttPct">-</strong></div>
+      <div class="stat">3-Putt%: <strong id="statThreePuttPct">-</strong></div>
+      <div class="stat">Penalties: <strong id="statPenalties">0</strong></div>
+      <div class="stat">Longest Drive: <strong id="statLongestDrive">-</strong></div>
+      <div class="stat">Avg Drive: <strong id="statAvgDrive">-</strong></div>
+      <div class="stat">250yd over: <strong id="statDrive250Plus">0</strong></div>
+      <div class="stat">Birdies/Bogeys/Doubles+: <strong id="statBBD">0 / 0 / 0</strong></div>
+      <div class="stat" style="white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green): <strong id="statProximity">-</strong></div>
+      <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
+      <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+      <div style="margin-top:6px;">
+        <button class="btn ghost" id="btnToggleClubData">클럽데이터 (Club Data)</button>
+        <div id="clubDataPanel" class="hidden" style="margin-top:8px;">
+          <!-- populated with non-Driver club stats table -->
+        </div>
+      </div>
+
+    <div class="card-header mt8">
+      <div class="small muted">Export:</div>
+      <div class="export-row">
+        <button class="btn" id="btnExportCSV">CSV로 저장 (Export CSV)</button>
+        <input id="fileImportCsv" type="file" accept=".csv,text/csv" style="display:none" />
+        <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
+        <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
+        <button class="btn ghost" id="btnShowAllData">경기력요약 (Performance Summary)</button>
+        <!-- PDF preview (balanced preset) -->
+        <button class="btn ghost" id="btnPreviewPdf">미리보기 (Preview PDF)</button>
+        <button class="btn ghost" id="btnFillSample">샘플데이터 채우기 (Fill Sample)</button>
+      </div>
+    </div>
+
+    <div id="puttStatsPanel" class="mt8">
+      <!-- 거리별/경사별 퍼팅 통계가 여기에 표시됩니다 -->
+    </div>
+
+    <div id="rawDataPreview" class="mt8 hidden">
+      <pre id="rawJson" style="white-space:pre-wrap; max-height:240px; overflow:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:8px;"></pre>
+    </div>
+  </section>
+
+  <footer>Created for quick mobile testing. Data is kept in your browser (local only). XLSX export uses client-side library.</footer>
+</div>
+
+<!-- Local-first JS loader: try libs/ then CDN fallback -->
+<script>
+  (function(){
+    function loadScript(localSrc, cdnSrc, onload){
+      var s = document.createElement('script'); s.src = localSrc; s.async = false;
+      s.onload = onload || function(){};
+      s.onerror = function(){
+        var s2 = document.createElement('script'); s2.src = cdnSrc; s2.async = false; if (onload) s2.onload = onload; document.body.appendChild(s2);
+      };
+      document.body.appendChild(s);
+    }
+    loadScript('libs/xlsx.full.min.js', 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js');
+    loadScript('libs/html2canvas.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    loadScript('libs/html2pdf.bundle.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js');
+  })();
+</script>
+<script>
+/* ======= App State ======= */
+const HOLES = []; // will contain 18 hole objects
+const shotsByHole = {}; // holeNumber -> array of shots
+let activeHole = null;
+let DISTANCE_UNIT = 'yd'; // 'yd' or 'm'
+
+/* ======= Distance Conversion Functions ======= */
+function convertDistance(yards, toUnit) {
+  if (yards == null || isNaN(yards)) return null;
+  const y = Number(yards);
+  if (toUnit === 'm') {
+    return Math.round(y * 0.9144);
+  }
+  return y; // already in yards
+}
+
+function formatDistance(yards, includeUnit = true) {
+  const converted = convertDistance(yards, DISTANCE_UNIT);
+  if (converted == null) return '-';
+  return includeUnit ? (converted + ' ' + DISTANCE_UNIT) : converted.toString();
+}
+
+function getUnitLabel() {
+  return DISTANCE_UNIT === 'm' ? '미터 (m)' : '야드 (yd)';
+}
+
+function updateUnitLabels() {
+  // This will be called after unit change to update any visible unit labels
+  // For now, the hole yard inputs will keep 'Yard:' label but use the selected unit
+  // The actual conversion happens in display, not in input
+}
+const playerNameInput = document.getElementById('playerName');
+const roundDateInput = document.getElementById('roundDate');
+const courseNameInput = document.getElementById('courseName');
+
+function initHoles(){
+  for (let i=1;i<=18;i++){
+      HOLES[i] = { hole:i, yard: '', par: 4, score: null, computedStrokes: 0, manualScore: false, shots: [] };
+    shotsByHole[i] = [];
+  }
+}
+initHoles();
+
+/* Club ordering helper: ensures consistent ordering across UI and exports
+   Desired order: Driver, Woods, Utility, Irons (3,4,5,6,7,8,9,PW), Wedges (1,2,3,SW,AW), others last */
+const CLUB_ORDER = [
+  'Driver','Drive',
+  '3Wood','5Wood','Wood',
+  'Utility1','Utility2','Utility','UT',
+  '3Iron','4Iron','5Iron','6Iron','7Iron','8Iron','9Iron','PW','P',
+  'Wedge1','Wedge2','Wedge3','SW','AW','Wedge'
+];
+function clubOrderIndex(name){
+  if (!name) return 999;
+  // Normalize common variants
+  const n = String(name).trim();
+  // Direct match
+  const idx = CLUB_ORDER.indexOf(n);
+  if (idx >= 0) return idx;
+  // try some relaxed matching (e.g. '4번 아이언' unlikely but safe)
+  const simple = n.replace(/[^A-Za-z0-9]/g,'');
+  for (let i=0;i<CLUB_ORDER.length;i++){
+    if (CLUB_ORDER[i].replace(/[^A-Za-z0-9]/g,'') === simple) return i;
+  }
+  // put unknowns after known clubs
+  return 999 + (n.charCodeAt(0) || 0);
+}
+function clubCompareByOrder(aName, bName){
+  const ia = clubOrderIndex(aName);
+  const ib = clubOrderIndex(bName);
+  return ia - ib;
+}
+
+/* Result normalization and helpers for GIR and green checks
+   - isGreenResult: true for actual green hits (Green, OnGreen, InHole)
+     but excludes 'Around the Green' and greenside bunker variants.
+   - normResultKey: helper to create a normalized key for comparisons. */
+function normResultKey(r){
+  return String(r || '').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function isGreenResult(r){
+  const k = normResultKey(r);
+  if (!k) return false;
+  // explicit excludes: around the green, greenside bunker, green, ongreen, inhole
+  if (k.indexOf('around') >= 0) return false;
+  if (k.indexOf('greenside') >= 0) return false;
+  // accepted tokens: green, ongreen, inhole
+  return k === 'green' || k === 'ongreen' || k === 'inhole';
+}
+
+function getFirstOnGreenPuttDistance(shots){
+  if (!shots || !shots.length) return null;
+  const firstOnGreenPutt = shots.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)).find(sh=>{
+    if (!sh || sh.shotType !== 'Putter') return false;
+    const lie = (sh.lie || '').toString().trim().toLowerCase();
+    return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+  });
+  if (!firstOnGreenPutt) return null;
+  const d = (firstOnGreenPutt.puttStartDistance != null && !isNaN(Number(firstOnGreenPutt.puttStartDistance)))
+    ? Number(firstOnGreenPutt.puttStartDistance)
+    : ((firstOnGreenPutt.distanceToHole != null && !isNaN(Number(firstOnGreenPutt.distanceToHole))) ? Number(firstOnGreenPutt.distanceToHole) : null);
+  return d != null ? Math.abs(d) : null;
+}
+
+function getOnGreenProximityDistance(approach, shots){
+  const approachDist = (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole)))
+    ? Math.abs(Number(approach.distanceToHole))
+    : null;
+  const firstPuttDist = getFirstOnGreenPuttDistance(shots);
+  if (approachDist == null) return firstPuttDist;
+  if (firstPuttDist == null) return approachDist;
+  return Math.max(approachDist, firstPuttDist);
+}
+
+function getApproachOnlyProximityDistance(approach){
+  if (!approach || approach.distanceToHole == null || isNaN(Number(approach.distanceToHole))) return null;
+  return Math.abs(Number(approach.distanceToHole));
+}
+
+/* UI Elements */
+const holesListEl = document.getElementById('holesList');
+const progressLabel = document.getElementById('progressLabel');
+const shotEntryCard = document.getElementById('shotEntryCard');
+const activeHoleLabel = document.getElementById('activeHoleLabel');
+const holeMetaSmall = document.getElementById('holeMetaSmall');
+const currentHoleShotsEl = document.getElementById('currentHoleShots');
+const btnSaveShot = document.getElementById('btnSaveShot');
+const btnExportCSV = document.getElementById('btnExportCSV');
+const btnExportXLSX = document.getElementById('btnExportXLSX');
+const btnShowAllData = document.getElementById('btnShowAllData');
+const rawDataPre = document.getElementById('rawJson');
+const rawDataPreview = document.getElementById('rawDataPreview');
+
+const btnToggleAll = document.getElementById('btnToggleAllHoles');
+const btnPrevHole = document.getElementById('btnPrevHole');
+const btnNextHole = document.getElementById('btnNextHole');
+
+let showAllHoles = false;
+let singleHoleIndex = 1;
+
+const shotTypeWoodEl = document.getElementById('shotTypeWood');
+const shotTypeIronEl = document.getElementById('shotTypeIron');
+const btnShotAction = document.getElementById('btnShotAction');
+const shotSelectsContainer = document.getElementById('shotSelectsContainer');
+const shotResultEl = document.getElementById('shotResult');
+const distanceToHoleEl = document.getElementById('distanceToHole');
+const puttsThisEl = document.getElementById('puttsThis');
+const shotTypePutterEl = document.getElementById('shotTypePutter');
+const penaltyFlagEl = document.getElementById('penaltyFlag');
+const shotNoteEl = document.getElementById('shotNote');
+
+// Putt panel elements
+const puttPanelEl = document.getElementById('puttPanel');
+const puttLieEl = document.getElementById('puttLie');
+const puttSlopeEl = document.getElementById('puttSlope');
+const puttStartDistEl = document.getElementById('puttStartDist');
+const puttStrokeCountEl = document.getElementById('puttStrokeCount');
+const btnPuttAdd = document.getElementById('btnPuttAdd');
+const btnPuttReset = document.getElementById('btnPuttReset');
+const btnPuttMade = document.getElementById('btnPuttMade');
+const btnPuttMiss = document.getElementById('btnPuttMiss');
+
+let puttStrokeCount = 0;
+
+const statTotalStrokes = document.getElementById('statTotalStrokes');
+const statFairways = document.getElementById('statFairways');
+const statGIR = document.getElementById('statGIR');
+const statGIRPct = document.getElementById('statGIRPct');
+const statPutts = document.getElementById('statPutts');
+const statOnePuttPct = document.getElementById('statOnePuttPct');
+const statThreePuttPct = document.getElementById('statThreePuttPct');
+const statPenalties = document.getElementById('statPenalties');
+const statLongestDrive = document.getElementById('statLongestDrive');
+const statAvgDrive = document.getElementById('statAvgDrive');
+const statDrive250Plus = document.getElementById('statDrive250Plus');
+const statBBD = document.getElementById('statBBD');
+const statProximity = document.getElementById('statProximity');
+const statClubProximity = document.getElementById('statClubProximity');
+const statDriverFairPct = document.getElementById('statDriverFairPct');
+const clubStatsEl = document.getElementById('clubStats');
+const btnToggleClubData = document.getElementById('btnToggleClubData');
+const clubDataPanel = document.getElementById('clubDataPanel');
+const totalScoreLabel = document.getElementById('totalScoreLabel');
+const parDiffLabel = document.getElementById('parDiff');
+
+let editingShotIndex = null;
+let hiddenSelectedClub = null;
+let clubTouched = false;
+let distanceTouched = false;
+const btnUpdateShot = document.getElementById('btnUpdateShot');
+
+const btnStartRound = document.getElementById('btnStartRound');
+const roundInfoCard = document.getElementById('roundInfoCard');
+const analysisCard = document.getElementById('analysisCard');
+const distanceUnitSelect = document.getElementById('distanceUnit');
+
+function updateCourseYard(){
+  let total = 0;
+  for (let i=1;i<=18;i++){
+      const v = HOLES[i] && HOLES[i].yard ? Number(HOLES[i].yard) : 0; 
+    if (!isNaN(v)) total += v;
+  }
+  const ry = document.getElementById('roundYard');
+  // Only auto-fill the Total Yard if the user hasn't already entered a value
+  if (ry && (ry.value === '' || ry.value == null)) ry.value = total || '';
+}
+
+/* Populate hole inputs */
+function renderHoles(){
+  holesListEl.innerHTML = '';
+  const start = showAllHoles ? 1 : singleHoleIndex;
+  const end = showAllHoles ? 18 : singleHoleIndex;
+  for (let i=start;i<=end;i++){
+    const h = HOLES[i];
+    const div = document.createElement('div');
+    div.className = 'hole-row';
+    div.innerHTML = `
+      <div class="hole-left">
+        <div class="hole-number">${h.hole}</div>
+        <div>
+          <div class="hole-meta">Par <input data-hole="${i}" class="hole-par input--short" type="number" min="3" max="5" value="${h.par}" inputmode="numeric" pattern="[0-9]*" aria-label="Hole ${i} par"></div>
+          <div class="tiny muted">Yard: <input data-hole="${i}" class="hole-yard input--yard" type="number" min="0" value="${h.yard || ''}" placeholder="yd" inputmode="numeric" pattern="[0-9]*" aria-label="Hole ${i} yard"></div>
+        </div>
+      </div>
+      <div class="hole-actions">
+        <div class="small muted" style="display:flex; align-items:center; gap:4px;">
+          Score: <input data-hole="${i}" class="hole-score input--score" type="number" min="1" value="${h.score === null ? '' : h.score}" inputmode="numeric" pattern="[0-9]*" aria-label="Hole ${i} score" style="width:50px;">
+          ${h.manualScore ? '<span class="tiny" style="color:#1fb57a;">✓</span>' : ''}
+        </div>
+      </div>
+      </div>
+    `;
+    // make hole number clickable to open shot entry (avoid clicks on inputs)
+    const num = div.querySelector('.hole-number');
+    if (num){ num.addEventListener('click', (e)=>{ e.stopPropagation(); startHole(i); }); }
+    // add an explicit Open button for easier editing on mobile
+    const hActions = div.querySelector('.hole-actions');
+    if (hActions){
+      const openBtn = document.createElement('button');
+      openBtn.className = 'btn ghost'; openBtn.style.marginLeft = '6px'; openBtn.textContent = '열기';
+      openBtn.addEventListener('click', (e)=>{ e.stopPropagation(); startHole(i); });
+      hActions.appendChild(openBtn);
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'btn ghost'; resetBtn.style.marginLeft = '6px'; resetBtn.textContent = '홀초기화';
+      resetBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if (!confirm(`Hole ${i}의 입력을 초기화하시겠습니까?`)) return;
+        // reset hole data and shots for this hole
+        HOLES[i] = { hole:i, yard: '', par: 4, score: null, computedStrokes: 0, manualScore: false };
+        shotsByHole[i] = [];
+        // if this hole is currently open, close shot entry and clear its UI
+        if (activeHole === i){
+          activeHole = null;
+          try{ if (shotEntryCard) shotEntryCard.classList.add('hidden'); }catch(e){}
+          try{ if (currentHoleShotsEl) currentHoleShotsEl.innerHTML = ''; }catch(e){}
+          try{ const headerEl = document.getElementById('currentHoleHeader'); if (headerEl) headerEl.textContent = 'Shots this hole'; }catch(e){}
+        }
+        renderHoles();
+        recomputeRound();
+        try{ saveDraft(); }catch(e){}
+      });
+      hActions.appendChild(resetBtn);
+    }
+    holesListEl.appendChild(div);
+  }
+  updateProgress();
+  // attach change listeners for visible inputs
+  document.querySelectorAll('.hole-par').forEach(el=>{
+    el.addEventListener('change', (e)=>{
+      const idx = Number(e.target.dataset.hole);
+      HOLES[idx].par = Number(e.target.value) || 4;
+      // if this is the currently open hole, update header meta
+      if (activeHole === idx){
+        holeMetaSmall.textContent = `Par ${HOLES[idx].par} · ${formatDistance(HOLES[idx].yard)}`;
+      }
+      recomputeRound();
+    });
+  });
+  document.querySelectorAll('.hole-yard').forEach(el=>{
+    el.addEventListener('change', (e)=>{
+      const idx = Number(e.target.dataset.hole);
+      HOLES[idx].yard = e.target.value;
+      if (activeHole === idx){
+        holeMetaSmall.textContent = `Par ${HOLES[idx].par} · ${formatDistance(HOLES[idx].yard)}`;
+      }
+    });
+  });
+  document.querySelectorAll('.hole-score').forEach(el=>{
+    el.addEventListener('change', (e)=>{
+      const idx = Number(e.target.dataset.hole);
+      const v = e.target.value;
+      if (v === '' || v === null) {
+        // 비어있으면 자동 계산 모드로 전환
+        HOLES[idx].score = null;
+        HOLES[idx].manualScore = false;
+      } else {
+        // 수동 입력된 값 저장
+        HOLES[idx].score = Number(v);
+        HOLES[idx].manualScore = true;
+      }
+      recomputeRound();
+      try{ saveDraft(); }catch(e){}
+    });
+  });
+
+  // update controls state
+  if (btnToggleAll) btnToggleAll.textContent = showAllHoles ? '전체 접기' : '전체 펼치기';
+  if (btnPrevHole) btnPrevHole.disabled = (singleHoleIndex <= 1);
+  if (btnNextHole) btnNextHole.disabled = (singleHoleIndex >= 18);
+  // update course total yard display
+  updateCourseYard();
+}
+renderHoles();
+
+// Start round handler: validate minimal fields then show holes
+function startRound(){
+  // Save selected unit
+  if (distanceUnitSelect) {
+    DISTANCE_UNIT = distanceUnitSelect.value;
+  }
+  
+  let date = roundDateInput.value;
+  // If no date provided, auto-fill today's date so the round can start
+  if (!date){
+    date = new Date().toISOString().slice(0,10);
+    if (roundDateInput) roundDateInput.value = date;
+  }
+  // optionally store round metadata
+  const meta = { player: playerNameInput.value||'', date, course: courseNameInput.value||'', par: Number(document.getElementById('roundPar').value||72), totalYard: Number(document.getElementById('roundYard').value||6500), weather: document.getElementById('roundWeather').value||'', distanceUnit: DISTANCE_UNIT };
+  // hide round info, show holes and analysis
+  roundInfoCard.classList.add('hidden');
+  document.getElementById('holesContainer').classList.remove('hidden');
+  if (analysisCard) analysisCard.classList.remove('hidden');
+  // render holes and open first hole
+  renderHoles();
+  singleHoleIndex = 1; showAllHoles = false;
+  startHole(singleHoleIndex);
+  // Update unit labels
+  updateUnitLabels();
+}
+if (btnStartRound) btnStartRound.addEventListener('click', startRound);
+
+// navigation controls
+if (btnToggleAll) btnToggleAll.addEventListener('click', ()=>{
+  showAllHoles = !showAllHoles;
+  renderHoles();
+  if (showAllHoles){
+    // hide shot entry when showing all holes
+    if (shotEntryCard) shotEntryCard.classList.add('hidden');
+    activeHole = null;
+  } else {
+    // open current single hole
+    startHole(singleHoleIndex);
+  }
+});
+
+// club data toggle button
+if (btnToggleClubData && clubDataPanel) btnToggleClubData.addEventListener('click', ()=>{
+  clubDataPanel.classList.toggle('hidden');
+  btnToggleClubData.textContent = clubDataPanel.classList.contains('hidden') ? 'Club Data' : 'Close Club Data';
+});
+if (btnPrevHole) btnPrevHole.addEventListener('click', ()=>{
+  if (singleHoleIndex>1) { singleHoleIndex--; renderHoles(); if (!showAllHoles) startHole(singleHoleIndex); }
+});
+if (btnNextHole) btnNextHole.addEventListener('click', ()=>{
+  if (singleHoleIndex<18) { singleHoleIndex++; renderHoles(); if (!showAllHoles) startHole(singleHoleIndex); }
+});
+
+// `Open Last Hole` removed — no handler required.
+
+function updateProgress(){
+  let done=0;
+  for (let i=1;i<=18;i++) if (shotsByHole[i] && shotsByHole[i].length>0) done++;
+  progressLabel.textContent = `${done} / 18`;
+}
+
+/* Start hole for shot entry */
+function startHole(holeNumber){
+  activeHole = holeNumber;
+  // remember which single hole index is active so collapsing from 'Expand All' returns here
+  singleHoleIndex = holeNumber;
+  const h = HOLES[holeNumber];
+  activeHoleLabel.textContent = `Hole ${holeNumber}`;
+  holeMetaSmall.textContent = `Par ${h.par} · ${formatDistance(h.yard)}`;
+  // reset shot entry form fields when opening a hole
+  if (shotTypeWoodEl) shotTypeWoodEl.value = '';
+  if (shotTypeIronEl) shotTypeIronEl.value = '';
+  
+  // default club suggestion for tee shots: Driver on par4/5, 7Iron on par3
+  try{
+    const nextShot = (shotsByHole[holeNumber] && shotsByHole[holeNumber].length) ? shotsByHole[holeNumber].length + 1 : 1;
+    if (nextShot === 1){
+      const p = Number(h.par) || 4;
+      if (p >= 4){ if (shotTypeWoodEl && (!shotTypeWoodEl.value)) { shotTypeWoodEl.value = 'Driver'; clearOtherShotSelects('shotTypeWood'); } }
+      else if (p === 3){ if (shotTypeIronEl && (!shotTypeIronEl.value)) { shotTypeIronEl.value = '7Iron'; clearOtherShotSelects('shotTypeIron'); } }
+    }
+  }catch(e){}
+  // programmatic defaults should not count as a user selection until the user changes the select
+  clubTouched = false;
+  if (btnShotAction) {
+    const next = (shotsByHole[activeHole] && shotsByHole[activeHole].length) ? shotsByHole[activeHole].length + 1 : 1;
+    btnShotAction.textContent = `Shots ${next}`;
+  }
+  if (shotSelectsContainer) shotSelectsContainer.style.display = 'none';
+  // reset distance touched flag when opening hole
+  distanceTouched = false;
+  if (shotResultEl) shotResultEl.selectedIndex = 0;
+  if (distanceToHoleEl) distanceToHoleEl.value = '';
+  if (puttsThisEl) puttsThisEl.value = '';
+  clearPutterSelection();
+  if (penaltyFlagEl) penaltyFlagEl.value = '0';
+  if (shotNoteEl) shotNoteEl.value = '';
+  shotEntryCard.classList.remove('hidden');
+  // set a default result for the next shot (if none chosen)
+  try{ const nextShotForDefault = (shotsByHole[holeNumber] && shotsByHole[holeNumber].length) ? shotsByHole[holeNumber].length + 1 : 1; setDefaultShotResultFor(holeNumber, nextShotForDefault); }catch(e){}
+  renderCurrentHoleShots();
+  updateProgress();
+  // scroll to shot entry card on mobile
+  setTimeout(()=> { shotEntryCard.scrollIntoView({behavior:'smooth', block:'center'}); }, 120);
+}
+
+/* Save shot */
+function saveShot(clubOverride){
+  // ensure activeHole is set; try to infer from header if missing
+  if (!activeHole){
+    const lbl = activeHoleLabel && activeHoleLabel.textContent;
+    const m = lbl ? lbl.match(/(\d+)/) : null;
+    if (m) activeHole = Number(m[1]);
+  }
+  if (!activeHole) return;
+  const shotTypeVal = clubOverride || getShotTypeValue();
+  // determine numeric penalty count: Out => 2, Water => 1, otherwise use penalty flag (1) or 0
+  let penaltyCount = 0;
+  try{
+    const resVal = (shotResultEl && shotResultEl.value) ? String(shotResultEl.value) : '';
+    if (resVal === 'Out' || resVal === 'out') penaltyCount = 2;
+    else if (resVal === 'Water' || resVal === 'water') penaltyCount = 1;
+    else if (penaltyFlagEl) penaltyCount = Number(penaltyFlagEl.value) || 0;
+  }catch(e){ penaltyCount = 0; }
+
+  const shot = {
+    hole: activeHole,
+    timestamp: new Date().toISOString(),
+    shotNumber: shotsByHole[activeHole].length + 1,
+    shotType: shotTypeVal,
+    result: shotResultEl.value,
+    distanceToHole: distanceToHoleEl.value === '' ? null : Number(distanceToHoleEl.value),
+    putts: puttsThisEl.value === '' ? 0 : Number(puttsThisEl.value),
+    penalty: penaltyCount,
+    note: shotNoteEl.value || ''
+  };
+  // Note: do not automatically override result when putts>0 — putt panel handles made/miss explicitly
+  // require a result; allow saving putts-only (no club) if putts > 0
+  if (!shot.result) return false;
+  if (!shot.shotType && (!shot.putts || shot.putts === 0)) return false;
+  if (!shotsByHole[activeHole]) shotsByHole[activeHole] = [];
+  // prevent accidental duplicate save: if last shot matches key, skip push
+  const arrNow = shotsByHole[activeHole];
+  const last = arrNow.length ? arrNow[arrNow.length-1] : null;
+  const sameAsLast = last && last.shotType === shot.shotType && String(last.result||'') === String(shot.result||'') && (last.distanceToHole === shot.distanceToHole) && (Number(last.putts||0) === Number(shot.putts||0)) && (last.penalty === shot.penalty) && String(last.note||'') === String(shot.note||'');
+  if (sameAsLast){
+    console.debug('saveShot: duplicate detected, skipping push', {hole: activeHole, shot});
+  } else {
+    arrNow.push(shot);
+  }
+  // clear selective fields for next shot
+  distanceToHoleEl.value = '';
+  puttsThisEl.value = '';
+  clearPutterSelection();
+  if (penaltyFlagEl) penaltyFlagEl.value = '0';
+  shotNoteEl.value = '';
+  renderCurrentHoleShots();
+  recomputeRound();
+  // leave selects visible for the next shot; caller will update button/visibility
+  hiddenSelectedClub = null;
+  if (shotTypeWoodEl) shotTypeWoodEl.value = '';
+  if (shotTypeIronEl) shotTypeIronEl.value = '';
+  return true;
+}
+
+// helper: read and set grouped club selects
+function getShotTypeValue(){
+  return (shotTypeWoodEl && shotTypeWoodEl.value) || (shotTypeIronEl && shotTypeIronEl.value) || (shotTypePutterEl && shotTypePutterEl.value ? 'Putter' : '') || '';
+}
+function clearOtherShotSelects(chosenId){
+  if (chosenId !== 'shotTypeWood' && shotTypeWoodEl) shotTypeWoodEl.value = '';
+  if (chosenId !== 'shotTypeIron' && shotTypeIronEl) shotTypeIronEl.value = '';
+  if (chosenId !== 'shotTypePutter' && shotTypePutterEl) shotTypePutterEl.value = '';
+}
+function setShotTypeSelect(value){
+  if (!value){ if (shotTypeWoodEl) shotTypeWoodEl.value=''; if (shotTypeIronEl) shotTypeIronEl.value=''; return; }
+  const ironLike = ['PW','SW','AW','Wedge1','Wedge2','Wedge3','4Iron','5Iron','6Iron','7Iron','8Iron','9Iron'];
+  if (value === 'Other'){
+    if (shotTypeWoodEl) shotTypeWoodEl.value = value; clearOtherShotSelects('shotTypeWood');
+  } else if (ironLike.indexOf(value) >= 0){
+    if (shotTypeIronEl) shotTypeIronEl.value = value; clearOtherShotSelects('shotTypeIron');
+  } else {
+    if (shotTypeWoodEl) shotTypeWoodEl.value = value; clearOtherShotSelects('shotTypeWood');
+  }
+}
+
+function clearPutterSelection(){
+  try{
+    const p = document.getElementById('shotTypePutter');
+    if (p) p.value = '';
+  }catch(e){}
+}
+
+// Set sensible default shot result based on hole par and next shot number
+function setDefaultShotResultFor(holeNumber, nextShot){
+  try{
+    if (!shotResultEl) return;
+    // don't override if user already selected a result (i.e. they changed it)
+    // allow override when the select is still at its initial default option (selectedIndex === 0)
+    const curVal = shotResultEl.value;
+    const isDefaultOption = (shotResultEl.selectedIndex === 0);
+    if (curVal && !isDefaultOption) return;
+    const p = Number((HOLES[holeNumber] && HOLES[holeNumber].par) || 4);
+    let val = '';
+    if (p === 3){
+      if (nextShot === 1) val = 'Green';
+    } else if (p === 4){
+      if (nextShot === 2) val = 'Green';
+      else if (nextShot === 3) val = 'Green';
+    } else if (p === 5){
+      if (nextShot === 2) val = 'Fairway';
+      else if (nextShot === 3) val = 'Green';
+    }
+    if (val) shotResultEl.value = val;
+  }catch(e){ console.warn('setDefaultShotResultFor failed', e); }
+}
+
+// auto-save when any club select or result changes, but only if both club and result are present
+if (shotTypeWoodEl) shotTypeWoodEl.addEventListener('change', ()=>{ const v = shotTypeWoodEl.value || ''; hiddenSelectedClub = v || null; clubTouched = true; clearOtherShotSelects('shotTypeWood'); if (shotSelectsContainer) shotSelectsContainer.style.display='none'; if (btnShotAction){ if (v) btnShotAction.textContent = '저장 (Save)'; else { const next = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1; btnShotAction.textContent = `Shots ${next}`; } } });
+if (shotTypeIronEl) shotTypeIronEl.addEventListener('change', ()=>{ const v = shotTypeIronEl.value || ''; hiddenSelectedClub = v || null; clubTouched = true; clearOtherShotSelects('shotTypeIron'); if (shotSelectsContainer) shotSelectsContainer.style.display='none'; if (btnShotAction){ if (v) btnShotAction.textContent = '저장 (Save)'; else { const next = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1; btnShotAction.textContent = `Shots ${next}`; } } });
+// removed shotTypeOtherEl listener; 'Other' now lives in Wood select
+if (shotResultEl) shotResultEl.addEventListener('change', ()=>{ /* result changed - do not auto-save; wait for explicit Save */ });
+if (distanceToHoleEl) distanceToHoleEl.addEventListener('input', ()=>{ distanceTouched = true; });
+
+// putter picker buttons: set club to Putter and choose putt count
+if (shotTypePutterEl && puttsThisEl){
+  // When user selects 'Putter', show putt panel and hide unrelated controls (don't prefill strokes)
+  shotTypePutterEl.addEventListener('change', ()=>{
+    const v = shotTypePutterEl.value || '';
+    if (v){
+      puttStrokeCount = 0;
+      puttStrokeCountEl.textContent = '0';
+      // show panel
+      if (puttPanelEl) puttPanelEl.style.display = 'block';
+      // hide other inputs (Result and Distance) while doing putts
+      if (shotResultEl) shotResultEl.closest('label').style.display = 'none';
+      if (distanceToHoleEl) distanceToHoleEl.closest('label').style.display = 'none';
+      hiddenSelectedClub = 'Putter';
+      clubTouched = true;
+      if (shotTypeWoodEl) shotTypeWoodEl.value = '';
+      if (shotTypeIronEl) shotTypeIronEl.value = '';
+      if (shotSelectsContainer) shotSelectsContainer.style.display = 'none';
+      if (btnShotAction) btnShotAction.textContent = '퍼트 입력';
+    } else {
+      // hide panel and restore other inputs
+      resetPuttPanel();
+      try{ if (shotResultEl) shotResultEl.closest('label').style.display = ''; }catch(e){}
+      try{ if (distanceToHoleEl) distanceToHoleEl.closest('label').style.display = ''; }catch(e){}
+      puttsThisEl.value = '';
+      hiddenSelectedClub = null;
+    }
+  });
+  // putt panel controls
+  if (btnPuttAdd) btnPuttAdd.addEventListener('click', (e)=>{ e.preventDefault(); puttStrokeCount = Number(puttStrokeCount||0) + 1; puttStrokeCountEl.textContent = puttStrokeCount; });
+  if (btnPuttReset) btnPuttReset.addEventListener('click', (e)=>{ e.preventDefault(); resetPuttPanel(); });
+  if (btnPuttMade) btnPuttMade.addEventListener('click', (e)=>{ e.preventDefault(); recordPutt(true); });
+  if (btnPuttMiss) btnPuttMiss.addEventListener('click', (e)=>{ e.preventDefault(); recordPutt(false, true); });
+}
+
+function resetPuttPanel(){
+  puttStrokeCount = 0; if (puttStrokeCountEl) puttStrokeCountEl.textContent = '0'; if (puttStartDistEl) puttStartDistEl.value = ''; if (puttLieEl) puttLieEl.value = 'OnGreen'; if (puttSlopeEl) puttSlopeEl.value = 'Flat'; if (puttPanelEl) puttPanelEl.style.display = 'none'; if (shotTypePutterEl) shotTypePutterEl.value = '';
+  try{ if (shotResultEl) shotResultEl.closest('label').style.display = ''; }catch(e){}
+  try{ if (distanceToHoleEl) distanceToHoleEl.closest('label').style.display = ''; }catch(e){}
+  // clear temporary selection flags so other handlers don't auto-save the putter again
+  hiddenSelectedClub = null;
+  if (puttsThisEl) puttsThisEl.value = '';
+  clubTouched = false;
+  distanceTouched = false;
+}
+
+// recordPutt: if isMissAppend true, append a single-stroke 'NotHoled' shot and keep panel open; if made=true, append final InHole shot and close panel
+function recordPutt(made, isMissAppend){
+  if (!activeHole) return alert('먼저 홀을 선택하세요.');
+  // increment stroke counter for this action
+  puttStrokeCount = Number(puttStrokeCount||0) + 1;
+  puttStrokeCountEl.textContent = puttStrokeCount;
+  const shot = {
+    hole: activeHole,
+    timestamp: new Date().toISOString(),
+    shotNumber: shotsByHole[activeHole] ? (shotsByHole[activeHole].length + 1) : 1,
+    shotType: 'Putter',
+    result: made ? 'InHole' : 'NotHoled',
+    distanceToHole: puttStartDistEl && puttStartDistEl.value !== '' ? Number(puttStartDistEl.value) : null,
+    putts: 1,
+    penalty: 0,
+    note: `putt:${made? 'made':'miss'}`,
+    lie: puttLieEl ? puttLieEl.value : '',
+    slope: puttSlopeEl ? puttSlopeEl.value : '',
+    puttStartDistance: puttStartDistEl && puttStartDistEl.value !== '' ? Number(puttStartDistEl.value) : null
+  };
+  if (!shotsByHole[activeHole]) shotsByHole[activeHole] = [];
+  shotsByHole[activeHole].push(shot);
+  renderCurrentHoleShots();
+  recomputeRound();
+  try{ saveDraft(); }catch(e){}
+  // prevent duplicate auto-save by clearing temporary selection state
+  hiddenSelectedClub = null;
+  if (puttsThisEl) puttsThisEl.value = '';
+  clubTouched = false;
+  distanceTouched = false;
+  if (made){
+    // when holed, close panel and reset
+    resetPuttPanel();
+  } else {
+    // if miss append, keep panel open so user can adjust for next stroke
+    // leave puttStartDist/lie/slope for user to change before next miss or made
+  }
+}
+
+// Shots / Save button behavior
+if (btnShotAction){
+  btnShotAction.addEventListener('click', ()=>{
+    // prevent rapid double-click submissions
+    if (btnShotAction) btnShotAction.disabled = true;
+    setTimeout(()=>{ if (btnShotAction) btnShotAction.disabled = false; }, 300);
+    try{ console.debug('ShotAction clicked', {activeHole, hiddenSelectedClub, selectedFromSelect: getShotTypeValue(), putts: (puttsThisEl && puttsThisEl.value)}); }catch(e){}
+    // if we have a pending chosen club, act as Save
+    // act as Save if a club was chosen or if user entered putts (>0)
+    const hasPutts = (puttsThisEl && Number(puttsThisEl.value) > 0);
+    const selectedClub = getShotTypeValue();
+    if (hiddenSelectedClub || (selectedClub && (clubTouched || distanceTouched)) || hasPutts){
+      const saved = saveShot(selectedClub || hiddenSelectedClub);
+      try{ console.debug('saveShot result', saved, 'shotsNow', shotsByHole[activeHole] && shotsByHole[activeHole].length); }catch(e){}
+      if (saved){
+        // after saving, reset state for next shot
+        hiddenSelectedClub = null;
+        if (shotTypeWoodEl) shotTypeWoodEl.value = '';
+        if (shotTypeIronEl) shotTypeIronEl.value = '';
+        clubTouched = false;
+        distanceTouched = false;
+        // update button to show next shot number
+        let next = 1;
+        if (activeHole && shotsByHole[activeHole]) next = shotsByHole[activeHole].length + 1;
+        if (btnShotAction) btnShotAction.textContent = `Shots ${next}`;
+        // prepare for next shot: show club selects and focus first select so user can immediately pick club for shot N
+        if (shotSelectsContainer) shotSelectsContainer.style.display = 'flex';
+        if (shotTypeWoodEl) { try{ shotTypeWoodEl.focus(); }catch(e){} }
+        // reset Result select so defaults can be applied for next shot (prevents previous value carrying over)
+        try{ if (shotResultEl) shotResultEl.selectedIndex = 0; }catch(e){}
+        // set default result for the upcoming shot
+        try{ const nextShot = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1; setDefaultShotResultFor(activeHole, nextShot); }catch(e){}
+      } else {
+        // failed to save (validation); keep Save label so user can correct inputs
+        if (btnShotAction) btnShotAction.textContent = '저장 (Save)';
+      }
+    } else {
+      // show selects to choose club
+      if (shotSelectsContainer) shotSelectsContainer.style.display = 'flex';
+      // suggest default club for tee shot if none selected yet
+      try{
+        const nextShot = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1;
+        if (nextShot === 1 && !hiddenSelectedClub){
+          const p = Number((HOLES[activeHole] && HOLES[activeHole].par) || 4);
+          if (p >= 4){ if (shotTypeWoodEl && !shotTypeWoodEl.value) { shotTypeWoodEl.value = 'Driver'; clearOtherShotSelects('shotTypeWood'); } }
+          else if (p === 3){ if (shotTypeIronEl && !shotTypeIronEl.value) { shotTypeIronEl.value = '7Iron'; clearOtherShotSelects('shotTypeIron'); } }
+        }
+        // reset Result select then set default result for the upcoming shot when showing selects
+          try{ if (shotResultEl) shotResultEl.selectedIndex = 0; setDefaultShotResultFor(activeHole, nextShot); }catch(e){}
+      }catch(e){}
+    }
+  });
+}
+
+// make the bottom action button finish the hole (user asked to replace save&next)
+if (btnSaveShot) btnSaveShot.addEventListener('click', finishHole);
+
+// Undo button removed; keep update handler
+if (btnUpdateShot) btnUpdateShot.addEventListener('click', updateShot);
+
+/* Render current hole shot list */
+function renderCurrentHoleShots(){
+  currentHoleShotsEl.innerHTML = '';
+  if (!activeHole) return;
+  // update header with cumulative score up to this hole
+  let cum = 0;
+  for (let j=1; j<=activeHole; j++){
+    // Use actual score (manual or computed)
+    const score = HOLES[j].score;
+    if (score != null && !isNaN(score)) cum += Number(score);
+  }
+  const headerEl = document.getElementById('currentHoleHeader');
+  if (headerEl) headerEl.textContent = `Shots this hole (Total to hole: ${cum})`;
+  const arr = shotsByHole[activeHole];
+  if (!arr || !arr.length) { currentHoleShotsEl.textContent = '샷 없음'; return; }
+  arr.forEach(s=>{
+    const div = document.createElement('div'); div.className = 'shot-item';
+    // fixed-width shot number column
+    const num = document.createElement('div'); num.className = 'shot-num'; num.textContent = `#${s.shotNumber}`;
+    // main content: club/result and small meta row
+    const content = document.createElement('div'); content.className = 'shot-content';
+    const line = document.createElement('div'); line.className = 'shot-line';
+    const title = document.createElement('div'); title.innerHTML = `${s.shotType} · ${s.result} ${s.penalty?'<span class="danger">· Penalty</span>':''}`;
+    line.appendChild(title);
+    
+    // 퍼팅 샷의 경우 퍼팅 거리 표시 추가
+    let metaText = '';
+    if (s.shotType === 'Putter') {
+      const puttDist = (s.puttStartDistance != null && s.puttStartDistance !== '') ? formatDistance(s.puttStartDistance) : '';
+      const remaining = (s.distanceToHole != null) ? formatDistance(s.distanceToHole) : '';
+      metaText = `${puttDist ? (puttDist + ' 퍼팅') : ''}${remaining ? (' → ' + remaining) : ''}${s.putts ? (' · P:' + s.putts) : ''}`;
+    } else {
+      metaText = `${s.distanceToHole!=null? formatDistance(s.distanceToHole):''} ${s.putts?('· P:'+s.putts):''}`;
+    }
+    
+    const meta = document.createElement('div'); meta.className = 'shot-meta'; meta.textContent = metaText;
+    content.appendChild(line); content.appendChild(meta);
+
+    const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='6px'; actions.style.marginLeft='8px';
+    const btnEdit = document.createElement('button'); btnEdit.className='btn ghost'; btnEdit.textContent='수정 (Edit)';
+    const btnDel = document.createElement('button'); btnDel.className='btn ghost'; btnDel.textContent='삭제 (Delete)';
+    btnEdit.addEventListener('click', ()=> startEditShot(s.shotNumber - 1));
+    btnDel.addEventListener('click', ()=> deleteShot(s.shotNumber - 1));
+    actions.appendChild(btnEdit); actions.appendChild(btnDel);
+
+    const leftGroup = document.createElement('div'); leftGroup.style.display='flex'; leftGroup.style.alignItems='center'; leftGroup.style.gap='12px';
+    leftGroup.appendChild(num); leftGroup.appendChild(content);
+
+    const container = document.createElement('div'); container.style.display='flex'; container.style.alignItems='center'; container.style.justifyContent='space-between'; container.style.width='100%';
+    container.appendChild(leftGroup); container.appendChild(actions);
+    div.appendChild(container);
+    currentHoleShotsEl.appendChild(div);
+  });
+}
+
+function startEditShot(index){
+  if (!activeHole) return;
+  const arr = shotsByHole[activeHole] || [];
+  if (!arr[index]) return;
+  const s = arr[index];
+  // populate form
+  // if editing a putt, show putt panel and populate fields
+  if (s.shotType === 'Putter'){
+    if (puttPanelEl) puttPanelEl.style.display = 'block';
+    try{ if (shotResultEl) shotResultEl.closest('label').style.display = 'none'; }catch(e){}
+    try{ if (distanceToHoleEl) distanceToHoleEl.closest('label').style.display = 'none'; }catch(e){}
+    if (puttLieEl) puttLieEl.value = s.lie || 'OnGreen';
+    if (puttSlopeEl) puttSlopeEl.value = s.slope || 'Flat';
+    if (puttStartDistEl) puttStartDistEl.value = s.puttStartDistance != null ? s.puttStartDistance : (s.distanceToHole != null ? s.distanceToHole : '');
+    puttStrokeCount = Number(s.putts || 1);
+    if (puttStrokeCountEl) puttStrokeCountEl.textContent = puttStrokeCount;
+    // ensure club selects are cleared
+    if (shotTypeWoodEl) shotTypeWoodEl.value = '';
+    if (shotTypeIronEl) shotTypeIronEl.value = '';
+  } else {
+    setShotTypeSelect(s.shotType || '');
+    if (shotResultEl) shotResultEl.value = s.result || '';
+    if (distanceToHoleEl) distanceToHoleEl.value = s.distanceToHole != null ? s.distanceToHole : '';
+    if (puttsThisEl) puttsThisEl.value = s.putts != null ? s.putts : '';
+    if (penaltyFlagEl) penaltyFlagEl.value = (s.penalty != null ? String(Number(s.penalty) || 0) : '0');
+    if (shotNoteEl) shotNoteEl.value = s.note || '';
+  }
+  editingShotIndex = index;
+  if (btnUpdateShot) btnUpdateShot.classList.remove('hidden');
+  // set button state to indicate a saved club is pending update
+  hiddenSelectedClub = s.shotType || null;
+  if (btnShotAction) btnShotAction.textContent = '저장 (Save)';
+  if (shotSelectsContainer) shotSelectsContainer.style.display = 'none';
+}
+
+function updateShot(){
+  if (!activeHole || editingShotIndex === null) return;
+  const arr = shotsByHole[activeHole] || [];
+  if (!arr[editingShotIndex]) return;
+  const shot = {
+    hole: activeHole,
+    timestamp: new Date().toISOString(),
+    shotNumber: editingShotIndex + 1,
+    shotType: getShotTypeValue() || hiddenSelectedClub,
+    result: shotResultEl.value,
+    distanceToHole: distanceToHoleEl.value === '' ? null : Number(distanceToHoleEl.value),
+    putts: puttsThisEl.value === '' ? 0 : Number(puttsThisEl.value),
+    penalty: Number(penaltyFlagEl.value) || 0,
+    note: shotNoteEl.value || ''
+  };
+  // If editing a Putter shot, include putt metadata (lie/slope/start distance)
+  if (shot.shotType === 'Putter'){
+    shot.lie = (puttLieEl && puttLieEl.value) ? puttLieEl.value : (shot.lie || '');
+    shot.slope = (puttSlopeEl && puttSlopeEl.value) ? puttSlopeEl.value : (shot.slope || '');
+    shot.puttStartDistance = (puttStartDistEl && puttStartDistEl.value !== '') ? Number(puttStartDistEl.value) : (shot.puttStartDistance != null ? shot.puttStartDistance : (shot.distanceToHole != null ? shot.distanceToHole : null));
+    // keep distanceToHole in sync with start distance when editing putts
+    if (shot.puttStartDistance != null) shot.distanceToHole = shot.puttStartDistance;
+  }
+  // require a result; allow saving putts-only edits (no club) if putts > 0
+  if (!shot.result) return alert('Result is required.');
+  if (!shot.shotType && (!shot.putts || shot.putts === 0)) return alert('Club or Putts required to save.');
+  arr[editingShotIndex] = shot;
+  // re-number following shots
+  for (let i=0;i<arr.length;i++) arr[i].shotNumber = i+1;
+  editingShotIndex = null;
+  if (btnUpdateShot) btnUpdateShot.classList.add('hidden');
+  // clear form
+  if (distanceToHoleEl) distanceToHoleEl.value = '';
+  if (puttsThisEl) puttsThisEl.value = '';
+  if (shotNoteEl) shotNoteEl.value = '';
+  clearPutterSelection();
+  if (penaltyFlagEl) penaltyFlagEl.value = '0';
+  renderCurrentHoleShots();
+  recomputeRound();
+  // reset button/select state after update
+  hiddenSelectedClub = null;
+  if (shotSelectsContainer) shotSelectsContainer.style.display = 'none';
+  if (shotTypeWoodEl) shotTypeWoodEl.value = '';
+  if (shotTypeIronEl) shotTypeIronEl.value = '';
+  if (btnShotAction){
+    const next = (shotsByHole[activeHole] && shotsByHole[activeHole].length) ? shotsByHole[activeHole].length + 1 : 1;
+    btnShotAction.textContent = `Shots ${next}`;
+  }
+}
+
+function deleteShot(index){
+  if (!activeHole) return;
+  const arr = shotsByHole[activeHole] || [];
+  if (!arr[index]) return;
+  if (!confirm('Delete this shot?')) return;
+  arr.splice(index,1);
+  // re-number
+  for (let i=0;i<arr.length;i++) arr[i].shotNumber = i+1;
+  renderCurrentHoleShots();
+  recomputeRound();
+  // update Shots button count for current hole
+  if (btnShotAction){
+    const next = (arr && arr.length) ? arr.length + 1 : 1;
+    btnShotAction.textContent = `Shots ${next}`;
+  }
+}
+
+/* Finish hole */
+function finishHole(){
+  if (!activeHole) return;
+  // If the user is currently editing a shot, commit that edit first.
+  if (editingShotIndex !== null){
+    updateShot();
+  } else {
+    // Auto-save pending inputs (e.g., putts entered) before finishing the hole.
+    try{
+      const pendingPutts = (puttsThisEl && Number(puttsThisEl.value) > 0);
+      const pendingClub = getShotTypeValue() || hiddenSelectedClub;
+      const shouldAutoSave = pendingPutts || (pendingClub && (clubTouched || distanceTouched));
+      if (shouldAutoSave){
+        saveShot(pendingClub || hiddenSelectedClub);
+      }
+    }catch(e){ console.warn('auto-save before finishHole failed', e); }
+  }
+  const arr = shotsByHole[activeHole] || [];
+  // compute strokes same as recomputeRound: club-selected shots + putts + penalties
+  const puttsOnHole = arr.reduce((sum,sh)=> sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
+  const clubShots = arr.filter(sh=> sh.shotType && !(sh.putts && Number(sh.putts) > 0)).length;
+  const penaltiesOnHole = arr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
+  let strokes = clubShots + puttsOnHole + penaltiesOnHole;
+  if (strokes < 0) strokes = 0;
+  
+  // Check if user manually entered a score
+  const scoreInputEl = document.querySelector(`.hole-score[data-hole="${activeHole}"]`);
+  if (scoreInputEl && scoreInputEl.value && scoreInputEl.value !== String(strokes)){
+    // User entered a different score manually
+    HOLES[activeHole].score = Number(scoreInputEl.value);
+    HOLES[activeHole].manualScore = true;
+  } else {
+    // Use computed score
+    HOLES[activeHole].score = strokes;
+    HOLES[activeHole].manualScore = false;
+    if (scoreInputEl) scoreInputEl.value = strokes;
+  }
+  const finishedHole = activeHole;
+  // advance to next hole when possible (and when not viewing all holes)
+  if (finishedHole && !showAllHoles && finishedHole < 18){
+    singleHoleIndex = finishedHole + 1;
+    renderHoles();
+    startHole(singleHoleIndex);
+  } else {
+    activeHole = null;
+    if (shotEntryCard) shotEntryCard.classList.add('hidden');
+  }
+  updateProgress();
+  recomputeRound();
+  // If this was the final hole, validate totals and notify the user
+    try{
+      if (finishedHole === 18){
+      let clubShotsTotal = 0;
+      let totalPuttsCount = 0;
+      let totalPenaltiesCount = 0;
+      for (let i=1;i<=18;i++){
+        const arr = shotsByHole[i] || [];
+        arr.forEach(sh=>{
+          if (!sh) return;
+          // count club shots the same way as other summaries: exclude putt-recorded shots and exclude Putter type
+          if (sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)) clubShotsTotal += 1;
+          if (sh.putts) totalPuttsCount += Number(sh.putts) || 0;
+          if (sh.penalty) totalPenaltiesCount += Number(sh.penalty) || 0;
+        });
+      }
+      // total strokes from computed holes
+      let totalStrokes = 0;
+      for (let i=1;i<=18;i++) totalStrokes += Number(HOLES[i].computedStrokes || 0);
+      const combined = clubShotsTotal + totalPuttsCount + totalPenaltiesCount;
+      if (combined === totalStrokes){
+        alert('경기 결과가 정확하게 기록되었습니다. 수고하셨습니다.');
+      } else {
+        alert('입력오차가 있습니다. Club Count 합 + Total Putts + Penalties 값이 총 스트로크와 일치하지 않습니다. 입력을 다시 점검해주세요.');
+      }
+    }
+  }catch(e){ console.warn('final totals check failed', e); }
+}
+
+/* Clear all */
+const btnClearAllEl = document.getElementById('btnClearAll');
+if (btnClearAllEl) btnClearAllEl.addEventListener('click', ()=>{
+  if (!confirm('모든 입력을 초기화하시겠습니까?')) return;
+  // Reset in-memory state
+  initHoles();
+  for (let i=1;i<=18;i++) shotsByHole[i]=[];
+  // clear active UI state
+  activeHole = null;
+  singleHoleIndex = 1;
+  showAllHoles = false;
+  // hide shot entry and clear its contents
+  try{ if (shotEntryCard) shotEntryCard.classList.add('hidden'); }catch(e){}
+  try{ if (currentHoleShotsEl) currentHoleShotsEl.innerHTML = ''; }catch(e){}
+  try{ const headerEl = document.getElementById('currentHoleHeader'); if (headerEl) headerEl.textContent = 'Shots this hole'; }catch(e){}
+  // remove saved draft from storage
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  // re-render UI and recompute
+  renderHoles();
+  recomputeRound();
+});
+
+function recomputeRound(){
+  let totalStrokes = 0;
+  let totalClubShots = 0;
+  // prefer explicit round par input if provided; otherwise sum per-hole pars
+  const explicitRoundPar = Number((document.getElementById('roundPar') && document.getElementById('roundPar').value) || 0);
+  let totalPar = 0;
+  // if explicitRoundPar provided, use it (avoid resetting inside loop)
+  if (explicitRoundPar) totalPar = explicitRoundPar;
+  let fairways = 0;
+  let gir = 0;
+  let totalPutts = 0;
+  let penalties = 0;
+  let longestDrive = 0;
+  let holesPlayed = 0;
+  let onePuttCount = 0;
+  let threePuttCount = 0;
+  const onePutDistances = [];
+  const threePutDistances = [];
+  let holesWithPutts = 0;
+  let birdiesCount = 0;
+  let bogeysCount = 0;
+  let doublesCount = 0;
+  const proximityDistances = [];
+  const clubOnlyProximityDistances = [];
+  let onGreenHoles = 0;
+  let onGreenPuttsTotal = 0;
+  let driverAttempts = 0;
+  let driverFairways = 0;
+
+  const clubDistances = {};
+  const perHoleDriveDistances = []; // one drive distance per hole (first Driver shot)
+  for (let i=1;i<=18;i++){
+    const hole = HOLES[i];
+    if (!explicitRoundPar) totalPar += Number(hole.par || 0);
+    const sArr = shotsByHole[i] || [];
+
+    // compute putts on this hole: sum only putts recorded via Putter selections
+    const puttsOnHole = sArr.reduce((sum,sh)=> sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
+    
+    // compute on-green putts only (lie가 OnGreen, Green 또는 Fringe인 퍼팅만)
+    const onGreenPuttsOnHole = sArr.reduce((sum,sh)=> {
+      if (sh && sh.shotType === 'Putter') {
+        const lie = (sh.lie || '').toString().trim().toLowerCase();
+        const isOnGreen = (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+        console.log(`[Hole ${i}] Putter shot: lie="${sh.lie}" -> normalized="${lie}" -> isOnGreen=${isOnGreen}, putts=${sh.putts}`);
+        if (isOnGreen) {
+          return sum + (Number(sh.putts) || 0);
+        }
+      }
+      return sum;
+    }, 0);
+    
+    // track holes that had any on-green putts for statistics
+    if (onGreenPuttsOnHole > 0) holesWithPutts++;
+    // accumulate total on-green putts
+    totalPutts += onGreenPuttsOnHole;
+    console.log(`[Hole ${i}] onGreenPuttsOnHole=${onGreenPuttsOnHole}, totalPutts so far=${totalPutts}`);
+    
+    // count this hole as played if any shots were recorded
+    if (sArr && sArr.length) holesPlayed++;
+    // count club-selected shots (include putts as shots)
+    const clubShots = sArr.filter(sh=> sh.shotType && !(sh.putts && Number(sh.putts) > 0)).length;
+    // penalties on this hole
+    const penaltiesOnHole = sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
+
+    // compute strokes per user rule: club-selected shots + putts + penalties (default 0)
+    let strokes = clubShots + puttsOnHole + penaltiesOnHole;
+    if (strokes < 0) strokes = 0;
+
+    // Store computed value
+    HOLES[i].computedStrokes = strokes;
+    
+    // Use manual score if set, otherwise use computed strokes
+    let finalScore = strokes;
+    if (HOLES[i].manualScore && HOLES[i].score != null) {
+      finalScore = Number(HOLES[i].score);
+    } else {
+      // Auto mode: update score with computed value
+      HOLES[i].score = strokes;
+      // Update visible input only in auto mode
+      const scoreInputEl = document.querySelector(`.hole-score[data-hole="${i}"]`);
+      if (scoreInputEl && !HOLES[i].manualScore) scoreInputEl.value = strokes;
+    }
+
+    // birdie/bogey/double+ detection using final score
+    if (!isNaN(Number(hole.par))){
+      const parNum = Number(hole.par);
+      if (finalScore === (parNum - 1)) birdiesCount++;
+      else if (finalScore === (parNum + 1)) bogeysCount++;
+      else if (finalScore >= (parNum + 2)) doublesCount++;
+    }
+
+    HOLES[i].scoreDiff = (Number(hole.par||0) - finalScore);
+    totalStrokes += (finalScore || 0);
+    // accumulate club-shot counts (exclude putts)
+    totalClubShots += clubShots;
+
+    // fairway: Drive shot with result 'Fairway' for par>=4
+    const drive = sArr.find(sh=>sh.shotType === 'Drive' || sh.shotType === 'Driver');
+    if (drive && (drive.result === 'Fairway' || drive.result === 'fairway') && (hole.par >= 4)) fairways++;
+
+    // GIR: find the first non-putter shot that landed on the green within regulation (<= par-2)
+    const approach = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)).find(sh=>{
+      if (!sh || !sh.result) return false;
+      if (sh.shotType === 'Putter') return false;
+      const sn = Number(sh.shotNumber || 0);
+      const parAllowed = Math.max(0, Number(hole.par || 4) - 2);
+      if (!sn || sn > parAllowed) return false;
+      // Explicit exception: on Par-5, a 2nd-shot that lands 'Around the Green' or in a greenside bunker
+      // should NOT count as GIR even though it's within "par-2" shots.
+      if (Number(hole.par) === 5 && sn === 2){
+        const k = normResultKey(sh.result);
+        if (k.indexOf('around') >= 0 || k.indexOf('greenside') >= 0 || k.indexOf('bunker_greenside') >= 0) return false;
+      }
+      return isGreenResult(sh.result);
+    });
+    if (approach){
+      gir++;
+      // proximity: reflect larger value between green-hit remaining distance and first on-green putt start distance
+      const proximityDist = getOnGreenProximityDistance(approach, sArr);
+      if (proximityDist != null) proximityDistances.push(proximityDist);
+      // club-only proximity: approach remaining distance only (without putt-distance reflection)
+      const clubOnlyProximityDist = getApproachOnlyProximityDistance(approach);
+      if (clubOnlyProximityDist != null) clubOnlyProximityDistances.push(clubOnlyProximityDist);
+      // count on-green holes for statistics
+      onGreenHoles++;
+      onGreenPuttsTotal += Number(onGreenPuttsOnHole || 0);
+      
+      // Collect 1-putt / 3+-putt distances: prefer recorded putter distance, fallback to approach distance
+      // 온그린 및 프린지 퍼팅 사용
+      try{
+        if (onGreenPuttsOnHole === 1){
+          onePuttCount++;
+          const putterShot = sArr.find(sh=> {
+            if (!sh || sh.shotType !== 'Putter') return false;
+            const lie = (sh.lie || '').toString().trim().toLowerCase();
+            return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+          });
+          let d = null;
+          if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d = Math.abs(Number(putterShot.distanceToHole));
+          else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d = Math.abs(Number(approach.distanceToHole));
+          if (d != null) onePutDistances.push(d);
+        }
+        if (onGreenPuttsOnHole >= 3){
+          threePuttCount++;
+          const putterShot = sArr.find(sh=> {
+            if (!sh || sh.shotType !== 'Putter') return false;
+            const lie = (sh.lie || '').toString().trim().toLowerCase();
+            return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+          });
+          let d3 = null;
+          if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d3 = Math.abs(Number(putterShot.distanceToHole));
+          else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d3 = Math.abs(Number(approach.distanceToHole));
+          if (d3 != null) threePutDistances.push(d3);
+        }
+      }catch(e){}
+    }
+    
+
+    // accumulate penalties (putts already added above for on-green holes only)
+    penalties += sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
+
+    // accumulate club distances by computing change in remaining distance between consecutive shots
+    // start previous remaining distance as hole yard if available
+    let prevRemaining = (hole.yard && !isNaN(Number(hole.yard))) ? Number(hole.yard) : null;
+    // ensure shots are processed in order
+    const ordered = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    ordered.forEach(sh => {
+      const curRem = (sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+      // record distance only for club-selected shots (exclude putts-only and putters) and when we have a previous remaining distance
+      if (curRem != null && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+        const shotDist = Math.max(0, prevRemaining - curRem);
+        if (!clubDistances[sh.shotType]) clubDistances[sh.shotType] = [];
+        clubDistances[sh.shotType].push(shotDist);
+      }
+      // update prevRemaining if current shot provides remaining distance
+      if (curRem != null) prevRemaining = curRem;
+    });
+    // compute per-hole drive distance: first Driver shot's computed distance
+    const firstDrive = sArr.find(sh=> sh.shotType === 'Driver' || sh.shotType === 'Drive');
+    if (firstDrive){
+      // consider driver attempts for par 4/5 holes (tee shots)
+      if (hole.par >= 4) {
+        driverAttempts++;
+        if (firstDrive.result === 'Fairway' || firstDrive.result === 'fairway' || firstDrive.result === 'FW') driverFairways++;
+      }
+      if (firstDrive.distanceToHole != null){
+        let d = null;
+        if (hole.yard && !isNaN(Number(hole.yard))) d = Math.max(0, Number(hole.yard) - Number(firstDrive.distanceToHole || 0));
+        else d = Number(firstDrive.distanceToHole || 0);
+        if (d != null) perHoleDriveDistances.push(d);
+      }
+    }
+  }
+  // compute longest and average from per-hole drive distances
+  const driveLens = perHoleDriveDistances;
+  const avgDrive = driveLens.length ? Math.round(driveLens.reduce((s,n)=>s+n,0)/driveLens.length) : 0;
+  longestDrive = driveLens.length ? Math.max(...driveLens) : 0;
+  
+  // count drives 250yd or longer (convert to current unit for comparison)
+  const threshold250yd = (DISTANCE_UNIT === 'm') ? 229 : 250; // 250yd = ~229m
+  const drive250PlusCount = driveLens.filter(d => d >= threshold250yd).length;
+
+  // compute GIR% and putt percentages and proximity avg
+  const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 1000) / 10 : null; // one decimal
+  // compute percentages over holes that had putts (more intuitive)
+  // Use totalPutts as denominator per request
+  const onePuttPct = totalPutts ? Math.round((onePuttCount / totalPutts) * 1000) / 10 : null;
+  const threePuttPct = totalPutts ? Math.round((threePuttCount / totalPutts) * 1000) / 10 : null;
+  const avgOnePuttDist = onePutDistances.length ? Math.round(onePutDistances.reduce((s,n)=>s+n,0)/onePutDistances.length) : null;
+  const avgThreePuttDist = threePutDistances.length ? Math.round(threePutDistances.reduce((s,n)=>s+n,0)/threePutDistances.length) : null;
+  const proxAvg = proximityDistances.length ? Math.round(proximityDistances.reduce((s,n)=>s+n,0)/proximityDistances.length) : null;
+  const clubProxAvg = clubOnlyProximityDistances.length ? Math.round(clubOnlyProximityDistances.reduce((s,n)=>s+n,0)/clubOnlyProximityDistances.length) : null;
+  const driverFairPct = driverAttempts ? Math.round((driverFairways / driverAttempts) * 1000) / 10 : null;
+
+  // Display Total Strokes using computed per-hole strokes (includes penalties)
+  const displayTotalStrokes = totalStrokes;
+  statTotalStrokes.textContent = displayTotalStrokes;
+  statFairways.textContent = fairways;
+  statGIR.textContent = gir;
+  statGIRPct.textContent = (girPct !== null) ? (girPct + '%') : '-';
+  statPutts.textContent = totalPutts;
+  statOnePuttPct.textContent = (onePuttPct !== null) ? (onePuttPct + '%' + (avgOnePuttDist != null ? (' (' + formatDistance(avgOnePuttDist) + ')') : '')) : '-';
+  statPenalties.textContent = penalties;
+  statThreePuttPct.textContent = (threePuttPct !== null) ? (threePuttPct + '%' + (avgThreePuttDist != null ? (' (' + formatDistance(avgThreePuttDist) + ')') : '')) : '-';
+  statLongestDrive.textContent = longestDrive > 0 ? formatDistance(longestDrive) : '-';
+  statAvgDrive.textContent = avgDrive > 0 ? formatDistance(avgDrive) : '-';
+  statDrive250Plus.textContent = drive250PlusCount || 0;
+  statBBD.textContent = `${birdiesCount} / ${bogeysCount} / ${doublesCount}`;
+  statProximity.textContent = proxAvg != null ? formatDistance(proxAvg) : '-';
+  statClubProximity.textContent = clubProxAvg != null ? formatDistance(clubProxAvg) : '-';
+  statDriverFairPct.textContent = (driverFairPct !== null) ? (driverFairPct + '%') : '-';
+  // club averages display (non-driver details are in clubDataPanel)
+  if (clubStatsEl){
+    clubStatsEl.innerHTML = '';
+  }
+    // populate the club table inside clubDataPanel (include all clubs used on any hole)
+    if (clubDataPanel){
+      // build counts from all shots (count every shot that has a shotType)
+      const clubCounts = {};
+      const clubOnGreen = {}; // track how many times each club landed On/Green
+      const clubProx = {}; // per-club proximity with first-putt-reflected rule
+      for (let ii=1; ii<=18; ii++){
+        const sArr2 = shotsByHole[ii] || [];
+        const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(sArr2);
+        sArr2.forEach(sh => {
+          if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+            clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+            const res = (sh.result || '').toString();
+                if (isGreenResult(res)){
+                  clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
+                  if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
+                    if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
+                    const approachDist = Math.abs(Number(sh.distanceToHole));
+                    const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
+                    clubProx[sh.shotType].push(adjustedProx);
+                  }
+                }
+          }
+        });
+      }
+      const rows = [];
+      for (const club in clubCounts){
+        const count = clubCounts[club] || 0;
+        const arr = (clubDistances[club] && clubDistances[club].length) ? clubDistances[club] : [];
+        const avg = arr.length ? Math.round(arr.reduce((s,n)=>s+n,0)/arr.length) : '-';
+        const onGreen = clubOnGreen[club] || 0;
+        const onGreenPct = count ? Math.round((onGreen / count) * 1000) / 10 : null;
+        const proxArr = (clubProx[club] && clubProx[club].length) ? clubProx[club] : [];
+        const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '-';
+        rows.push({club, count, avg, onGreen, onGreenPct, proxAvg});
+      }
+      // sort by our custom club order, then by count desc and name as a fallback
+      rows.sort((a,b)=>{
+        const ord = clubCompareByOrder(a.club, b.club);
+        if (ord !== 0) return ord;
+        return (b.count - a.count) || a.club.localeCompare(b.club);
+      });
+      if (!rows.length){
+        clubDataPanel.innerHTML = '<div class="tiny muted">No data</div>';
+      } else {
+        // Build distance-based statistics (60y, 100y, 130y, 150y, 170y, 200y)
+        const distBuckets = ['60y 이내', '100y 이내', '130y 이내', '150y 이내', '170y 이내', '200y 이내'];
+        function getDistBucket(dist){
+          if (dist == null || isNaN(dist)) return null;
+          const d = Number(dist);
+          if (d <= 60) return '60y 이내';
+          if (d <= 100) return '100y 이내';
+          if (d <= 130) return '130y 이내';
+          if (d <= 150) return '150y 이내';
+          if (d <= 170) return '170y 이내';
+          if (d <= 200) return '200y 이내';
+          return null;
+        }
+        const distStats = {};
+        for (let di=1;di<=18;di++){
+          const arr = shotsByHole[di] || [];
+          const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
+          let prevRemaining = (HOLES[di] && HOLES[di].yard && !isNaN(Number(HOLES[di].yard))) ? Number(HOLES[di].yard) : null;
+          const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+          ordered.forEach(sh => {
+            const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+            if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+              const shotDist = Math.max(0, prevRemaining - curRem);
+              const bucket = getDistBucket(shotDist);
+              if (bucket){
+                if (!distStats[bucket]) distStats[bucket] = {count:0, distances:[], onGreen:0, proximities:[]};
+                distStats[bucket].count += 1;
+                distStats[bucket].distances.push(shotDist);
+                const res = (sh.result || '').toString();
+                if (isGreenResult(res)){
+                  distStats[bucket].onGreen += 1;
+                  const approachDist = Math.abs(Number(sh.distanceToHole));
+                  const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
+                  distStats[bucket].proximities.push(adjustedProx);
+                }
+              }
+            }
+            if (curRem != null) prevRemaining = curRem;
+          });
+        }
+        const distRows = distBuckets.map(bucket => {
+          const stats = distStats[bucket] || {count:0, distances:[], onGreen:0, proximities:[]};
+          const avg = stats.distances.length ? Math.round(stats.distances.reduce((s,n)=>s+n,0)/stats.distances.length) : '-';
+          const ongPct = stats.count ? Math.round((stats.onGreen / stats.count) * 1000) / 10 : null;
+          const proxAvg = stats.proximities.length ? Math.round(stats.proximities.reduce((s,n)=>s+n,0)/stats.proximities.length) : '-';
+          return {bucket, count: stats.count, avg, ong: stats.onGreen, ongPct, proxAvg};
+        });
+        
+        // Build side-by-side tables
+        let html = '<div style="display:flex; gap:20px; flex-wrap:wrap;">';
+        
+        // Club data table
+        html += '<div style="flex: 1 1 400px; min-width:300px;">';
+        html += '<div style="margin-bottom:8px; font-weight:bold;">Club Data</div>';
+        html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        html += `<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Club</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen %</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd; white-space:nowrap;" title="클럽별: max(approach, first putt start) / Per-club: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+        html += '<tbody>' + rows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.club}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.club==='Driver' ? '-' : r.onGreen}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.club==='Driver' ? '-' : (r.onGreenPct!=null ? (r.onGreenPct + '%') : '-')}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.club==='Driver' ? '-' : (r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-')}</td></tr>`).join('') + '</tbody>';
+        html += '</table>';
+        html += '</div>';
+        
+        // Distance stats table
+        html += '<div style="flex: 1 1 400px; min-width:300px;">';
+        html += '<div style="margin-bottom:8px; font-weight:bold;">거리별 통계 (Distance Stats)</div>';
+        html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        html += `<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen %</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd; white-space:nowrap;" title="거리구간: max(approach, first putt start) / By distance: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+        html += '<tbody>' + distRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.bucket}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count ? r.ong : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count ? (r.ongPct!=null ? (r.ongPct + '%') : '-') : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-'}</td></tr>`).join('') + '</tbody>';
+        html += '</table>';
+        html += '</div>';
+        
+        html += '</div>';
+        clubDataPanel.innerHTML = html;
+      }
+      // ensure panel is collapsed by default
+      if (!clubDataPanel.classList.contains('hidden')) clubDataPanel.classList.add('hidden');
+    }
+    // Build putt stats: separate by Distance and by Slope
+    try{
+      // Distance-based putting stats
+      const puttStatsByDist = {};
+      function distBucket(d){ 
+        if (d == null || isNaN(Number(d))) return 'Unknown'; 
+        d = Number(d); 
+        if (d <= 2) return '2y 이내';
+        if (d <= 5) return '5y 이내';
+        if (d <= 7) return '7y 이내';
+        if (d <= 10) return '10y 이내';
+        return '10y 이상';
+      }
+      // Slope-based putting stats (unified across all distances)
+      const puttStatsBySlope = {};
+      
+      for (let i=1;i<=18;i++){
+        const arr = shotsByHole[i] || [];
+        // 온그린 및 프린지 퍼팅 필터링
+        const onGreenPutterShots = arr.filter(sh => {
+          if (!sh || sh.shotType !== 'Putter') return false;
+          const lie = (sh.lie || '').toString().trim().toLowerCase();
+          return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+        });
+        
+        if (onGreenPutterShots.length === 0) continue;
+        
+        // 각 퍼팅을 개별적으로 카운트
+        onGreenPutterShots.forEach((putt, index) => {
+          // 이 퍼팅의 시작 거리
+          const puttDist = (typeof putt.puttStartDistance !== 'undefined' && putt.puttStartDistance !== null) 
+            ? putt.puttStartDistance 
+            : putt.distanceToHole;
+          const bucket = distBucket(puttDist);
+          
+          // 이 퍼팅의 경사
+          const slope = putt.slope || 'Flat';
+          
+          // 이 퍼팅 이후 홀을 완료하는데 필요한 퍼팅 수 (남은 퍼팅 개수)
+          const puttsToFinish = onGreenPutterShots.length - index;
+          
+          // 마지막 퍼팅이면 홀인 성공, 아니면 실패
+          const isLastPutt = (index === onGreenPutterShots.length - 1);
+          
+          // Distance-based stats
+          if (!puttStatsByDist[bucket]) puttStatsByDist[bucket] = {bucket, attempts:0, makes:0, totalPutts:0};
+          puttStatsByDist[bucket].attempts += 1;
+          puttStatsByDist[bucket].totalPutts += puttsToFinish;
+          if (isLastPutt) puttStatsByDist[bucket].makes += 1;
+          
+          // Slope-based stats
+          if (!puttStatsBySlope[slope]) puttStatsBySlope[slope] = {slope, attempts:0, makes:0, totalPutts:0};
+          puttStatsBySlope[slope].attempts += 1;
+          puttStatsBySlope[slope].totalPutts += puttsToFinish;
+          if (isLastPutt) puttStatsBySlope[slope].makes += 1;
+        });
+      }
+      
+      const panel = document.getElementById('puttStatsPanel');
+      if (panel){
+        const distKeys = Object.keys(puttStatsByDist);
+        const slopeKeys = Object.keys(puttStatsBySlope);
+        if (!distKeys.length && !slopeKeys.length){ 
+          panel.innerHTML = '<div class="tiny muted">퍼팅 통계 데이터 없음</div>'; 
+        } else {
+          let html = '<div style="max-width:820px; margin-left:auto; margin-right:auto; overflow:auto; background:rgba(255,255,255,0.02); padding:8px; border-radius:8px;">';
+          
+          // Distance-based table
+          if (distKeys.length > 0) {
+            const distRows = distKeys.map(k=>{ 
+              const v = puttStatsByDist[k]; 
+              v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
+              v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
+              return v; 
+            });
+            // Sort by distance order
+            const distOrder = ['2y 이내', '5y 이내', '7y 이내', '10y 이내', '10y 이상', 'Unknown'];
+            distRows.sort((a,b)=> distOrder.indexOf(a.bucket) - distOrder.indexOf(b.bucket));
+            
+            html += '<div class="small muted" style="margin-bottom:6px"><strong>거리별 퍼팅 통계</strong></div>';
+            html += '<table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">';
+            html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
+            html += '<tbody>' + distRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
+            html += '</table>';
+          }
+          
+          // Slope-based table
+          if (slopeKeys.length > 0) {
+            const slopeRows = slopeKeys.map(k=>{ 
+              const v = puttStatsBySlope[k]; 
+              v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
+              v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
+              return v; 
+            });
+            // Sort by slope type
+            const slopeOrder = ['Flat', 'Uphill', 'Downhill', 'Sidehill'];
+            slopeRows.sort((a,b)=> {
+              const idxA = slopeOrder.indexOf(a.slope);
+              const idxB = slopeOrder.indexOf(b.slope);
+              if (idxA === -1 && idxB === -1) return a.slope.localeCompare(b.slope);
+              if (idxA === -1) return 1;
+              if (idxB === -1) return -1;
+              return idxA - idxB;
+            });
+            
+            html += '<div class="small muted" style="margin-bottom:6px"><strong>경사별 퍼팅 통계</strong></div>';
+            html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+            html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">경사</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
+            html += '<tbody>' + slopeRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.slope}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
+            html += '</table>';
+          }
+          
+          html += '</div>';
+          panel.innerHTML = html;
+        }
+      }
+    }catch(e){ console.warn('puttStats build failed', e); }
+  totalScoreLabel.textContent = displayTotalStrokes;
+  // par diff sign: show + for over par (strokes - par)
+  const parDiff = displayTotalStrokes - totalPar;
+  parDiffLabel.textContent = (parDiff >= 0 ? '+' : '') + parDiff;
+}
+
+// Build a printable summary element for all entered shots
+function buildSummaryElement(forPdf){
+  // ensure stats are current before building summary
+  try{ recomputeRound(); }catch(e){}
+  // compute avg proximity on green using same approach-selection rules as recomputeRound()
+  let _proximityDistances = [];
+  let _clubOnlyProximityDistances = [];
+  for (let i=1;i<=18;i++){
+    const arr = shotsByHole[i] || [];
+    // choose the approach shot the same way recomputeRound does: first non-putter
+    // shot within regulation (<= par-2), excluding certain par-5 second-shot cases.
+    const approach = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)).find(sh=>{
+      if (!sh || !sh.result) return false;
+      if (sh.shotType === 'Putter') return false;
+      const sn = Number(sh.shotNumber || 0);
+      const parAllowed = Math.max(0, Number(HOLES[i].par || 4) - 2);
+      if (!sn || sn > parAllowed) return false;
+      if (Number(HOLES[i].par) === 5 && sn === 2){
+        const k = normResultKey(sh.result);
+        if (k.indexOf('around') >= 0 || k.indexOf('greenside') >= 0 || k.indexOf('bunker_greenside') >= 0) return false;
+      }
+      return isGreenResult(sh.result);
+    });
+      if (approach){
+        const proximityDist = getOnGreenProximityDistance(approach, arr);
+        if (proximityDist != null) _proximityDistances.push(proximityDist);
+        const clubOnlyProximityDist = getApproachOnlyProximityDistance(approach);
+        if (clubOnlyProximityDist != null) _clubOnlyProximityDistances.push(clubOnlyProximityDist);
+      }
+  }
+  const proxAvgLocal = _proximityDistances.length ? Math.round(_proximityDistances.reduce((s,n)=>s+n,0)/_proximityDistances.length) : null;
+    const clubProxAvgLocal = _clubOnlyProximityDistances.length ? Math.round(_clubOnlyProximityDistances.reduce((s,n)=>s+n,0)/_clubOnlyProximityDistances.length) : null;
+  const container = document.createElement('div');
+  container.style.padding = '16px';
+  container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+  container.style.maxWidth = '900px';
+  container.style.width = 'min(900px,96vw)';
+  container.style.margin = '12px auto';
+  container.style.boxSizing = 'border-box';
+  const hdr = document.createElement('div');
+  hdr.style.display = 'flex';
+  hdr.style.justifyContent = 'space-between';
+  hdr.style.alignItems = 'flex-start';
+  hdr.style.gap = '12px';
+  const metaStr = `Player: ${playerNameInput.value || ''} · Date: ${roundDateInput.value || ''} · Course: ${courseNameInput.value || ''} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT} · Weather: ${document.getElementById('roundWeather').value || ''}`;
+  const left = document.createElement('div');
+  left.innerHTML = `<h2 style="margin:0">경기력 요약 / Performance Summary</h2><div style="margin-top:6px">${metaStr}</div>`;
+  const right = document.createElement('div');
+  right.style.fontFamily = "Georgia, 'Times New Roman', serif";
+  right.style.fontSize = '12px';
+  right.style.color = '#666';
+  right.style.fontStyle = 'italic';
+  right.style.alignSelf = 'center';
+  right.textContent = 'SY-Golf Round Logger';
+  hdr.appendChild(left);
+  hdr.appendChild(right);
+  container.appendChild(hdr);
+  const hr = document.createElement('hr'); hr.style.margin = '8px 0'; container.appendChild(hr);
+
+  // Shot details removed by user request — summary focuses on high-level metrics
+
+  // summary stats (explicit table) and club summary table
+  const statsWrap = document.createElement('div');
+  statsWrap.style.marginTop = '12px';
+  // build summary metrics table
+  const summaryTable = document.createElement('table');
+  summaryTable.style.width = '100%'; summaryTable.style.borderCollapse = 'collapse'; summaryTable.style.marginBottom = '10px'; summaryTable.style.fontSize = '14px';
+  summaryTable.innerHTML = `
+    <thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Metric</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Value</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Total Strokes</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${totalScoreLabel.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Total Putts</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statPutts.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Penalties</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statPenalties.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">GIR (%)</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statGIRPct.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">1-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statOnePuttPct.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">3-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statThreePuttPct.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Birdies/Bogeys/Doubles+</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statBBD ? statBBD.textContent : '0 / 0 / 0'}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green)</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${proxAvgLocal != null ? formatDistance(proxAvgLocal) : '-'}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${clubProxAvgLocal != null ? formatDistance(clubProxAvgLocal) : '-'}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Longest Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statLongestDrive.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Avg Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statAvgDrive.textContent}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">250yd over</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statDrive250Plus ? statDrive250Plus.textContent : '0'}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Driver Fairway %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statDriverFairPct ? statDriverFairPct.textContent : '-'}</td></tr>
+    </tbody>`;
+  statsWrap.appendChild(summaryTable);
+
+  // build club summary table (club, count, avg yd)
+  // compute club counts, average shot distances, OnGreen counts and per-club proximity averages (exclude Putter)
+  const clubCounts = {};
+  const clubDists = {};
+  const clubOnGreen = {};
+  const clubProx = {};
+  for (let i=1;i<=18;i++){
+    const arr = shotsByHole[i] || [];
+    const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
+    // prevRemaining starts from hole yard if available
+    let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+    const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+      ordered.forEach(sh => {
+      if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+      }
+      const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+      // distance per club (approx)
+      if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && prevRemaining != null){
+        const shotDist = Math.max(0, prevRemaining - curRem);
+        if (!clubDists[sh.shotType]) clubDists[sh.shotType] = [];
+        clubDists[sh.shotType].push(shotDist);
+      }
+      // OnGreen and proximity: if this shot landed on the green, record proximity for the club
+      if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        const res = (sh.result || '').toString();
+        if (isGreenResult(res)){
+          clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
+          if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
+            if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
+            const approachDist = Math.abs(Number(sh.distanceToHole));
+            const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
+            clubProx[sh.shotType].push(adjustedProx);
+          }
+        }
+      }
+      if (curRem != null) prevRemaining = curRem;
+    });
+  }
+  const clubRows = Object.keys(clubCounts).map(c=>{
+    const count = clubCounts[c] || 0;
+    const arr = (clubDists[c] && clubDists[c].length) ? clubDists[c] : [];
+    const avg = arr.length ? Math.round(arr.reduce((s,n)=>s+n,0)/arr.length) : '-';
+    const ong = clubOnGreen[c] || 0;
+    const ongPct = count ? Math.round((ong / count) * 1000) / 10 : null;
+    const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : [];
+    const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '-';
+    return {club: c, count, avg, ong, ongPct, proxAvg};
+  });
+      clubRows.sort((a,b)=>{
+        const ord = clubCompareByOrder(a.club, b.club);
+        if (ord !== 0) return ord;
+        return (b.count - a.count) || a.club.localeCompare(b.club);
+      });
+  const clubTable = document.createElement('table');
+  clubTable.style.width = '100%'; clubTable.style.minWidth = forPdf ? '0' : '620px'; clubTable.style.borderCollapse = 'collapse'; clubTable.style.fontSize = '13px';
+  clubTable.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Club</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Count</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">OnGreen (횟수%)</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;" title="클럽별: max(approach, first putt start) / Per-club: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+  const clubTbody = document.createElement('tbody');
+  if (!clubRows.length){
+    clubTbody.innerHTML = `<tr><td colspan="5" style="padding:6px;color:#777">No club data</td></tr>`;
+  } else {
+    clubRows.forEach(r=>{
+      const ongCell = r.club === 'Driver' ? '-' : (r.ong != null ? (r.ong + ' (' + (r.ongPct!=null ? (r.ongPct + '%') : '-') + ')') : '-');
+      const proxCell = r.club === 'Driver' ? '-' : (r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-');
+      const avgCell = r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.club}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${avgCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${ongCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${proxCell}</td>`;
+      clubTbody.appendChild(tr);
+    });
+  }
+  clubTable.appendChild(clubTbody);
+  
+  // Build distance-based statistics table (60y, 100y, 130y, 150y, 170y, 200y)
+  const distBuckets = ['60y 이내', '100y 이내', '130y 이내', '150y 이내', '170y 이내', '200y 이내'];
+  function getDistBucket(dist){
+    if (dist == null || isNaN(dist)) return null;
+    const d = Number(dist);
+    if (d <= 60) return '60y 이내';
+    if (d <= 100) return '100y 이내';
+    if (d <= 130) return '130y 이내';
+    if (d <= 150) return '150y 이내';
+    if (d <= 170) return '170y 이내';
+    if (d <= 200) return '200y 이내';
+    return null;
+  }
+  const distStats = {};
+  for (let i=1;i<=18;i++){
+    const arr = shotsByHole[i] || [];
+    const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
+    let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+    const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    ordered.forEach(sh => {
+      const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+      if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+        const shotDist = Math.max(0, prevRemaining - curRem);
+        const bucket = getDistBucket(shotDist);
+        if (bucket){
+          if (!distStats[bucket]) distStats[bucket] = {count:0, distances:[], onGreen:0, proximities:[]};
+          distStats[bucket].count += 1;
+          distStats[bucket].distances.push(shotDist);
+          const res = (sh.result || '').toString();
+          if (res === 'Green' || res === 'OnGreen' || res === 'green'){
+            distStats[bucket].onGreen += 1;
+            if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
+              const approachDist = Math.abs(Number(sh.distanceToHole));
+              const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
+              distStats[bucket].proximities.push(adjustedProx);
+            }
+          }
+        }
+      }
+      if (curRem != null) prevRemaining = curRem;
+    });
+  }
+  const distRows = distBuckets.map(bucket => {
+    const stats = distStats[bucket] || {count:0, distances:[], onGreen:0, proximities:[]};
+    const avg = stats.distances.length ? Math.round(stats.distances.reduce((s,n)=>s+n,0)/stats.distances.length) : '-';
+    const ongPct = stats.count ? Math.round((stats.onGreen / stats.count) * 1000) / 10 : null;
+    const proxAvg = stats.proximities.length ? Math.round(stats.proximities.reduce((s,n)=>s+n,0)/stats.proximities.length) : '-';
+    return {bucket, count: stats.count, avg, ong: stats.onGreen, ongPct, proxAvg};
+  });
+  const distTable = document.createElement('table');
+  distTable.style.width = '100%'; distTable.style.minWidth = forPdf ? '0' : '700px'; distTable.style.borderCollapse = 'collapse'; distTable.style.fontSize = '13px';
+  distTable.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">거리</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Count</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">OnGreen (횟수%)</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;" title="거리구간: max(approach, first putt start) / By distance: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+  const distTbody = document.createElement('tbody');
+  distRows.forEach(r=>{
+    const ongCell = r.count ? (r.ong + ' (' + (r.ongPct!=null ? (r.ongPct + '%') : '-') + ')') : '-';
+    const proxCell = r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-';
+    const avgCell = r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${avgCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${ongCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${proxCell}</td>`;
+    distTbody.appendChild(tr);
+  });
+  distTable.appendChild(distTbody);
+  
+  // Create a wrapper for both tables side by side
+  statsWrap.appendChild(document.createElement('div'));
+  const tablesContainer = document.createElement('div');
+  tablesContainer.style.display = 'flex';
+  tablesContainer.style.flexDirection = 'column';
+  tablesContainer.style.gap = '14px';
+  tablesContainer.style.flexWrap = 'nowrap';
+  tablesContainer.style.marginTop = '6px';
+  
+  const clubDataWrap = document.createElement('div');
+  clubDataWrap.style.flex = '1 1 auto';
+  clubDataWrap.style.width = '100%';
+  clubDataWrap.style.minWidth = '0';
+  clubDataWrap.style.overflowX = forPdf ? 'visible' : 'auto';
+  const clubTitle = document.createElement('div');
+  clubTitle.innerHTML = '<strong>Club Data</strong>';
+  clubTitle.style.marginBottom = '8px';
+  clubDataWrap.appendChild(clubTitle);
+  clubDataWrap.appendChild(clubTable);
+  
+  const distDataWrap = document.createElement('div');
+  distDataWrap.style.flex = '1 1 auto';
+  distDataWrap.style.width = '100%';
+  distDataWrap.style.minWidth = '0';
+  distDataWrap.style.overflowX = forPdf ? 'visible' : 'auto';
+  const distTitle = document.createElement('div');
+  distTitle.innerHTML = '<strong>거리별 통계 (Distance Stats)</strong>';
+  distTitle.style.marginBottom = '8px';
+  distDataWrap.appendChild(distTitle);
+  distDataWrap.appendChild(distTable);
+  
+  tablesContainer.appendChild(clubDataWrap);
+  tablesContainer.appendChild(distDataWrap);
+  statsWrap.appendChild(tablesContainer);
+  
+  // wrap summary and club tables so layout is compact and scrollable if needed
+  const statsWrapOuter = document.createElement('div');
+  statsWrapOuter.style.maxWidth = '820px';
+  statsWrapOuter.style.margin = '8px auto 0 auto';
+  statsWrapOuter.appendChild(statsWrap);
+  container.appendChild(statsWrapOuter);
+  // Putt statistics for summary: separate by Distance and by Slope
+  try{
+    // Distance-based putting stats (2y, 5y, 7y, 10y, 10y+)
+    const puttStatsByDist = {};
+    function distBucket(d){ 
+      if (d == null || isNaN(Number(d))) return 'Unknown'; 
+      d = Number(d); 
+      if (d <= 2) return '2y 이내';
+      if (d <= 5) return '5y 이내';
+      if (d <= 7) return '7y 이내';
+      if (d <= 10) return '10y 이내';
+      return '10y 이상';
+    }
+    // Slope-based putting stats (unified across all distances)
+    const puttStatsBySlope = {};
+    
+    for (let i=1;i<=18;i++){
+      const arr = shotsByHole[i] || [];
+      // 온그린 및 프린지 퍼팅 필터링
+      const onGreenPutterShots = arr.filter(sh => {
+        if (!sh || sh.shotType !== 'Putter') return false;
+        const lie = (sh.lie || '').toString().trim().toLowerCase();
+        return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+      });
+      
+      if (onGreenPutterShots.length === 0) continue;
+      
+      // 각 퍼팅을 개별적으로 카운트
+      onGreenPutterShots.forEach((putt, index) => {
+        // 이 퍼팅의 시작 거리
+        const puttDist = (typeof putt.puttStartDistance !== 'undefined' && putt.puttStartDistance !== null) 
+          ? putt.puttStartDistance 
+          : putt.distanceToHole;
+        const bucket = distBucket(puttDist);
+        
+        // 이 퍼팅의 경사
+        const slope = putt.slope || 'Flat';
+        
+        // 이 퍼팅 이후 홀을 완료하는데 필요한 퍼팅 수 (남은 퍼팅 개수)
+        const puttsToFinish = onGreenPutterShots.length - index;
+        
+        // 마지막 퍼팅이면 홀인 성공, 아니면 실패
+        const isLastPutt = (index === onGreenPutterShots.length - 1);
+        
+        // Distance-based stats
+        if (!puttStatsByDist[bucket]) puttStatsByDist[bucket] = {bucket, attempts:0, makes:0, totalPutts:0};
+        puttStatsByDist[bucket].attempts += 1;
+        puttStatsByDist[bucket].totalPutts += puttsToFinish;
+        if (isLastPutt) puttStatsByDist[bucket].makes += 1;
+        
+        // Slope-based stats
+        if (!puttStatsBySlope[slope]) puttStatsBySlope[slope] = {slope, attempts:0, makes:0, totalPutts:0};
+        puttStatsBySlope[slope].attempts += 1;
+        puttStatsBySlope[slope].totalPutts += puttsToFinish;
+        if (isLastPutt) puttStatsBySlope[slope].makes += 1;
+      });
+    }
+    
+    const distKeys = Object.keys(puttStatsByDist);
+    const slopeKeys = Object.keys(puttStatsBySlope);
+    const puttWrap = document.createElement('div'); 
+    puttWrap.style.marginTop = '10px'; 
+    puttWrap.style.maxWidth = '820px'; 
+    puttWrap.style.marginLeft = 'auto'; 
+    puttWrap.style.marginRight = 'auto'; 
+    puttWrap.style.marginRight = 'auto';
+    
+    if (!distKeys.length && !slopeKeys.length){ 
+      puttWrap.innerHTML = '<div class="tiny muted">퍼팅 통계 데이터 없음</div>'; 
+    } else {
+      let html = '<div style="overflow:auto; background:rgba(255,255,255,0.02); padding:8px; border-radius:8px;">';
+      
+      // Distance-based table
+      if (distKeys.length > 0) {
+        const distRows = distKeys.map(k=>{ 
+          const v = puttStatsByDist[k]; 
+          v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
+          v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
+          return v; 
+        });
+        // Sort by distance order
+        const distOrder = ['2y 이내', '5y 이내', '7y 이내', '10y 이내', '10y 이상', 'Unknown'];
+        distRows.sort((a,b)=> distOrder.indexOf(a.bucket) - distOrder.indexOf(b.bucket));
+        
+        html += '<div class="small muted" style="margin-bottom:6px"><strong>거리별 퍼팅 통계</strong></div>';
+        html += '<table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">';
+        html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
+        html += '<tbody>' + distRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
+        html += '</table>';
+      }
+      
+      // Slope-based table
+      if (slopeKeys.length > 0) {
+        const slopeRows = slopeKeys.map(k=>{ 
+          const v = puttStatsBySlope[k]; 
+          v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
+          v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
+          return v; 
+        });
+        // Sort by slope type
+        const slopeOrder = ['Flat', 'Uphill', 'Downhill', 'Sidehill'];
+        slopeRows.sort((a,b)=> {
+          const idxA = slopeOrder.indexOf(a.slope);
+          const idxB = slopeOrder.indexOf(b.slope);
+          if (idxA === -1 && idxB === -1) return a.slope.localeCompare(b.slope);
+          if (idxA === -1) return 1;
+          if (idxB === -1) return -1;
+          return idxA - idxB;
+        });
+        
+        html += '<div class="small muted" style="margin-bottom:6px"><strong>경사별 퍼팅 통계</strong></div>';
+        html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">경사</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
+        html += '<tbody>' + slopeRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.slope}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
+        html += '</table>';
+      }
+      
+      html += '</div>';
+      puttWrap.innerHTML = html;
+    }
+    container.appendChild(puttWrap);
+  }catch(e){ console.warn('buildSummaryElement puttStats failed', e); }
+  // emphasized total box at bottom of summary
+    try{
+    // compute totals directly from HOLES to avoid any DOM/ordering discrepancies
+    let totalDisplayNum = 0;
+    let totalParLocal = 0;
+    for (let i=1;i<=18;i++){
+      const h = HOLES[i] || {};
+      const strokes = (typeof h.computedStrokes !== 'undefined' && h.computedStrokes !== null) ? Number(h.computedStrokes) : (h.score != null ? Number(h.score) : 0);
+      totalDisplayNum += (isNaN(strokes) ? 0 : strokes);
+      totalParLocal += Number(h.par || 0);
+    }
+    const totalDisplay = String(totalDisplayNum);
+    const parDiffDisplay = (totalDisplayNum - totalParLocal >= 0 ? '+' : '') + (totalDisplayNum - totalParLocal);
+    const footerBox = document.createElement('div');
+    footerBox.style.display = 'flex';
+    footerBox.style.justifyContent = 'center';
+    footerBox.style.marginTop = '14px';
+    const inner = document.createElement('div');
+    // On-screen styling: green box using app accent, dark text for contrast; numeric values highlighted in orange.
+    inner.style.background = 'var(--accent)';
+    inner.style.color = '#04221a';
+    inner.style.padding = '12px 18px';
+    inner.style.borderRadius = '8px';
+    inner.style.fontWeight = '900';
+    inner.style.fontSize = '20px';
+    inner.style.letterSpacing = '0.2px';
+    inner.style.boxShadow = '0 6px 18px rgba(0,0,0,0.06)';
+    // use HTML so we can color the numeric parts differently on-screen
+    inner.innerHTML = `Total: <span class="summary-number" style="color:#ff8a00">${totalDisplay}</span> (Par diff: <span class="par-diff-number" style="color:#ff8a00">${parDiffDisplay}</span>)`;
+    footerBox.appendChild(inner);
+    container.appendChild(footerBox);
+  }catch(e){ console.warn('append footerBox failed', e); }
+  // If PDF output requested, enforce dark-on-white text for all descendants
+  if (forPdf){
+    container.style.background = '#ffffff';
+    container.style.color = '#000000';
+    // force printable width to A4 minus margins and avoid max-width clipping
+    container.style.maxWidth = 'none';
+    container.style.width = '190mm';
+    container.style.margin = '0 auto';
+    container.style.padding = '10mm';
+    container.style.boxSizing = 'border-box';
+    // ensure headings and table cells are dark on white and tables fit page
+    container.querySelectorAll('*').forEach(el => {
+      try{ el.style.color = '#000000'; }catch(e){}
+    });
+    // make every table use fixed layout and full width so cells don't overflow
+    container.querySelectorAll('table').forEach(t => {
+      try{ t.style.width = '100%'; t.style.tableLayout = 'fixed'; t.style.wordBreak = 'break-word'; }catch(e){}
+      try{ t.querySelectorAll('th,td').forEach(c=>{ c.style.wordBreak = 'break-word'; c.style.overflow = 'hidden'; }); }catch(e){}
+    });
+    // allow wrapping of long notes/strings
+    container.querySelectorAll('td,th,div,pre').forEach(el => { try{ el.style.wordBreak = 'break-word'; el.style.whiteSpace = 'normal'; }catch(e){} });
+  } else {
+    // preview (on-screen) should use the app's dark theme: force readable light text and transparent backgrounds
+    const rootStyle = getComputedStyle(document.documentElement);
+    const textColor = rootStyle.getPropertyValue('--text') || '#fff';
+    const cardBg = rootStyle.getPropertyValue('--card') || '#0b1320';
+    container.style.background = cardBg;
+    container.style.color = textColor;
+    container.querySelectorAll('*').forEach(el => {
+      try{ el.style.color = textColor; }catch(e){}
+      const tag = (el.tagName||'').toUpperCase();
+      if (tag === 'TABLE' || tag === 'TD' || tag === 'TH' || tag === 'THEAD' || tag === 'TBODY' || tag === 'TR'){
+        try{ el.style.backgroundColor = 'transparent'; }catch(e){}
+      }
+      if (tag === 'TH'){
+        try{ el.style.backgroundColor = 'rgba(255,255,255,0.04)'; }catch(e){}
+      }
+    });
+  }
+  return container;
+}
+
+function exportSummaryPDF(){
+  const el = buildSummaryElement(true);
+  // filename
+  function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi,'_').replace(/_+/g,'_'); }
+  const datePart = roundDateInput.value || new Date().toISOString().slice(0,10);
+  const playerPart = safeFileName(playerNameInput.value) ? (safeFileName(playerNameInput.value) + '_') : '';
+  const filename = `${playerPart}${datePart}_summary.pdf`;
+  // use html2pdf to generate and save
+  // Balanced settings: good visual quality but reasonable file size.
+  // - html2canvas.scale: 1.5 (not too large)
+  // - image.quality: 0.86 (JPEG quality)
+  // - useCORS: true to allow external fonts/assets when possible
+  const opt = {
+    margin:10,
+    filename: filename,
+    image:{type:'jpeg', quality:0.86},
+    html2canvas:{scale:1.5, useCORS:true},
+    jsPDF:{unit:'mm', format:'a4', orientation:'portrait', compress:true},
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+
+function showSummaryPreview(){
+  const el = buildSummaryElement(false);
+  // create modal
+  const overlay = document.createElement('div'); overlay.className='modal-overlay';
+  const box = document.createElement('div'); box.className='modal-box';
+  box.appendChild(el);
+  const actions = document.createElement('div'); actions.className='modal-actions';
+  const btnDownload = document.createElement('button'); btnDownload.className='btn'; btnDownload.textContent='다운로드 PDF';
+  const btnClose = document.createElement('button'); btnClose.className='btn ghost'; btnClose.textContent='닫기';
+  actions.appendChild(btnClose); actions.appendChild(btnDownload);
+  box.appendChild(actions);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  // close handler
+  btnClose.addEventListener('click', ()=>{ document.body.removeChild(overlay); });
+  btnDownload.addEventListener('click', ()=>{ exportSummaryPDF(); document.body.removeChild(overlay); });
+}
+
+/* ===== Styled PDF report (green-themed) ===== */
+function buildStyledReport(forPdf){
+  // container box
+  const wrap = document.createElement('div');
+  wrap.style.fontFamily = 'Pretendard, Arial, Helvetica, sans-serif';
+  wrap.style.boxSizing = 'border-box';
+  wrap.style.maxWidth = '900px';
+  wrap.style.margin = '0 auto';
+  wrap.style.padding = '18px';
+  // header band
+  const header = document.createElement('div');
+  header.style.background = '#eaf8ef';
+  header.style.border = '1px solid #c7edd0';
+  header.style.padding = '12px 18px';
+  header.style.borderRadius = '8px';
+  const reportTitle = 'SY-Golf Round Report';
+  const reportSub = `Player: ${playerNameInput.value || ''} · Date: ${roundDateInput.value || ''} · Course: ${courseNameInput.value || ''}`;
+  header.innerHTML = `<h1 style="margin:0;color:#157a49;font-size:20px">${reportTitle}</h1><div style="color:#13633f;margin-top:6px;font-weight:600;font-size:13px">${reportSub}</div>`;
+  wrap.appendChild(header);
+
+  // score box
+  const scoreBox = document.createElement('div');
+  scoreBox.style.background = '#ffffff';
+  scoreBox.style.border = '1px solid #dfefe0';
+  scoreBox.style.padding = '18px';
+  scoreBox.style.borderRadius = '6px';
+  scoreBox.style.marginTop = '14px';
+  scoreBox.style.textAlign = 'center';
+  const mainScore = (typeof totalScoreLabel !== 'undefined' && totalScoreLabel.textContent) ? totalScoreLabel.textContent : '0';
+  scoreBox.innerHTML = `<div style="color:#6b6b6b;font-size:14px">Combined Total Score</div><div style="font-size:44px;color:#179f5f;font-weight:800;margin-top:6px">${mainScore}</div><div style="color:#9aa9a0;margin-top:6px">/ 100 points</div>`;
+  wrap.appendChild(scoreBox);
+
+  // Combined Results by Metric (use existing summary table rows)
+  const sectionTitle = document.createElement('h2');
+  sectionTitle.style.color = '#157a49';
+  sectionTitle.style.marginTop = '14px';
+  sectionTitle.style.fontSize = '16px';
+  sectionTitle.style.fontWeight = '700';
+  sectionTitle.textContent = '경기력요약 (Combined Results)';
+  wrap.appendChild(sectionTitle);
+
+  // Build a compact table using existing shots and stats
+  const table = document.createElement('table');
+  table.style.width = '100%';
+  table.style.borderCollapse = 'collapse';
+  table.style.marginTop = '8px';
+  table.style.fontSize = '13px';
+  table.innerHTML = '<thead><tr><th style="text-align:left;padding:8px;border-bottom:2px solid #cfead9;background:#dff7e9">Metric</th><th style="text-align:left;padding:8px;border-bottom:2px solid #cfead9;background:#dff7e9">Detail</th><th style="text-align:right;padding:8px;border-bottom:2px solid #cfead9;background:#dff7e9">Score</th></tr></thead>';
+  const tBody = document.createElement('tbody');
+
+  // populate with a few key metrics from the summary (if present)
+  const metrics = [
+    {k:'Total Strokes', v: (typeof totalScoreLabel!=='undefined'? totalScoreLabel.textContent : '0')},
+    {k:'Total Putts', v: (typeof statPutts!=='undefined'? statPutts.textContent : '0')},
+    {k:'Penalties', v: (typeof statPenalties!=='undefined'? statPenalties.textContent : '0')},
+    {k:'Avg Proximity (on green)', v: (typeof statProximity!=='undefined'? statProximity.textContent : '-')},
+  ];
+  metrics.forEach(m=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.06)">${m.k}</td><td style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.06)">-</td><td style="padding:8px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${m.v}</td>`;
+    tBody.appendChild(tr);
+  });
+  table.appendChild(tBody);
+  wrap.appendChild(table);
+
+  // club data small table
+  const clubTitle = document.createElement('div'); clubTitle.style.marginTop='12px'; clubTitle.style.fontWeight='700'; clubTitle.textContent='Club Data';
+  wrap.appendChild(clubTitle);
+  const clubTbl = document.createElement('table'); clubTbl.style.width='100%'; clubTbl.style.borderCollapse='collapse'; clubTbl.style.fontSize='13px';
+  clubTbl.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Club</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Count</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">OnGreen</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">OnGreen %</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06); white-space:nowrap;" title="클럽별: max(approach, first putt start) / Per-club: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+  const clubTbody2 = document.createElement('tbody');
+  const clubList = [];
+  const clubOnGreen = {};
+  const clubProx = {};
+  for (let i=1;i<=18;i++){
+    const arr = shotsByHole[i] || [];
+    const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
+    arr.forEach(sh=>{ if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+      clubList.push(sh.shotType);
+      const res = (sh.result || '').toString();
+      if (isGreenResult(res)){
+        clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
+        if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
+          if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
+          const approachDist = Math.abs(Number(sh.distanceToHole));
+          const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
+          clubProx[sh.shotType].push(adjustedProx);
+        }
+      }
+    }});
+  }
+  const counts2 = {};
+  clubList.forEach(c=> counts2[c] = (counts2[c]||0)+1);
+  const keys = Object.keys(counts2).slice(0,10);
+  keys.forEach(c=>{ const ong = clubOnGreen[c] || 0; const pct = counts2[c] ? Math.round((ong/counts2[c])*1000)/10 : null; const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : []; const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : null; const tr=document.createElement('tr'); tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid rgba(0,0,0,0.06)">${c}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${counts2[c]}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${c==='Driver' ? '-' : ong}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${c==='Driver' ? '-' : (pct!=null ? (pct + '%') : '-')}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${c==='Driver' ? '-' : (proxAvg!=null ? formatDistance(proxAvg, true) : '-')}</td>`; clubTbody2.appendChild(tr); });
+  if (!keys.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="5" style="padding:6px;color:#888">No club data</td>'; clubTbody2.appendChild(tr); }
+  clubTbl.appendChild(clubTbody2);
+  wrap.appendChild(clubTbl);
+
+  // Putt stats for styled report (compact)
+  try{
+    const puttStats = {};
+    function distBucket(d){ if (d == null || isNaN(Number(d))) return 'Unknown'; d = Number(d); if (d <= 3) return '0-3'; if (d <= 8) return '4-8'; if (d <= 15) return '9-15'; if (d <= 30) return '16-30'; return '31+'; }
+    for (let i=1;i<=18;i++){
+      const arr = shotsByHole[i] || [];
+      arr.forEach(sh=>{
+        if (!sh || sh.shotType !== 'Putter') return;
+        const lie = sh.lie || 'OnGreen';
+        const slope = sh.slope || 'Flat';
+        const start = (typeof sh.puttStartDistance !== 'undefined' && sh.puttStartDistance !== null) ? sh.puttStartDistance : sh.distanceToHole;
+        const bucket = distBucket(start);
+        const key = `${lie}|${slope}|${bucket}`;
+        if (!puttStats[key]) puttStats[key] = {lie, slope, bucket, attempts:0, makes:0, totalPutts:0};
+        puttStats[key].attempts += 1;
+        puttStats[key].totalPutts += Number(sh.putts || 0);
+        if (String(sh.result).toLowerCase() === 'inhole') puttStats[key].makes += 1;
+      });
+    }
+    const keys = Object.keys(puttStats).sort();
+    const pTable = document.createElement('table'); pTable.style.width='100%'; pTable.style.borderCollapse='collapse'; pTable.style.fontSize='13px';
+    pTable.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Lie/Slope/Dist</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Attempts</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Make %</th></tr></thead>`;
+    const pBody = document.createElement('tbody');
+    if (!keys.length){ const tr = document.createElement('tr'); tr.innerHTML = `<td colspan="3" style="padding:6px;color:#888">No putt data</td>`; pBody.appendChild(tr); }
+    else {
+      keys.forEach(k=>{ const v = puttStats[k]; const pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; const tr = document.createElement('tr'); tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid rgba(0,0,0,0.06)">${v.lie} / ${v.slope} / ${v.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${v.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${pct}%</td>`; pBody.appendChild(tr); });
+    }
+    pTable.appendChild(pBody);
+    const pTitle = document.createElement('div'); pTitle.style.marginTop='12px'; pTitle.style.fontWeight='700'; pTitle.textContent='Putt Stats';
+    wrap.appendChild(pTitle); wrap.appendChild(pTable);
+  }catch(e){ console.warn('styled putt stats failed', e); }
+
+  if (forPdf){
+    // make background white for PDF
+    wrap.style.background = '#ffffff';
+    wrap.style.color = '#000000';
+  } else {
+    wrap.style.background = 'transparent';
+    wrap.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#fff';
+  }
+  return wrap;
+}
+
+function exportStyledPDF(){
+  const el = buildStyledReport(true);
+  const filename = `golf_round_styled_${roundDateInput.value || new Date().toISOString().slice(0,10)}.pdf`;
+  // Styled PDF: use same balanced settings to reduce file size while keeping quality
+  const opt = {
+    margin:10,
+    filename: filename,
+    image:{type:'jpeg', quality:0.86},
+    html2canvas:{scale:1.5, useCORS:true},
+    jsPDF:{unit:'mm', format:'a4', orientation:'portrait', compress:true},
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+
+// Return html2pdf options for a given preset key
+function getPdfOptionsForPreset(preset, filename){
+  const map = {
+    'hq': { imageQuality:0.95, scale:2.5 },
+    'balanced': { imageQuality:0.86, scale:1.5 },
+    'small': { imageQuality:0.72, scale:1 }
+  };
+  const p = map[preset] || map.balanced;
+  return {
+    margin:10,
+    filename: filename,
+    image:{type:'jpeg', quality:p.imageQuality},
+    html2canvas:{scale:p.scale, useCORS:true},
+    jsPDF:{unit:'mm', format:'a4', orientation:'portrait', compress:true},
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+}
+
+// Export built summary with chosen preset
+function exportSummaryWithPreset(preset){
+  const el = buildSummaryElement(true);
+  function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi,'_').replace(/_+/g,'_'); }
+  const datePart = roundDateInput.value || new Date().toISOString().slice(0,10);
+  const playerPart = safeFileName(playerNameInput.value) ? (safeFileName(playerNameInput.value) + '_') : '';
+  const filename = `${playerPart}${datePart}_summary.pdf`;
+  const opt = getPdfOptionsForPreset(preset, filename);
+  html2pdf().set(opt).from(el).save();
+}
+
+// Preview: render summary to canvas using html2canvas with the preset's scale and show modal image
+function previewSummaryWithPreset(preset){
+  const el = buildSummaryElement(true);
+  const opt = getPdfOptionsForPreset(preset, 'preview.pdf');
+  // use html2canvas directly to create a preview image
+  try{
+    // html2canvas works more reliably when the target node is attached to the document.
+    // Attach the generated summary off-screen, render it, then remove it.
+    el.style.position = 'fixed';
+    el.style.left = '-10000px';
+    el.style.top = '-10000px';
+    el.style.zIndex = '99999';
+    // ensure it is visible for rendering (opacity 1)
+    el.style.opacity = '1';
+    document.body.appendChild(el);
+    // allow layout to settle
+    requestAnimationFrame(()=>{
+      html2canvas(el, opt.html2canvas).then(canvas => {
+        try{ if (el && el.parentNode) el.parentNode.removeChild(el); }catch(e){}
+        const dataUrl = canvas.toDataURL('image/jpeg', opt.image.quality || 0.86);
+        const overlay = document.createElement('div'); overlay.className='modal-overlay';
+        const box = document.createElement('div'); box.className='modal-box';
+        const img = document.createElement('img'); img.src = dataUrl; img.style.width = '100%'; img.style.height = 'auto'; img.style.display = 'block'; img.style.border = '1px solid #ddd'; img.style.background = '#fff';
+        box.appendChild(img);
+        const actions = document.createElement('div'); actions.className='modal-actions';
+        const btnClose = document.createElement('button'); btnClose.className='btn ghost'; btnClose.textContent = '닫기';
+        const btnDownloadPdf = document.createElement('button'); btnDownloadPdf.className='btn'; btnDownloadPdf.textContent = '다운로드 PDF';
+        actions.appendChild(btnClose); actions.appendChild(btnDownloadPdf);
+        box.appendChild(actions); overlay.appendChild(box); document.body.appendChild(overlay);
+        btnClose.addEventListener('click', ()=>{ document.body.removeChild(overlay); });
+        btnDownloadPdf.addEventListener('click', ()=>{ document.body.removeChild(overlay); exportSummaryWithPreset(preset); });
+      }).catch(e=>{
+        try{ if (el && el.parentNode) el.parentNode.removeChild(el); }catch(e){}
+        console.error('previewSummaryWithPreset html2canvas failed', e);
+        alert('미리보기 생성에 실패했습니다. PDF로 직접 내보내기 시도하세요.');
+      });
+    });
+  }catch(e){ alert('미리보기 불가: ' + (e && e.message)); }
+}
+
+// Styled report button removed — exportStyledPDF() remains available if needed in future.
+
+const btnShowAllDataEl = document.getElementById('btnShowAllData');
+if (btnShowAllDataEl) btnShowAllDataEl.addEventListener('click', showSummaryPreview);
+
+// Preview button (uses Balanced preset)
+const btnPreviewPdf = document.getElementById('btnPreviewPdf');
+if (btnPreviewPdf) btnPreviewPdf.addEventListener('click', ()=>{ previewSummaryWithPreset('balanced'); });
+// Fill sample data for quick verification (debug helper)
+const btnFillSample = document.getElementById('btnFillSample');
+function fillSampleData(){
+  // reset holes and shots
+  initHoles();
+  for (let i=1;i<=18;i++) shotsByHole[i]=[];
+  // Hole 1: approach on green, 1-putt (distance 6)
+  HOLES[1].par = 4; HOLES[1].yard = 420;
+  shotsByHole[1].push({ hole:1, shotNumber:1, shotType:'7Iron', result:'Green', distanceToHole:6, putts:0, penalty:0, note:'approach' });
+  shotsByHole[1].push({ hole:1, shotNumber:2, shotType:'Putter', result:'InHole', distanceToHole:6, putts:1, penalty:0, note:'putt' });
+  // Hole 3: approach on green, 3-putt (distance 12)
+  HOLES[3].par = 3; HOLES[3].yard = 150;
+  shotsByHole[3].push({ hole:3, shotNumber:1, shotType:'7Iron', result:'Green', distanceToHole:12, putts:0, penalty:0, note:'approach' });
+  shotsByHole[3].push({ hole:3, shotNumber:2, shotType:'Putter', result:'InHole', distanceToHole:12, putts:3, penalty:0, note:'putts' });
+  // some other holes with no putts
+  renderHoles();
+  recomputeRound();
+  // open analysis card and show alert
+  try{ document.getElementById('holesContainer').classList.remove('hidden'); if (analysisCard) analysisCard.classList.remove('hidden'); }catch(e){}
+  alert('샘플 데이터가 채워졌습니다. Analysis & Export에서 1-Putt/3-Putt 평균 거리를 확인하세요.');
+}
+if (btnFillSample) btnFillSample.addEventListener('click', fillSampleData);
+
+/* ===== Export CSV / XLSX ===== */
+function downloadBlob(filename, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 5000);
+}
+
+function exportCSV(){
+  const meta = { player: playerNameInput.value || '', date: roundDateInput.value || '', course: courseNameInput.value || '' };
+  const lines = [];
+  // header
+  lines.push(['Player', meta.player, '', 'Date', meta.date, '', 'Course', meta.course].join(','));
+  lines.push('');
+  // summary metrics (Birdies/Bogeys/Doubles+)
+  try{ lines.push(['Birdies/Bogeys/Doubles+', (statBBD ? statBBD.textContent : '0 / 0 / 0')].join(',')); lines.push(''); }catch(e){}
+  // shots header
+  const hdr = ['Hole','Par','HoleYard','ShotNumber','ShotType','Result','DistanceToHole','Putts','Penalty','Note','Lie','Slope','PuttStartDistance','Timestamp'];
+  lines.push(hdr.join(','));
+  for (let i=1;i<=18;i++){
+    const hole = HOLES[i];
+    const arr = shotsByHole[i] || [];
+    if (!arr.length){
+      // skip holes without individual shot rows (summary exists in Holes sheet)
+    } else {
+      arr.forEach(s=>{
+        const row = [
+          s.hole,
+          hole.par,
+          hole.yard || '',
+          s.shotNumber,
+          s.shotType,
+          `"${(s.result||'').toString().replace(/"/g,'""')}"`,
+          s.distanceToHole != null ? s.distanceToHole : '',
+          s.putts != null ? s.putts : '',
+          (s.penalty != null ? String(s.penalty) : '0'),
+          `"${(s.note||'').toString().replace(/"/g,'""')}"`,
+          s.lie || '',
+          s.slope || '',
+          s.puttStartDistance != null ? s.puttStartDistance : '',
+          s.timestamp
+        ];
+        lines.push(row.join(','));
+      });
+    }
+  }
+  // Add Holes summary section with 3-Putt column
+  lines.push('');
+  const holeHdr = ['Hole','Par','Yard','Score','ShotsCount','FairwayHit','GIR','Putts','3Putts','Penalties'];
+  lines.push(holeHdr.join(','));
+  for (let i=1;i<=18;i++){
+    const h = HOLES[i];
+    const arr = shotsByHole[i] || [];
+    const shotsCount = arr.length;
+    const drive = arr.find(sh=>sh.shotType==='Drive' || sh.shotType==='Driver');
+    const fairwayHit = drive && (drive.result==='Fairway' || drive.result==='fairway') && (h.par>=4) ? 1 : 0;
+    const approach = arr.find(sh=>sh.result==='Green' || sh.result==='OnGreen' || sh.result==='green');
+    const girVal = approach ? 1 : 0;
+    const putts = arr.reduce((sum,sh)=>sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0),0);
+    const threePutts = putts >= 3 ? 1 : 0;
+    const penalties = arr.reduce((sum,sh)=>sum + (Number(sh.penalty) || 0),0);
+    const compStrokes = (h.computedStrokes !== undefined ? h.computedStrokes : (h.score != null ? h.score : ''));
+    lines.push([i, h.par, h.yard || '', compStrokes, shotsCount, fairwayHit, girVal, putts, threePutts, penalties].join(','));
+  }
+  // Club Data section: compute per-club counts, avg distance, OnGreen count/percent, avg proximity
+  lines.push('');
+  lines.push(['Club','Count',`Avg(${DISTANCE_UNIT})`,'OnGreen(횟수%)',`AvgProx(${DISTANCE_UNIT})`].join(','));
+  {
+    const clubCounts = {};
+    const clubDists = {};
+    const clubOnGreen = {};
+    const clubProx = {};
+    for (let i=1;i<=18;i++){
+      const arr = shotsByHole[i] || [];
+      let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+      const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+      ordered.forEach(sh=>{
+          if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+            clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+          }
+        const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+        if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && prevRemaining != null){
+          const shotDist = Math.max(0, prevRemaining - curRem);
+          if (!clubDists[sh.shotType]) clubDists[sh.shotType] = [];
+          clubDists[sh.shotType].push(shotDist);
+        }
+        if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+          const res = (sh.result || '').toString();
+          if (res === 'Green' || res === 'OnGreen' || res === 'green'){
+            clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
+            if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
+              if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
+              clubProx[sh.shotType].push(Math.abs(Number(sh.distanceToHole)));
+            }
+          }
+        }
+        if (curRem != null) prevRemaining = curRem;
+      });
+    }
+    const clubs = Object.keys(clubCounts).sort((a,b)=>{
+      const ord = clubCompareByOrder(a,b);
+      if (ord !== 0) return ord;
+      return (clubCounts[b] - clubCounts[a]) || a.localeCompare(b);
+    });
+    clubs.forEach(c=>{
+      const count = clubCounts[c] || 0;
+      const dArr = (clubDists[c] && clubDists[c].length) ? clubDists[c] : [];
+      const avg = dArr.length ? Math.round(dArr.reduce((s,n)=>s+n,0)/dArr.length) : '';
+      const avgConverted = avg !== '' ? convertDistance(avg, DISTANCE_UNIT) : '';
+      const ong = clubOnGreen[c] || 0;
+      const ongPct = count ? (Math.round((ong/count)*1000)/10) : '';
+      const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : [];
+      const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '';
+      const ongDisplay = c === 'Driver' ? '-' : (ong !== undefined ? (ong + ' (' + (ongPct !== '' ? (ongPct + '%') : '') + ')') : '');
+      const proxDisplay = c === 'Driver' ? '-' : (proxAvg !== '' ? formatDistance(proxAvg, true) : '');
+      lines.push([c, count, avgConverted, ongDisplay, proxDisplay].join(','));
+    });
+  }
+  // Prefix with UTF-8 BOM so Excel on Windows recognizes UTF-8 (prevents 한글 깨짐)
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const filename = `golf_round_${meta.date || (new Date().toISOString().slice(0,10))}.csv`;
+  downloadBlob(filename, blob);
+}
+
+if (btnExportCSV) btnExportCSV.addEventListener('click', exportCSV);
+
+// CSV Import: wire file input and import button
+const fileImportCsv = document.getElementById('fileImportCsv');
+const btnImportCsv = document.getElementById('btnImportCsv');
+if (btnImportCsv && fileImportCsv){
+  btnImportCsv.addEventListener('click', ()=> fileImportCsv.click());
+  fileImportCsv.addEventListener('change', (ev)=>{
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      try{ const txt = e.target.result; const rows = parseCSV(txt); processImportedCSV(rows); }catch(err){ alert('CSV 읽기 중 오류: ' + (err && err.message ? err.message : err)); }
+    };
+    reader.onerror = function(){ alert('파일을 읽을 수 없습니다.'); };
+    reader.readAsText(f, 'utf-8');
+  });
+}
+
+function parseCSV(text){
+  const rows = [];
+  let cur = '';
+  let row = [];
+  let inQuotes = false;
+  for (let i=0;i<text.length;i++){
+    const ch = text[i];
+    const next = text[i+1];
+    if (ch === '"'){
+      if (inQuotes && next === '"'){ cur += '"'; i++; continue; }
+      inQuotes = !inQuotes; continue;
+    }
+    if (!inQuotes && ch === ',') { row.push(cur); cur = ''; continue; }
+    if (!inQuotes && ch === '\r') continue;
+    if (!inQuotes && ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; continue; }
+    cur += ch;
+  }
+  if (cur !== '' || row.length>0) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+function processImportedCSV(rows){
+  if (!rows || rows.length===0) return alert('CSV에 데이터가 없습니다.');
+  
+  // Extract saved distance unit from first row (format: Player,name,,Date,date,,Course,course,,Unit,yd)
+  let savedUnit = 'yd'; // default
+  if (rows.length > 0 && rows[0]) {
+    const firstRow = rows[0].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
+    const unitIndex = firstRow.indexOf('Unit');
+    if (unitIndex >= 0 && unitIndex < firstRow.length - 1) {
+      const unitValue = firstRow[unitIndex + 1].trim();
+      if (unitValue === 'm' || unitValue === 'yd') {
+        savedUnit = unitValue;
+      }
+    }
+  }
+  
+  // Helper function to convert distance from saved unit to current unit
+  function convertDistanceValue(value, fromUnit, toUnit) {
+    if (!value || isNaN(value)) return value;
+    if (fromUnit === toUnit) return value;
+    const numValue = Number(value);
+    if (fromUnit === 'yd' && toUnit === 'm') {
+      return Math.round(numValue * 0.9144);
+    }
+    if (fromUnit === 'm' && toUnit === 'yd') {
+      return Math.round(numValue * 1.09361);
+    }
+    return numValue;
+  }
+  
+  // find shots header row robustly: prefer a row that contains 'ShotNumber' or 'ShotType'
+  let headerRowIndex = -1;
+  for (let i=0;i<rows.length;i++){
+    if (!rows[i] || rows[i].length===0) continue;
+    const cand = rows[i].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
+    const candLower = cand.map(c=>c.toLowerCase());
+    if (candLower.indexOf('shotnumber')>=0 || candLower.indexOf('shottype')>=0){ headerRowIndex = i; break; }
+  }
+  // fallback: first row that starts with 'Hole'
+  if (headerRowIndex === -1){
+    for (let i=0;i<rows.length;i++){
+      if (!rows[i] || rows[i].length===0) continue;
+      const rawFirst = String(rows[i][0]||'');
+      const first = rawFirst.replace(/^\uFEFF/, '').trim();
+      if (first.toLowerCase() === 'hole' || first === 'Hole') { headerRowIndex = i; break; }
+    }
+  }
+  if (headerRowIndex === -1) return alert('CSV 형식이 올바르지 않습니다 (샷 헤더를 찾을 수 없음).');
+  // normalize headers and strip BOM from each header cell
+  const headers = rows[headerRowIndex].map(h=>String(h||'').replace(/^\uFEFF/, '').trim());
+
+  // Clear existing data and reinitialize HOLES
+  for (let i=1;i<=18;i++) {
+    shotsByHole[i] = [];
+    // Reset hole data but preserve structure
+    HOLES[i] = { 
+      hole: i, 
+      yard: '', 
+      par: 4, 
+      score: null, 
+      computedStrokes: 0, 
+      manualScore: false, 
+      shots: [] 
+    };
+  }
+
+  // parse shot rows until we encounter a Holes summary header (which contains 'Hole' and ('Score' or 'TotalShots'))
+  let holesHeaderIndex = -1;
+  // First, find where the hole summary section starts
+  for (let r = headerRowIndex+1; r<rows.length; r++){
+    const line = rows[r];
+    if (!line || line.length===0) continue;
+    const lineNorm = line.map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
+    const lineLower = lineNorm.map(c=> c.toLowerCase());
+    // Check for hole summary header: contains 'Hole' and either 'Score' or 'TotalShots'
+    if (lineLower.indexOf('hole')>=0 && (lineLower.indexOf('score')>=0 || lineLower.indexOf('totalshots')>=0)){ 
+      holesHeaderIndex = r; 
+      break; 
+    }
+  }
+  
+  // Now parse shot data only up to the hole summary section (or end of file)
+  const parseEndIndex = (holesHeaderIndex > 0) ? holesHeaderIndex : rows.length;
+  
+  for (let r = headerRowIndex+1; r<parseEndIndex; r++){
+    const line = rows[r];
+    if (!line || line.length===0) continue;
+    // normalize cells for header detection
+    const lineNorm = line.map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
+
+    const first = lineNorm[0];
+    if (first === '') continue;
+    const hole = Number(line[headers.indexOf('Hole')]||line[0]||0);
+    if (!hole || hole<1 || hole>18) continue;
+    
+    // Skip rows with empty ShotType - these are not valid shots
+    const shotTypeIdx = headers.indexOf('ShotType');
+    if (shotTypeIdx >= 0){
+      const shotTypeVal = String(line[shotTypeIdx] || '').trim();
+      if (shotTypeVal === '') continue; // Skip rows without a club/shot type
+      // Skip rows where ShotType is purely numeric (likely hole summary data)
+      if (/^\d+$/.test(shotTypeVal)) continue;
+    }
+    
+    // Skip rows without valid ShotNumber (hole summary rows don't have shot numbers)
+    const snIdx = headers.indexOf('ShotNumber');
+    if (snIdx >= 0){
+      const snVal = String(line[snIdx] || '').trim();
+      if (snVal === '' || isNaN(Number(snVal))) continue;
+    }
+    if (headers.indexOf('Par')>=0){ HOLES[hole].par = Number(line[headers.indexOf('Par')]) || HOLES[hole].par; }
+    // Convert HoleYard from saved unit to current DISTANCE_UNIT
+    if (headers.indexOf('HoleYard')>=0){ 
+      const rawYard = line[headers.indexOf('HoleYard')] || HOLES[hole].yard;
+      HOLES[hole].yard = convertDistanceValue(rawYard, savedUnit, DISTANCE_UNIT);
+    }
+    // CSV에서 불러온 데이터는 자동 계산 모드로 시작
+    if (!HOLES[hole].manualScore) HOLES[hole].manualScore = false;
+    // Build shot object. If ShotNumber cell is present (non-empty), use it; otherwise fallback to next index.
+    const snRaw = (headers.indexOf('ShotNumber')>=0) ? (line[headers.indexOf('ShotNumber')]||'') : '';
+    const shotNumber = (String(snRaw).trim() !== '') ? Number(snRaw) : (shotsByHole[hole].length+1);
+    
+    // Convert distance values from saved unit to current DISTANCE_UNIT
+    const rawDistanceToHole = (headers.indexOf('DistanceToHole')>=0 && line[headers.indexOf('DistanceToHole')]!==undefined && line[headers.indexOf('DistanceToHole')]!=='') ? Number(line[headers.indexOf('DistanceToHole')]) : null;
+    const convertedDistanceToHole = rawDistanceToHole !== null ? convertDistanceValue(rawDistanceToHole, savedUnit, DISTANCE_UNIT) : null;
+    
+    const rawPuttStartDistance = headers.indexOf('PuttStartDistance')>=0 ? (line[headers.indexOf('PuttStartDistance')] || '') : '';
+    const convertedPuttStartDistance = rawPuttStartDistance ? convertDistanceValue(rawPuttStartDistance, savedUnit, DISTANCE_UNIT) : '';
+    
+    const sh = {
+      hole: hole,
+      shotNumber: shotNumber,
+      shotType: line[headers.indexOf('ShotType')] || '',
+      result: line[headers.indexOf('Result')] || '',
+      distanceToHole: convertedDistanceToHole,
+      putts: (headers.indexOf('Putts')>=0) ? (Number(line[headers.indexOf('Putts')]||0) || 0) : 0,
+      penalty: (headers.indexOf('Penalty')>=0) ? (Number(line[headers.indexOf('Penalty')]||0) || 0) : 0,
+      note: line[headers.indexOf('Note')] || '',
+      lie: headers.indexOf('Lie')>=0 ? (line[headers.indexOf('Lie')] || '').toString().trim() : (line[headers.indexOf('lie')] || '').toString().trim(),
+      slope: headers.indexOf('Slope')>=0 ? (line[headers.indexOf('Slope')] || '').toString().trim() : (line[headers.indexOf('slope')] || '').toString().trim(),
+      puttStartDistance: convertedPuttStartDistance,
+      timestamp: line[headers.indexOf('Timestamp')] || new Date().toISOString()
+    };
+    // 디버깅: Putter 샷의 lie 값 확인
+    if (sh.shotType === 'Putter') {
+      console.log(`Hole ${hole}, Shot ${shotNumber}: shotType=${sh.shotType}, lie="${sh.lie}", putts=${sh.putts}`);
+    }
+    shotsByHole[hole].push(sh);
+  }
+
+  // After shots parsed, try to find a Holes summary section (header row that includes 'Score' or 'TotalShots') and apply hole scores
+  if (typeof holesHeaderIndex === 'undefined' || holesHeaderIndex === -1){
+    for (let i=headerRowIndex+1;i<rows.length;i++){
+      if (!rows[i] || rows[i].length===0) continue;
+      const cand = rows[i].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
+      const candLower = cand.map(c=>c.toLowerCase());
+      if ((candLower.indexOf('score')>=0 || candLower.indexOf('totalshots')>=0) && candLower.indexOf('hole')>=0){ holesHeaderIndex = i; break; }
+    }
+  }
+  if (holesHeaderIndex >= 0){
+    const holeHeaders = rows[holesHeaderIndex].map(h=>String(h||'').replace(/^\uFEFF/, '').trim());
+    for (let r = holesHeaderIndex+1; r<rows.length; r++){
+      const line = rows[r]; if (!line || line.length===0) continue;
+      const first = String(line[0]||'').replace(/^\uFEFF/, '').trim(); if (first === '') continue;
+      const hnum = Number(line[holeHeaders.indexOf('Hole')]||line[0]||0); if (!hnum || hnum<1 || hnum>18) continue;
+      // Don't read TotalShots or Score from summary - let recomputeRound() calculate it from shots
+      // This ensures penalties are properly added to the score
+      // Convert Yard from saved unit to current DISTANCE_UNIT
+      const yardIdx = holeHeaders.indexOf('Yard'); 
+      if (yardIdx>=0) {
+        const rawYard = line[yardIdx];
+        HOLES[hnum].yard = convertDistanceValue(rawYard, savedUnit, DISTANCE_UNIT) || HOLES[hnum].yard;
+      }
+      const parIdx = holeHeaders.indexOf('Par'); if (parIdx>=0) HOLES[hnum].par = Number(line[parIdx]) || HOLES[hnum].par;
+      // Ensure manualScore is false for CSV imports
+      HOLES[hnum].manualScore = false;
+    }
+  }
+
+  // Force recompute to ensure all computedStrokes are calculated from shotsByHole data
+  try{ recomputeRound(); }catch(e){ console.error('recomputeRound failed', e); }
+  try{ renderHoles(); }catch(e){ console.error('renderHoles failed', e); }
+  try{ saveDraft(); }catch(e){}
+  try{ if (roundInfoCard) roundInfoCard.classList.add('hidden'); }catch(e){}
+  try{ document.getElementById('holesContainer').classList.remove('hidden'); }catch(e){}
+  if (analysisCard) analysisCard.classList.remove('hidden');
+  showAllHoles = false; singleHoleIndex = 1; startHole(1);
+  
+  // Show success message with conversion info if units differ
+  let alertMessage = 'CSV 불러오기 완료';
+  if (savedUnit !== DISTANCE_UNIT) {
+    const fromLabel = savedUnit === 'm' ? '미터 (m)' : '야드 (yd)';
+    const toLabel = DISTANCE_UNIT === 'm' ? '미터 (m)' : '야드 (yd)';
+    alertMessage += `\n\n거리 단위가 ${fromLabel}에서 ${toLabel}로 변환되었습니다.`;
+  }
+  alert(alertMessage);
+}
+
+if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
+  // Build workbook with two sheets: Shots and Holes summary
+  const wb = XLSX.utils.book_new();
+  const meta = { player: playerNameInput.value || '', date: roundDateInput.value || '', course: courseNameInput.value || '' };
+
+  // Shots sheet (omit 'Lie' column — removed from UI)
+  const shotsRows = [];
+  // Summary sheet: key metrics
+  try{
+    const summaryRows = [];
+    summaryRows.push(['Metric','Value']);
+    summaryRows.push(['Birdies/Bogeys/Doubles+', (statBBD ? statBBD.textContent : '0 / 0 / 0')]);
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+  }catch(e){}
+  shotsRows.push(['Player', meta.player, 'Date', meta.date, 'Course', meta.course]);
+  shotsRows.push([]);
+  shotsRows.push(['Hole','Par','HoleYard','ShotNumber','ShotType','Result','DistanceToHole','Putts','Penalty','Note','Lie','Slope','PuttStartDistance','Timestamp']);
+  for (let i=1;i<=18;i++){
+    const hole = HOLES[i];
+    const arr = shotsByHole[i] || [];
+    if (arr.length){
+      arr.forEach(s=>{
+        shotsRows.push([s.hole, hole.par, hole.yard || '', s.shotNumber, s.shotType, s.result, s.distanceToHole, s.putts, Number(s.penalty) || 0, s.note, s.lie || '', s.slope || '', s.puttStartDistance != null ? s.puttStartDistance : '', s.timestamp]);
+      });
+    }
+  }
+  const wsShots = XLSX.utils.aoa_to_sheet(shotsRows);
+  XLSX.utils.book_append_sheet(wb, wsShots, 'Shots');
+
+  // Holes summary sheet
+  const holeHdr = ['Hole','Par','Yard','Score','ShotsCount','FairwayHit','GIR','Putts','3Putts','Penalties'];
+  const holeRows = [holeHdr];
+  for (let i=1;i<=18;i++){
+    const h = HOLES[i];
+    const arr = shotsByHole[i] || [];
+    const shotsCount = arr.length;
+    const drive = arr.find(sh=>sh.shotType==='Drive');
+    const fairwayHit = drive && (drive.result==='Fairway' || drive.result==='fairway') && h.par>=4 ? 1 : 0;
+    const approach = arr.find(sh=>sh.result==='Green' || sh.result==='OnGreen' || sh.result==='green');
+    const girVal = approach ? 1 : 0;
+    const putts = arr.reduce((sum,sh)=>sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0),0);
+    const threePutts = putts >= 3 ? 1 : 0;
+    const penalties = arr.reduce((sum,sh)=>sum + (Number(sh.penalty) || 0),0);
+    // use computedStrokes and scoreDiff if available
+    const compStrokes = (h.computedStrokes !== undefined ? h.computedStrokes : (h.score != null ? h.score : ''));
+    // export the computed strokes (total strokes) as the score cell
+    const scoreCell = compStrokes;
+    holeRows.push([i, h.par, h.yard || '', scoreCell, shotsCount, fairwayHit, girVal, putts, threePutts, penalties]);
+  }
+  const wsHoles = XLSX.utils.aoa_to_sheet(holeRows);
+  XLSX.utils.book_append_sheet(wb, wsHoles, 'Holes');
+
+  // Club Data sheet: Club, Count, AvgYd, OnGreen(횟수%), AvgProx(yd)
+  const clubHdr = ['Club','Count',`Avg(${DISTANCE_UNIT})`,'OnGreen(횟수%)',`AvgProx(${DISTANCE_UNIT})`];
+  const clubRowsOut = [clubHdr];
+  {
+    const clubCounts = {};
+    const clubDists = {};
+    const clubOnGreen = {};
+    const clubProx = {};
+    for (let i=1;i<=18;i++){
+      const arr = shotsByHole[i] || [];
+      let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+      const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+      ordered.forEach(sh=>{
+        if (sh && sh.shotType && sh.shotType !== 'Putter'){
+          clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+        }
+        const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+        if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && prevRemaining != null){
+          const shotDist = Math.max(0, prevRemaining - curRem);
+          if (!clubDists[sh.shotType]) clubDists[sh.shotType] = [];
+          clubDists[sh.shotType].push(shotDist);
+        }
+        if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+          const res = (sh.result || '').toString();
+          if (res === 'Green' || res === 'OnGreen' || res === 'green'){
+            clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
+            if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
+              if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
+              clubProx[sh.shotType].push(Math.abs(Number(sh.distanceToHole)));
+            }
+          }
+        }
+        if (curRem != null) prevRemaining = curRem;
+      });
+    }
+    const clubs = Object.keys(clubCounts).sort((a,b)=>{
+      const ord = clubCompareByOrder(a,b);
+      if (ord !== 0) return ord;
+      return (clubCounts[b] - clubCounts[a]) || a.localeCompare(b);
+    });
+    clubs.forEach(c=>{
+      const count = clubCounts[c] || 0;
+      const dArr = (clubDists[c] && clubDists[c].length) ? clubDists[c] : [];
+      const avg = dArr.length ? Math.round(dArr.reduce((s,n)=>s+n,0)/dArr.length) : '';
+      const avgConverted = avg !== '' ? convertDistance(avg, DISTANCE_UNIT) : '';
+      const ong = clubOnGreen[c] || 0;
+      const ongPct = count ? (Math.round((ong/count)*1000)/10) : '';
+      const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : [];
+      const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '';
+      const ongDisplay = c === 'Driver' ? '-' : (ong !== undefined ? (ong + ' (' + (ongPct !== '' ? (ongPct + '%') : '') + ')') : '');
+      const proxDisplay = c === 'Driver' ? '-' : (proxAvg !== '' ? formatDistance(proxAvg, true) : '');
+      clubRowsOut.push([c, count, avgConverted, ongDisplay, proxDisplay]);
+    });
+  }
+  const wsClub = XLSX.utils.aoa_to_sheet(clubRowsOut);
+  XLSX.utils.book_append_sheet(wb, wsClub, 'Club Data');
+
+  // finalize
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const blob = new Blob([wbout], {type:'application/octet-stream'});
+  // build filename from player + date, sanitized
+  function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.]/gi,'_').replace(/_+/g,'_'); }
+  const datePart = meta.date || (new Date().toISOString().slice(0,10));
+  const playerPart = safeFileName(meta.player) ? (safeFileName(meta.player) + '_') : '';
+  const filename = `${playerPart}${datePart}.xlsx`;
+  downloadBlob(filename, blob);
+});
+
+/* Initialization: preset hole filling (simple) */
+const presetHolesEl = document.getElementById('presetHoles');
+if (presetHolesEl) presetHolesEl.addEventListener('change', (e)=>{
+  if (e.target.value === 'standard18'){
+    // simple par/yard standard-ish values (example)
+    const yards = [430, 370, 150, 420, 510, 180, 360, 400, 210, 450, 380, 160, 410, 520, 170, 350, 390, 200];
+    const pars =  [4,4,3,4,5,3,4,4,3,4,4,3,4,5,3,4,4,3];
+    for (let i=1;i<=18;i++){ HOLES[i].par = pars[i-1]; HOLES[i].yard = yards[i-1]; }
+    renderHoles();
+  }
+});
+
+/* On page load, fill today's date */
+roundDateInput.value = new Date().toISOString().slice(0,10);
+
+// Fallback: ensure important buttons get listeners if script ran before DOM ready
+window.addEventListener('load', ()=>{
+  try{
+    const a = document.getElementById('btnExportCSV');
+    if (a && typeof a.addEventListener === 'function' && !a._golf_listened){ a.addEventListener('click', exportCSV); a._golf_listened = true; }
+    const b = document.getElementById('btnShowAllData');
+    if (b && typeof b.addEventListener === 'function' && !b._golf_listened){ b.addEventListener('click', showSummaryPreview); b._golf_listened = true; }
+    const c = document.getElementById('btnClearAll');
+    if (c && typeof c.addEventListener === 'function' && !c._golf_listened){ c.addEventListener('click', ()=>{ if (!confirm('모든 입력을 초기화하시겠습니까?')) return; initHoles(); for (let i=1;i<=18;i++) shotsByHole[i]=[]; renderHoles(); recomputeRound(); }); c._golf_listened = true; }
+  }catch(e){ console.warn('fallback listener attach failed', e); }
+});
+
+// keep par display in sync when user changes round par
+const roundParEl = document.getElementById('roundPar');
+if (roundParEl) roundParEl.addEventListener('change', ()=>{ updateCourseYard(); recomputeRound(); });
+
+// spinner removed — no par up/down buttons
+
+/* initial recompute */
+recomputeRound();
+
+/* Expose startHole globally so inline onclick works */
+window.startHole = startHole;
+
+/* ======= Auto-save / Restore Draft (localStorage) ======= */
+const STORAGE_KEY = 'golf_round_draft_v1';
+function debounce(fn, wait){ let t; return function(){ clearTimeout(t); const args = arguments; t = setTimeout(()=> fn.apply(this, args), wait); }; }
+
+function saveDraft(){
+  try{
+    // Build a copy of shots for storage (preserve putt metadata like lie/slope)
+    const sanitizedShots = {};
+    for (const k in shotsByHole){
+      try{
+        sanitizedShots[k] = (Array.isArray(shotsByHole[k]) ? shotsByHole[k].map(s => {
+          if (!s || typeof s !== 'object') return s;
+          const copy = Object.assign({}, s);
+          // keep `lie` and `slope` to support putt analysis
+          return copy;
+        }) : []);
+      }catch(e){ sanitizedShots[k] = []; }
+    }
+    const rpEl = document.getElementById('roundPar');
+    const ryEl = document.getElementById('roundYard');
+    const rwEl = document.getElementById('roundWeather');
+    const draft = {
+      meta: {
+        player: (playerNameInput && playerNameInput.value) || '',
+        date: (roundDateInput && roundDateInput.value) || '',
+        course: (courseNameInput && courseNameInput.value) || '',
+        roundPar: (rpEl && rpEl.value) || '',
+        totalYard: (ryEl && ryEl.value) || '',
+        weather: (rwEl && rwEl.value) || ''
+      },
+      holes: HOLES,
+      shots: sanitizedShots,
+      activeHole: activeHole,
+      singleHoleIndex: singleHoleIndex,
+      showAllHoles: showAllHoles,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+  }catch(e){ console.warn('saveDraft failed', e); }
+}
+
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (!draft) return;
+    // restore meta
+    if (playerNameInput) playerNameInput.value = draft.meta.player || '';
+    if (roundDateInput) roundDateInput.value = draft.meta.date || new Date().toISOString().slice(0,10);
+    if (courseNameInput) courseNameInput.value = draft.meta.course || '';
+    if (document.getElementById('roundPar')) document.getElementById('roundPar').value = draft.meta.roundPar || document.getElementById('roundPar').value;
+    if (document.getElementById('roundYard')) document.getElementById('roundYard').value = draft.meta.totalYard || document.getElementById('roundYard').value;
+    if (document.getElementById('roundWeather')) document.getElementById('roundWeather').value = draft.meta.weather || document.getElementById('roundWeather').value;
+
+    // restore holes and shots
+    if (draft.holes){
+      for (let i=1;i<=18;i++){
+        if (draft.holes[i]) HOLES[i] = Object.assign(HOLES[i] || {}, draft.holes[i]);
+      }
+    }
+    if (draft.shots){
+      for (const k in draft.shots){
+        try{ 
+          shotsByHole[k] = Array.isArray(draft.shots[k]) ? draft.shots[k] : [];
+          // normalize penalty values to numeric (support older boolean/string values)
+          if (Array.isArray(shotsByHole[k])){
+            for (let si=0; si<shotsByHole[k].length; si++){
+              try{ const sh = shotsByHole[k][si]; sh.penalty = Number(sh.penalty) || 0; if (sh.hasOwnProperty('lie')) delete sh.lie; }catch(e){}
+            }
+          }
+        }catch(e){}
+      }
+    }
+    if (typeof draft.activeHole !== 'undefined' && draft.activeHole) activeHole = draft.activeHole;
+    if (typeof draft.singleHoleIndex !== 'undefined') singleHoleIndex = draft.singleHoleIndex;
+    if (typeof draft.showAllHoles !== 'undefined') showAllHoles = draft.showAllHoles;
+    // re-render UI to reflect restored state
+    renderHoles();
+    if (activeHole) startHole(activeHole);
+    recomputeRound();
+    // If the restored data results in a total score of 0, treat this as a new round
+    try{
+      const total = Number((totalScoreLabel && totalScoreLabel.textContent) ? totalScoreLabel.textContent : 0);
+      if (total === 0){
+        if (roundInfoCard) roundInfoCard.classList.remove('hidden');
+        const holesContainer = document.getElementById('holesContainer');
+        if (holesContainer) holesContainer.classList.add('hidden');
+        if (analysisCard) analysisCard.classList.add('hidden');
+        activeHole = null;
+        try{ if (shotEntryCard) shotEntryCard.classList.add('hidden'); }catch(e){}
+      }
+    }catch(e){}
+  }catch(e){ console.warn('loadDraft failed', e); }
+}
+
+// Debounced save on user input/change
+document.addEventListener('input', debounce(saveDraft, 900));
+document.addEventListener('change', debounce(saveDraft, 700));
+// Also save periodically and on page unload
+setInterval(saveDraft, 5000);
+window.addEventListener('beforeunload', saveDraft);
+
+// If a draft exists, ask the user whether to restore it
+(function(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    // Only ask to restore if the draft actually contains hole/shot data
+    let parsed;
+    try{ parsed = JSON.parse(raw); }catch(e){ parsed = null; }
+    if (!parsed) return;
+    let hasHoleData = false;
+    // Check shots first: only consider a shot meaningful if it has real data (shotNumber, shotType, putts, penalty>0, distanceToHole, or note)
+    if (parsed.shots){
+      for (const k in parsed.shots){
+        if (!Array.isArray(parsed.shots[k])) continue;
+        for (let si=0; si<parsed.shots[k].length; si++){
+          const s = parsed.shots[k][si];
+          if (!s || typeof s !== 'object') continue;
+          const hasShotFields = (s.shotNumber && Number(s.shotNumber)>0) || (s.shotType && String(s.shotType).trim()!=='') || (s.putts && Number(s.putts)>0) || (s.penalty && Number(s.penalty)>0) || (s.distanceToHole && s.distanceToHole !== '') || (s.note && String(s.note).trim()!=='');
+          if (hasShotFields){ hasHoleData = true; break; }
+        }
+        if (hasHoleData) break;
+      }
+    }
+    // If no shots, check holes metadata for any entered values (score, yard, non-default par)
+    if (!hasHoleData && parsed.holes){
+      for (let i=1;i<=18;i++){
+        const h = parsed.holes[i];
+        if (!h) continue;
+        if ((h.score !== undefined && h.score !== null && Number(h.score)>0) || (h.yard && String(h.yard).trim() !== '') || (h.par && Number(h.par) !== 4)){
+          hasHoleData = true; break;
+        }
+      }
+    }
+    if (!hasHoleData) return; // nothing meaningful to restore
+
+    const msg = '이전에 저장된 입력이 있습니다. 이전 입력을 복원하시겠습니까?';
+    // Use a simple confirm dialog so user can choose to restore or start fresh
+    const ok = confirm(msg + '\n\n확인: 복원, 취소: 새 입력');
+    if (ok){
+      loadDraft();
+    } else {
+      // Do not auto-restore; user will start with a fresh form.
+      console.info('User declined to restore saved draft.');
+    }
+  }catch(e){ console.warn('draft restore check failed', e); }
+})();
+
+// Clear draft when user explicitly resets all data
+if (typeof btnClearAllEl !== 'undefined' && btnClearAllEl) btnClearAllEl.addEventListener('click', ()=>{ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} });
+</script>
+</body>
+</html>
