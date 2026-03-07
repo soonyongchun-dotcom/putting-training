@@ -450,7 +450,7 @@
       <!-- 4) Self Evaluation -->
       <div class="panel player-panel tone-mint" id="selfeval">
         <div class="card">
-          <h3 style="margin-top:0">Self Evaluation Panel</h3>
+          <h3 style="margin-top:0">Self Evaluation Panel <span style="font-size:12px;color:var(--sub);font-weight:400;">(오늘 운동을 마친후 집중도,심리상태,체력상태를 기록)</span></h3>
           <div class="grid-3">
             <div class="field">
               <label>오늘 집중도 (1~5)</label>
@@ -459,16 +459,34 @@
               </select>
             </div>
             <div class="field">
-              <label>심리상태</label>
-              <select id="selfEvalMind">
-                <option>정상</option><option>보통</option><option>불안</option><option>집중 잘됨</option>
+              <label>심리상태 (복수 선택)</label>
+              <select id="selfEvalMind" multiple size="5">
+                <option value="만족">만족</option>
+                <option value="설렘">설렘</option>
+                <option value="우울함">우울함</option>
+                <option value="기쁨">기쁨</option>
+                <option value="두려움">두려움</option>
+                <option value="놀라움">놀라움</option>
+                <option value="화남">화남</option>
+                <option value="짜증">짜증</option>
+                <option value="걱정">걱정</option>
+                <option value="편안함">편안함</option>
               </select>
+              <div class="muted" id="mindSelectedDisplay" style="font-size:13px;margin-top:4px"></div>
             </div>
             <div class="field">
-              <label>체력상태</label>
-              <select id="selfEvalStamina">
-                <option>양호</option><option selected>보통</option><option>저하</option>
+              <label>체력상태 (복수 선택)</label>
+              <select id="selfEvalStamina" multiple size="5">
+                <option value="에너지넘치고 기운이 좋음">에너지넘치고 기운이 좋음</option>
+                <option value="근육기초체력이 견고하게 느껴짐">근육기초체력이 견고하게 느껴짐</option>
+                <option value="몸이가볍고 컨디션이 좋은편 임">몸이가볍고 컨디션이 좋은편 임</option>
+                <option value="피로와 함께 몸이 무겁게 느껴짐">피로와 함께 몸이 무겁게 느껴짐</option>
+                <option value="금방지치고 버티는 힘이 부족한 상태">금방지치고 버티는 힘이 부족한 상태</option>
+                <option value="관절과 근육이 부드럽게 작동">관절과 근육이 부드럽게 작동</option>
+                <option value="생각처럼 신체움직임이 이루어지지않음">생각처럼 신체움직임이 이루어지지않음</option>
+                <option value="일상적인 보통의 상태">일상적인 보통의 상태</option>
               </select>
+              <div class="muted" id="staminaSelectedDisplay" style="font-size:13px;margin-top:4px"></div>
             </div>
           </div>
           <div class="field">
@@ -718,8 +736,15 @@
                coachId:r.coach_id, attachments:r.attachments||[] };
     }
     function fromDbSelfEval(r){
+      // mind_status and stamina_status may contain multiple values separated by '|'
+      const mindArr = r.mind_status ? String(r.mind_status).split('|').filter(Boolean) : [];
+      const stamArr = r.stamina_status ? String(r.stamina_status).split('|').filter(Boolean) : [];
       return { playerId:r.player_id, date:r.date, focus:r.focus,
-               mindStatus:r.mind_status, staminaStatus:r.stamina_status, note:r.note };
+               // keep original strings for backwards compatibility
+               mindStatus:r.mind_status, staminaStatus:r.stamina_status,
+               // arrays for easier analysis
+               mindStatuses:mindArr, staminaStatuses:stamArr,
+               note:r.note };
     }
 
     async function getUsers(){
@@ -806,6 +831,29 @@
     async function getSelfEvalRecords(){
       const {data}=await sb.from('sytpt_self_eval').select('*').order('date',{ascending:false}); return data||[];
     }
+
+    // helper queries to support multi-value status fields
+    async function querySelfEvalByMindStatus(playerId, status){
+      if(!playerId || !status) return [];
+      // use ILIKE for case-insensitive match on pipe-separated list
+      const {data}=await sb.from('sytpt_self_eval')
+        .select('*')
+        .eq('player_id', playerId)
+        .ilike('mind_status','%'+status+'%')
+        .order('date',{ascending:false});
+      return data||[];
+    }
+
+    async function querySelfEvalByStaminaStatus(playerId, status){
+      if(!playerId || !status) return [];
+      const {data}=await sb.from('sytpt_self_eval')
+        .select('*')
+        .eq('player_id', playerId)
+        .ilike('stamina_status','%'+status+'%')
+        .order('date',{ascending:false});
+      return data||[];
+    }
+
     async function upsertSelfEvalRecord(record){
       await sb.from('sytpt_self_eval').upsert({
         player_id:record.playerId, date:record.date, focus:record.focus,
@@ -1036,7 +1084,11 @@
       const records=all.filter(r=>r.player_id===player.id).map(fromDbSelfEval)
         .sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,7);
       if(!records.length){root.innerHTML='<p class="muted" style="margin:0">저장된 이력이 없습니다.</p>';return;}
-      var rows=records.map(function(r){return '<tr><td>'+(r.date||'-')+'</td><td>'+(r.focus||'-')+'</td><td>'+(r.mindStatus||'-')+'</td><td>'+(r.staminaStatus||'-')+'</td><td>'+(r.note||'-')+'</td></tr>';}).join('');
+      var rows=records.map(function(r){
+        var mindDisplay = (r.mindStatuses && r.mindStatuses.length) ? r.mindStatuses.join(', ') : (r.mindStatus||'-');
+        var stamDisplay = (r.staminaStatuses && r.staminaStatuses.length) ? r.staminaStatuses.join(', ') : (r.staminaStatus||'-');
+        return '<tr><td>'+(r.date||'-')+'</td><td>'+(r.focus||'-')+'</td><td>'+mindDisplay+'</td><td>'+stamDisplay+'</td><td>'+(r.note||'-')+'</td></tr>';
+      }).join('');
       root.innerHTML='<table class="table"><thead><tr><th>일자</th><th>집중도</th><th>심리상태</th><th>체력상태</th><th>오늘훈련특이사항</th></tr></thead><tbody>'+rows+'</tbody></table>';
     }
     async function renderDashboardCoachMessages(){
@@ -1489,11 +1541,60 @@
       if(badge){badge.textContent=String((parseInt(badge.textContent||'0',10))+1);badge.style.display='inline';}
     });
 
+    function updateMindDisplay(){
+      const sel=document.getElementById('selfEvalMind');
+      const disp=document.getElementById('mindSelectedDisplay');
+      if(sel && disp){
+        const vals=Array.from(sel.selectedOptions).map(o=>o.value);
+        disp.textContent = vals.length ? '선택: '+vals.join(', ') : '';
+      }
+    }
+    function updateStamDisplay(){
+      const sel=document.getElementById('selfEvalStamina');
+      const disp=document.getElementById('staminaSelectedDisplay');
+      if(sel && disp){
+        const vals=Array.from(sel.selectedOptions).map(o=>o.value);
+        disp.textContent = vals.length ? '선택: '+vals.join(', ') : '';
+      }
+    }
+    // attach listeners
+    const mindSelEl = document.getElementById('selfEvalMind');
+    const stamSelEl = document.getElementById('selfEvalStamina');
+    if(mindSelEl){
+      mindSelEl.addEventListener('change', updateMindDisplay);
+      // allow clicking to toggle without Ctrl
+      mindSelEl.addEventListener('mousedown', function(e){
+        e.preventDefault();
+        const opt = e.target;
+        if(opt && opt.tagName==='OPTION'){
+          opt.selected = !opt.selected;
+          updateMindDisplay();
+        }
+      });
+    }
+    if(stamSelEl){
+      stamSelEl.addEventListener('change', updateStamDisplay);
+      stamSelEl.addEventListener('mousedown', function(e){
+        e.preventDefault();
+        const opt = e.target;
+        if(opt && opt.tagName==='OPTION'){
+          opt.selected = !opt.selected;
+          updateStamDisplay();
+        }
+      });
+    }
+    // initialize displays
+    updateMindDisplay(); updateStamDisplay();
+
     document.getElementById('saveSelfEvalBtn').addEventListener('click', async function(){
       var session=getSession(); if(!session||session.role!=='player') return;
       var focus=(document.getElementById('selfEvalFocus')||{}).value||'';
-      var mindStatus=(document.getElementById('selfEvalMind')||{}).value||'';
-      var staminaStatus=(document.getElementById('selfEvalStamina')||{}).value||'';
+      var mindStatus = '';
+      var mindSel = document.getElementById('selfEvalMind');
+      if(mindSel){ mindStatus = Array.from(mindSel.selectedOptions).map(o=>o.value).join('|'); }
+      var staminaStatus = '';
+      var stamSel = document.getElementById('selfEvalStamina');
+      if(stamSel){ staminaStatus = Array.from(stamSel.selectedOptions).map(o=>o.value).join('|'); }
       var note=((document.getElementById('selfEvalNote')||{}).value||'').trim();
       var date=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
       await upsertSelfEvalRecord({playerId:session.id,date:date,focus:focus,mindStatus:mindStatus,staminaStatus:staminaStatus,note:note,createdAt:new Date().toISOString()});
