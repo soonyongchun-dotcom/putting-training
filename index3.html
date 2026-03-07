@@ -1045,9 +1045,20 @@
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
       const all=await getCoachDirectives();
-      const directives=all.filter(r=>r.player_id===player.id).slice(-3).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';return;}
-      root.innerHTML=directives.map(function(d){return '<div class="message"><div class="meta">코치 · '+d.time+'</div><div>'+d.text+'</div></div>';}).join('');
+      // sort by created_at descending, then take top 3
+      const directives=all
+        .filter(r=>r.player_id===player.id)
+        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+        .slice(0,3)
+        .map(fromDbDirective);
+      if(!directives.length){
+        root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';
+        return;
+      }
+      root.innerHTML=directives.map(function(d){
+        var timeStr=formatTime(d.created_at);
+        return '<div class="message"><div class="meta">코치 · '+timeStr+'</div><div>'+d.text+'</div></div>';
+      }).join('');
     }
     function renderBars(id, values, color){
       color=color||'#93c5fd';
