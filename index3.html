@@ -722,8 +722,10 @@
                approvedAt:r.approved_at, deactivatedAt:r.deactivated_at, createdAt:r.created_at };
     }
     function fromDbMsg(r){
+      // ensure we always have a timestamp string
+      const ts = r.created_at || r.updated_at || new Date().toISOString();
       return { playerId:r.player_id, author:r.author, text:r.text,
-               messageType:r.message_type, createdAt:r.created_at };
+               messageType:r.message_type, createdAt:ts };
     }
     function fromDbMission(r){
       return { missionId:r.mission_id, playerId:r.player_id, code:r.code, category:r.category,
@@ -1108,7 +1110,7 @@
         return;
       }
       root.innerHTML=directives.map(function(d){
-        var timeStr=formatTime(d.created_at);
+        var timeStr=formatTime(d.createdAt);
         return '<div class="message"><div class="meta">코치 · '+timeStr+'</div><div>'+d.text+'</div></div>';
       }).join('');
     }
@@ -1198,7 +1200,7 @@
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
-        var timeStr = formatTime(item.created_at);
+        var timeStr = formatTime(item.createdAt);
         return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+timeStr+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
       root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
@@ -1356,8 +1358,12 @@
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
       const dirsRaw=await getCoachDirectives();
       const msgsRaw=await getMessages();
-      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
-      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
+      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){
+        return {author:'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
+      });
+      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){
+        return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
+      });
       const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
       if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
       root.innerHTML=thread.map(function(m){
@@ -1513,6 +1519,22 @@
         })
         .subscribe();
     }
+
+    // periodically refresh relative timestamps every minute
+    setInterval(function(){
+      renderDashboardCoachMessages();
+      renderCoachDirectiveList();
+      renderPlayerMessageThread();
+      renderCoachInboxDynamic();
+    }, 60 * 1000);
+
+    // periodically refresh time labels in message panels
+    setInterval(function(){
+      renderDashboardCoachMessages();
+      renderCoachDirectiveList();
+      renderPlayerMessageThread();
+      renderCoachInboxDynamic();
+    }, 60 * 1000); // every minute
 
     // ====== 이벤트 핸들러 ======
     document.getElementById('sendPlayerQuestion').addEventListener('click', async function(){
