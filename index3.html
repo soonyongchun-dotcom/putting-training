@@ -853,6 +853,24 @@
       // allow common docs plus PNG images
       return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
     }
+
+    // helper: delete a coach directive by id
+    async function deleteCoachDirective(directiveId) {
+      await sb
+        .from('sytpt_coach_directives')
+        .delete()
+        .eq('directive_id', directiveId);
+    }
+
+    // helper: mark all unread player messages as read for a given player
+    async function markPlayerMessagesRead(playerId) {
+      await sb
+        .from('sytpt_messages')
+        .update({ coach_read: true })
+        .eq('player_id', playerId)
+        .eq('author', '선수')
+        .eq('coach_read', false);
+    }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
     }
@@ -1099,15 +1117,26 @@
       const users=await getUsers();
       const dirsRaw=await getCoachDirectives();
       const directives=dirsRaw.slice(-8).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';return;}
+      if(!directives.length){
+        root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
+        return;
+      }
       root.innerHTML=directives.map(function(item){
         var player=users.find(function(u){return u.id===item.playerId;});
+        var deleteBtn='<button class="btn btn-red delete-dir-btn" data-id="'+item.directiveId+'" style="margin-left:8px;padding:2px 6px;font-size:11px">삭제</button>';
         var replies=Array.isArray(item.replies)?item.replies:[];
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
+      root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
+        btn.addEventListener('click',async function(){
+          if(!confirm('이 지시를 정말 삭제하시겠습니까?')) return;
+          await deleteCoachDirective(btn.dataset.id);
+          renderCoachDirectiveList();
+        });
+      });
     }
     async function renderCoachKPIs(){
       var riskEl=document.getElementById('coachKpiRisk');
@@ -1125,7 +1154,7 @@
       var msgsRaw=await getMessages();
       var pendingCount=ap.filter(function(player){
         var dirs=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
-        var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author,createdAt:r.created_at||''};});
+        var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
         var thread=[...dirs,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
         if(!thread.length) return false;
         return thread[thread.length-1].author==='선수';
@@ -1299,27 +1328,37 @@
       const root=document.getElementById('coachInbox'); if(!root) return;
       const users=await getUsers();
       const ap=getApprovedPlayers(users);
-      if(!ap.length){root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>승인된 선수가 없습니다.</div></div>';return;}
+      if(!ap.length){
+        root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>승인된 선수가 없습니다.</div></div>';
+        return;
+      }
       const msgsRaw=await getMessages();
       const groups=ap.map(function(player){
         const chats=msgsRaw
           .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r)) && r.author==='선수';})
-          .map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
+          .map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[],coach_read:r.coach_read||false};});
         const thread=chats.sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));}).slice(-5);
-        return {player:player,thread:thread};
+        const unread=thread.filter(m=>!m.coach_read).length;
+        return {player:player,thread:thread,unread:unread};
       }).filter(function(g){return g.thread.length>0;});
-      if(!groups.length){root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';return;}
+      if(!groups.length){
+        root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';
+        return;
+      }
       root.innerHTML=groups.map(function(g){
+        var badge = g.unread>0 ? '<span class="badge unread" style="background:#dc2626;color:#fff;margin-left:6px;font-size:10px;padding:2px 4px;">'+g.unread+'</span>' : '';
         var msgsHtml=g.thread.map(function(m){
           var ic=m.author==='코치';
           var atts=Array.isArray(m.attachments)?m.attachments:[];
           var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
-          return '<div class="message '+(ic?'msg-coach':'msg-player')+'" style="margin-bottom:4px"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
+          return '<div class="message '+(ic?'msg-coach':'msg-player')+'"'+(m.coach_read?'':' style="background:#fffbeb;"')+'><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
         }).join('');
-        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span><button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'">답변하기</button></div><div class="comm-group-body">'+msgsHtml+'</div></div>';
+        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span>'+badge+'<button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'" style="margin-left:8px">답변하기</button></div><div class="comm-group-body">'+msgsHtml+'</div></div>';
       }).join('');
-      root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',function(){
+      root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.dataset.playerId;
+        await markPlayerMessagesRead(pid);
+        renderCoachInboxDynamic();
         var ts=document.getElementById('coachDirectiveTarget'); if(ts) ts.value=pid;
         var ia=document.getElementById('coachDirectiveInput');
         if(ia){ia.focus();ia.scrollIntoView({behavior:'smooth',block:'center'});}
@@ -1665,7 +1704,7 @@
       var selId=getCoachSelectedPlayerId()||ap[0].id;
       var phDefs=[{key:'pre',label:'🟡 Pre-Match'},{key:'in',label:'🟢 In-Match'},{key:'post',label:'🔵 Post-Match'}];
       root.innerHTML='<div class="field" style="margin-bottom:10px"><label>선수 선택</label><select id="phaseEditorPlayer">'+
-        ap.map(function(p){return '<option value="'+p.id+'"'+(p.id===selId?' selected':'')+'>'+p.name+'</option>';}).join('')+
+        ap.map(function(p){return '<option value="'+p.id+'"'+(p.id===selId?' selected':'')+'">'+p.name+'</option>';}).join('')+
         '</select></div>'+
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
         phDefs.map(function(ph){
