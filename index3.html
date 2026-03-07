@@ -781,7 +781,8 @@
     async function addCoachDirective(item){
       await sb.from('sytpt_coach_directives').insert({
         directive_id:item.directiveId, player_id:item.playerId, text:item.text,
-        time:item.time||'방금', created_at:item.createdAt||new Date().toISOString(),
+        // using created_at for display timing; legacy `time` field not required
+        created_at:item.createdAt||new Date().toISOString(),
         replies:item.replies||[], coach_id:item.coachId||'',
         attachments:item.attachments||[]
       });
@@ -987,9 +988,15 @@
         const lastRead=getCommLastRead(session.id);
         const allDir=await getCoachDirectives();
         const forPlayer=allDir.filter(r=>r.player_id===session.id);
-        const unreadN=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
-        const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
+        // count unread directives
+        let unreadDir = lastRead ? forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length : forPlayer.length;
+        // also count any chat messages from coach after lastRead
         const allMsgs=await getMessages();
+        const coachChats = allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.author==='코치'&&m.created_at);
+        const unreadChat = lastRead ? coachChats.filter(m=>m.created_at>lastRead).length : coachChats.length;
+        const unreadN = unreadDir + unreadChat;
+        const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
+        // calculate waiting count as before (queries vs directives)
         const myQ=allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.created_at);
         const waitN=myQ.filter(m=>!forPlayer.some(d=>d.created_at&&m.created_at&&d.created_at>m.created_at)).length;
         const pa=document.getElementById('pendingAnswer'); if(pa) pa.textContent=waitN+'건';
@@ -1128,7 +1135,8 @@
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        var timeStr = formatTime(item.created_at);
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+timeStr+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
       root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
         btn.addEventListener('click',async function(){
@@ -1520,7 +1528,8 @@
       for(var i=0;i<targets.length;i++){
         await addCoachDirective({
           directiveId:'DIR-'+Date.now()+'-'+Math.floor(Math.random()*1000),
-          playerId:targets[i],text:text,time:'방금',createdAt:new Date().toISOString(),
+          playerId:targets[i],text:text,
+          createdAt:new Date().toISOString(),
           coachId:session.id,attachments:attachments
         });
       }
