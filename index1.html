@@ -71,8 +71,7 @@ h1{
   color:var(--muted);
   margin-bottom:4px;
   font-weight:600;
-}
-input, select, textarea{
+}input, select, textarea{
   width:100%;
   padding:10px;
   border:1px solid rgba(255,255,255,0.2);
@@ -530,6 +529,7 @@ textarea{
     </div>
   </div>
 
+  <!-- 저장 및 내보내기 -->
   <!-- 저장 및 내보내기 -->
   <div class="section hidden" id="exportSection">
     <div class="section-title">저장 및 내보내기</div>
@@ -1348,6 +1348,7 @@ btnExportCSV.addEventListener('click', ()=>{
   
   // 헤더
   const unit = roundData.distanceUnit || 'yd';
+  const unit = roundData.distanceUnit || 'yd';
   lines.push(['Player', roundData.player, '', 'Date', roundData.date, '', 'Course', roundData.course, '', 'Unit', unit].join(','));
   lines.push('');
   
@@ -1497,6 +1498,7 @@ function restoreData(){
     console.error('복구 실패:', e);
   }
 }
+
 
 // 클럽 선택 시 다른 선택 해제 및 결과 입력 섹션 표시
 clubWoodSel.addEventListener('change', ()=>{
