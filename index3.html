@@ -1365,8 +1365,11 @@ let lastPerformanceEdit = null; // cache recent successful edit
           if(isNaN(val)||val<0) val=0;
           if(val>100) val=100;
           input.value=val;
-          // attempt update and check error
-          let res = await sb.from('sytpt_users').update({performance_level:val}).match({id:pid});
+          // attempt update and return the id so we can verify success
+          let res = await sb.from('sytpt_users')
+                         .update({performance_level:val})
+                         .match({id:pid})
+                         .select('id');
           console.log('update attempt',pid,val,res);
           if(res.error){
             // if column missing, bail and notify once
@@ -1377,11 +1380,15 @@ let lastPerformanceEdit = null; // cache recent successful edit
             }
             console.warn('match update failed for',pid,res.error);
             // try quoting the id value to satisfy REST syntax
-            res = await sb.from('sytpt_users').update({performance_level:val}).eq('id','"'+pid+'"');
+            res = await sb.from('sytpt_users')
+                         .update({performance_level:val})
+                         .eq('id','"'+pid+'"')
+                         .select('id');
             console.log('quoted update attempt',pid,val,res);
           }
-          if(res.data && Array.isArray(res.data) && res.data.length===0){
-            console.warn('no rows updated for',pid);
+          // supabase returns array of rows; if it's empty, nothing was updated
+          if(!res.data || (Array.isArray(res.data) && res.data.length===0)){
+            console.warn('no rows updated for',pid,res);
             alert('업데이트 대상 선수가 없거나 권한이 없습니다 (id='+pid+')');
             return;
           }
