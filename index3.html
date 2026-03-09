@@ -470,32 +470,32 @@
             </div>
             <div class="field">
               <label>심리상태 (복수 선택)</label>
-              <select id="selfEvalMind" multiple size="5">
-                <option value="만족">만족</option>
-                <option value="설렘">설렘</option>
-                <option value="우울함">우울함</option>
-                <option value="기쁨">기쁨</option>
-                <option value="두려움">두려움</option>
-                <option value="놀라움">놀라움</option>
-                <option value="화남">화남</option>
-                <option value="짜증">짜증</option>
-                <option value="걱정">걱정</option>
-                <option value="편안함">편안함</option>
-              </select>
+              <div id="selfEvalMindContainer" style="display:flex;flex-wrap:wrap;gap:4px;">          
+                <label><input type="checkbox" value="만족">만족</label>
+                <label><input type="checkbox" value="설렘">설렘</label>
+                <label><input type="checkbox" value="우울함">우울함</label>
+                <label><input type="checkbox" value="기쁨">기쁨</label>
+                <label><input type="checkbox" value="두려움">두려움</label>
+                <label><input type="checkbox" value="놀라움">놀라움</label>
+                <label><input type="checkbox" value="화남">화남</label>
+                <label><input type="checkbox" value="짜증">짜증</label>
+                <label><input type="checkbox" value="걱정">걱정</label>
+                <label><input type="checkbox" value="편안함">편안함</label>
+              </div>
               <div class="muted" id="mindSelectedDisplay" style="font-size:13px;margin-top:4px"></div>
             </div>
             <div class="field">
               <label>체력상태 (복수 선택)</label>
-              <select id="selfEvalStamina" multiple size="5">
-                <option value="에너지넘치고 기운이 좋음">에너지넘치고 기운이 좋음</option>
-                <option value="근육기초체력이 견고하게 느껴짐">근육기초체력이 견고하게 느껴짐</option>
-                <option value="몸이가볍고 컨디션이 좋은편 임">몸이가볍고 컨디션이 좋은편 임</option>
-                <option value="피로와 함께 몸이 무겁게 느껴짐">피로와 함께 몸이 무겁게 느껴짐</option>
-                <option value="금방지치고 버티는 힘이 부족한 상태">금방지치고 버티는 힘이 부족한 상태</option>
-                <option value="관절과 근육이 부드럽게 작동">관절과 근육이 부드럽게 작동</option>
-                <option value="생각처럼 신체움직임이 이루어지지않음">생각처럼 신체움직임이 이루어지지않음</option>
-                <option value="일상적인 보통의 상태">일상적인 보통의 상태</option>
-              </select>
+              <div id="selfEvalStaminaContainer" style="display:flex;flex-wrap:wrap;gap:4px;">
+                <label><input type="checkbox" value="에너지넘치고 기운이 좋음">에너지넘치고 기운이 좋음</label>
+                <label><input type="checkbox" value="근육기초체력이 견고하게 느껴짐">근육기초체력이 견고하게 느껴짐</label>
+                <label><input type="checkbox" value="몸이가볍고 컨디션이 좋은편 임">몸이가볍고 컨디션이 좋은편 임</label>
+                <label><input type="checkbox" value="피로와 함께 몸이 무겁게 느껴짐">피로와 함께 몸이 무겁게 느껴짐</label>
+                <label><input type="checkbox" value="금방지치고 버티는 힘이 부족한 상태">금방지치고 버티는 힘이 부족한 상태</label>
+                <label><input type="checkbox" value="관절과 근육이 부드럽게 작동">관절과 근육이 부드럽게 작동</label>
+                <label><input type="checkbox" value="생각처럼 신체움직임이 이루어지지않음">생각처럼 신체움직임이 이루어지지않음</label>
+                <label><input type="checkbox" value="일상적인 보통의 상태">일상적인 보통의 상태</label>
+              </div>
               <div class="muted" id="staminaSelectedDisplay" style="font-size:13px;margin-top:4px"></div>
             </div>
           </div>
@@ -1726,46 +1726,29 @@ let lastPerformanceEdit = null; // cache recent successful edit
     });
 
     function updateMindDisplay(){
-      const sel=document.getElementById('selfEvalMind');
+      const container=document.getElementById('selfEvalMindContainer');
       const disp=document.getElementById('mindSelectedDisplay');
-      if(sel && disp){
-        const vals=Array.from(sel.selectedOptions).map(o=>o.value);
+      if(container && disp){
+        const vals=Array.from(container.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
         disp.textContent = vals.length ? '선택: '+vals.join(', ') : '';
       }
     }
     function updateStamDisplay(){
-      const sel=document.getElementById('selfEvalStamina');
+      const container=document.getElementById('selfEvalStaminaContainer');
       const disp=document.getElementById('staminaSelectedDisplay');
-      if(sel && disp){
-        const vals=Array.from(sel.selectedOptions).map(o=>o.value);
+      if(container && disp){
+        const vals=Array.from(container.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
         disp.textContent = vals.length ? '선택: '+vals.join(', ') : '';
       }
     }
-    // attach listeners
-    const mindSelEl = document.getElementById('selfEvalMind');
-    const stamSelEl = document.getElementById('selfEvalStamina');
-    if(mindSelEl){
-      mindSelEl.addEventListener('change', updateMindDisplay);
-      // allow clicking to toggle without Ctrl
-      mindSelEl.addEventListener('mousedown', function(e){
-        e.preventDefault();
-        const opt = e.target;
-        if(opt && opt.tagName==='OPTION'){
-          opt.selected = !opt.selected;
-          updateMindDisplay();
-        }
-      });
+    // attach listeners to the checkbox containers
+    const mindContainer = document.getElementById('selfEvalMindContainer');
+    const stamContainer = document.getElementById('selfEvalStaminaContainer');
+    if(mindContainer){
+      mindContainer.addEventListener('change', updateMindDisplay);
     }
-    if(stamSelEl){
-      stamSelEl.addEventListener('change', updateStamDisplay);
-      stamSelEl.addEventListener('mousedown', function(e){
-        e.preventDefault();
-        const opt = e.target;
-        if(opt && opt.tagName==='OPTION'){
-          opt.selected = !opt.selected;
-          updateStamDisplay();
-        }
-      });
+    if(stamContainer){
+      stamContainer.addEventListener('change', updateStamDisplay);
     }
     // initialize displays
     updateMindDisplay(); updateStamDisplay();
@@ -1774,11 +1757,15 @@ let lastPerformanceEdit = null; // cache recent successful edit
       var session=getSession(); if(!session||session.role!=='player') return;
       var focus=(document.getElementById('selfEvalFocus')||{}).value||'';
       var mindStatus = '';
-      var mindSel = document.getElementById('selfEvalMind');
-      if(mindSel){ mindStatus = Array.from(mindSel.selectedOptions).map(o=>o.value).join('|'); }
+      var mindVals = [];
+      var mindContainer2 = document.getElementById('selfEvalMindContainer');
+      if(mindContainer2){ mindVals = Array.from(mindContainer2.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value); }
+      mindStatus = mindVals.join('|');
       var staminaStatus = '';
-      var stamSel = document.getElementById('selfEvalStamina');
-      if(stamSel){ staminaStatus = Array.from(stamSel.selectedOptions).map(o=>o.value).join('|'); }
+      var stamVals = [];
+      var stamContainer2 = document.getElementById('selfEvalStaminaContainer');
+      if(stamContainer2){ stamVals = Array.from(stamContainer2.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value); }
+      staminaStatus = stamVals.join('|');
       var note=((document.getElementById('selfEvalNote')||{}).value||'').trim();
       var date=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
       await upsertSelfEvalRecord({playerId:session.id,date:date,focus:focus,mindStatus:mindStatus,staminaStatus:staminaStatus,note:note,createdAt:new Date().toISOString()});
