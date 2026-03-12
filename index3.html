@@ -109,6 +109,23 @@
     .kpi .value{font-size:20px;font-weight:700;margin-top:4px}
     .mission-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
     .chip{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--chip);font-size:12px;color:#3730a3}
+    /* self-eval mood/stamina options styled as chips */
+    #selfEvalMindContainer label,
+    #selfEvalStaminaContainer label {
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--chip);
+      margin:3px 4px 3px 0;
+      cursor:pointer;
+      font-size:13px;
+    }
+    #selfEvalMindContainer label input,
+    #selfEvalStaminaContainer label input {
+      margin-right:6px;
+    }
     .muted{color:var(--sub);font-size:13px}
     .btn{border:none;background:var(--blue);color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
     .btn-green{background:var(--green)}
@@ -213,6 +230,10 @@
     .badge-coach{background:#dbeafe;color:#1d4ed8}
     .badge-player{background:#dcfce7;color:#15803d}
     .comm-group{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;margin-bottom:6px}
+    #coachInbox{max-height:600px; /* allow room for ~3 players */}
+    #coachInbox .comm-group-body{max-height:200px;overflow-y:auto;}
+    #coachInbox .comm-group-body::-webkit-scrollbar{width:6px;height:6px}
+    #coachInbox .comm-group-body::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}    
     .comm-group-header{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
     .btn-xs{border:none;background:#e0e7ff;color:#3730a3;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
     .btn-xs:hover{background:#c7d2fe}
@@ -398,10 +419,20 @@
     <section id="playerPortal">
       <div class="card player-block tone-sky" style="margin-bottom:12px">
         <h3 style="margin:0 0 10px">현재 관련 선수 현황</h3>
+        <!-- coach-only selector to choose which athlete to impersonate -->
+        <div id="playerPortalSelectWrap" style="margin-bottom:8px;display:none">
+          <label for="playerPortalAthleteSelect" style="font-size:13px;">선수 선택:</label>
+          <select id="playerPortalAthleteSelect" style="margin-left:6px;padding:4px 8px;font-size:14px;"></select>
+        </div>
         <div class="row">
           <div class="card kpi"><div class="label">선수</div><div class="value" id="playerViewName" style="font-size:18px">-</div></div>
-          <div class="card kpi"><div class="label">오늘 완료율</div><div class="value" id="playerViewCompletion">0%</div></div>
-          <div class="card kpi"><div class="label">위험도</div><div class="value" id="playerViewRisk">-</div></div>
+          <div class="card kpi"><div class="label">미션 완료율</div><div class="value" id="playerViewCompletion">0%</div></div>
+          <div class="card kpi"><div class="label">경기력 수준</div>
+              <div class="value" id="playerViewPerformance">-</div>
+              <div class="subnote" id="playerViewPerformanceNote" style="font-size:11px;color:#6b7280;margin-top:4px;line-height:1.2;">
+                70이하: 오버파 경기예상<br>80: 언더파 경기예상<br>90: 우승권
+              </div>
+          </div>
           <div class="card kpi"><div class="label">상태</div><div class="value" id="playerViewStatus">-</div></div>
         </div>
       </div>
@@ -446,7 +477,7 @@
       <!-- 4) Self Evaluation -->
       <div class="panel player-panel tone-mint" id="selfeval">
         <div class="card">
-          <h3 style="margin-top:0">Self Evaluation Panel</h3>
+          <h3 style="margin-top:0">Self Evaluation Panel <span style="font-size:12px;color:var(--sub);font-weight:400;">(오늘 운동을 마친후 집중도,심리상태,체력상태를 기록)</span></h3>
           <div class="grid-3">
             <div class="field">
               <label>오늘 집중도 (1~5)</label>
@@ -455,16 +486,38 @@
               </select>
             </div>
             <div class="field">
-              <label>심리상태</label>
-              <select id="selfEvalMind">
-                <option>정상</option><option>보통</option><option>불안</option><option>집중 잘됨</option>
-              </select>
+              <label>심리상태 (복수 선택)</label>
+              <div id="selfEvalMindContainer" style="display:flex;flex-wrap:wrap;gap:4px;">          
+                <label><input type="checkbox" value="만족">만족</label>
+                <label><input type="checkbox" value="설렘">설렘</label>
+                <label><input type="checkbox" value="우울함">우울함</label>
+                <label><input type="checkbox" value="기쁨">기쁨</label>
+                <label><input type="checkbox" value="두려움">두려움</label>
+                <label><input type="checkbox" value="놀라움">놀라움</label>
+                <label><input type="checkbox" value="화남">화남</label>
+                <label><input type="checkbox" value="짜증">짜증</label>
+                <label><input type="checkbox" value="걱정">걱정</label>
+                <label><input type="checkbox" value="편안함">편안함</label>
+                <label><input type="checkbox" value="성취감">성취감</label>
+                <label><input type="checkbox" value="개운함">개운함</label>
+                <label><input type="checkbox" value="확신">확신</label>
+                <label><input type="checkbox" value="불안">불안</label>
+              </div>
+              <div class="muted" id="mindSelectedDisplay" style="font-size:13px;margin-top:4px"></div>
             </div>
             <div class="field">
-              <label>체력상태</label>
-              <select id="selfEvalStamina">
-                <option>양호</option><option selected>보통</option><option>저하</option>
-              </select>
+              <label>체력상태 (복수 선택)</label>
+              <div id="selfEvalStaminaContainer" style="display:flex;flex-wrap:wrap;gap:4px;">
+                <label><input type="checkbox" value="에너지넘치고 기운이 좋음">에너지넘치고 기운이 좋음</label>
+                <label><input type="checkbox" value="근육기초체력이 견고하게 느껴짐">근육기초체력이 견고하게 느껴짐</label>
+                <label><input type="checkbox" value="몸이가볍고 컨디션이 좋은편 임">몸이가볍고 컨디션이 좋은편 임</label>
+                <label><input type="checkbox" value="피로와 함께 몸이 무겁게 느껴짐">피로와 함께 몸이 무겁게 느껴짐</label>
+                <label><input type="checkbox" value="금방지치고 버티는 힘이 부족한 상태">금방지치고 버티는 힘이 부족한 상태</label>
+                <label><input type="checkbox" value="관절과 근육이 부드럽게 작동">관절과 근육이 부드럽게 작동</label>
+                <label><input type="checkbox" value="생각처럼 신체움직임이 이루어지지않음">생각처럼 신체움직임이 이루어지지않음</label>
+                <label><input type="checkbox" value="일상적인 보통의 상태">일상적인 보통의 상태</label>
+              </div>
+              <div class="muted" id="staminaSelectedDisplay" style="font-size:13px;margin-top:4px"></div>
             </div>
           </div>
           <div class="field">
@@ -492,8 +545,8 @@
               <textarea id="playerQuestion" rows="3" placeholder="예) 8번 아이언 샷 루틴 중 루틴 선택을 다시 정해주세요"></textarea>
             </div>
             <div class="field" style="margin:0">
-              <label>첨부 파일 (PDF/Word/Excel, 각 2MB 이하)</label>
-              <input id="playerQuestionFile" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+              <label>첨부 파일 (PDF/Word/Excel/PNG, 각 5MB 이하)</label>
+              <input id="playerQuestionFile" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png" />
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px">
               <button class="btn" id="sendPlayerQuestion">전송</button>
@@ -525,7 +578,7 @@
         <button class="coach-tab-btn" data-coach-tab="mission">오늘 미션 배정</button>
         <button class="coach-tab-btn" data-coach-tab="match">경기 시합 준비 현황</button>
         <button class="coach-tab-btn" data-coach-tab="completed">선수별 완료미션 현황</button>
-        <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션/지시사항<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
+        <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
       </div>
 
       <!-- 탭 1: 선수 현황 목록 + 승인 대기 -->
@@ -535,7 +588,7 @@
           <div class="table-scroll-3" style="height:200px;overflow-y:scroll;overflow-x:hidden">
             <table class="table" id="coachAthleteTableView">
               <thead>
-                <tr><th>선수</th><th>오늘 완료율</th><th>위험도</th><th>상태</th><th>관리</th></tr>
+                <tr><th>선수</th><th>미션 완료율</th><th>경기력</th><th>위험도</th><th>상태</th><th>관리</th></tr>
               </thead>
               <tbody id="coachAthleteTable"></tbody>
             </table>
@@ -579,8 +632,8 @@
             <textarea id="coachMessageInput" rows="4" placeholder="예) 손목 통증 빠진다면 루틴 선택 권장"></textarea>
           </div>
           <div class="field">
-            <label>첨부 파일 (PDF/Word/Excel)</label>
-            <input id="missionFileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            <label>첨부 파일 (PDF/Word/Excel/PNG, 각 5MB 이하)</label>
+            <input id="missionFileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png" />
           </div>
           <button class="btn" id="saveCoachMessage">미션 배정 전송</button>
         </div>
@@ -610,15 +663,15 @@
         </div>
       </div>
 
-      <!-- 탭 5: 선수 커뮤니케이션/코치 지시사항 -->
+      <!-- 탭 5: 선수 커뮤니케이션 -->
       <div class="coach-tab-panel" id="coachTab-comm">
         <div class="split-2">
           <div class="card">
-            <h3 style="margin-top:0">선수 커뮤니케이션 / 코치 지시사항</h3>
+            <h3 style="margin-top:0">선수 커뮤니케이션</h3>
             <div class="message-list" id="coachInbox"></div>
           </div>
           <div class="card">
-            <h3 style="margin-top:0">신규 코치 지시 전송</h3>
+            <h3 style="margin-top:0">선수 전달사항</h3>
             <div class="field">
               <label>전송 대상</label>
               <select id="coachDirectiveTarget"></select>
@@ -628,11 +681,11 @@
               <textarea id="coachDirectiveInput" rows="3" placeholder="개별 선수 또는 전체 선수에게 보낼 지시 내용을 입력하세요"></textarea>
             </div>
             <div class="field" style="margin-bottom:8px">
-              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel · 각 2MB 이하)</span></label>
+              <label>첨부 파일 <span class="muted" style="font-size:12px;font-weight:400">(PDF/Word/Excel/PNG · 각 5MB 이하)</span></label>
               <input id="directiveFileInput" type="file" multiple
-                accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png" />
             </div>
-            <button class="btn" id="sendCoachDirectiveBtn">코치지시 전송</button>
+            <button class="btn" id="sendCoachDirectiveBtn">전송</button>
             <div style="height:10px"></div>
             <h4 style="margin:0 0 8px">전송 이력</h4>
             <div class="message-list" id="coachDirectiveList"></div>
@@ -655,6 +708,10 @@
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
+let hasPerformanceColumn = true; // will be checked at startup
+let lastPerformanceEdit = null; // cache recent successful edit
+    // run check immediately (fire-and-forget)
+    verifyPerformanceColumn().catch(()=>{});
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -697,11 +754,15 @@
       return { id:r.id, password:r.password, name:r.name, role:r.role, track:r.track, level:r.level,
                approvalStatus:r.approval_status, todayCompletion:r.today_completion,
                riskLevel:r.risk_level, statusLabel:r.status_label,
+               // new performance field (stored as performance_level in DB)
+               performanceLevel: r.performance_level!=null ? r.performance_level : null,
                approvedAt:r.approved_at, deactivatedAt:r.deactivated_at, createdAt:r.created_at };
     }
     function fromDbMsg(r){
+      // ensure we always have a timestamp string
+      const ts = r.created_at || r.updated_at || new Date().toISOString();
       return { playerId:r.player_id, author:r.author, text:r.text,
-               messageType:r.message_type, createdAt:r.created_at };
+               messageType:r.message_type, createdAt:ts };
     }
     function fromDbMission(r){
       return { missionId:r.mission_id, playerId:r.player_id, code:r.code, category:r.category,
@@ -714,8 +775,15 @@
                coachId:r.coach_id, attachments:r.attachments||[] };
     }
     function fromDbSelfEval(r){
+      // mind_status and stamina_status may contain multiple values separated by '|'
+      const mindArr = r.mind_status ? String(r.mind_status).split('|').filter(Boolean) : [];
+      const stamArr = r.stamina_status ? String(r.stamina_status).split('|').filter(Boolean) : [];
       return { playerId:r.player_id, date:r.date, focus:r.focus,
-               mindStatus:r.mind_status, staminaStatus:r.stamina_status, note:r.note };
+               // keep original strings for backwards compatibility
+               mindStatus:r.mind_status, staminaStatus:r.stamina_status,
+               // arrays for easier analysis
+               mindStatuses:mindArr, staminaStatuses:stamArr,
+               note:r.note };
     }
 
     async function getUsers(){
@@ -723,17 +791,52 @@
       if(error) console.error('getUsers',error);
       return (data||[]).map(fromDbUser);
     }
+    // column check helper
+    async function verifyPerformanceColumn(){
+      try{
+        const {error}=await sb.from('sytpt_users').select('performance_level').limit(1);
+        if(error){
+          console.warn('performance column missing',error);
+          hasPerformanceColumn=false;
+          alert('경고: 데이터베이스에 performance_level 칼럼이 없습니다. 코치 기능이 제한됩니다.');
+        }
+      }catch(e){
+        console.warn('error checking performance column',e);
+        hasPerformanceColumn=false;
+        alert('경고: 성능 칼럼 체크 중 오류가 발생했습니다.');
+      }
+    }
     async function getMessages(){
       const {data}=await sb.from('sytpt_messages').select('*').order('created_at'); return data||[];
     }
     async function addMessage(msg){
-      // allow optional attachments array
-      await sb.from('sytpt_messages').insert({
-        player_id:msg.playerId, author:msg.author, text:msg.text,
-        message_type:msg.messageType||'chat',
-        attachments: msg.attachments || [],
-        created_at:msg.createdAt||new Date().toISOString()
-      });
+      console.log('addMessage invoked with', msg);
+      // allow optional attachments array; retry without it if the column is missing
+      try {
+        const res = await sb.from('sytpt_messages').insert({
+          player_id:msg.playerId, author:msg.author, text:msg.text,
+          message_type:msg.messageType||'chat',
+          attachments: msg.attachments || [],
+          created_at:msg.createdAt||new Date().toISOString()
+        });
+        console.log('addMessage insert response', res);
+        if(res.error) throw res.error;
+        return res;
+      } catch(e) {
+        console.error('addMessage error', e);
+        if(e && e.message && /column\s+"attachments"/i.test(e.message)) {
+          const {attachments, ...rest} = msg;
+          const res2 = await sb.from('sytpt_messages').insert({
+            player_id:rest.playerId, author:rest.author, text:rest.text,
+            message_type:rest.messageType||'chat',
+            created_at:rest.createdAt||new Date().toISOString()
+          });
+          if(res2.error) throw res2.error;
+          return res2;
+        } else {
+          throw e;
+        }
+      }
     }
     async function getAssignedMissions(){
       const {data}=await sb.from('sytpt_assigned_missions').select('*').order('created_at'); return data||[];
@@ -757,7 +860,8 @@
     async function addCoachDirective(item){
       await sb.from('sytpt_coach_directives').insert({
         directive_id:item.directiveId, player_id:item.playerId, text:item.text,
-        time:item.time||'방금', created_at:item.createdAt||new Date().toISOString(),
+        // using created_at for display timing; legacy `time` field not required
+        created_at:item.createdAt||new Date().toISOString(),
         replies:item.replies||[], coach_id:item.coachId||'',
         attachments:item.attachments||[]
       });
@@ -781,6 +885,29 @@
     async function getSelfEvalRecords(){
       const {data}=await sb.from('sytpt_self_eval').select('*').order('date',{ascending:false}); return data||[];
     }
+
+    // helper queries to support multi-value status fields
+    async function querySelfEvalByMindStatus(playerId, status){
+      if(!playerId || !status) return [];
+      // use ILIKE for case-insensitive match on pipe-separated list
+      const {data}=await sb.from('sytpt_self_eval')
+        .select('*')
+        .eq('player_id', playerId)
+        .ilike('mind_status','%'+status+'%')
+        .order('date',{ascending:false});
+      return data||[];
+    }
+
+    async function querySelfEvalByStaminaStatus(playerId, status){
+      if(!playerId || !status) return [];
+      const {data}=await sb.from('sytpt_self_eval')
+        .select('*')
+        .eq('player_id', playerId)
+        .ilike('stamina_status','%'+status+'%')
+        .order('date',{ascending:false});
+      return data||[];
+    }
+
     async function upsertSelfEvalRecord(record){
       await sb.from('sytpt_self_eval').upsert({
         player_id:record.playerId, date:record.date, focus:record.focus,
@@ -826,7 +953,26 @@
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
+      // allow common docs plus PNG images
+      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
+    }
+
+    // helper: delete a coach directive by id
+    async function deleteCoachDirective(directiveId) {
+      await sb
+        .from('sytpt_coach_directives')
+        .delete()
+        .eq('directive_id', directiveId);
+    }
+
+    // helper: mark all unread player messages as read for a given player
+    async function markPlayerMessagesRead(playerId) {
+      await sb
+        .from('sytpt_messages')
+        .update({ coach_read: true })
+        .eq('player_id', playerId)
+        .eq('author', '선수')
+        .eq('coach_read', false);
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
@@ -834,9 +980,9 @@
     async function readMissionAttachments(fileList){
       const files=Array.from(fileList||[]); if(!files.length) return [];
       const inv=files.find(f=>!isAllowedAttachment(f));
-      if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel만 지원합니다.');
-      const over=files.find(f=>f.size>2*1024*1024);
-      if(over) throw new Error('첨부파일은 1개당 2MB 이하로 업로드해주세요.');
+      if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel 또는 PNG만 지원합니다.');
+      const over=files.find(f=>f.size>5*1024*1024);
+      if(over) throw new Error('첨부파일은 1개당 5MB 이하로 업로드해주세요.');
       const out=[];
       for(const f of files){const d=await fileToDataUrl(f);out.push({name:f.name,mimeType:f.type||'application/octet-stream',dataUrl:d});}
       return out;
@@ -944,9 +1090,15 @@
         const lastRead=getCommLastRead(session.id);
         const allDir=await getCoachDirectives();
         const forPlayer=allDir.filter(r=>r.player_id===session.id);
-        const unreadN=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
-        const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
+        // count unread directives
+        let unreadDir = lastRead ? forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length : forPlayer.length;
+        // also count any chat messages from coach after lastRead
         const allMsgs=await getMessages();
+        const coachChats = allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.author==='코치'&&m.created_at);
+        const unreadChat = lastRead ? coachChats.filter(m=>m.created_at>lastRead).length : coachChats.length;
+        const unreadN = unreadDir + unreadChat;
+        const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
+        // calculate waiting count as before (queries vs directives)
         const myQ=allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.created_at);
         const waitN=myQ.filter(m=>!forPlayer.some(d=>d.created_at&&m.created_at&&d.created_at>m.created_at)).length;
         const pa=document.getElementById('pendingAnswer'); if(pa) pa.textContent=waitN+'건';
@@ -954,13 +1106,25 @@
         if(badge){if(unreadN>0){badge.textContent=String(unreadN);badge.style.display='inline';}else{badge.style.display='none';}}
       }
     }
+    function formatPerformance(val){
+      if(val===null||val===undefined||val==='') return '-';
+      return String(val)+'%';
+    }
     async function renderPlayerViewContext(){
+
       const session=getSession();
       const users=await getUsers();
+      // verify column presence once
+      if(hasPerformanceColumn) await verifyPerformanceColumn();
+      // if coach, sync the selector options before determining active player
+      // hide selector by default; only shown later if coach
+      const wrap=document.getElementById('playerPortalSelectWrap');
+      if(wrap) wrap.style.display = (session&&session.role==='coach') ? 'block' : 'none';
+      if(session&&session.role==='coach') syncPlayerPortalSelector(users);
       const player=getActivePlayerForView(users);
       const nr=document.getElementById('playerViewName');
       const cr=document.getElementById('playerViewCompletion');
-      const rr=document.getElementById('playerViewRisk');
+      const rr=document.getElementById('playerViewPerformance');
       const sr=document.getElementById('playerViewStatus');
       if(!nr||!cr||!rr||!sr) return;
       await renderMatchHeader();
@@ -968,7 +1132,11 @@
       const isCoach=session&&session.role==='coach';
       nr.textContent=isCoach?(player.name+' ('+player.id+')'):player.name;
       cr.textContent=player.todayCompletion||'0%';
-      rr.textContent=player.riskLevel||'정상';
+      if(lastPerformanceEdit && player.id===lastPerformanceEdit.id){
+        rr.textContent=formatPerformance(lastPerformanceEdit.val);
+      } else {
+        rr.textContent=formatPerformance(player.performanceLevel);
+      }
       sr.textContent=player.statusLabel||'승인 완료';
       renderMissionCardsForActivePlayer();
       renderPlayerMessageThread();
@@ -986,7 +1154,11 @@
       const records=all.filter(r=>r.player_id===player.id).map(fromDbSelfEval)
         .sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,7);
       if(!records.length){root.innerHTML='<p class="muted" style="margin:0">저장된 이력이 없습니다.</p>';return;}
-      var rows=records.map(function(r){return '<tr><td>'+(r.date||'-')+'</td><td>'+(r.focus||'-')+'</td><td>'+(r.mindStatus||'-')+'</td><td>'+(r.staminaStatus||'-')+'</td><td>'+(r.note||'-')+'</td></tr>';}).join('');
+      var rows=records.map(function(r){
+        var mindDisplay = (r.mindStatuses && r.mindStatuses.length) ? r.mindStatuses.join(', ') : (r.mindStatus||'-');
+        var stamDisplay = (r.staminaStatuses && r.staminaStatuses.length) ? r.staminaStatuses.join(', ') : (r.staminaStatus||'-');
+        return '<tr><td>'+(r.date||'-')+'</td><td>'+(r.focus||'-')+'</td><td>'+mindDisplay+'</td><td>'+stamDisplay+'</td><td>'+(r.note||'-')+'</td></tr>';
+      }).join('');
       root.innerHTML='<table class="table"><thead><tr><th>일자</th><th>집중도</th><th>심리상태</th><th>체력상태</th><th>오늘훈련특이사항</th></tr></thead><tbody>'+rows+'</tbody></table>';
     }
     async function renderDashboardCoachMessages(){
@@ -995,9 +1167,20 @@
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
       const all=await getCoachDirectives();
-      const directives=all.filter(r=>r.player_id===player.id).slice(-3).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';return;}
-      root.innerHTML=directives.map(function(d){return '<div class="message"><div class="meta">코치 · '+d.time+'</div><div>'+d.text+'</div></div>';}).join('');
+      // sort by created_at descending, then take top 3
+      const directives=all
+        .filter(r=>r.player_id===player.id)
+        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+        .slice(0,3)
+        .map(fromDbDirective);
+      if(!directives.length){
+        root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';
+        return;
+      }
+      root.innerHTML=directives.map(function(d){
+        var timeStr=formatTime(d.createdAt);
+        return '<div class="message"><div class="meta">코치 · '+timeStr+'</div><div>'+d.text+'</div></div>';
+      }).join('');
     }
     function renderBars(id, values, color){
       color=color||'#93c5fd';
@@ -1062,6 +1245,26 @@
       select.value=ap.some(function(p){return p.id===selId;})?selId:ap[0].id;
       if(!selId) setCoachSelectedPlayerId(select.value);
     }
+    // populate selector on player portal for coaches
+    function syncPlayerPortalSelector(users){
+      const wrap=document.getElementById('playerPortalSelectWrap');
+      const sel=document.getElementById('playerPortalAthleteSelect');
+      if(!wrap||!sel) return;
+      const ap=getApprovedPlayers(users);
+      if(!ap.length){wrap.style.display='none';return;}
+      wrap.style.display='block';
+      const selId=getCoachSelectedPlayerId();
+      sel.innerHTML=ap.map(function(p){return '<option value="'+p.id+'">'+p.name+' ('+p.id+')</option>';}).join('');
+      sel.value=ap.some(function(p){return p.id===selId;})?selId:ap[0].id;
+      // if no previous selection or it was invalid, save default
+      if(!selId || !ap.some(function(p){return p.id===selId;})){
+        setCoachSelectedPlayerId(sel.value);
+      }
+      sel.addEventListener('change',function(){
+        setCoachSelectedPlayerId(sel.value);
+        renderPlayerViewContext();
+      });
+    }
     async function syncCoachDirectiveTargetOptions(){
       const select=document.getElementById('coachDirectiveTarget'); if(!select) return;
       const users=await getUsers();
@@ -1074,15 +1277,27 @@
       const users=await getUsers();
       const dirsRaw=await getCoachDirectives();
       const directives=dirsRaw.slice(-8).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';return;}
+      if(!directives.length){
+        root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
+        return;
+      }
       root.innerHTML=directives.map(function(item){
         var player=users.find(function(u){return u.id===item.playerId;});
+        var deleteBtn='<button class="btn btn-red delete-dir-btn" data-id="'+item.directiveId+'" style="margin-left:8px;padding:2px 6px;font-size:11px">삭제</button>';
         var replies=Array.isArray(item.replies)?item.replies:[];
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        var timeStr = formatTime(item.createdAt);
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+timeStr+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
+      root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
+        btn.addEventListener('click',async function(){
+          if(!confirm('이 지시를 정말 삭제하시겠습니까?')) return;
+          await deleteCoachDirective(btn.dataset.id);
+          renderCoachDirectiveList();
+        });
+      });
     }
     async function renderCoachKPIs(){
       var riskEl=document.getElementById('coachKpiRisk');
@@ -1100,7 +1315,7 @@
       var msgsRaw=await getMessages();
       var pendingCount=ap.filter(function(player){
         var dirs=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
-        var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author,createdAt:r.created_at||''};});
+        var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
         var thread=[...dirs,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
         if(!thread.length) return false;
         return thread[thread.length-1].author==='선수';
@@ -1121,7 +1336,7 @@
       if(!pending.length){root.innerHTML='<tr><td colspan="5" class="muted">승인 대기 선수가 없습니다.</td></tr>';return;}
       root.innerHTML=pending.map(function(u){return '<tr><td>'+u.id+'</td><td>'+u.name+'</td><td>'+(u.track||'-')+'</td><td class="risk-mid">대기</td><td><button class="btn btn-green approve-btn" data-player-id="'+u.id+'">승인</button></td></tr>';}).join('');
       root.querySelectorAll('.approve-btn').forEach(function(btn){btn.addEventListener('click',async function(){
-        var pid=btn.dataset.playerId;
+        var pid=btn.getAttribute('data-player-id');
         await sb.from('sytpt_users').update({approval_status:'approved',approved_at:new Date().toISOString(),today_completion:'0%',risk_level:'정상',status_label:'승인 완료'}).eq('id',pid);
         renderPendingApprovals();renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
@@ -1134,24 +1349,88 @@
       const selectedId=getCoachSelectedPlayerId();
       if(countRoot) countRoot.textContent=ap.length+'명';
       if(!tableRoot) return;
-      if(!ap.length){tableRoot.innerHTML='<tr><td colspan="5" class="muted">승인된 선수가 아직 없습니다.</td></tr>';return;}
+      if(!ap.length){tableRoot.innerHTML='<tr><td colspan="6" class="muted">승인된 선수가 아직 없습니다.</td></tr>';return;}
       tableRoot.innerHTML=ap.map(function(player){
         var risk=player.riskLevel||'정상';
         var rc=risk==='높음'?'risk-high':risk==='주의'?'risk-mid':'';
         var rowC=player.id===selectedId?'selected':'';
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
-        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td><td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
+        var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
+        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        let perfCell = '<td>-</td>';
+        if(hasPerformanceColumn){
+          perfCell = '<td><div style="display:flex;align-items:center;">'+
+                     '<input type="number" class="perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"'+
+                     (hasPerformanceColumn?'':' disabled')+'>'+
+                     '<span style="margin-left:4px">%</span></div></td>';
+        }
+        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
-        var pid=btn.dataset.playerId;
+        var pid=btn.getAttribute('data-player-id');
+        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?')) return;
         await sb.from('sytpt_users').update({approval_status:'inactive',status_label:'비활성화',deactivated_at:new Date().toISOString()}).eq('id',pid);
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
         if(e.target.closest('.deactivate-btn')) return;
-        setCoachSelectedPlayerId(row.dataset.playerId);
-        renderCoachAthleteBoard();renderPlayerViewContext();
+        setCoachSelectedPlayerId(row.getAttribute('data-player-id'));
+        // only rerender the player view, avoid rebuilding full table for speed
+        renderPlayerViewContext();
       });});
+      // performance input handlers
+      tableRoot.querySelectorAll('.perf-input').forEach(function(input){
+        input.addEventListener('change',async function(){
+          var pid=input.getAttribute('data-player-id');
+          var val=parseInt(input.value,10);
+          if(isNaN(val)||val<0) val=0;
+          if(val>100) val=100;
+          input.value=val;
+          // attempt update and return the id so we can verify success
+          let res = await sb.from('sytpt_users')
+                         .update({performance_level:val})
+                         .match({id:pid})
+                         .select('id');
+          console.log('update attempt',pid,val,res);
+          if(res.error){
+            // if column missing, bail and notify once
+            if(res.error.code==='PGRST204' && res.error.message && res.error.message.includes('performance_level')){
+              alert('데이터베이스에 `performance_level` 컬럼이 존재하지 않습니다.\n관리자에게 추가를 요청해주세요.');
+              console.error('missing column performance_level');
+              return;
+            }
+            console.warn('match update failed for',pid,res.error);
+            // try quoting the id value to satisfy REST syntax
+            res = await sb.from('sytpt_users')
+                         .update({performance_level:val})
+                         .eq('id','"'+pid+'"')
+                         .select('id');
+            console.log('quoted update attempt',pid,val,res);
+          }
+          // supabase returns array of rows; if it's empty, nothing was updated
+          if(!res.data || (Array.isArray(res.data) && res.data.length===0)){
+            console.warn('no rows updated for',pid,res);
+            alert('업데이트 대상 선수가 없거나 권한이 없습니다 (id='+pid+')');
+            return;
+          }
+          if(res.error){
+            console.error('performance update error for',pid,res.error);
+            return; // do not re-render, keep entered value
+          }
+          // success -> remember edit and refresh only the visible KPI
+          lastPerformanceEdit = {id: pid, val: val};
+          // if the edited player is currently displayed, update the top KPI text
+          try{
+            const active=getActivePlayerForView(await getUsers());
+            if(active && active.id===pid){
+              const rr=document.getElementById('playerViewPerformance');
+              if(rr) rr.textContent = formatPerformance(val);
+            }
+          }catch(e){console.warn('could not refresh active performance',e);}
+          // keep input value shown
+          input.value = val;
+        });
+      });
     }
     async function renderCoachMatchBoard(){
       const root=document.getElementById('coachMatchBoard'); if(!root) return;
@@ -1166,6 +1445,9 @@
       root.innerHTML=ap.map(function(player,i){
         var info=infos[i];
         var cfg=phaseConfigs[i];
+        var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
+        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        var perfHtml = '<div style="margin-top:4px;font-size:12px">경기력 수준: <input type="number" class="coach-match-perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"><span style="margin-left:4px">%</span></div>';
         var hasMatch=info.matchName&&info.matchName!=='경기명';
         var dateText=formatMatchRangeText(info.startDate,info.endDate);
         var isOpen=expandedMatchPlayerIds.has(player.id);
@@ -1183,13 +1465,40 @@
           return '<div class="match-phase-cell"><div class="phase-label" style="color:'+ph.color+'">'+ph.label+'</div><ul style="padding-left:16px;margin:4px 0">'+liHtml+'</ul></div>';
         }).join('');
         var phaseHtml='<div class="match-player-detail">'+(hasMatch?'<div style="font-size:12px;color:var(--blue);font-weight:700;margin-bottom:8px">📅 '+info.matchName+' · '+dateText+'</div>':'')+'<div class="match-phase-grid">'+phaseCells+'</div></div>';
-        return '<div class="match-player-row"><button class="match-player-toggle'+(isOpen?' open':'')+'" data-player-id="'+player.id+'"><span>👤 <strong>'+player.name+'</strong>'+matchLabel+'</span><span style="font-size:11px;color:var(--sub)">'+(isOpen?'▲ 닫기':'▼ 펼치기')+'</span></button>'+(isOpen?phaseHtml:'')+'</div>';
+        return '<div class="match-player-row"><button class="match-player-toggle'+(isOpen?' open':'')+'" data-player-id="'+player.id+'"><span>👤 <strong>'+player.name+'</strong>'+matchLabel+'</span><span style="font-size:11px;color:var(--sub)">'+(isOpen?'▲ 닫기':'▼ 펼치기')+'</span></button>'+perfHtml+(isOpen?phaseHtml:'')+'</div>';
       }).join('');
       root.querySelectorAll('.match-player-toggle').forEach(function(btn){btn.addEventListener('click',function(){
-        var pid=btn.dataset.playerId;
+        var pid=btn.getAttribute('data-player-id');
         if(expandedMatchPlayerIds.has(pid)) expandedMatchPlayerIds.delete(pid); else expandedMatchPlayerIds.add(pid);
         renderCoachMatchBoard();
       });});
+      // performance field listeners
+      root.querySelectorAll('.coach-match-perf-input').forEach(function(input){
+        input.addEventListener('change',async function(){
+          var pid=input.getAttribute('data-player-id');
+          var val=parseInt(input.value,10);
+          if(isNaN(val)||val<0) val=0;
+          if(val>100) val=100;
+          input.value=val;
+          let res = await sb.from('sytpt_users').update({performance_level:val}).match({id:pid});
+          if(res.error){
+            if(res.error.code==='PGRST204' && res.error.message && res.error.message.includes('performance_level')){
+              alert('데이터베이스에 `performance_level` 컬럼이 존재하지 않습니다.\n관리자에게 추가를 요청해주세요.');
+              console.error('missing column performance_level');
+              return;
+            }
+            console.warn('match update failed for',pid,res.error);
+            res = await sb.from('sytpt_users').update({performance_level:val}).eq('id','"'+pid+'"');
+          }
+          if(res.error){
+            console.error('performance update error for',pid,res.error);
+            return;
+          }
+          renderPlayerViewContext();
+          renderCoachAthleteBoard();
+          renderCoachMatchBoard();
+        });
+      });
     }
     async function renderCoachCompletedMissionList(){
       const root=document.getElementById('coachCompletedMissionList');
@@ -1213,7 +1522,7 @@
       }
       root.innerHTML=completed.map(function(item){return '<button class="completed-item completed-mission-btn" data-player-id="'+item.playerId+'" data-mission-key="'+item.missionKey+'"><div class="meta">'+item.playerName+' · '+item.mode+'</div><div>'+item.missionCode+'</div></button>';}).join('');
       root.querySelectorAll('.completed-mission-btn').forEach(function(btn){btn.addEventListener('click',async function(){
-        var pid=btn.dataset.playerId; var mk=btn.dataset.missionKey;
+        var pid=btn.getAttribute('data-player-id'); var mk=btn.getAttribute('data-mission-key');
         const missions=await getDisplayMissionsForPlayer(pid);
         const mission=missions.find(function(m){return m.missionKey===mk;});
         if(!mission||!detailRoot) return;
@@ -1230,8 +1539,12 @@
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
       const dirsRaw=await getCoachDirectives();
       const msgsRaw=await getMessages();
-      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
-      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
+      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){
+        return {author:'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
+      });
+      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){
+        return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
+      });
       const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
       if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
       root.innerHTML=thread.map(function(m){
@@ -1273,25 +1586,45 @@
       const root=document.getElementById('coachInbox'); if(!root) return;
       const users=await getUsers();
       const ap=getApprovedPlayers(users);
-      if(!ap.length){root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>승인된 선수가 없습니다.</div></div>';return;}
-      const dirsRaw=await getCoachDirectives();
+      if(!ap.length){
+        root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>승인된 선수가 없습니다.</div></div>';
+        return;
+      }
       const msgsRaw=await getMessages();
       const groups=ap.map(function(player){
-        const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',text:r.text,createdAt:r.created_at||''};});
-        const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||''};});
-        const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));}).slice(-5);
-        return {player:player,thread:thread};
+        const chats=msgsRaw
+          .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r)) && r.author==='선수';})
+          .map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[],coach_read:r.coach_read||false};});
+        const thread=chats.sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));}).slice(-5);
+        const unread=thread.filter(m=>!m.coach_read).length;
+        return {player:player,thread:thread,unread:unread};
       }).filter(function(g){return g.thread.length>0;});
-      if(!groups.length){root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';return;}
+      if(!groups.length){
+        root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';
+        return;
+      }
       root.innerHTML=groups.map(function(g){
+        var badge = g.unread>0 ? '<span class="badge unread" style="background:#dc2626;color:#fff;margin-left:6px;font-size:10px;padding:2px 4px;">'+g.unread+'</span>' : '';
         var msgsHtml=g.thread.map(function(m){
           var ic=m.author==='코치';
-          return '<div class="message '+(ic?'msg-coach':'msg-player')+'" style="margin-bottom:4px"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:2px">'+m.text+'</div></div>';
+          // decide if this player message has a coach reply later
+          var replied=false;
+          if(!ic){
+            replied = msgsRaw.some(function(r){
+              return r.player_id===g.player.id && r.author==='코치' && String(r.created_at) > String(m.createdAt);
+            });
+          }
+          var atts=Array.isArray(m.attachments)?m.attachments:[];
+          var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
+          var replyBadge = replied ? '<span class="badge" style="background:#10b981;color:#fff;font-size:10px;margin-left:6px;">답변완료</span>' : '';
+          return '<div class="message '+(ic?'msg-coach':'msg-player')+'"'+(m.coach_read?'':' style="background:#fffbeb;"')+'><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span>'+replyBadge+'</div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
         }).join('');
-        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span><button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'">답변하기</button></div><div style="max-height:150px;overflow-y:auto">'+msgsHtml+'</div></div>';
+        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span>'+badge+'<button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'" style="margin-left:8px">답변하기</button></div><div class="comm-group-body">'+msgsHtml+'</div></div>';
       }).join('');
-      root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',function(){
-        var pid=btn.dataset.playerId;
+      root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',async function(){
+        var pid=btn.getAttribute('data-player-id');
+        await markPlayerMessagesRead(pid);
+        renderCoachInboxDynamic();
         var ts=document.getElementById('coachDirectiveTarget'); if(ts) ts.value=pid;
         var ia=document.getElementById('coachDirectiveInput');
         if(ia){ia.focus();ia.scrollIntoView({behavior:'smooth',block:'center'});}
@@ -1303,6 +1636,8 @@
       document.querySelectorAll('.portal-tabs button[data-portal]').forEach(function(b){b.classList.toggle('active',b.dataset.portal===portal);});
       document.getElementById('playerPortal').style.display=portal==='player'?'block':'none';
       document.getElementById('coachPortal').style.display=portal==='coach'?'block':'none';
+      if(portal==='player') renderPlayerViewContext();
+      else if(portal==='coach') renderCoachMatchBoard();
     }
     function setAuthPanel(panel){
       var map={login:'loginPanel',signup:'signupPanel',pending:'pendingPanel'};
@@ -1376,17 +1711,42 @@
         .subscribe();
     }
 
+    // periodically refresh relative timestamps every minute
+    setInterval(function(){
+      renderDashboardCoachMessages();
+      renderCoachDirectiveList();
+      renderPlayerMessageThread();
+      renderCoachInboxDynamic();
+    }, 60 * 1000);
+
+    // periodically refresh time labels in message panels
+    setInterval(function(){
+      renderDashboardCoachMessages();
+      renderCoachDirectiveList();
+      renderPlayerMessageThread();
+      renderCoachInboxDynamic();
+    }, 60 * 1000); // every minute
+
     // ====== 이벤트 핸들러 ======
     document.getElementById('sendPlayerQuestion').addEventListener('click', async function(){
-      var session=getSession(); if(!session||session.role!=='player') return;
+      console.log('sendPlayerQuestion clicked');
+      var session=getSession(); console.log('session data', session);
+      if(!session||session.role!=='player') return;
       var ta=document.getElementById('playerQuestion'); if(!ta) return;
       var text=ta.value.trim(); if(!text) return;
       var attachments=[];
       try{
         var fileInput=document.getElementById('playerQuestionFile');
         attachments = await readMissionAttachments(fileInput&&fileInput.files);
+        console.log('attachments read', attachments);
       }catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
-      await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
+      try {
+        const result = await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
+        console.log('addMessage result', result);
+      } catch(err) {
+        console.error('message send failed', err);
+        alert('메시지 전송 중 오류가 발생했습니다. 에러: ' + (err.message||err.code||err));
+      }
       ta.value='';
       var fileInputEl=document.getElementById('playerQuestionFile'); if(fileInputEl) fileInputEl.value='';
       renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();
@@ -1394,11 +1754,47 @@
       if(badge){badge.textContent=String((parseInt(badge.textContent||'0',10))+1);badge.style.display='inline';}
     });
 
+    function updateMindDisplay(){
+      const container=document.getElementById('selfEvalMindContainer');
+      const disp=document.getElementById('mindSelectedDisplay');
+      if(container && disp){
+        const vals=Array.from(container.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
+        disp.textContent = vals.length ? '선택: '+vals.join(', ') : '';
+      }
+    }
+    function updateStamDisplay(){
+      const container=document.getElementById('selfEvalStaminaContainer');
+      const disp=document.getElementById('staminaSelectedDisplay');
+      if(container && disp){
+        const vals=Array.from(container.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
+        disp.textContent = vals.length ? '선택: '+vals.join(', ') : '';
+      }
+    }
+    // attach listeners to the checkbox containers
+    const mindContainer = document.getElementById('selfEvalMindContainer');
+    const stamContainer = document.getElementById('selfEvalStaminaContainer');
+    if(mindContainer){
+      mindContainer.addEventListener('change', updateMindDisplay);
+    }
+    if(stamContainer){
+      stamContainer.addEventListener('change', updateStamDisplay);
+    }
+    // initialize displays
+    updateMindDisplay(); updateStamDisplay();
+
     document.getElementById('saveSelfEvalBtn').addEventListener('click', async function(){
       var session=getSession(); if(!session||session.role!=='player') return;
       var focus=(document.getElementById('selfEvalFocus')||{}).value||'';
-      var mindStatus=(document.getElementById('selfEvalMind')||{}).value||'';
-      var staminaStatus=(document.getElementById('selfEvalStamina')||{}).value||'';
+      var mindStatus = '';
+      var mindVals = [];
+      var mindContainer2 = document.getElementById('selfEvalMindContainer');
+      if(mindContainer2){ mindVals = Array.from(mindContainer2.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value); }
+      mindStatus = mindVals.join('|');
+      var staminaStatus = '';
+      var stamVals = [];
+      var stamContainer2 = document.getElementById('selfEvalStaminaContainer');
+      if(stamContainer2){ stamVals = Array.from(stamContainer2.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value); }
+      staminaStatus = stamVals.join('|');
       var note=((document.getElementById('selfEvalNote')||{}).value||'').trim();
       var date=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
       await upsertSelfEvalRecord({playerId:session.id,date:date,focus:focus,mindStatus:mindStatus,staminaStatus:staminaStatus,note:note,createdAt:new Date().toISOString()});
@@ -1421,6 +1817,8 @@
         playerId:athleteId,code:rawCode||'미지정',category:category,feedback:message,
         attachments:attachments,level:'코치배정',time:'코치지정',completed:false,createdAt:new Date().toISOString()
       });
+      // when coach assigns a mission we can treat as a reply, clear unread flag
+      await markPlayerMessagesRead(athleteId);
       await updatePlayerCompletionMetrics(athleteId);
       renderMissionCardsForActivePlayer();renderCoachAthleteBoard();renderCoachCompletedMissionList();renderPlayerMessageThread();renderCoachKPIs();
       document.getElementById('coachMessageInput').value='';
@@ -1444,9 +1842,12 @@
       for(var i=0;i<targets.length;i++){
         await addCoachDirective({
           directiveId:'DIR-'+Date.now()+'-'+Math.floor(Math.random()*1000),
-          playerId:targets[i],text:text,time:'방금',createdAt:new Date().toISOString(),
+          playerId:targets[i],text:text,
+          createdAt:new Date().toISOString(),
           coachId:session.id,attachments:attachments
         });
+        // mark their unread chat messages as read because coach has replied
+        await markPlayerMessagesRead(targets[i]);
       }
       document.getElementById('coachDirectiveInput').value='';
       if(fileInput) fileInput.value='';
@@ -1628,7 +2029,7 @@
       var selId=getCoachSelectedPlayerId()||ap[0].id;
       var phDefs=[{key:'pre',label:'🟡 Pre-Match'},{key:'in',label:'🟢 In-Match'},{key:'post',label:'🔵 Post-Match'}];
       root.innerHTML='<div class="field" style="margin-bottom:10px"><label>선수 선택</label><select id="phaseEditorPlayer">'+
-        ap.map(function(p){return '<option value="'+p.id+'"'+(p.id===selId?' selected':'')+'>'+p.name+'</option>';}).join('')+
+        ap.map(function(p){return '<option value="'+p.id+'"'+(p.id===selId?' selected':'')+'">'+p.name+'</option>';}).join('')+
         '</select></div>'+
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
         phDefs.map(function(ph){
