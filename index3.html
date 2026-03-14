@@ -708,32 +708,6 @@
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
-let hasPerformanceColumn = true; // will be checked at startup
-let lastPerformanceEdit = null; // cache recent successful edit
-
-// cache/anti‑throttle for coach directives (prevents repeated failing calls)
-let coachDirectivesCache = [];
-let lastCoachDirectivesFetch = 0;
-let lastCoachDirectivesError = 0;
-const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
-const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
-
-// cache/anti‑throttle for messages (prevents redundant fetches)
-let messagesCache = [];
-let lastMessagesFetch = 0;
-let lastMessagesError = 0;
-const MESSAGES_CACHE_TTL = 30000; // ms
-const MESSAGES_ERROR_TTL = 60000; // ms
-
-// cache/anti‑throttle for users (prevents redundant fetches)
-let usersCache = [];
-let lastUsersFetch = 0;
-let lastUsersError = 0;
-const USERS_CACHE_TTL = 30000; // ms
-const USERS_ERROR_TTL = 60000; // ms
-
-// run check immediately (fire-and-forget)
-verifyPerformanceColumn().catch(()=>{});
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -1076,25 +1050,7 @@ verifyPerformanceColumn().catch(()=>{});
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      // allow common docs plus PNG images
-      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
-    }
-
-    // helper: delete a coach directive by id
-    async function deleteCoachDirective(directiveId) {
-      await sb
-        .from('sytpt_coach_directives')
-        .delete()
-        .eq('directive_id', directiveId);
-    }
-
-    // helper: mark all unread player messages as read for a given player
-    async function markPlayerMessagesRead(playerId) {
-      await sb
-        .from('sytpt_messages')
-        .update({ coach_read: true })
-        .eq('player_id', playerId)
-        .eq('author', '선수');
+      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
