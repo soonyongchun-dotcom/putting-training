@@ -1034,13 +1034,23 @@
       }
     }
     async function addCoachDirective(item){
-      await sb.from('sytpt_coach_directives').insert({
-        directive_id:item.directiveId, player_id:item.playerId, text:item.text,
-        // using created_at for display timing; legacy `time` field not required
-        created_at:item.createdAt||new Date().toISOString(),
-        replies:item.replies||[], coach_id:item.coachId||'',
-        attachments:item.attachments||[]
-      });
+      try{
+        const res = await sb.from('sytpt_coach_directives').insert({
+          directive_id:item.directiveId, player_id:item.playerId, text:item.text,
+          // using created_at for display timing; legacy `time` field not required
+          created_at:item.createdAt||new Date().toISOString(),
+          replies:item.replies||[], coach_id:item.coachId||'',
+          attachments:item.attachments||[]
+        });
+        if(res.error){
+          console.error('addCoachDirective error', res.error);
+          alert('코치 지시 전송 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+        }
+        return res;
+      }catch(e){
+        console.error('addCoachDirective exception', e);
+        alert('코치 지시 전송 중 예외가 발생했습니다: '+(e.message||e));
+      }
     }
     async function getMissionProgressState(playerId, missionKey){
       const {data}=await sb.from('sytpt_mission_progress')
