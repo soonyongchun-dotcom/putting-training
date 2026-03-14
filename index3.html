@@ -709,6 +709,27 @@
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
 
+    // cache/anti-throttle for users (prevents redundant fetches)
+    let usersCache = [];
+    let lastUsersFetch = 0;
+    let lastUsersError = 0;
+    const USERS_CACHE_TTL = 30000; // ms
+    const USERS_ERROR_TTL = 60000; // ms
+
+    // cache/anti-throttle for messages (prevents redundant fetches)
+    let messagesCache = [];
+    let lastMessagesFetch = 0;
+    let lastMessagesError = 0;
+    const MESSAGES_CACHE_TTL = 30000; // ms
+    const MESSAGES_ERROR_TTL = 60000; // ms
+
+    // cache/anti-throttle for coach directives (prevents redundant fetches)
+    let coachDirectivesCache = [];
+    let lastCoachDirectivesFetch = 0;
+    let lastCoachDirectivesError = 0;
+    const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
+    const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
+
     const today = new Date();
     document.getElementById("todayDate").textContent =
       `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
