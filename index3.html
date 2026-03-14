@@ -733,9 +733,11 @@
     // track local UI edits to avoid immediately overwriting user input
     var lastPerformanceEdit = window.lastPerformanceEdit || null;
     window.lastPerformanceEdit = lastPerformanceEdit;
-    // check for missing DB column to avoid runtime errors
+    // check for missing DB columns to avoid runtime errors
     var hasPerformanceColumn = window.hasPerformanceColumn !== undefined ? window.hasPerformanceColumn : true;
     window.hasPerformanceColumn = hasPerformanceColumn;
+    var hasCoachReadColumn = window.hasCoachReadColumn !== undefined ? window.hasCoachReadColumn : true;
+    window.hasCoachReadColumn = hasCoachReadColumn;
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -854,6 +856,21 @@
         alert('경고: 성능 칼럼 체크 중 오류가 발생했습니다.');
       }
     }
+
+    async function verifyCoachReadColumn(){
+      try{
+        const {error} = await sb.from('sytpt_messages').select('coach_read').limit(1);
+        if(error){
+          console.warn('coach_read column missing', error);
+          hasCoachReadColumn = false;
+          window.hasCoachReadColumn = false;
+        }
+      }catch(e){
+        console.warn('error checking coach_read column', e);
+        hasCoachReadColumn = false;
+        window.hasCoachReadColumn = false;
+      }
+    }
     async function getMessages(force=false){
       const now = Date.now();
       if(!force){
@@ -886,11 +903,22 @@
 
     async function markPlayerMessagesRead(playerId){
       if(!playerId) return;
+      if(!window.hasCoachReadColumn){
+        // when the column is missing, we cannot update it; just skip
+        return;
+      }
       try{
         const {data,error} = await sb.from('sytpt_messages')
           .update({coach_read:true})
           .match({player_id:playerId, author:'선수'});
         if(error){
+          // if column doesn't exist, disable future attempts
+          if(error.code==='PGRST204' && error.message && error.message.includes('coach_read')){
+            console.warn('coach_read column missing, disabling marking read', error);
+            hasCoachReadColumn = false;
+            window.hasCoachReadColumn = false;
+            return;
+          }
           console.warn('markPlayerMessagesRead error', error);
         } else {
           // refresh cache so unread counts update
@@ -1247,6 +1275,7 @@
       const users=await getUsers();
       // verify column presence once
       if(window.hasPerformanceColumn) await verifyPerformanceColumn();
+      if(window.hasCoachReadColumn) await verifyCoachReadColumn();
       // if coach, sync the selector options before determining active player
       // hide selector by default; only shown later if coach
       const wrap=document.getElementById('playerPortalSelectWrap');
