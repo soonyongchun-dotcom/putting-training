@@ -1092,12 +1092,20 @@ verifyPerformanceColumn().catch(()=>{});
 
     // helper: mark all unread player messages as read for a given player
     async function markPlayerMessagesRead(playerId) {
-      await sb
-        .from('sytpt_messages')
-        .update({ coach_read: true })
-        .eq('player_id', playerId)
-        .eq('author', '선수')
-        .is('coach_read', false);
+      // Supabase schema may not have coach_read column; ignore if missing.
+      try {
+        await sb
+          .from('sytpt_messages')
+          .update({ coach_read: true })
+          .eq('player_id', playerId)
+          .eq('author', '선수');
+      } catch (e) {
+        if (e && e.message && e.message.includes('coach_read')) {
+          console.warn('coach_read column missing; skipping mark-as-read update');
+          return;
+        }
+        throw e;
+      }
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
