@@ -1066,6 +1066,57 @@
         alert('지시사항 삭제 중 예외가 발생했습니다: '+(e.message||e));
       }
     }
+
+    // ====== coach_read 컬럼 유무 확인 ======
+    // Supabase schema may not include coach_read; avoid failing when missing.
+    window.hasCoachReadColumn = window.hasCoachReadColumn === undefined ? undefined : window.hasCoachReadColumn;
+
+    async function verifyCoachReadColumn(){
+      if (typeof window.hasCoachReadColumn === 'boolean') return window.hasCoachReadColumn;
+      try{
+        const {error} = await sb.from('sytpt_messages').select('coach_read').limit(1);
+        if(error){
+          if(error.code==='42703' || (error.message && error.message.includes('coach_read'))){
+            console.warn('coach_read column missing, disabling unread tracking', error);
+            window.hasCoachReadColumn = false;
+          } else {
+            console.warn('Unexpected error verifying coach_read column', error);
+          }
+        } else {
+          window.hasCoachReadColumn = true;
+        }
+      }catch(e){
+        console.warn('verifyCoachReadColumn exception', e);
+        window.hasCoachReadColumn = false;
+      }
+      return window.hasCoachReadColumn;
+    }
+
+    async function markPlayerMessagesRead(playerId){
+      if(!playerId) return;
+      const has = await verifyCoachReadColumn();
+      if(!has) return;
+      try{
+        await sb.from('sytpt_messages')
+          .update({coach_read:true})
+          .eq('player_id', playerId)
+          .eq('author', '선수');
+      }catch(e){
+        console.warn('markPlayerMessagesRead error', e);
+      }
+    }
+
+    // ====== 코치 지시 삭제 ======
+    async function deleteCoachDirective(directiveId){
+      if(!directiveId) return;
+      try{
+        const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId);
+        if(error) throw error;
+      }catch(e){
+        console.error('deleteCoachDirective error', e);
+      }
+    }
+
     async function getMissionProgressState(playerId, missionKey){
       const {data}=await sb.from('sytpt_mission_progress')
         .select('*').eq('player_id',playerId).eq('mission_key',missionKey).maybeSingle();
@@ -1478,7 +1529,7 @@
       }).join('');
       root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
         btn.addEventListener('click',async function(){
-          if(!confirm('이 지시를 정말 삭제하시겠습니까?')) return;
+          if(!confirm('정말로 이 지시를 삭제하시겠습니까?')) return;
           await deleteCoachDirective(btn.dataset.id);
           renderCoachDirectiveList();
         });
