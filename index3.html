@@ -1033,6 +1033,10 @@
         if(res.error){
           console.error('addCoachDirective error', res.error);
           alert('코치 지시 전송 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+        } else {
+          // clear cache so player views get the newest directive immediately
+          coachDirectivesCache = [];
+          lastCoachDirectivesFetch = 0;
         }
         return res;
       }catch(e){
@@ -1927,9 +1931,15 @@
     function setupRealtimeSubscriptions(){
       sb.channel('sytpt-realtime')
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_messages'},function(){
+          // Clear cache to ensure new messages show up immediately
+          messagesCache = [];
+          lastMessagesFetch = 0;
           renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
+          // Clear cache to ensure new coach directives show up immediately
+          coachDirectivesCache = [];
+          lastCoachDirectivesFetch = 0;
           renderDashboardCoachMessages();renderPlayerMessageThread();renderCoachInboxDynamic();renderCoachDirectiveList();renderCommCounts();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_assigned_missions'},function(){
