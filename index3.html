@@ -709,6 +709,8 @@
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
 let hasPerformanceColumn = true; // will be checked at startup
+let hasCoachReadColumn = null; // will be checked at startup (null = unknown)
+let coachReadSchemaCheck = null; // promise for schema check
 let lastPerformanceEdit = null; // cache recent successful edit
 
 // cache/anti‑throttle for coach directives (prevents repeated failing calls)
@@ -732,8 +734,24 @@ let lastUsersError = 0;
 const USERS_CACHE_TTL = 30000; // ms
 const USERS_ERROR_TTL = 60000; // ms
 
-// run check immediately (fire-and-forget)
+// run checks immediately (fire-and-forget)
 verifyPerformanceColumn().catch(()=>{});
+coachReadSchemaCheck = verifyCoachReadColumn();
+
+async function verifyCoachReadColumn(){
+  try{
+    const {error}=await sb.from('sytpt_messages').select('coach_read').limit(1);
+    if(error){
+      console.warn('coach_read column missing', error);
+      hasCoachReadColumn=false;
+    } else {
+      hasCoachReadColumn=true;
+    }
+  }catch(e){
+    console.warn('error checking coach_read column', e);
+    hasCoachReadColumn=false;
+  }
+}
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -1090,7 +1108,9 @@ verifyPerformanceColumn().catch(()=>{});
 
     // helper: mark all unread player messages as read for a given player
     async function markPlayerMessagesRead(playerId) {
-      // Supabase schema may not have coach_read column; ignore if missing.
+      // Ensure we know whether the coach_read column exists before attempting to update it.
+      if(coachReadSchemaCheck) await coachReadSchemaCheck;
+      if(hasCoachReadColumn!==true) return;
       try {
         await sb
           .from('sytpt_messages')
@@ -1100,6 +1120,7 @@ verifyPerformanceColumn().catch(()=>{});
       } catch (e) {
         if (e && e.message && e.message.includes('coach_read')) {
           console.warn('coach_read column missing; skipping mark-as-read update');
+          hasCoachReadColumn=false;
           return;
         }
         throw e;

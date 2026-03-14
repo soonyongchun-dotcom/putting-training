@@ -713,12 +713,24 @@
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
 let hasPerformanceColumn = true; // will be checked at startup
+let hasCoachReadColumn = true; // will be checked at startup
 let lastPerformanceEdit = null; // cache recent successful edit
     // run check immediately (fire-and-forget)
     verifyPerformanceColumn().catch(()=>{});
+    verifyCoachReadColumn().catch(()=>{});
 
-    const today = new Date();
-    document.getElementById("todayDate").textContent =
+    async function verifyCoachReadColumn(){
+      try{
+        const {error}=await sb.from('sytpt_messages').select('coach_read').limit(1);
+        if(error){
+          console.warn('coach_read column missing', error);
+          hasCoachReadColumn=false;
+        }
+      }catch(e){
+        console.warn('error checking coach_read column', e);
+        hasCoachReadColumn=false;
+      }
+    }
       `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
 
     // ─── 시간 포맷 ───
