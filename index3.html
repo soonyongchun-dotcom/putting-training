@@ -727,6 +727,7 @@
     let coachDirectivesCache = [];
     let lastCoachDirectivesFetch = 0;
     let lastCoachDirectivesError = 0;
+    let lastCoachDirectivesPlayerId = null;
     const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
     const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
 
@@ -970,13 +971,21 @@
     }
     async function getCoachDirectives(playerId=null, force=false){
       const now = Date.now();
+      // if asking for a specific player's directives, avoid serving cached data for a different player
+      if(playerId && playerId!==lastCoachDirectivesPlayerId){
+        coachDirectivesCache = [];
+        lastCoachDirectivesFetch = 0;
+        lastCoachDirectivesError = 0;
+        lastCoachDirectivesPlayerId = playerId;
+      }
       // player-specific query (fastest path): only fetch recent directives for that player
       if(playerId){
         try{
           const {data,error} = await sb.from('sytpt_coach_directives')
             .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
             .eq('player_id', playerId)
-            .limit(20);
+            .order('created_at',{ascending:false})
+            .limit(40);
           if(error){
             console.warn('getCoachDirectives (player) error', error);
             return [];
@@ -1397,7 +1406,7 @@
       const all=await getCoachDirectives(player.id);
       // sort by created_at descending, then take top 3
       const directives=all
-        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+        .sort((a,b)=>new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0,3)
         .map(fromDbDirective);
       if(!directives.length){
@@ -1784,7 +1793,11 @@
       const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){
         return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
       });
-      const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
+      const thread=[...directives,...chats].sort(function(a,b){
+        const ta=new Date(a.createdAt).getTime()||0;
+        const tb=new Date(b.createdAt).getTime()||0;
+        return ta - tb;
+      });
       if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
       root.innerHTML=thread.map(function(m){
         var ic=m.author==='코치';
