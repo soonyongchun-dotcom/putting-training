@@ -976,7 +976,7 @@ let lastPerformanceEdit = null; // cache recent successful edit
         .update({ coach_read: true })
         .eq('player_id', playerId)
         .eq('author', '선수')
-        .eq('coach_read', false);
+        .is('coach_read', false);
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
