@@ -861,12 +861,12 @@
       try{
         const {error} = await sb.from('sytpt_messages').select('coach_read').limit(1);
         if(error){
-          console.warn('coach_read column missing', error);
+          // column does not exist; avoid repeated failing queries
           hasCoachReadColumn = false;
           window.hasCoachReadColumn = false;
         }
       }catch(e){
-        console.warn('error checking coach_read column', e);
+        // ignore; lack of column is expected in some schemas
         hasCoachReadColumn = false;
         window.hasCoachReadColumn = false;
       }
@@ -1050,6 +1050,20 @@
       }catch(e){
         console.error('addCoachDirective exception', e);
         alert('코치 지시 전송 중 예외가 발생했습니다: '+(e.message||e));
+      }
+    }
+
+    async function deleteCoachDirective(directiveId){
+      if(!directiveId) return;
+      try{
+        const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId);
+        if(error){
+          console.error('deleteCoachDirective error', error);
+          alert('지시사항 삭제 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+        }
+      }catch(e){
+        console.error('deleteCoachDirective exception', e);
+        alert('지시사항 삭제 중 예외가 발생했습니다: '+(e.message||e));
       }
     }
     async function getMissionProgressState(playerId, missionKey){
