@@ -935,7 +935,6 @@ verifyPerformanceColumn().catch(()=>{});
           const {data,error} = await sb.from('sytpt_coach_directives')
             .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
             .eq('player_id', playerId)
-            .order('created_at',{ascending:false})
             .limit(20);
           if(error){
             console.warn('getCoachDirectives (player) error', error);
@@ -961,7 +960,6 @@ verifyPerformanceColumn().catch(()=>{});
       try{
         const {data,error} = await sb.from('sytpt_coach_directives')
           .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
-          .order('created_at',{ascending:false})
           .limit(20);
         if(error){
           console.warn('getCoachDirectives error', error, {
