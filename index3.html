@@ -883,6 +883,26 @@
         return messagesCache;
       }
     }
+
+    async function markPlayerMessagesRead(playerId){
+      if(!playerId) return;
+      try{
+        const {data,error} = await sb.from('sytpt_messages')
+          .update({coach_read:true})
+          .match({player_id:playerId, author:'선수'});
+        if(error){
+          console.warn('markPlayerMessagesRead error', error);
+        } else {
+          // refresh cache so unread counts update
+          messagesCache = [];
+          lastMessagesFetch = 0;
+        }
+        return data;
+      }catch(e){
+        console.error('markPlayerMessagesRead exception', e);
+      }
+    }
+
     async function addMessage(msg){
       console.log('addMessage invoked with', msg);
       // allow optional attachments array; retry without it if the column is missing
