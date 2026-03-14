@@ -731,9 +731,11 @@
     const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
 
     // track local UI edits to avoid immediately overwriting user input
-    var lastPerformanceEdit = null;
+    var lastPerformanceEdit = window.lastPerformanceEdit || null;
+    window.lastPerformanceEdit = lastPerformanceEdit;
     // check for missing DB column to avoid runtime errors
-    var hasPerformanceColumn = true;
+    var hasPerformanceColumn = window.hasPerformanceColumn !== undefined ? window.hasPerformanceColumn : true;
+    window.hasPerformanceColumn = hasPerformanceColumn;
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -842,11 +844,13 @@
         if(error){
           console.warn('performance column missing',error);
           hasPerformanceColumn=false;
+          window.hasPerformanceColumn = false;
           alert('경고: 데이터베이스에 performance_level 칼럼이 없습니다. 코치 기능이 제한됩니다.');
         }
       }catch(e){
         console.warn('error checking performance column',e);
         hasPerformanceColumn=false;
+        window.hasPerformanceColumn = false;
         alert('경고: 성능 칼럼 체크 중 오류가 발생했습니다.');
       }
     }
@@ -1221,7 +1225,7 @@
       const session=getSession();
       const users=await getUsers();
       // verify column presence once
-      if(hasPerformanceColumn) await verifyPerformanceColumn();
+      if(window.hasPerformanceColumn) await verifyPerformanceColumn();
       // if coach, sync the selector options before determining active player
       // hide selector by default; only shown later if coach
       const wrap=document.getElementById('playerPortalSelectWrap');
@@ -1238,8 +1242,8 @@
       const isCoach=session&&session.role==='coach';
       nr.textContent=isCoach?(player.name+' ('+player.id+')'):player.name;
       cr.textContent=player.todayCompletion||'0%';
-      if(lastPerformanceEdit && player.id===lastPerformanceEdit.id){
-        rr.textContent=formatPerformance(lastPerformanceEdit.val);
+      if(window.lastPerformanceEdit && player.id===window.lastPerformanceEdit.id){
+        rr.textContent=formatPerformance(window.lastPerformanceEdit.val);
       } else {
         rr.textContent=formatPerformance(player.performanceLevel);
       }
@@ -1465,12 +1469,12 @@
         var rowC=player.id===selectedId?'selected':'';
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
         var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
-        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        if(window.lastPerformanceEdit && player.id===window.lastPerformanceEdit.id) perfVal = window.lastPerformanceEdit.val;
         let perfCell = '<td>-</td>';
-        if(hasPerformanceColumn){
+        if(window.hasPerformanceColumn){
           perfCell = '<td><div style="display:flex;align-items:center;">'+
                      '<input type="number" class="perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"'+
-                     (hasPerformanceColumn?'':' disabled')+'>'+
+                     (window.hasPerformanceColumn?'':' disabled')+'>'+
                      '<span style="margin-left:4px">%</span></div></td>';
         }
         return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
@@ -1529,7 +1533,7 @@
             return; // do not re-render, keep entered value
           }
           // success -> remember edit and refresh only the visible KPI
-          lastPerformanceEdit = {id: pid, val: val};
+          window.lastPerformanceEdit = {id: pid, val: val};
           // clear user cache so other views refresh from server
           usersCache = [];
           lastUsersFetch = 0;
@@ -1560,7 +1564,7 @@
         var info=infos[i];
         var cfg=phaseConfigs[i];
         var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
-        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        if(window.lastPerformanceEdit && player.id===window.lastPerformanceEdit.id) perfVal = window.lastPerformanceEdit.val;
         var perfHtml = '<div style="margin-top:4px;font-size:12px">경기력 수준: <input type="number" class="coach-match-perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"><span style="margin-left:4px">%</span></div>';
         var hasMatch=info.matchName&&info.matchName!=='경기명';
         var dateText=formatMatchRangeText(info.startDate,info.endDate);
