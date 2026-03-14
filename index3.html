@@ -1094,8 +1094,7 @@ verifyPerformanceColumn().catch(()=>{});
         .from('sytpt_messages')
         .update({ coach_read: true })
         .eq('player_id', playerId)
-        .eq('author', '선수')
-        .is('coach_read', false);
+        .eq('author', '선수');
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
