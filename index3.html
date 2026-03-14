@@ -736,8 +736,10 @@
     // check for missing DB columns to avoid runtime errors
     var hasPerformanceColumn = window.hasPerformanceColumn !== undefined ? window.hasPerformanceColumn : true;
     window.hasPerformanceColumn = hasPerformanceColumn;
-    var hasCoachReadColumn = window.hasCoachReadColumn !== undefined ? window.hasCoachReadColumn : true;
-    window.hasCoachReadColumn = hasCoachReadColumn;
+    // `coach_read` column may not exist in the Supabase schema.
+    // Disable it by default to avoid 400 errors on every page load.
+    var hasCoachReadColumn = false;
+    window.hasCoachReadColumn = false;
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
