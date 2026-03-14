@@ -710,8 +710,30 @@
     const expandedMatchPlayerIds = new Set();
 let hasPerformanceColumn = true; // will be checked at startup
 let lastPerformanceEdit = null; // cache recent successful edit
-    // run check immediately (fire-and-forget)
-    verifyPerformanceColumn().catch(()=>{});
+
+// cache/anti‑throttle for coach directives (prevents repeated failing calls)
+let coachDirectivesCache = [];
+let lastCoachDirectivesFetch = 0;
+let lastCoachDirectivesError = 0;
+const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
+const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
+
+// cache/anti‑throttle for messages (prevents redundant fetches)
+let messagesCache = [];
+let lastMessagesFetch = 0;
+let lastMessagesError = 0;
+const MESSAGES_CACHE_TTL = 30000; // ms
+const MESSAGES_ERROR_TTL = 60000; // ms
+
+// cache/anti‑throttle for users (prevents redundant fetches)
+let usersCache = [];
+let lastUsersFetch = 0;
+let lastUsersError = 0;
+const USERS_CACHE_TTL = 30000; // ms
+const USERS_ERROR_TTL = 60000; // ms
+
+// run check immediately (fire-and-forget)
+verifyPerformanceColumn().catch(()=>{});
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -786,10 +808,32 @@ let lastPerformanceEdit = null; // cache recent successful edit
                note:r.note };
     }
 
-    async function getUsers(){
-      const {data,error}=await sb.from('sytpt_users').select('*');
-      if(error) console.error('getUsers',error);
-      return (data||[]).map(fromDbUser);
+    async function getUsers(force=false){
+      const now = Date.now();
+      if(!force){
+        if(now - lastUsersFetch < USERS_CACHE_TTL && usersCache.length){
+          return usersCache;
+        }
+        if(now - lastUsersError < USERS_ERROR_TTL){
+          return usersCache;
+        }
+      }
+
+      try{
+        const {data,error}=await sb.from('sytpt_users').select('*');
+        if(error){
+          console.warn('getUsers error', error);
+          lastUsersError = now;
+          return usersCache;
+        }
+        usersCache = (data||[]).map(fromDbUser);
+        lastUsersFetch = now;
+        return usersCache;
+      }catch(e){
+        console.error('getUsers exception', e);
+        lastUsersError = now;
+        return usersCache;
+      }
     }
     // column check helper
     async function verifyPerformanceColumn(){
@@ -806,8 +850,34 @@ let lastPerformanceEdit = null; // cache recent successful edit
         alert('경고: 성능 칼럼 체크 중 오류가 발생했습니다.');
       }
     }
-    async function getMessages(){
-      const {data}=await sb.from('sytpt_messages').select('*').order('created_at'); return data||[];
+    async function getMessages(force=false){
+      const now = Date.now();
+      if(!force){
+        if(now - lastMessagesFetch < MESSAGES_CACHE_TTL && messagesCache.length){
+          return messagesCache;
+        }
+        if(now - lastMessagesError < MESSAGES_ERROR_TTL){
+          return messagesCache;
+        }
+      }
+
+      try{
+        const {data,error} = await sb.from('sytpt_messages')
+          .select('*')
+          .order('created_at');
+        if(error){
+          console.warn('getMessages error', error);
+          lastMessagesError = now;
+          return messagesCache;
+        }
+        messagesCache = data||[];
+        lastMessagesFetch = now;
+        return messagesCache;
+      }catch(e){
+        console.error('getMessages exception', e);
+        lastMessagesError = now;
+        return messagesCache;
+      }
     }
     async function addMessage(msg){
       console.log('addMessage invoked with', msg);
@@ -821,6 +891,9 @@ let lastPerformanceEdit = null; // cache recent successful edit
         });
         console.log('addMessage insert response', res);
         if(res.error) throw res.error;
+        // clear cache to force refetch next time
+        messagesCache = [];
+        lastMessagesFetch = 0;
         return res;
       } catch(e) {
         console.error('addMessage error', e);
@@ -854,8 +927,60 @@ let lastPerformanceEdit = null; // cache recent successful edit
         .update({completed, completed_at:completedAt||null})
         .eq('mission_id', missionId);
     }
-    async function getCoachDirectives(){
-      const {data}=await sb.from('sytpt_coach_directives').select('*').order('created_at'); return data||[];
+    async function getCoachDirectives(playerId=null, force=false){
+      const now = Date.now();
+      // player-specific query (fastest path): only fetch recent directives for that player
+      if(playerId){
+        try{
+          const {data,error} = await sb.from('sytpt_coach_directives')
+            .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
+            .eq('player_id', playerId)
+            .order('created_at',{ascending:false})
+            .limit(20);
+          if(error){
+            console.warn('getCoachDirectives (player) error', error);
+            return [];
+          }
+          return data||[];
+        }catch(e){
+          console.error('getCoachDirectives (player) exception', e);
+          return [];
+        }
+      }
+
+      // global fetch (cached) for KPI/dashboard purposes
+      if(!force){
+        if(now - lastCoachDirectivesFetch < COACH_DIRECTIVES_CACHE_TTL && coachDirectivesCache.length){
+          return coachDirectivesCache;
+        }
+        if(now - lastCoachDirectivesError < COACH_DIRECTIVES_ERROR_TTL){
+          return coachDirectivesCache;
+        }
+      }
+
+      try{
+        const {data,error} = await sb.from('sytpt_coach_directives')
+          .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
+          .order('created_at',{ascending:false})
+          .limit(20);
+        if(error){
+          console.warn('getCoachDirectives error', error, {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          });
+          lastCoachDirectivesError = now;
+          return coachDirectivesCache;
+        }
+        coachDirectivesCache = data||[];
+        lastCoachDirectivesFetch = now;
+        return coachDirectivesCache;
+      }catch(e){
+        console.error('getCoachDirectives exception', e);
+        lastCoachDirectivesError = now;
+        return coachDirectivesCache;
+      }
     }
     async function addCoachDirective(item){
       await sb.from('sytpt_coach_directives').insert({
@@ -1021,6 +1146,9 @@ let lastPerformanceEdit = null; // cache recent successful edit
         else risk='정상';
       }
       await sb.from('sytpt_users').update({today_completion:m.rate+'%',risk_level:risk}).eq('id',playerId);
+      // clear user cache so rendered views pick up the updated values
+      usersCache = [];
+      lastUsersFetch = 0;
     }
     async function getDisplayMissionsForPlayer(playerId){
       const [progressList, assignedRaw]=await Promise.all([getAllMissionProgress(), getAssignedMissions()]);
@@ -1088,8 +1216,7 @@ let lastPerformanceEdit = null; // cache recent successful edit
       const session=getSession(); if(!session) return;
       if(session.role==='player'){
         const lastRead=getCommLastRead(session.id);
-        const allDir=await getCoachDirectives();
-        const forPlayer=allDir.filter(r=>r.player_id===session.id);
+        const forPlayer=await getCoachDirectives(session.id);
         // count unread directives
         let unreadDir = lastRead ? forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length : forPlayer.length;
         // also count any chat messages from coach after lastRead
@@ -1275,8 +1402,9 @@ let lastPerformanceEdit = null; // cache recent successful edit
     async function renderCoachDirectiveList(){
       const root=document.getElementById('coachDirectiveList'); if(!root) return;
       const users=await getUsers();
-      const dirsRaw=await getCoachDirectives();
-      const directives=dirsRaw.slice(-8).reverse().map(fromDbDirective);
+      const player=getActivePlayerForView(users);
+      const dirsRaw=player?await getCoachDirectives(player.id):[];
+      const directives=dirsRaw.slice(0,8).map(fromDbDirective);
       if(!directives.length){
         root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
         return;
@@ -1338,6 +1466,8 @@ let lastPerformanceEdit = null; // cache recent successful edit
       root.querySelectorAll('.approve-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
         await sb.from('sytpt_users').update({approval_status:'approved',approved_at:new Date().toISOString(),today_completion:'0%',risk_level:'정상',status_label:'승인 완료'}).eq('id',pid);
+        usersCache = [];
+        lastUsersFetch = 0;
         renderPendingApprovals();renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
     }
@@ -1370,6 +1500,8 @@ let lastPerformanceEdit = null; // cache recent successful edit
         var pid=btn.getAttribute('data-player-id');
         if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?')) return;
         await sb.from('sytpt_users').update({approval_status:'inactive',status_label:'비활성화',deactivated_at:new Date().toISOString()}).eq('id',pid);
+        usersCache = [];
+        lastUsersFetch = 0;
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
@@ -1419,6 +1551,9 @@ let lastPerformanceEdit = null; // cache recent successful edit
           }
           // success -> remember edit and refresh only the visible KPI
           lastPerformanceEdit = {id: pid, val: val};
+          // clear user cache so other views refresh from server
+          usersCache = [];
+          lastUsersFetch = 0;
           // if the edited player is currently displayed, update the top KPI text
           try{
             const active=getActivePlayerForView(await getUsers());
@@ -1494,6 +1629,9 @@ let lastPerformanceEdit = null; // cache recent successful edit
             console.error('performance update error for',pid,res.error);
             return;
           }
+          // clear cache so updated performance is reflected everywhere
+          usersCache = [];
+          lastUsersFetch = 0;
           renderPlayerViewContext();
           renderCoachAthleteBoard();
           renderCoachMatchBoard();
