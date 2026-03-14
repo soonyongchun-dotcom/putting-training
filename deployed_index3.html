@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -698,7 +698,9 @@
   <script>
     // ====== Supabase 초기화 ======
     const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZG1pdmpxZ3hkeWN1cGRieXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDk0NzIsImV4cCI6MjA4Nzk4NTQ3Mn0.T0XSwNNMmEd2xRASv16Dg0N58KlWJ4mYLP0pTvhB-60';
+    // IMPORTANT: Do NOT hardcode your Supabase key in a public file.
+    // Replace this with a secure mechanism (server proxy or environment variable).
+    const SUPABASE_KEY = '<YOUR_SUPABASE_ANON_KEY>'; // <-- REPLACE BEFORE DEPLOY
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ====== 디바이스 전용 (localStorage) ======
