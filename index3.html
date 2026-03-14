@@ -984,8 +984,7 @@
           const {data,error} = await sb.from('sytpt_coach_directives')
             .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
             .eq('player_id', playerId)
-            .order('created_at',{ascending:false})
-            .limit(40);
+            .order('created_at',{ascending:false});
           if(error){
             console.warn('getCoachDirectives (player) error', error);
             return [];
@@ -1513,7 +1512,7 @@
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       const dirsRaw=player?await getCoachDirectives(player.id):[];
-      const directives=dirsRaw.slice(0,8).map(fromDbDirective);
+      const directives=dirsRaw.map(fromDbDirective);
       if(!directives.length){
         root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
         return;
@@ -1616,8 +1615,10 @@
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
         if(e.target.closest('.deactivate-btn')) return;
         setCoachSelectedPlayerId(row.getAttribute('data-player-id'));
-        // only rerender the player view, avoid rebuilding full table for speed
+        // refresh both player view and coach table highlight/select state
         renderPlayerViewContext();
+        renderCoachAthleteBoard();
+        syncCoachAthleteSelectOptions();
       });});
       // performance input handlers
       tableRoot.querySelectorAll('.perf-input').forEach(function(input){
