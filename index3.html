@@ -857,20 +857,6 @@
       }
     }
 
-    async function verifyCoachReadColumn(){
-      try{
-        const {error} = await sb.from('sytpt_messages').select('coach_read').limit(1);
-        if(error){
-          // column does not exist; avoid repeated failing queries
-          hasCoachReadColumn = false;
-          window.hasCoachReadColumn = false;
-        }
-      }catch(e){
-        // ignore; lack of column is expected in some schemas
-        hasCoachReadColumn = false;
-        window.hasCoachReadColumn = false;
-      }
-    }
     async function getMessages(force=false){
       const now = Date.now();
       if(!force){
