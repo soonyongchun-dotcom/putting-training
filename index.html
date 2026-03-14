@@ -5,7 +5,6 @@
   <link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SY-TPT UI Prototype</title>
-  <meta http-equiv="refresh" content="0; url=index3.html" />
   <style>
     :root{
       --bg:#f5f7fb; --card:#fff; --text:#111827; --sub:#6b7280;
@@ -709,32 +708,39 @@
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
-let hasPerformanceColumn = true; // will be checked at startup
-let lastPerformanceEdit = null; // cache recent successful edit
 
-// cache/anti‑throttle for coach directives (prevents repeated failing calls)
-let coachDirectivesCache = [];
-let lastCoachDirectivesFetch = 0;
-let lastCoachDirectivesError = 0;
-const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
-const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
+    // cache/anti-throttle for users (prevents redundant fetches)
+    let usersCache = [];
+    let lastUsersFetch = 0;
+    let lastUsersError = 0;
+    const USERS_CACHE_TTL = 30000; // ms
+    const USERS_ERROR_TTL = 60000; // ms
 
-// cache/anti‑throttle for messages (prevents redundant fetches)
-let messagesCache = [];
-let lastMessagesFetch = 0;
-let lastMessagesError = 0;
-const MESSAGES_CACHE_TTL = 30000; // ms
-const MESSAGES_ERROR_TTL = 60000; // ms
+    // cache/anti-throttle for messages (prevents redundant fetches)
+    let messagesCache = [];
+    let lastMessagesFetch = 0;
+    let lastMessagesError = 0;
+    const MESSAGES_CACHE_TTL = 30000; // ms
+    const MESSAGES_ERROR_TTL = 60000; // ms
 
-// cache/anti‑throttle for users (prevents redundant fetches)
-let usersCache = [];
-let lastUsersFetch = 0;
-let lastUsersError = 0;
-const USERS_CACHE_TTL = 30000; // ms
-const USERS_ERROR_TTL = 60000; // ms
+    // cache/anti-throttle for coach directives (prevents redundant fetches)
+    let coachDirectivesCache = [];
+    let lastCoachDirectivesFetch = 0;
+    let lastCoachDirectivesError = 0;
+    let lastCoachDirectivesPlayerId = null;
+    const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
+    const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
 
-// run check immediately (fire-and-forget)
-verifyPerformanceColumn().catch(()=>{});
+    // track local UI edits to avoid immediately overwriting user input
+    var lastPerformanceEdit = window.lastPerformanceEdit || null;
+    window.lastPerformanceEdit = lastPerformanceEdit;
+    // check for missing DB columns to avoid runtime errors
+    var hasPerformanceColumn = window.hasPerformanceColumn !== undefined ? window.hasPerformanceColumn : true;
+    window.hasPerformanceColumn = hasPerformanceColumn;
+    // `coach_read` column may not exist in the Supabase schema.
+    // Disable it by default to avoid 400 errors on every page load.
+    var hasCoachReadColumn = false;
+    window.hasCoachReadColumn = false;
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -843,14 +849,17 @@ verifyPerformanceColumn().catch(()=>{});
         if(error){
           console.warn('performance column missing',error);
           hasPerformanceColumn=false;
+          window.hasPerformanceColumn = false;
           alert('경고: 데이터베이스에 performance_level 칼럼이 없습니다. 코치 기능이 제한됩니다.');
         }
       }catch(e){
         console.warn('error checking performance column',e);
         hasPerformanceColumn=false;
+        window.hasPerformanceColumn = false;
         alert('경고: 성능 칼럼 체크 중 오류가 발생했습니다.');
       }
     }
+
     async function getMessages(force=false){
       const now = Date.now();
       if(!force){
@@ -880,6 +889,38 @@ verifyPerformanceColumn().catch(()=>{});
         return messagesCache;
       }
     }
+
+    async function markPlayerMessagesRead(playerId){
+      if(!playerId) return;
+      if(!window.hasCoachReadColumn){
+        // when the column is missing, we cannot update it; just skip
+        return;
+      }
+      try{
+        const {data,error} = await sb.from('sytpt_messages')
+          .update({coach_read:true})
+          .match({player_id:playerId, author:'선수'});
+        if(error){
+          // if column doesn't exist, disable future attempts
+          if(error.code==='PGRST204' && error.message && error.message.includes('coach_read')){
+            console.warn('coach_read column missing, disabling marking read', error);
+            hasCoachReadColumn = false;
+            window.hasCoachReadColumn = false;
+            return;
+          }
+          console.warn('markPlayerMessagesRead error', error);
+        } else {
+          // refresh cache so unread counts update
+          messagesCache = [];
+          lastMessagesFetch = 0;
+        }
+        return data;
+      }catch(e){
+        console.error('markPlayerMessagesRead exception', e);
+      }
+    }
+    window.markPlayerMessagesRead = markPlayerMessagesRead;
+
     async function addMessage(msg){
       console.log('addMessage invoked with', msg);
       // allow optional attachments array; retry without it if the column is missing
@@ -930,13 +971,20 @@ verifyPerformanceColumn().catch(()=>{});
     }
     async function getCoachDirectives(playerId=null, force=false){
       const now = Date.now();
+      // if asking for a specific player's directives, avoid serving cached data for a different player
+      if(playerId && playerId!==lastCoachDirectivesPlayerId){
+        coachDirectivesCache = [];
+        lastCoachDirectivesFetch = 0;
+        lastCoachDirectivesError = 0;
+        lastCoachDirectivesPlayerId = playerId;
+      }
       // player-specific query (fastest path): only fetch recent directives for that player
       if(playerId){
         try{
           const {data,error} = await sb.from('sytpt_coach_directives')
             .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
             .eq('player_id', playerId)
-            .limit(20);
+            .order('created_at',{ascending:false});
           if(error){
             console.warn('getCoachDirectives (player) error', error);
             return [];
@@ -982,14 +1030,93 @@ verifyPerformanceColumn().catch(()=>{});
       }
     }
     async function addCoachDirective(item){
-      await sb.from('sytpt_coach_directives').insert({
-        directive_id:item.directiveId, player_id:item.playerId, text:item.text,
-        // using created_at for display timing; legacy `time` field not required
-        created_at:item.createdAt||new Date().toISOString(),
-        replies:item.replies||[], coach_id:item.coachId||'',
-        attachments:item.attachments||[]
-      });
+      try{
+        const res = await sb.from('sytpt_coach_directives').insert({
+          directive_id:item.directiveId, player_id:item.playerId, text:item.text,
+          // using created_at for display timing; legacy `time` field not required
+          created_at:item.createdAt||new Date().toISOString(),
+          replies:item.replies||[], coach_id:item.coachId||'',
+          attachments:item.attachments||[]
+        });
+        if(res.error){
+          console.error('addCoachDirective error', res.error);
+          alert('코치 지시 전송 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+        } else {
+          // clear cache so player views get the newest directive immediately
+          coachDirectivesCache = [];
+          lastCoachDirectivesFetch = 0;
+        }
+        return res;
+      }catch(e){
+        console.error('addCoachDirective exception', e);
+        alert('코치 지시 전송 중 예외가 발생했습니다: '+(e.message||e));
+      }
     }
+
+    async function deleteCoachDirective(directiveId){
+      if(!directiveId) return;
+      try{
+        const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId);
+        if(error){
+          console.error('deleteCoachDirective error', error);
+          alert('지시사항 삭제 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+        }
+      }catch(e){
+        console.error('deleteCoachDirective exception', e);
+        alert('지시사항 삭제 중 예외가 발생했습니다: '+(e.message||e));
+      }
+    }
+
+    // ====== coach_read 컬럼 유무 확인 ======
+    // Supabase schema may not include coach_read; avoid failing when missing.
+    window.hasCoachReadColumn = window.hasCoachReadColumn === undefined ? undefined : window.hasCoachReadColumn;
+
+    async function verifyCoachReadColumn(){
+      if (typeof window.hasCoachReadColumn === 'boolean') return window.hasCoachReadColumn;
+      try{
+        const {error} = await sb.from('sytpt_messages').select('coach_read').limit(1);
+        if(error){
+          if(error.code==='42703' || (error.message && error.message.includes('coach_read'))){
+            console.warn('coach_read column missing, disabling unread tracking', error);
+            window.hasCoachReadColumn = false;
+          } else {
+            console.warn('Unexpected error verifying coach_read column', error);
+          }
+        } else {
+          window.hasCoachReadColumn = true;
+        }
+      }catch(e){
+        console.warn('verifyCoachReadColumn exception', e);
+        window.hasCoachReadColumn = false;
+      }
+      return window.hasCoachReadColumn;
+    }
+
+    async function markPlayerMessagesRead(playerId){
+      if(!playerId) return;
+      const has = await verifyCoachReadColumn();
+      if(!has) return;
+      try{
+        await sb.from('sytpt_messages')
+          .update({coach_read:true})
+          .eq('player_id', playerId)
+          .eq('author', '선수');
+      }catch(e){
+        console.warn('markPlayerMessagesRead error', e);
+      }
+    }
+
+    // ====== 코치 지시 삭제 ======
+    async function deleteCoachDirective(directiveId){
+      if(!directiveId) return;
+      try{
+        const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId);
+        if(error) throw error;
+      }catch(e){
+        console.error('deleteCoachDirective error', e);
+      }
+    }
+
     async function getMissionProgressState(playerId, missionKey){
       const {data}=await sb.from('sytpt_mission_progress')
         .select('*').eq('player_id',playerId).eq('mission_key',missionKey).maybeSingle();
@@ -1077,26 +1204,7 @@ verifyPerformanceColumn().catch(()=>{});
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      // allow common docs plus PNG images
-      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
-    }
-
-    // helper: delete a coach directive by id
-    async function deleteCoachDirective(directiveId) {
-      await sb
-        .from('sytpt_coach_directives')
-        .delete()
-        .eq('directive_id', directiveId);
-    }
-
-    // helper: mark all unread player messages as read for a given player
-    async function markPlayerMessagesRead(playerId) {
-      await sb
-        .from('sytpt_messages')
-        .update({ coach_read: true })
-        .eq('player_id', playerId)
-        .eq('author', '선수')
-        .eq('coach_read', false);
+      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
@@ -1241,7 +1349,8 @@ verifyPerformanceColumn().catch(()=>{});
       const session=getSession();
       const users=await getUsers();
       // verify column presence once
-      if(hasPerformanceColumn) await verifyPerformanceColumn();
+      if(window.hasPerformanceColumn) await verifyPerformanceColumn();
+      if(window.hasCoachReadColumn) await verifyCoachReadColumn();
       // if coach, sync the selector options before determining active player
       // hide selector by default; only shown later if coach
       const wrap=document.getElementById('playerPortalSelectWrap');
@@ -1258,8 +1367,8 @@ verifyPerformanceColumn().catch(()=>{});
       const isCoach=session&&session.role==='coach';
       nr.textContent=isCoach?(player.name+' ('+player.id+')'):player.name;
       cr.textContent=player.todayCompletion||'0%';
-      if(lastPerformanceEdit && player.id===lastPerformanceEdit.id){
-        rr.textContent=formatPerformance(lastPerformanceEdit.val);
+      if(window.lastPerformanceEdit && player.id===window.lastPerformanceEdit.id){
+        rr.textContent=formatPerformance(window.lastPerformanceEdit.val);
       } else {
         rr.textContent=formatPerformance(player.performanceLevel);
       }
@@ -1292,11 +1401,11 @@ verifyPerformanceColumn().catch(()=>{});
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
-      const all=await getCoachDirectives();
+      // Fetch directives for this player directly to avoid stale cache
+      const all=await getCoachDirectives(player.id);
       // sort by created_at descending, then take top 3
       const directives=all
-        .filter(r=>r.player_id===player.id)
-        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+        .sort((a,b)=>new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0,3)
         .map(fromDbDirective);
       if(!directives.length){
@@ -1403,7 +1512,7 @@ verifyPerformanceColumn().catch(()=>{});
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       const dirsRaw=player?await getCoachDirectives(player.id):[];
-      const directives=dirsRaw.slice(0,8).map(fromDbDirective);
+      const directives=dirsRaw.map(fromDbDirective);
       if(!directives.length){
         root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
         return;
@@ -1420,7 +1529,7 @@ verifyPerformanceColumn().catch(()=>{});
       }).join('');
       root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
         btn.addEventListener('click',async function(){
-          if(!confirm('이 지시를 정말 삭제하시겠습니까?')) return;
+          if(!confirm('정말로 이 지시를 삭제하시겠습니까?')) return;
           await deleteCoachDirective(btn.dataset.id);
           renderCoachDirectiveList();
         });
@@ -1485,12 +1594,12 @@ verifyPerformanceColumn().catch(()=>{});
         var rowC=player.id===selectedId?'selected':'';
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
         var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
-        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        if(window.lastPerformanceEdit && player.id===window.lastPerformanceEdit.id) perfVal = window.lastPerformanceEdit.val;
         let perfCell = '<td>-</td>';
-        if(hasPerformanceColumn){
+        if(window.hasPerformanceColumn){
           perfCell = '<td><div style="display:flex;align-items:center;">'+
                      '<input type="number" class="perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"'+
-                     (hasPerformanceColumn?'':' disabled')+'>'+
+                     (window.hasPerformanceColumn?'':' disabled')+'>'+
                      '<span style="margin-left:4px">%</span></div></td>';
         }
         return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
@@ -1506,8 +1615,10 @@ verifyPerformanceColumn().catch(()=>{});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
         if(e.target.closest('.deactivate-btn')) return;
         setCoachSelectedPlayerId(row.getAttribute('data-player-id'));
-        // only rerender the player view, avoid rebuilding full table for speed
+        // refresh both player view and coach table highlight/select state
         renderPlayerViewContext();
+        renderCoachAthleteBoard();
+        syncCoachAthleteSelectOptions();
       });});
       // performance input handlers
       tableRoot.querySelectorAll('.perf-input').forEach(function(input){
@@ -1549,7 +1660,7 @@ verifyPerformanceColumn().catch(()=>{});
             return; // do not re-render, keep entered value
           }
           // success -> remember edit and refresh only the visible KPI
-          lastPerformanceEdit = {id: pid, val: val};
+          window.lastPerformanceEdit = {id: pid, val: val};
           // clear user cache so other views refresh from server
           usersCache = [];
           lastUsersFetch = 0;
@@ -1580,7 +1691,7 @@ verifyPerformanceColumn().catch(()=>{});
         var info=infos[i];
         var cfg=phaseConfigs[i];
         var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
-        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        if(window.lastPerformanceEdit && player.id===window.lastPerformanceEdit.id) perfVal = window.lastPerformanceEdit.val;
         var perfHtml = '<div style="margin-top:4px;font-size:12px">경기력 수준: <input type="number" class="coach-match-perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"><span style="margin-left:4px">%</span></div>';
         var hasMatch=info.matchName&&info.matchName!=='경기명';
         var dateText=formatMatchRangeText(info.startDate,info.endDate);
@@ -1674,7 +1785,8 @@ verifyPerformanceColumn().catch(()=>{});
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
-      const dirsRaw=await getCoachDirectives();
+      // Fetch directives for this player directly to avoid stale cache
+      const dirsRaw=await getCoachDirectives(player.id);
       const msgsRaw=await getMessages();
       const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){
         return {author:'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
@@ -1682,7 +1794,11 @@ verifyPerformanceColumn().catch(()=>{});
       const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){
         return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
       });
-      const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
+      const thread=[...directives,...chats].sort(function(a,b){
+        const ta=new Date(a.createdAt).getTime()||0;
+        const tb=new Date(b.createdAt).getTime()||0;
+        return ta - tb;
+      });
       if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
       root.innerHTML=thread.map(function(m){
         var ic=m.author==='코치';
@@ -1700,7 +1816,8 @@ verifyPerformanceColumn().catch(()=>{});
       var users=await getUsers();
       var player=getActivePlayerForView(users);
       if(!player){coachEl.textContent='–';playerEl.textContent='–';pendingEl.textContent='–';return;}
-      var dirsRaw=await getCoachDirectives();
+      // Fetch directives for this player directly to avoid stale cache
+      var dirsRaw=await getCoachDirectives(player.id);
       var msgsRaw=await getMessages();
       var dirItems=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
       var chatItems=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
@@ -1830,9 +1947,15 @@ verifyPerformanceColumn().catch(()=>{});
     function setupRealtimeSubscriptions(){
       sb.channel('sytpt-realtime')
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_messages'},function(){
+          // Clear cache to ensure new messages show up immediately
+          messagesCache = [];
+          lastMessagesFetch = 0;
           renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
+          // Clear cache to ensure new coach directives show up immediately
+          coachDirectivesCache = [];
+          lastCoachDirectivesFetch = 0;
           renderDashboardCoachMessages();renderPlayerMessageThread();renderCoachInboxDynamic();renderCoachDirectiveList();renderCommCounts();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_assigned_missions'},function(){
