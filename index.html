@@ -984,6 +984,17 @@ let RUNTIME_COACH_CONFIG = {
     signupCode: ""   // 선수 자가 가입용 코드 (지도자가 Supabase에 설정)
 };
 
+function isServiceRoleKey(key){
+    // Supabase service role keys are secret and must never be used in client-side code.
+    // They often start with `sb_service_` or are long JWT-like strings.
+    return typeof key === 'string' && (
+        key.startsWith('sb_service_') ||
+        key.startsWith('sb_secret_') ||
+        key.length > 80 ||
+        key.startsWith('eyJ')
+    );
+}
+
 const DEPLOY_CONFIG = {
     cloudSyncEnabled: true,
     supabaseUrl: "https://ksdmivjqgxdycupdbyrr.supabase.co",
@@ -1000,6 +1011,12 @@ const DEPLOY_CONFIG = {
         APP_CONFIG.MISSION_RESULT_UPLOADS_KEY
     ]
 };
+
+if (isServiceRoleKey(DEPLOY_CONFIG.supabaseAnonKey)) {
+    console.error('Detected a Supabase secret/service role key in client code - this is insecure.');
+    alert('보안 경고: Supabase 비밀 키가 클라이언트에 노출되어 있습니다. 관리자에게 문의하세요.');
+    throw new Error('Supabase secret/service role key exposed in client');
+}
 
 class CloudStateService {
     constructor(config) {
