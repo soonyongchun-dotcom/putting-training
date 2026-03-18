@@ -1018,6 +1018,40 @@ if (isServiceRoleKey(DEPLOY_CONFIG.supabaseAnonKey)) {
     throw new Error('Supabase secret/service role key exposed in client');
 }
 
+// Supabase client used for cloud sync and storage uploads
+const sb = window.supabase?.createClient?.(DEPLOY_CONFIG.supabaseUrl, DEPLOY_CONFIG.supabaseAnonKey);
+
+// Upload mission file (Excel/CSV) to Supabase Storage, return public URL if possible.
+async function uploadMissionFileToStorage(file) {
+    if (!sb || !file) return null;
+
+    const bucket = 'attachments';
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const path = `coach-missions/${unique}-${file.name}`;
+
+    try {
+        const { data: uploadData, error: uploadError } = await sb.storage
+            .from(bucket)
+            .upload(path, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData, error: urlError } = await sb.storage
+            .from(bucket)
+            .getPublicUrl(path);
+        if (urlError) throw urlError;
+
+        return {
+            url: urlData.publicUrl,
+            bucket,
+            path
+        };
+    } catch (err) {
+        console.warn('Storage upload failed (falling back to local-only behavior):', err);
+        return null;
+    }
+}
+
 class CloudStateService {
     constructor(config) {
         this.config = config || {};
@@ -1152,6 +1186,7 @@ const UI_I18N = {
         missionDesc: "미션 설명: {{detail}}",
         missionDescEmpty: "미션 설명 없음",
         missionDescFromSource: "미션 설명은 아래 원본 미션 파일 내용에서 확인하세요.",
+        downloadOriginalFile: "원본 파일 다운로드",
         missionSourcePreviewTitle: "원본 미션 파일 내용",
         missionSourcePreviewEmpty: "표시할 원본 파일 데이터가 없습니다.",
         noMissionFiles: "업로드된 미션 파일이 없습니다.",
@@ -1310,6 +1345,7 @@ const UI_I18N = {
         missionDesc: "Mission Description: {{detail}}",
         missionDescEmpty: "No mission description",
         missionDescFromSource: "See mission details in the source mission file table below.",
+        downloadOriginalFile: "Download original file",
         missionSourcePreviewTitle: "Original Mission File Content",
         missionSourcePreviewEmpty: "No source file data to display.",
         noMissionFiles: "No uploaded mission files.",
@@ -3796,9 +3832,15 @@ class PuttingTrainingApp {
 
         const selectedMission = missions[0];
         const hasSourceRows = Array.isArray(file?.sourceRows) && file.sourceRows.length > 1;
-        meta.textContent = selectedMission && selectedMission.detail
+        const missionDesc = selectedMission && selectedMission.detail
             ? (hasSourceRows ? this.t("missionDescFromSource") : this.t("missionDesc", { detail: selectedMission.detail }))
             : this.t("missionDescEmpty");
+
+        const downloadLink = file?.fileUrl
+            ? `<a href="${file.fileUrl}" target="_blank" rel="noopener" style="display:inline-block; margin-top:4px; font-size:0.9em;">${this.t("downloadOriginalFile")}</a>`
+            : "";
+
+        meta.innerHTML = `${missionDesc}${downloadLink ? "<br/>" + downloadLink : ""}`;
         this.renderMissionSourcePreview(file);
         const targetInput = document.getElementById("missionTargetPlayer");
         if (targetInput && !this.isCoachMode()) {
@@ -3998,6 +4040,9 @@ class PuttingTrainingApp {
             missions = [{ title: file.name, detail: "" }];
         }
 
+        // Try uploading the mission file to Supabase Storage so it can be retrieved later.
+        const storageInfo = await uploadMissionFileToStorage(file);
+
         return {
             id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             fileName: file.name,
@@ -4005,7 +4050,10 @@ class PuttingTrainingApp {
             uploadedAtISO: new Date().toISOString(),
             missions,
             sourceRows,
-            targetPlayer
+            targetPlayer,
+            fileUrl: storageInfo?.url || "",
+            storageBucket: storageInfo?.bucket || "",
+            storagePath: storageInfo?.path || ""
         };
     }
 
