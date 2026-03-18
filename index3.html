@@ -704,8 +704,15 @@
     const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
 
     function isServiceRoleKey(key){
+      // Supabase 비밀 키는 절대 클라이언트에 두면 안 됩니다.
+      // publishable key는 `sb_publishable_...` 형태, 서비스 키/비밀 키는 `sb_service_...` / `sb_secret_...` 형태로 시작합니다.
       if(!key || typeof key !== 'string') return false;
-      return /service[_-]role/i.test(key) || key.length > 80;
+      return (
+        key.startsWith('sb_service_') ||
+        key.startsWith('sb_secret_') ||
+        key.length > 80 ||
+        key.startsWith('eyJ')
+      );
     }
 
     if(isServiceRoleKey(SUPABASE_KEY)){
