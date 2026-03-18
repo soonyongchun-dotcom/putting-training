@@ -698,7 +698,22 @@
   <script>
     // ====== Supabase 초기화 ======
     const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZG1pdmpxZ3hkeWN1cGRieXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDk0NzIsImV4cCI6MjA4Nzk4NTQ3Mn0.T0XSwNNMmEd2xRASv16Dg0N58KlWJ4mYLP0pTvhB-60';
+    // ⚠️ 중요: Supabase 키는 공개 저장소/웹에 그대로 노출하면 안 됩니다.
+    // 현재는 Publishable Key를 사용하고 있으며, 반드시 RLS(Row Level Security)를 활성화한 후 사용해야 합니다.
+    // (서비스 역할 키(service_role)는 절대 클라이언트에 노출되지 않아야 합니다.)
+    const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+
+    function isServiceRoleKey(key){
+      if(!key || typeof key !== 'string') return false;
+      return /service[_-]role/i.test(key) || key.length > 80;
+    }
+
+    if(isServiceRoleKey(SUPABASE_KEY)){
+      console.error('Supabase 서비스 역할 키가 클라이언트에 노출되어 있습니다. 즉시 키를 교체하고, 클라이언트에는 anon 키만 사용하세요.');
+      alert('보안 경고: Supabase 서비스 역할 키가 클라이언트에 노출되어 있습니다. 관리자에게 문의하세요.');
+      throw new Error('Supabase service role key is not allowed in the browser');
+    }
+
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ====== 디바이스 전용 (localStorage) ======
@@ -800,7 +815,8 @@
     }
     function fromDbDirective(r){
       return { directiveId:r.directive_id, playerId:r.player_id, text:r.text,
-               time:r.time, createdAt:r.created_at, replies:r.replies||[],
+               time:r.time, createdAt:r.created_at,
+               replies:r.replies||[],
                coachId:r.coach_id, attachments:r.attachments||[] };
     }
     function fromDbSelfEval(r){
@@ -978,8 +994,19 @@
         lastCoachDirectivesError = 0;
         lastCoachDirectivesPlayerId = playerId;
       }
+
       // player-specific query (fastest path): only fetch recent directives for that player
       if(playerId){
+        // cache per player to avoid repeated 500 errors
+        if(!force){
+          if(now - lastCoachDirectivesFetch < COACH_DIRECTIVES_CACHE_TTL && coachDirectivesCache.length){
+            return coachDirectivesCache;
+          }
+          if(now - lastCoachDirectivesError < COACH_DIRECTIVES_ERROR_TTL){
+            return [];
+          }
+        }
+
         try{
           const {data,error} = await sb.from('sytpt_coach_directives')
             .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
@@ -987,11 +1014,31 @@
             .order('created_at',{ascending:false});
           if(error){
             console.warn('getCoachDirectives (player) error', error);
+
+            // fallback for missing column issues (attachments or replies)
+            if(error.message && /(attachments|replies|column)/i.test(error.message)){
+              try{
+                const {data:errorData,error:err2} = await sb.from('sytpt_coach_directives')
+                  .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
+                  .eq('player_id', playerId)
+                  .order('created_at',{ascending:false});
+                if(!err2){
+                  coachDirectivesCache = errorData||[];
+                  lastCoachDirectivesFetch = now;
+                  return coachDirectivesCache;
+                }
+              }catch(_){}
+            }
+
+            lastCoachDirectivesError = now;
             return [];
           }
-          return data||[];
+          coachDirectivesCache = data||[];
+          lastCoachDirectivesFetch = now;
+          return coachDirectivesCache;
         }catch(e){
           console.error('getCoachDirectives (player) exception', e);
+          lastCoachDirectivesError = now;
           return [];
         }
       }
@@ -1035,7 +1082,8 @@
           directive_id:item.directiveId, player_id:item.playerId, text:item.text,
           // using created_at for display timing; legacy `time` field not required
           created_at:item.createdAt||new Date().toISOString(),
-          replies:item.replies||[], coach_id:item.coachId||'',
+          coach_id:item.coachId||'',
+          replies:item.replies||[],
           attachments:item.attachments||[]
         });
         if(res.error){
@@ -1509,23 +1557,25 @@
     }
     async function renderCoachDirectiveList(){
       const root=document.getElementById('coachDirectiveList'); if(!root) return;
+      const targetSelect=document.getElementById('coachDirectiveTarget');
+      const target = targetSelect ? targetSelect.value : '';
       const users=await getUsers();
-      const player=getActivePlayerForView(users);
-      const dirsRaw=player?await getCoachDirectives(player.id):[];
-      const directives=dirsRaw.map(fromDbDirective);
+      const player = users.find(function(u){return u.id===target;});
+      const dirsRaw = (target && target!=='__all__') ? await getCoachDirectives(target) : await getCoachDirectives(null);
+      const directives = dirsRaw.map(fromDbDirective);
       if(!directives.length){
         root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
         return;
       }
       root.innerHTML=directives.map(function(item){
-        var player=users.find(function(u){return u.id===item.playerId;});
+        var playerItem = users.find(function(u){return u.id===item.playerId;});
         var deleteBtn='<button class="btn btn-red delete-dir-btn" data-id="'+item.directiveId+'" style="margin-left:8px;padding:2px 6px;font-size:11px">삭제</button>';
-        var replies=Array.isArray(item.replies)?item.replies:[];
-        var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
+        var replies=Array.isArray(item.replies)?item.replies:[];
+        var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var timeStr = formatTime(item.createdAt);
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+timeStr+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        return '<div class="message"><div class="meta">대상: '+(playerItem?playerItem.name:item.playerId)+' · '+timeStr+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
       root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
         btn.addEventListener('click',async function(){
@@ -2113,6 +2163,13 @@
       if(fileInput) fileInput.value='';
       renderCoachDirectiveList();renderCoachInboxDynamic();renderDashboardCoachMessages();renderPlayerMessageThread();renderCommCounts();renderCoachKPIs();
     });
+
+    var directiveTargetSelect = document.getElementById('coachDirectiveTarget');
+    if(directiveTargetSelect){
+      directiveTargetSelect.addEventListener('change', function(){
+        renderCoachDirectiveList();
+      });
+    }
 
     document.querySelectorAll('.portal-tabs button[data-portal]').forEach(function(btn){btn.addEventListener('click',function(){
       document.querySelectorAll('.portal-tabs button[data-portal]').forEach(function(b){b.classList.remove('active');});
