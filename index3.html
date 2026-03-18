@@ -752,6 +752,10 @@
     let lastCoachDirectivesPlayerId = null;
     const COACH_DIRECTIVES_CACHE_TTL = 30000; // ms
     const COACH_DIRECTIVES_ERROR_TTL = 60000; // ms
+    const COACH_DIRECTIVES_FETCH_LIMIT = 50; // max items to retrieve per query to avoid long-running scans
+
+    // track whether we are allowed to write to storage (some Supabase projects use RLS policies)
+    let storageUploadAllowed = true;
 
     // track local UI edits to avoid immediately overwriting user input
     var lastPerformanceEdit = window.lastPerformanceEdit || null;
@@ -1018,9 +1022,26 @@
           const {data,error} = await sb.from('sytpt_coach_directives')
             .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
             .eq('player_id', playerId)
-            .order('created_at',{ascending:false});
+            .order('created_at',{ascending:false})
+            .limit(COACH_DIRECTIVES_FETCH_LIMIT);
           if(error){
             console.warn('getCoachDirectives (player) error', error);
+
+            // handle statement timeout (often due to large table scans) by falling back to a smaller query
+            if(error.code==='57014' || (error.message && /statement timeout/i.test(error.message))){
+              try{
+                const {data:fastData,error:fastError} = await sb.from('sytpt_coach_directives')
+                  .select('directive_id,player_id,text,created_at,coach_id')
+                  .eq('player_id', playerId)
+                  .order('created_at',{ascending:false})
+                  .limit(COACH_DIRECTIVES_FETCH_LIMIT);
+                if(!fastError){
+                  coachDirectivesCache = fastData||[];
+                  lastCoachDirectivesFetch = now;
+                  return coachDirectivesCache;
+                }
+              }catch(_){ }
+            }
 
             // fallback for missing column issues (attachments or replies)
             if(error.message && /(attachments|replies|column)/i.test(error.message)){
@@ -1028,7 +1049,8 @@
                 const {data:errorData,error:err2} = await sb.from('sytpt_coach_directives')
                   .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
                   .eq('player_id', playerId)
-                  .order('created_at',{ascending:false});
+                  .order('created_at',{ascending:false})
+                  .limit(COACH_DIRECTIVES_FETCH_LIMIT);
                 if(!err2){
                   coachDirectivesCache = errorData||[];
                   lastCoachDirectivesFetch = now;
@@ -1108,20 +1130,7 @@
       }
     }
 
-    async function deleteCoachDirective(directiveId){
-      if(!directiveId) return;
-      try{
-        const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId);
-        if(error){
-          console.error('deleteCoachDirective error', error);
-          alert('지시사항 삭제 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
-        }
-      }catch(e){
-        console.error('deleteCoachDirective exception', e);
-        alert('지시사항 삭제 중 예외가 발생했습니다: '+(e.message||e));
-      }
-    }
-
+    // NOTE: deleteCoachDirective is defined later with cache-clearing + render refresh behavior.
     // ====== coach_read 컬럼 유무 확인 ======
     // Supabase schema may not include coach_read; avoid failing when missing.
     window.hasCoachReadColumn = window.hasCoachReadColumn === undefined ? undefined : window.hasCoachReadColumn;
@@ -1167,6 +1176,17 @@
       try{
         const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId);
         if(error) throw error;
+
+        // Ensure all views refresh immediately (coach + player)
+        coachDirectivesCache = [];
+        lastCoachDirectivesFetch = 0;
+        lastCoachDirectivesError = 0;
+        renderCoachDirectiveList();
+        renderPlayerMessageThread();
+        renderDashboardCoachMessages();
+        renderCoachInboxDynamic();
+        renderCommCounts();
+        renderCoachKPIs();
       }catch(e){
         console.error('deleteCoachDirective error', e);
       }
@@ -1259,7 +1279,7 @@
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
+      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
@@ -1273,6 +1293,12 @@
       const out=[];
       for(const f of files){const d=await fileToDataUrl(f);out.push({name:f.name,mimeType:f.type||'application/octet-stream',dataUrl:d});}
       return out;
+    }
+
+    function isStoragePolicyError(e){
+      if(!e) return false;
+      const m = String(e.message||e||'').toLowerCase();
+      return m.includes('row-level security') || m.includes('rls') || m.includes('new row violates') || m.includes('policy');
     }
 
     async function uploadMissionAttachmentsToStorage(fileList){
@@ -1290,28 +1316,38 @@
         const unique = Date.now() + '-' + Math.random().toString(36).slice(2);
         const path = `coach-directives/${unique}-${f.name}`;
 
-        try {
-          const { data: uploadData, error: uploadError } = await sb.storage
-            .from(bucket)
-            .upload(path, f, { cacheControl: '3600', upsert: false });
-          if(uploadError) throw uploadError;
+        if(storageUploadAllowed){
+          try {
+            const { data: uploadData, error: uploadError } = await sb.storage
+              .from(bucket)
+              .upload(path, f, { cacheControl: '3600', upsert: false });
+            if(uploadError) throw uploadError;
 
-          const { data: urlData, error: urlError } = sb.storage
-            .from(bucket)
-            .getPublicUrl(path);
-          if(urlError) throw urlError;
+            const { data: urlData, error: urlError } = sb.storage
+              .from(bucket)
+              .getPublicUrl(path);
+            if(urlError) throw urlError;
 
-          out.push({
-            name: f.name,
-            url: urlData.publicUrl,
-            size: f.size,
-            type: f.type
-          });
-        } catch (e) {
-          console.warn('Storage upload failed, falling back to embedded dataUrl', e);
-          const d = await fileToDataUrl(f);
-          out.push({name: f.name, mimeType: f.type||'application/octet-stream', dataUrl: d});
+            out.push({
+              name: f.name,
+              url: urlData.publicUrl,
+              size: f.size,
+              type: f.type
+            });
+            continue;
+          } catch (e) {
+            // If storage writes are blocked by an RLS policy, stop trying on future uploads
+            if(isStoragePolicyError(e)){
+              storageUploadAllowed = false;
+              console.warn('Storage upload blocked by policy; falling back to embedded dataUrl', e.message||e);
+            } else {
+              console.warn('Storage upload failed; falling back to embedded dataUrl', e);
+            }
+          }
         }
+
+        const d = await fileToDataUrl(f);
+        out.push({name: f.name, mimeType: f.type||'application/octet-stream', dataUrl: d});
       }
 
       return out;
@@ -1592,10 +1628,10 @@
       if(!selId || !ap.some(function(p){return p.id===selId;})){
         setCoachSelectedPlayerId(sel.value);
       }
-      sel.addEventListener('change',function(){
+      sel.onchange = function(){
         setCoachSelectedPlayerId(sel.value);
         renderPlayerViewContext();
-      });
+      };
     }
     async function syncCoachDirectiveTargetOptions(){
       const select=document.getElementById('coachDirectiveTarget'); if(!select) return;
@@ -1606,6 +1642,7 @@
     }
     async function renderCoachDirectiveList(){
       const root=document.getElementById('coachDirectiveList'); if(!root) return;
+      root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
       const targetSelect=document.getElementById('coachDirectiveTarget');
       const target = targetSelect ? targetSelect.value : '';
       const users=await getUsers();
@@ -1881,6 +1918,7 @@
     }
     async function renderPlayerMessageThread(){
       const root=document.getElementById('playerMessageList'); if(!root) return;
+      root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
