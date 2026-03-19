@@ -772,7 +772,8 @@
     }
 
     loginBtn.addEventListener('click', async () => {
-      const email = loginEmail.value.trim();
+      const rawEmail = loginEmail.value.trim();
+      const email = rawEmail.toLowerCase();
       const password = loginPassword.value.trim();
       if(!email || !password){
         if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
@@ -908,7 +909,7 @@
           if(loginStatus) loginStatus.textContent = '이미 등록된 사용자입니다.';
           return;
         }
-        users.push({ email, hash });
+        users.push({ email: email.toLowerCase(), hash });
         saveUsers(users);
         addEmail.value = '';
         addPass.value = '';
