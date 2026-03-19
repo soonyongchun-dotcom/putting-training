@@ -948,7 +948,7 @@
       del.innerHTML = '🗑️';
       del.title = '삭제';
       del.className = 'user-action-btn';
-      del.addEventListener('click', (e) => {
+      del.addEventListener('click', async (e) => {
         e.stopPropagation();
         const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
         if(!confirmed) return;
