@@ -198,11 +198,18 @@
       width: 90px;
     }
     .playback-controls {
-      padding: 4px 6px;
+      display: none; /* Hide global speed control on small screens */
     }
     .playback-controls input[type=number] {
       width: 70px;
       padding: 3px 5px;
+    }
+  }
+
+  /* Hide global speed control on touch devices (phones/tablets) */
+  @media (hover: none) and (pointer: coarse) {
+    .playback-controls {
+      display: none !important;
     }
   }
   .video-wrapper.hidden {
@@ -749,22 +756,43 @@
     const entry = { when: now, action };
 
     // Try to save to Supabase (cross-device)
-    const supaResult = await supabaseAddLog(id, action);
+    await supabaseAddLog(id, action);
 
-    // Always keep local copy as well
+    // Always keep local copy as well (store under both id and any matching email)
     const logs = loadUserLogs();
     logs[id] = logs[id] || [];
     logs[id].unshift(entry);
+
+    const users = loadUsers();
+    const user = users.find(u => u.id === id || u.email === id);
+    if(user && user.email && user.email !== id){
+      logs[user.email] = logs[user.email] || [];
+      logs[user.email].unshift(entry);
+    }
+
     saveUserLogs(logs);
   }
 
-  async function getUserLogs(id){
-    const supaLogs = await supabaseLoadLogs(id);
-    if(supaLogs && supaLogs.length > 0){
+  async function getUserLogs(idOrEmail){
+    // Try Supabase first (id-based)
+    const supaLogs = await supabaseLoadLogs(idOrEmail);
+    if(Array.isArray(supaLogs) && supaLogs.length > 0){
       return supaLogs;
     }
+
+    // Fallback to local logs (try both id and email keys)
     const logs = loadUserLogs();
-    return logs[id] || [];
+    const found = logs[idOrEmail] || [];
+    if(found.length) return found;
+
+    // If idOrEmail looks like an id, try to find matching email in users
+    const users = loadUsers();
+    const user = users.find(u => u.id === idOrEmail);
+    if(user && user.email){
+      return logs[user.email] || [];
+    }
+
+    return [];
   }
 
   async function showUserLogs(id){
