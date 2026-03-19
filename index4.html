@@ -472,7 +472,7 @@
       </div>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-      <input id="addUserEmail" type="email" placeholder="User ID" style="flex:1; min-width:180px;" />
+      <input id="addUserEmail" type="text" placeholder="ID" style="flex:1; min-width:180px;" />
       <input id="addUserPassword" type="password" placeholder="Password" style="flex:1; min-width:180px;" />
     </div>
     <div style="display:flex; gap:8px;">
@@ -654,7 +654,7 @@
 
   let currentUser = null;
   let isAdmin = false;
-  let selectedUserEmail = null;
+  let selectedUserEmail = null; // still used as key for logs and selection
 
   function loadUsers(){
     const raw = localStorage.getItem('gsap_users');
@@ -684,27 +684,27 @@
     localStorage.setItem('gsap_user_logs', JSON.stringify(logs));
   }
 
-  function addUserLog(email, action){
-    if(!email) return;
+  function addUserLog(id, action){
+    if(!id) return;
     const logs = loadUserLogs();
     const now = new Date().toISOString();
     const entry = { when: now, action };
-    logs[email] = logs[email] || [];
-    logs[email].unshift(entry);
+    logs[id] = logs[id] || [];
+    logs[id].unshift(entry);
     saveUserLogs(logs);
   }
 
-  function getUserLogs(email){
+  function getUserLogs(id){
     const logs = loadUserLogs();
-    return logs[email] || [];
+    return logs[id] || [];
   }
 
-  function showUserLogs(email){
-    selectedUserEmail = email;
+  function showUserLogs(id){
+    selectedUserEmail = id;
     const logEl = document.getElementById('userLog');
     if(!logEl) return;
     logEl.innerHTML = '';
-    const logs = getUserLogs(email);
+    const logs = getUserLogs(id);
     if(logs.length === 0){
       const empty = document.createElement('div');
       empty.style.color = '#999';
@@ -772,32 +772,32 @@
     }
 
     loginBtn.addEventListener('click', async () => {
-      const rawEmail = loginEmail.value.trim();
-      const email = rawEmail.toLowerCase();
+      const rawId = loginEmail.value.trim();
+      const id = rawId.toLowerCase();
       const password = loginPassword.value.trim();
-      if(!email || !password){
-        if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
+      if(!id || !password){
+        if(loginStatus) loginStatus.textContent = 'Please enter ID and password.';
         return;
       }
 
-      const hash = await sha256(`${email}:${password}`);
+      const hash = await sha256(`${id}:${password}`);
       if(hash === ADMIN_HASH){
-        currentUser = { email, isAdmin: true };
+        currentUser = { id, isAdmin: true };
         setAdminMode(true);
         setLoggedIn(true);
-        addUserLog(email, 'admin login');
+        addUserLog(id, 'admin login');
         if(loginStatus) loginStatus.textContent = 'Admin login successful.';
         return;
       }
 
       const users = loadUsers();
-      const match = users.find(u => u.hash === hash && u.email === email);
+      const match = users.find(u => u.hash === hash && (u.id === id || u.email === id));
       if(match){
-        currentUser = { email, isAdmin: false };
+        currentUser = { id, isAdmin: false };
         setAdminMode(false);
         setLoggedIn(true);
-        selectedUserEmail = email;
-        addUserLog(email, 'login');
+        selectedUserEmail = id;
+        addUserLog(id, 'login');
         if(loginStatus) loginStatus.textContent = 'User login successful.';
         return;
       }
@@ -897,25 +897,26 @@
     const addBtn = document.getElementById('addUserBtn');
     if(addBtn){
       addBtn.onclick = async () => {
-        const email = addEmail.value.trim();
+        const idInput = addEmail.value.trim();
         const password = addPass.value.trim();
-        if(!email || !password){
-          if(loginStatus) loginStatus.textContent = 'Email과 비밀번호를 모두 입력하세요.';
+        if(!idInput || !password){
+          if(loginStatus) loginStatus.textContent = 'ID와 비밀번호를 모두 입력하세요.';
           return;
         }
-        const hash = await sha256(`${email}:${password}`);
+        const id = idInput.toLowerCase();
+        const hash = await sha256(`${id}:${password}`);
         const users = loadUsers();
-        if(users.find(u => u.email === email)){
+        if(users.find(u => u.id === id || u.email === id)){
           if(loginStatus) loginStatus.textContent = '이미 등록된 사용자입니다.';
           return;
         }
-        users.push({ email: email.toLowerCase(), hash });
+        users.push({ id, hash });
         saveUsers(users);
         addEmail.value = '';
         addPass.value = '';
         if(loginStatus) loginStatus.textContent = '사용자가 추가되었습니다.';
         renderUserMgmt();
-        showUserLogs(email);
+        showUserLogs(id);
       };
     }
   }
