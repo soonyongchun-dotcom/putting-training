@@ -921,10 +921,11 @@
         row.style.padding = '6px 8px';
         row.style.borderRadius = '6px';
         row.style.cursor = 'pointer';
-        row.style.background = selectedUserEmail === user.email ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
+        const userId = user.id || user.email;
+        row.style.background = selectedUserEmail === userId ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
 
         const label = document.createElement('span');
-        label.textContent = user.email;
+        label.textContent = userId;
         row.appendChild(label);
 
         const buttonGroup = document.createElement('span');
@@ -938,7 +939,7 @@
         selectBtn.className = 'user-action-btn';
         selectBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          showUserLogs(user.email);
+          showUserLogs(user.id || user.email);
           renderUserMgmt();
         });
         buttonGroup.appendChild(selectBtn);
@@ -950,7 +951,7 @@
       del.className = 'user-action-btn';
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
+        const confirmed = confirm(`${user.id || user.email} 사용자 계정을 삭제하시겠습니까?`);
         if(!confirmed) return;
         const remaining = loadUsers().filter(u => u.id !== user.id);
         saveUsers(remaining);
