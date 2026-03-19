@@ -656,6 +656,7 @@
   let isAdmin = false;
   let selectedUserEmail = null; // still used as key for logs and selection
 
+  // Local storage helpers (fallback when Supabase is unavailable)
   function loadUsers(){
     const raw = localStorage.getItem('gsap_users');
     if(!raw) return [];
@@ -668,6 +669,50 @@
 
   function saveUsers(users){
     localStorage.setItem('gsap_users', JSON.stringify(users));
+  }
+
+  // Supabase helpers for cross-device sync
+  async function supabaseLoadUsers(){
+    try {
+      const { data, error } = await sb.from('gsap_users').select('id, hash');
+      if(error) {
+        // console.warn('Supabase load users failed', error);
+        return null;
+      }
+      return (data || []).map(u => ({ id: u.id, hash: u.hash }));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function supabaseSaveUser(id, hash){
+    try {
+      await sb.from('gsap_users').upsert({ id, hash });
+    } catch {}
+  }
+
+  async function supabaseDeleteUser(id){
+    try {
+      await sb.from('gsap_users').delete().eq('id', id);
+    } catch {}
+  }
+
+  async function supabaseLoadLogs(id){
+    try {
+      const { data, error } = await sb.from('gsap_user_logs').select('when, action').eq('id', id).order('when', { ascending: false }).limit(50);
+      if(error) {
+        return null;
+      }
+      return (data || []).map(r => ({ when: r.when, action: r.action }));
+    } catch {
+      return null;
+    }
+  }
+
+  async function supabaseAddLog(id, action){
+    try {
+      await sb.from('gsap_user_logs').insert({ id, action });
+    } catch {}
   }
 
   function loadUserLogs(){
@@ -684,27 +729,36 @@
     localStorage.setItem('gsap_user_logs', JSON.stringify(logs));
   }
 
-  function addUserLog(id, action){
+  async function addUserLog(id, action){
     if(!id) return;
-    const logs = loadUserLogs();
     const now = new Date().toISOString();
     const entry = { when: now, action };
+
+    // Try to save to Supabase (cross-device)
+    const supaResult = await supabaseAddLog(id, action);
+
+    // Always keep local copy as well
+    const logs = loadUserLogs();
     logs[id] = logs[id] || [];
     logs[id].unshift(entry);
     saveUserLogs(logs);
   }
 
-  function getUserLogs(id){
+  async function getUserLogs(id){
+    const supaLogs = await supabaseLoadLogs(id);
+    if(supaLogs && supaLogs.length > 0){
+      return supaLogs;
+    }
     const logs = loadUserLogs();
     return logs[id] || [];
   }
 
-  function showUserLogs(id){
+  async function showUserLogs(id){
     selectedUserEmail = id;
     const logEl = document.getElementById('userLog');
     if(!logEl) return;
     logEl.innerHTML = '';
-    const logs = getUserLogs(id);
+    const logs = await getUserLogs(id);
     if(logs.length === 0){
       const empty = document.createElement('div');
       empty.style.color = '#999';
@@ -810,9 +864,16 @@
     });
   }
 
-  function openUserMgmt(){
+  async function openUserMgmt(){
     const overlay = document.getElementById('userMgmtOverlay');
     if(!overlay) return;
+
+    // Attempt to sync users from Supabase each time admin opens the panel
+    const supaUsers = await supabaseLoadUsers();
+    if(supaUsers && supaUsers.length){
+      saveUsers(supaUsers);
+    }
+
     overlay.style.display = 'flex';
     renderUserMgmt();
     if(selectedUserEmail) showUserLogs(selectedUserEmail);
@@ -879,9 +940,10 @@
         e.stopPropagation();
         const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
         if(!confirmed) return;
-        const remaining = loadUsers().filter(u => u.email !== user.email);
+        const remaining = loadUsers().filter(u => u.id !== user.id);
         saveUsers(remaining);
-        if(selectedUserEmail === user.email){
+        await supabaseDeleteUser(user.id);
+        if(selectedUserEmail === user.id){
           selectedUserEmail = null;
           const userLog = document.getElementById('userLog');
           if(userLog) userLog.innerHTML = '';
@@ -912,6 +974,7 @@
         }
         users.push({ id, hash });
         saveUsers(users);
+        await supabaseSaveUser(id, hash);
         addEmail.value = '';
         addPass.value = '';
         if(loginStatus) loginStatus.textContent = '사용자가 추가되었습니다.';
