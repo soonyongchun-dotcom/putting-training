@@ -81,11 +81,15 @@
     width: min(90vw, 820px);
   }
   #userLog {
-    background: rgba(0,0,0,0.12); /* 배경 흰색일 때도 글자가 보이도록 회색 배경으로 변경 */
-    color: #f7f7f7;
+    background: rgba(255,255,255,0.92);
+    color: #111;
     border-radius: 8px;
     padding: 10px;
     font-size: 0.9rem;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  #userLog .log-row span:last-child {
+    color: rgba(0,0,0,0.55);
   }
   #userLog .log-row {
     display: flex;
@@ -782,7 +786,8 @@
       row.style.justifyContent = 'space-between';
       row.style.fontSize = '0.85rem';
       row.style.padding = '2px 0';
-      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.65);">${new Date(entry.when).toLocaleString()}</span>`;
+      row.style.color = '#111';
+      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(0,0,0,0.55);">${new Date(entry.when).toLocaleString()}</span>`;
       logEl.appendChild(row);
     });
   }
