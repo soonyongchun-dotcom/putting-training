@@ -814,8 +814,8 @@
       row.style.justifyContent = 'space-between';
       row.style.fontSize = '0.85rem';
       row.style.padding = '2px 0';
-      row.style.color = '#111';
-      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(0,0,0,0.55);">${new Date(entry.when).toLocaleString()}</span>`;
+      row.style.color = '#fff';
+      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.75);">${new Date(entry.when).toLocaleString()}</span>`;
       logEl.appendChild(row);
     });
   }
@@ -1041,6 +1041,16 @@
   }
 
   initLogin();
+
+  function hideMobileGlobalSpeedControl(){
+    const isMobile = window.matchMedia('(max-width: 600px), (hover: none) and (pointer: coarse)').matches;
+    const playback = document.querySelector('.playback-controls');
+    if(playback){
+      playback.style.display = isMobile ? 'none' : '';
+    }
+  }
+  hideMobileGlobalSpeedControl();
+  window.addEventListener('resize', hideMobileGlobalSpeedControl);
 
   function applyVideoZoom(videoElem, zoom){
     const baseTransform = `translate(-50%, -50%) scale(${zoom})`;
