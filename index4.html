@@ -834,6 +834,18 @@
         return;
       }
 
+      // Admin credential shortcut (for local/dev access)
+      // - ID: admin
+      // - Password: admin
+      if(id === 'admin' && password === 'admin'){
+        currentUser = { id, isAdmin: true };
+        setAdminMode(true);
+        setLoggedIn(true);
+        addUserLog(id, 'admin login');
+        if(loginStatus) loginStatus.textContent = 'Admin login successful.';
+        return;
+      }
+
       const hash = await sha256(`${id}:${password}`);
       if(hash === ADMIN_HASH){
         currentUser = { id, isAdmin: true };
