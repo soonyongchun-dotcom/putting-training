@@ -1,0 +1,1775 @@
+<!DOCTYPE html> 
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SY-GSAP (Golf Swing Analysis Platform)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #1b2735 0%, #090a0f 100%);
+    text-align: center;
+    min-height: 100vh;
+  }
+  /* 로그인 화면에서 배경 이미지 사용 */
+  body.login-page {
+    background: url('login-bg.jpg') center/contain fixed no-repeat;
+    background-color: #000;
+  }
+  .login-page .login-overlay {
+    background: rgba(0,0,0,0.55);
+  }
+  .top-bar {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  h1 {
+    margin: 0;
+    color: green;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 10001;
+    padding: 6px 12px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+  }
+  h1 .version {
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.85);
+    opacity: 0.85;
+  }
+  .admin-btn {
+    display: none;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10002;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    line-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .admin-mode .admin-btn {
+    display: block;
+  }
+  #logoutBtn {
+    right: 58px;
+  }
+  #userMgmtBtn {
+    right: 12px;
+  }
+  /* User management styling */
+  #userMgmtOverlay .login-box {
+    max-width: 820px;
+    width: min(90vw, 820px);
+  }
+  #userLog {
+    background: rgba(0,0,0,0.12); /* 배경 흰색일 때도 글자가 보이도록 회색 배경으로 변경 */
+    color: #f7f7f7;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  #userLog .log-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  #userLog .log-row:last-child {
+    border-bottom: none;
+  }
+  #userLog .log-row span {
+    color: rgba(255,255,255,0.92);
+  }
+  .user-row button {
+    background: rgba(0, 123, 255, 0.85);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .user-row button:hover {
+    background: rgba(0, 123, 255, 1);
+  }
+  .user-row {
+    color: #fff;
+  }
+  .container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+  }
+  .video-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(60vw, 800px);
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #222;
+    padding: 12px;
+    gap: 10px;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  @media (max-width: 900px) {
+    .container {
+      flex-direction: column;
+      align-items: center;
+    }
+    .video-wrapper {
+      width: min(95vw, 800px);
+    }
+  }
+
+  @media (max-width: 600px) {
+    body {
+      margin: 4px;
+    }
+    h1 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+    .container {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 22px;
+    }
+    .video-wrapper {
+      width: 100%;
+      padding: 6px;
+      gap: 6px;
+      max-height: 80vh;
+      margin-bottom: 40px;
+      padding-bottom: 120px; /* 여유 공간 확보 */
+    }
+    .video-stage {
+      min-height: 65vh;
+    }
+    .video-header {
+      gap: 5px;
+      font-size: 0.75rem;
+    }
+    .video-header button {
+      padding: 3px 6px;
+      font-size: 0.85rem;
+    }
+    .video-controls button {
+      padding: 3px 6px;
+      font-size: 0.75rem;
+    }
+    .zoom-controls,
+    .speed-controls {
+      gap: 4px;
+      font-size: 0.7rem;
+    }
+    .zoom-controls input[type=range],
+    .speed-controls input[type=range] {
+      width: 90px;
+    }
+    .playback-controls {
+      padding: 4px 6px;
+    }
+    .playback-controls input[type=number] {
+      width: 70px;
+      padding: 3px 5px;
+    }
+  }
+  .video-wrapper.hidden {
+    display: none;
+  }
+  .video-wrapper.selected {
+    width: 100%;
+    max-width: none;
+  }
+  .video-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+  }
+  video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    user-select: none;
+    border-radius: 0;
+    object-fit: contain;
+    background: transparent;
+  }
+  canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    border-radius: 8px;
+    touch-action: none; /* allow drawing on mobile without the browser intercepting gestures */
+  }
+  .zoom-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+  }
+  .zoom-controls button {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    min-width: 32px;
+  }
+  .zoom-controls label {
+    background: transparent;
+    color: #fff;
+    padding: 0;
+    border-radius: 0;
+    cursor: default;
+  }
+  .zoom-controls input[type=range] {
+    width: 140px;
+  }
+  .playback-controls {
+    background: #f2f2f2;
+    border-radius: 10px;
+    padding: 6px 10px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
+  }
+  .playback-controls label {
+    color: #000;
+  }
+  .playback-controls input[type=number] {
+    background: #f2f2f2;
+    color: #000;
+    border: 1px solid rgba(0,0,0,0.14);
+  }
+
+  /* login overlay */
+  .login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: flex-start; /* 조금 아래로 내려오도록 */
+    justify-content: center;
+    padding-top: 60px;
+    z-index: 9999;
+    overflow-x: hidden; /* 로그인 박스에서 가로 스크롤 방지 */
+  }
+  .login-page .login-overlay {
+    display: flex;
+  }
+  .login-page .container,
+  .login-page .controls {
+    display: none !important;
+  }
+  .login-box {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    padding: 12px 14px;
+    width: min(280px, calc(100vw - 32px));
+    box-sizing: border-box;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    text-align: center;
+  }
+  .login-box h2 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+  }
+  .login-box input,
+  .login-box button {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .login-box input {
+    margin: 3px 0;
+    padding: 6px 8px;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  .login-box button {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    padding: 8px 0;
+  }
+
+  @media (max-width: 480px) {
+    .login-box {
+      padding: 14px 16px;
+      width: min(90vw, 320px);
+    }
+    .login-box h2 {
+      font-size: 1rem;
+    }
+    .login-box input {
+      margin: 6px 0;
+      padding: 8px;
+      font-size: 0.9rem;
+    }
+    .login-box button {
+      font-size: 0.9rem;
+      padding: 9px 0;
+    }
+  }
+  .speed-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+  }
+  .speed-controls label {
+    background: rgba(255, 255, 255, 0.8);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: default;
+  }
+  .speed-controls input[type=range] {
+    width: 140px;
+  }
+  .video-controls {
+    margin: 8px 0 12px;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  button, label, input[type=number] {
+    cursor: pointer;
+    background: #0077cc;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    user-select: none;
+    border: none;
+    font-size: 0.85rem;
+  }
+  button:hover, label:hover {
+    background: #005fa3;
+  }
+  .controls button.active {
+    background: #004a8b;
+  }
+  input[type=range] {
+    width: 100px;
+  }
+  input[type=file] {
+    display: none;
+  }
+  input[type=number] {
+    width: 60px;
+    text-align: center;
+    background: #fff;
+    color: #000;
+  }
+  #status {
+    font-weight: 600;
+  }
+  .controls {
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .video-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .video-header .title {
+    min-width: 80px;
+    text-align: right;
+  }
+  .video-header button {
+    font-size: 1.1rem;
+    padding: 6px 10px;
+  }
+</style>
+</head>
+<body class="login-page">
+
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <h2>Login</h2>
+    <input id="loginEmail" type="text" placeholder="ID" autocomplete="username" />
+    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+    <button id="loginBtn" type="button">Login</button>
+    <div id="loginStatus" style="margin-top:8px; font-size:0.85rem; color:#666;">Enter admin credentials to unlock.</div>
+  </div>
+</div>
+
+<div id="userMgmtOverlay" class="login-overlay" style="display:none;">
+  <div class="login-box" style="max-width:820px; width:min(90vw,820px);">
+    <h2>User Management</h2>
+    <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:260px;">
+        <div style="font-weight:600; margin-bottom:6px;">Users</div>
+        <div id="userList" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow:auto; text-align:left; padding:8px; border:1px solid rgba(0,0,0,0.12); border-radius:8px; background: rgba(0,0,0,0.18);"></div>
+      </div>
+      <div style="flex:1; min-width:260px;">
+        <div style="font-weight:600; margin-bottom:6px;">Login history</div>
+        <div id="userLog" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto; padding:8px; border:1px solid rgba(0,0,0,0.12); border-radius:8px; background: rgba(0,0,0,0.18);"></div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+      <input id="addUserEmail" type="email" placeholder="User ID" style="flex:1; min-width:180px;" />
+      <input id="addUserPassword" type="password" placeholder="Password" style="flex:1; min-width:180px;" />
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="addUserBtn" type="button">Add user</button>
+      <button type="button" onclick="closeUserMgmt()">Close</button>
+    </div>
+    <div style="margin-top:8px; font-size:0.8rem; color:#666;">관리자 전용 사용자 계정 등록/삭제 및 로그인 기록 확인 기능입니다.</div>
+  </div>
+</div>
+
+<div class="top-bar">
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.3.1</span></h1>
+  <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
+  <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
+</div>
+
+<div class="container">
+  <div class="video-wrapper" id="frontWrapper">
+    <div class="video-header">
+      <span class="title">Image A</span>
+      <button type="button" id="frontFileBtn" title="Select video">📁</button>
+      <button type="button" id="frontCameraBtn" title="Record video">🎥</button>
+      <span id="frontFileName" style="color:#0077cc; font-weight:600;"></span>
+      <input type="file" id="frontFileInput" accept="video/*" style="display:none;" />
+      <input type="file" id="frontCameraInput" accept="video/*" capture="environment" style="display:none;" />
+    </div>
+    <div class="video-stage">
+      <video id="frontVideo" playsinline></video>
+      <canvas id="frontCanvas"></canvas>
+    </div>
+    <div class="video-controls">
+      <button id="frontPlayBtn" disabled title="Play/pause">▶</button>
+      <button id="frontPrevFrame" disabled title="Prev frame">⏮</button>
+      <button id="frontNextFrame" disabled title="Next frame">⏭</button>
+      <input type="range" id="frontSlider" min="0" max="0" step="0.01" value="0" disabled />
+    </div>
+    <div class="zoom-controls">
+      <button type="button" id="frontZoomOut" title="Zoom out">➖</button>
+      <label for="frontZoomRange">Zoom A</label>
+      <input type="range" id="frontZoomRange" min="0.2" max="4" step="0.05" value="1" disabled>
+      <button type="button" id="frontZoomIn" title="Zoom in">➕</button>
+    </div>
+    <div class="speed-controls">
+      <label for="frontSpeedRange">Relative speed A</label>
+      <input type="range" id="frontSpeedRange" min="0.5" max="1.5" step="0.01" value="1" disabled>
+    </div>
+  </div>
+  <div class="video-wrapper" id="sideWrapper">
+    <div class="video-header">
+      <span class="title">Image B</span>
+      <button type="button" id="sideFileBtn" title="Select video">📁</button>
+      <button type="button" id="sideCameraBtn" title="Record video">🎥</button>
+      <span id="sideFileName" style="color:#0077cc; font-weight:600;"></span>
+      <input type="file" id="sideFileInput" accept="video/*" style="display:none;" />
+      <input type="file" id="sideCameraInput" accept="video/*" capture="environment" style="display:none;" />
+    </div>
+    <div class="video-stage">
+      <video id="sideVideo" playsinline></video>
+      <canvas id="sideCanvas"></canvas>
+    </div>
+    <div class="video-controls">
+      <button id="sidePlayBtn" disabled title="Play/pause">▶</button>
+      <button id="sidePrevFrame" disabled title="Prev frame">⏮</button>
+      <button id="sideNextFrame" disabled title="Next frame">⏭</button>
+      <input type="range" id="sideSlider" min="0" max="0" step="0.01" value="0" disabled />
+    </div>
+    <div class="zoom-controls">
+      <button type="button" id="sideZoomOut" title="Zoom out">➖</button>
+      <label for="sideZoomRange">Zoom B</label>
+      <input type="range" id="sideZoomRange" min="0.2" max="4" step="0.05" value="1" disabled>
+      <button type="button" id="sideZoomIn" title="Zoom in">➕</button>
+    </div>
+    <div class="speed-controls">
+      <label for="sideSpeedRange">Relative speed B</label>
+      <input type="range" id="sideSpeedRange" min="0.5" max="1.5" step="0.01" value="1" disabled>
+    </div>
+  </div>
+</div>
+
+<div class="controls" style="margin-top:15px;">
+  <div class="zoom-controls playback-controls">
+    <label for="playbackRateInput">Global speed</label>
+    <input type="number" id="playbackRateInput" value="0.2" step="0.05" min="0.05" max="2">
+  </div>
+  <button id="selectFrontBtn" disabled title="Show A only">A</button>
+  <button id="selectSideBtn" disabled title="Show B only">B</button>
+  <button id="selectBothBtn" disabled title="Show both videos">AB</button>
+  <button id="playPauseBothBtn" disabled title="Play/pause both">▶</button>
+  <button id="saveFrameBtn" disabled title="Save frame">💾</button>
+  <button id="clearPointsBtn" title="Clear points">🧹</button>
+  <span id="status"></span>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginOverlay = document.getElementById('loginOverlay');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginStatus = document.getElementById('loginStatus');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userMgmtBtn = document.getElementById('userMgmtBtn');
+  const mainContainer = document.querySelector('.container');
+  const mainControls = document.querySelector('.controls');
+
+  const frontFileInput = document.getElementById('frontFileInput');
+  const frontCameraInput = document.getElementById('frontCameraInput');
+  const sideFileInput = document.getElementById('sideFileInput');
+  const sideCameraInput = document.getElementById('sideCameraInput');
+  const frontFileBtn = document.getElementById('frontFileBtn');
+  const frontCameraBtn = document.getElementById('frontCameraBtn');
+  const sideFileBtn = document.getElementById('sideFileBtn');
+  const sideCameraBtn = document.getElementById('sideCameraBtn');
+  const frontVideo = document.getElementById('frontVideo');
+  const sideVideo = document.getElementById('sideVideo');
+  const frontCanvas = document.getElementById('frontCanvas');
+  const sideCanvas = document.getElementById('sideCanvas');
+  const frontCtx = frontCanvas.getContext('2d');
+  const sideCtx = sideCanvas.getContext('2d');
+
+  const frontPlayBtn = document.getElementById('frontPlayBtn');
+  const sidePlayBtn = document.getElementById('sidePlayBtn');
+  const frontPrevFrameBtn = document.getElementById('frontPrevFrame');
+  const frontNextFrameBtn = document.getElementById('frontNextFrame');
+  const sidePrevFrameBtn = document.getElementById('sidePrevFrame');
+  const sideNextFrameBtn = document.getElementById('sideNextFrame');
+  const frontSlider = document.getElementById('frontSlider');
+  const sideSlider = document.getElementById('sideSlider');
+  const playbackRateInput = document.getElementById('playbackRateInput');
+  const frontZoomRange = document.getElementById('frontZoomRange');
+  const sideZoomRange = document.getElementById('sideZoomRange');
+  const frontSpeedRange = document.getElementById('frontSpeedRange');
+  const sideSpeedRange = document.getElementById('sideSpeedRange');
+
+  const frontWrapper = document.getElementById('frontWrapper');
+  const sideWrapper = document.getElementById('sideWrapper');
+  const selectFrontBtn = document.getElementById('selectFrontBtn');
+  const selectSideBtn = document.getElementById('selectSideBtn');
+  const selectBothBtn = document.getElementById('selectBothBtn');
+  let selectedView = null; // 'front' | 'side' | null
+
+  const playPauseBothBtn = document.getElementById('playPauseBothBtn');
+  const saveFrameBtn = document.getElementById('saveFrameBtn');
+  const clearPointsBtn = document.getElementById('clearPointsBtn');
+  const statusSpan = document.getElementById('status');
+
+
+  let frontPoints = [];
+  let sidePoints = [];
+  let frontLines = [];
+  let sideLines = [];
+  let frontZoom = 1;
+  let sideZoom = 1;
+  let frontSpeedFactor = 1;
+  let sideSpeedFactor = 1;
+  let dualPlayInProgress = false;
+  let frontMotionStart = 0;
+  let sideMotionStart = 0;
+  let syncIntervalId = null;
+  let firstDualPlay = true;
+  let lastMovedVideo = null;
+  let activePointer = null;
+  let pointerIsDragging = false;
+  let lastTapTime = 0;
+  let lastTapView = null;
+  let lastTapPos = null;
+
+  const STORAGE_KEY = 'gsap_logged_in';
+  const ADMIN_HASH = '3e486d3b54a67521a2e0849299b9c3e270247a6ed37c43770dc913eea5b118e8';
+
+  async function sha256(str){
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  let currentUser = null;
+  let isAdmin = false;
+  let selectedUserEmail = null;
+
+  function loadUsers(){
+    const raw = localStorage.getItem('gsap_users');
+    if(!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  function saveUsers(users){
+    localStorage.setItem('gsap_users', JSON.stringify(users));
+  }
+
+  function loadUserLogs(){
+    const raw = localStorage.getItem('gsap_user_logs');
+    if(!raw) return {};
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+
+  function saveUserLogs(logs){
+    localStorage.setItem('gsap_user_logs', JSON.stringify(logs));
+  }
+
+  function addUserLog(email, action){
+    if(!email) return;
+    const logs = loadUserLogs();
+    const now = new Date().toISOString();
+    const entry = { when: now, action };
+    logs[email] = logs[email] || [];
+    logs[email].unshift(entry);
+    saveUserLogs(logs);
+  }
+
+  function getUserLogs(email){
+    const logs = loadUserLogs();
+    return logs[email] || [];
+  }
+
+  function showUserLogs(email){
+    selectedUserEmail = email;
+    const logEl = document.getElementById('userLog');
+    if(!logEl) return;
+    logEl.innerHTML = '';
+    const logs = getUserLogs(email);
+    if(logs.length === 0){
+      const empty = document.createElement('div');
+      empty.style.color = '#999';
+      empty.textContent = '로그 기록이 없습니다.';
+      logEl.appendChild(empty);
+      return;
+    }
+    logs.slice(0, 20).forEach(entry => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.fontSize = '0.85rem';
+      row.style.padding = '2px 0';
+      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.65);">${new Date(entry.when).toLocaleString()}</span>`;
+      logEl.appendChild(row);
+    });
+  }
+
+  function setAdminMode(enabled){
+    isAdmin = !!enabled;
+    document.body.classList.toggle('admin-mode', isAdmin);
+    if(userMgmtBtn) userMgmtBtn.style.display = isAdmin ? 'block' : 'none';
+  }
+
+  function setLoggedIn(isLoggedIn){
+    if(isLoggedIn){
+      localStorage.setItem(STORAGE_KEY, '1');
+      document.body.classList.remove('login-page');
+      loginOverlay.style.display = 'none';
+      if(mainContainer) mainContainer.style.display = '';
+      if(mainControls) mainControls.style.display = '';
+      if(logoutBtn) logoutBtn.style.display = '';
+      if(loginStatus) loginStatus.textContent = '';
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+      document.body.classList.add('login-page');
+      loginOverlay.style.display = 'flex';
+      if(mainContainer) mainContainer.style.display = 'none';
+      if(mainControls) mainControls.style.display = 'none';
+      if(logoutBtn) logoutBtn.style.display = 'none';
+      if(loginStatus) loginStatus.textContent = 'Enter admin credentials to unlock.';
+      currentUser = null;
+      selectedUserEmail = null;
+      setAdminMode(false);
+    }
+  }
+
+  async function initLogin(){
+    // Always require login on page load (do not auto-unlock from storage)
+    localStorage.removeItem(STORAGE_KEY);
+    setLoggedIn(false);
+    setAdminMode(false);
+
+    if(userMgmtBtn) {
+      userMgmtBtn.addEventListener('click', () => {
+        openUserMgmt();
+      });
+    }
+
+    if(logoutBtn){
+      logoutBtn.addEventListener('click', () => {
+        setLoggedIn(false);
+        window.location.href = 'about:blank';
+      });
+    }
+
+    loginBtn.addEventListener('click', async () => {
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value.trim();
+      if(!email || !password){
+        if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
+        return;
+      }
+
+      const hash = await sha256(`${email}:${password}`);
+      if(hash === ADMIN_HASH){
+        currentUser = { email, isAdmin: true };
+        setAdminMode(true);
+        setLoggedIn(true);
+        addUserLog(email, 'admin login');
+        if(loginStatus) loginStatus.textContent = 'Admin login successful.';
+        return;
+      }
+
+      const users = loadUsers();
+      const match = users.find(u => u.hash === hash && u.email === email);
+      if(match){
+        currentUser = { email, isAdmin: false };
+        setAdminMode(false);
+        setLoggedIn(true);
+        selectedUserEmail = email;
+        addUserLog(email, 'login');
+        if(loginStatus) loginStatus.textContent = 'User login successful.';
+        return;
+      }
+
+      if(loginStatus) loginStatus.textContent = 'Invalid credentials.';
+    });
+
+    loginPassword.addEventListener('keyup', e => {
+      if(e.key === 'Enter') loginBtn.click();
+    });
+  }
+
+  function openUserMgmt(){
+    const overlay = document.getElementById('userMgmtOverlay');
+    if(!overlay) return;
+    overlay.style.display = 'flex';
+    renderUserMgmt();
+    if(selectedUserEmail) showUserLogs(selectedUserEmail);
+  }
+
+  function closeUserMgmt(){
+    const overlay = document.getElementById('userMgmtOverlay');
+    if(!overlay) return;
+    overlay.style.display = 'none';
+  }
+
+  function renderUserMgmt(){
+    const list = document.getElementById('userList');
+    const addEmail = document.getElementById('addUserEmail');
+    const addPass = document.getElementById('addUserPassword');
+    if(!list || !addEmail || !addPass) return;
+
+    const users = loadUsers();
+    list.innerHTML = '';
+    if(users.length === 0){
+      const empty = document.createElement('div');
+      empty.style.color = '#999';
+      empty.style.fontSize = '0.9rem';
+      empty.textContent = '등록된 사용자가 없습니다.';
+      list.appendChild(empty);
+    } else {
+      users.forEach(user => {
+        const row = document.createElement('div');
+        row.className = 'user-row';
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '6px 8px';
+        row.style.borderRadius = '6px';
+        row.style.cursor = 'pointer';
+        row.style.background = selectedUserEmail === user.email ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
+
+        const label = document.createElement('span');
+        label.textContent = user.email;
+        row.appendChild(label);
+
+        const buttonGroup = document.createElement('span');
+        buttonGroup.style.display = 'flex';
+        buttonGroup.style.gap = '6px';
+
+        const selectBtn = document.createElement('button');
+        selectBtn.type = 'button';
+        selectBtn.innerHTML = '✅';
+        selectBtn.title = '선택';
+        selectBtn.className = 'user-action-btn';
+        selectBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showUserLogs(user.email);
+          renderUserMgmt();
+        });
+        buttonGroup.appendChild(selectBtn);
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.innerHTML = '🗑️';
+      del.title = '삭제';
+      del.className = 'user-action-btn';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
+        if(!confirmed) return;
+        const remaining = loadUsers().filter(u => u.email !== user.email);
+        saveUsers(remaining);
+        if(selectedUserEmail === user.email){
+          selectedUserEmail = null;
+          const userLog = document.getElementById('userLog');
+          if(userLog) userLog.innerHTML = '';
+        }
+        renderUserMgmt();
+      });
+      buttonGroup.appendChild(del);
+      row.appendChild(buttonGroup);
+      list.appendChild(row);
+    });
+    }
+
+    const addBtn = document.getElementById('addUserBtn');
+    if(addBtn){
+      addBtn.onclick = async () => {
+        const email = addEmail.value.trim();
+        const password = addPass.value.trim();
+        if(!email || !password){
+          if(loginStatus) loginStatus.textContent = 'Email과 비밀번호를 모두 입력하세요.';
+          return;
+        }
+        const hash = await sha256(`${email}:${password}`);
+        const users = loadUsers();
+        if(users.find(u => u.email === email)){
+          if(loginStatus) loginStatus.textContent = '이미 등록된 사용자입니다.';
+          return;
+        }
+        users.push({ email, hash });
+        saveUsers(users);
+        addEmail.value = '';
+        addPass.value = '';
+        if(loginStatus) loginStatus.textContent = '사용자가 추가되었습니다.';
+        renderUserMgmt();
+        showUserLogs(email);
+      };
+    }
+  }
+
+  initLogin();
+
+  function applyVideoZoom(videoElem, zoom){
+    const baseTransform = `translate(-50%, -50%) scale(${zoom})`;
+    videoElem.style.transform = baseTransform;
+  }
+
+  function applyPlaybackRates(){
+    const baseRate = parseFloat(playbackRateInput.value);
+    const safeBaseRate = Number.isFinite(baseRate) && baseRate > 0 ? baseRate : 1;
+    frontVideo.playbackRate = safeBaseRate * frontSpeedFactor;
+    sideVideo.playbackRate = safeBaseRate * sideSpeedFactor;
+  }
+
+  function updateSelectionButtons(){
+    if(!selectFrontBtn || !selectSideBtn || !selectBothBtn) return;
+    selectFrontBtn.disabled = !frontVideo.src;
+    selectSideBtn.disabled = !sideVideo.src;
+    selectBothBtn.disabled = !(frontVideo.src || sideVideo.src);
+    selectFrontBtn.classList.toggle('active', selectedView === 'front');
+    selectSideBtn.classList.toggle('active', selectedView === 'side');
+    selectBothBtn.classList.toggle('active', selectedView === null);
+  }
+
+  function setSelectedView(view){
+    selectedView = selectedView === view ? null : view;
+    const isFront = selectedView === 'front';
+    const isSide = selectedView === 'side';
+
+    frontWrapper.classList.toggle('selected', isFront);
+    sideWrapper.classList.toggle('selected', isSide);
+    frontWrapper.classList.toggle('hidden', isSide);
+    sideWrapper.classList.toggle('hidden', isFront);
+
+    // Reset zoom to keep original size when a single view is selected
+    if(isFront){
+      setFrontZoom(1);
+    }
+    if(isSide){
+      setSideZoom(1);
+    }
+
+    const frontZoomControls = frontZoomRange.closest('.zoom-controls');
+    const sideZoomControls = sideZoomRange.closest('.zoom-controls');
+    if(frontZoomControls) frontZoomControls.style.display = isSide ? 'none' : '';
+    if(sideZoomControls) sideZoomControls.style.display = isFront ? 'none' : '';
+
+    // Disable zoom while in selection mode so the view stays at original ratio
+    const isSelectionActive = selectedView !== null;
+    frontZoomRange.disabled = isSelectionActive;
+    sideZoomRange.disabled = isSelectionActive;
+
+    updateSelectionButtons();
+    resizeVideosAndCanvases();
+  }
+
+  async function detectMotionStart(video, canvas, ctx) {
+    const frames = 30;
+    const duration = video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return 0;
+    const sampleDuration = Math.min(3, duration); // sample first 3 seconds
+    const interval = sampleDuration / frames;
+    let prevData = null;
+    let startTime = 0;
+    const threshold = 1000000; // pixel difference threshold, adjustable
+    for (let i = 0; i < frames; i++) {
+      const time = i * interval;
+      video.currentTime = time;
+      await new Promise(resolve => {
+        const handler = () => {
+          video.removeEventListener('seeked', handler);
+          resolve();
+        };
+        video.addEventListener('seeked', handler);
+      });
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      if (prevData) {
+        let diff = 0;
+        for (let j = 0; j < data.length; j += 4) {
+          diff += Math.abs(data[j] - prevData[j]) + Math.abs(data[j+1] - prevData[j+1]) + Math.abs(data[j+2] - prevData[j+2]);
+        }
+        if (diff > threshold) {
+          startTime = time;
+          break;
+        }
+      }
+      prevData = new Uint8ClampedArray(data);
+    }
+    return startTime;
+  }
+
+  function ensureVideoReady(video){
+    if(video.readyState >= 2){
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const onReady = () => {
+        video.removeEventListener('loadeddata', onReady);
+        video.removeEventListener('canplay', onReady);
+        resolve();
+      };
+      video.addEventListener('loadeddata', onReady, { once: true });
+      video.addEventListener('canplay', onReady, { once: true });
+    });
+  }
+
+  function seekVideoTo(video, time){
+    if(!Number.isFinite(time)){
+      return Promise.resolve();
+    }
+    if(Math.abs(video.currentTime - time) < 0.01){
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+      video.addEventListener('seeked', onSeeked, { once: true });
+      video.currentTime = time;
+    });
+  }
+
+  function updateStatus(){
+    const parts = [];
+    const baseRate = parseFloat(playbackRateInput.value);
+    const safeBaseRate = Number.isFinite(baseRate) && baseRate > 0 ? baseRate : 1;
+    if(isFinite(frontVideo.duration) && frontVideo.duration > 0){
+      const aRate = (safeBaseRate * frontSpeedFactor).toFixed(2);
+      parts.push(`A ${frontVideo.duration.toFixed(2)}s @${aRate}x`);
+    }
+    if(isFinite(sideVideo.duration) && sideVideo.duration > 0){
+      const bRate = (safeBaseRate * sideSpeedFactor).toFixed(2);
+      parts.push(`B ${sideVideo.duration.toFixed(2)}s @${bRate}x`);
+    }
+    statusSpan.textContent = parts.join(' | ');
+  }
+
+  function syncCanvasSize(canvas){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(Math.round(rect.width * dpr), 1);
+    const height = Math.max(Math.round(rect.height * dpr), 1);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+  }
+
+  function getVideoMetrics(video, boxWidth, boxHeight, zoom=1){
+    const defaultAspect = 16 / 9;
+    const videoAspect = (video.videoWidth && video.videoHeight)
+      ? video.videoWidth / video.videoHeight
+      : defaultAspect;
+    const boxAspect = boxWidth / boxHeight;
+    let drawWidth = boxWidth;
+    let drawHeight = boxHeight;
+    if (videoAspect > boxAspect) {
+      drawWidth = boxWidth;
+      drawHeight = boxWidth / videoAspect;
+    } else {
+      drawHeight = boxHeight;
+      drawWidth = boxHeight * videoAspect;
+    }
+
+    const zoomedWidth = drawWidth * zoom;
+    const zoomedHeight = drawHeight * zoom;
+    const offsetX = (boxWidth - zoomedWidth) / 2;
+    const offsetY = (boxHeight - zoomedHeight) / 2;
+
+    return { offsetX, offsetY, drawWidth: zoomedWidth, drawHeight: zoomedHeight };
+  }
+
+  function drawOverlay(ctx, points, lines, canvas, video, zoom=1, previewLine=null){
+    syncCanvasSize(canvas);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width > 0 ? canvas.width / rect.width : 1;
+    const radius = 6 * scale;
+    const lineWidth = 2 * scale;
+
+    ctx.fillStyle = 'yellow';
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = lineWidth;
+
+    points.forEach(p => {
+      const x = metrics.offsetX + p.x * metrics.drawWidth;
+      const y = metrics.offsetY + p.y * metrics.drawHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    lines.forEach(line => {
+      const startX = metrics.offsetX + line.start.x * metrics.drawWidth;
+      const startY = metrics.offsetY + line.start.y * metrics.drawHeight;
+      const endX = metrics.offsetX + line.end.x * metrics.drawWidth;
+      const endY = metrics.offsetY + line.end.y * metrics.drawHeight;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    });
+
+    if(previewLine){
+      ctx.save();
+      ctx.strokeStyle = 'cyan';
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash([6 * scale, 4 * scale]);
+      const startX = metrics.offsetX + previewLine.start.x * metrics.drawWidth;
+      const startY = metrics.offsetY + previewLine.start.y * metrics.drawHeight;
+      const endX = metrics.offsetX + previewLine.end.x * metrics.drawWidth;
+      const endY = metrics.offsetY + previewLine.end.y * metrics.drawHeight;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawPointsOnFrame(ctx, points, width, height){
+    ctx.save();
+    ctx.fillStyle = 'yellow';
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+
+    points.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x * width, p.y * height, 6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.restore();
+  }
+
+  function drawLinesOnFrame(ctx, lines, width, height){
+    ctx.save();
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+
+    lines.forEach(line => {
+      ctx.beginPath();
+      ctx.moveTo(line.start.x * width, line.start.y * height);
+      ctx.lineTo(line.end.x * width, line.end.y * height);
+      ctx.stroke();
+    });
+
+    ctx.restore();
+  }
+
+  function resizeVideosAndCanvases(){
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+  }
+  window.addEventListener('resize', resizeVideosAndCanvases);
+
+  function getNormalizedCoords(event, canvas, video, zoom){
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    if(event.touches && event.touches.length > 0){
+      clientX = event.touches[0].clientX;
+      clientY = event.touches[0].clientY;
+    } else {
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    const metrics = getVideoMetrics(video, rect.width, rect.height, zoom);
+    if (metrics.drawWidth <= 0 || metrics.drawHeight <= 0) {
+      return null;
+    }
+
+    const x = (clientX - rect.left - metrics.offsetX) / metrics.drawWidth;
+    const y = (clientY - rect.top - metrics.offsetY) / metrics.drawHeight;
+
+    if (x < 0 || x > 1 || y < 0 || y > 1) {
+      return null;
+    }
+
+    return { x, y };
+  }
+
+  function deletePoint(points, lines, pos, ctx, canvas, video, zoom, threshold=0.03){
+    // First attempt to remove a selected line
+    for(let i=0; i<lines.length; i++){
+      const { start, end } = lines[i];
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const len2 = dx*dx + dy*dy;
+      let dist2;
+      if(len2 === 0){
+        const px = pos.x - start.x;
+        const py = pos.y - start.y;
+        dist2 = px*px + py*py;
+      } else {
+        const t = ((pos.x - start.x) * dx + (pos.y - start.y) * dy) / len2;
+        if(t <= 0){
+          const px = pos.x - start.x;
+          const py = pos.y - start.y;
+          dist2 = px*px + py*py;
+        } else if(t >= 1){
+          const px = pos.x - end.x;
+          const py = pos.y - end.y;
+          dist2 = px*px + py*py;
+        } else {
+          const projx = start.x + t * dx;
+          const projy = start.y + t * dy;
+          const px = pos.x - projx;
+          const py = pos.y - projy;
+          dist2 = px*px + py*py;
+        }
+      }
+      if(dist2 < threshold*threshold){
+        lines.splice(i, 1);
+        drawOverlay(ctx, points, lines, canvas, video, zoom);
+        return true;
+      }
+    }
+
+    // Remove selected point (not line)
+    for(let i=0; i<points.length; i++){
+      const dx = points[i].x - pos.x;
+      const dy = points[i].y - pos.y;
+      if(dx*dx + dy*dy < threshold*threshold){
+        points.splice(i,1);
+        drawOverlay(ctx, points, lines, canvas, video, zoom);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function addPoint(points, lines, pos, ctx, canvas, video, zoom){
+    points.push(pos); // add without count limit
+    drawOverlay(ctx, points, lines, canvas, video, zoom);
+  }
+
+  function onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter){
+    event.preventDefault();
+    const zoom = zoomGetter();
+    const pos = getNormalizedCoords(event, canvas, video, zoom);
+    if(!pos) return;
+    if(deletePoint(points, lines, pos, ctx, canvas, video, zoom)) return;
+    addPoint(points, lines, pos, ctx, canvas, video, zoom);
+  }
+
+  function startPointer(event, points, lines, ctx, canvas, video, zoomGetter, view){
+    event.preventDefault();
+    const zoom = zoomGetter();
+    const pos = getNormalizedCoords(event, canvas, video, zoom);
+    if(!pos) return;
+    activePointer = { points, lines, ctx, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
+    pointerIsDragging = false;
+    canvas.setPointerCapture(event.pointerId);
+  }
+
+  function movePointer(event){
+    if(!activePointer) return;
+    const { canvas, video, zoomGetter, startPos, ctx, points, lines } = activePointer;
+    const zoom = zoomGetter();
+    const pos = getNormalizedCoords(event, canvas, video, zoom);
+    if(!pos) return;
+    const dx = pos.x - startPos.x;
+    const dy = pos.y - startPos.y;
+    const dist = Math.hypot(dx, dy);
+    if(dist > 0.01){
+      pointerIsDragging = true;
+      activePointer.currentPos = pos;
+      drawOverlay(ctx, points, lines, canvas, video, zoom, { start: startPos, end: pos });
+    }
+  }
+
+  function endPointer(event){
+    if(!activePointer) return;
+    const { points, lines, ctx, canvas, video, zoomGetter, view, startPos, currentPos } = activePointer;
+    const zoom = zoomGetter();
+    const pos = getNormalizedCoords(event, canvas, video, zoom);
+    const endPos = (pos && pointerIsDragging) ? pos : currentPos;
+    const dx = endPos.x - startPos.x;
+    const dy = endPos.y - startPos.y;
+    const dist = Math.hypot(dx, dy);
+
+    const isTap = !pointerIsDragging || dist <= 0.01;
+    const now = performance.now();
+    const wasDoubleTap = isTap &&
+      lastTapView === view &&
+      now - lastTapTime < 350 &&
+      lastTapPos &&
+      Math.hypot(endPos.x - lastTapPos.x, endPos.y - lastTapPos.y) < 0.03;
+
+    if(pointerIsDragging && dist > 0.01){
+      lines.push({ start: startPos, end: endPos });
+      drawOverlay(ctx, points, lines, canvas, video, zoom);
+    } else if(wasDoubleTap){
+      setSelectedView(view);
+      lastTapTime = 0;
+      lastTapView = null;
+      lastTapPos = null;
+    } else if(isTap){
+      lastTapTime = now;
+      lastTapView = view;
+      lastTapPos = endPos;
+      onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter);
+    }
+
+    activePointer = null;
+    pointerIsDragging = false;
+    if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+  }
+
+  frontCanvas.addEventListener('pointerdown', e => startPointer(e, frontPoints, frontLines, frontCtx, frontCanvas, frontVideo, () => frontZoom, 'front'));
+  frontCanvas.addEventListener('pointermove', movePointer);
+  frontCanvas.addEventListener('pointerup', endPointer);
+  frontCanvas.addEventListener('pointercancel', endPointer);
+  frontCanvas.addEventListener('pointerleave', endPointer);
+
+  sideCanvas.addEventListener('pointerdown', e => startPointer(e, sidePoints, sideLines, sideCtx, sideCanvas, sideVideo, () => sideZoom, 'side'));
+  sideCanvas.addEventListener('pointermove', movePointer);
+  sideCanvas.addEventListener('pointerup', endPointer);
+  sideCanvas.addEventListener('pointercancel', endPointer);
+  sideCanvas.addEventListener('pointerleave', endPointer);
+
+  function checkButtonsEnabled(){
+    playPauseBothBtn.disabled = !(frontVideo.src && sideVideo.src);
+    frontPlayBtn.disabled = !frontVideo.src;
+    sidePlayBtn.disabled = !sideVideo.src;
+    frontSlider.disabled = !frontVideo.src;
+    sideSlider.disabled = !sideVideo.src;
+    saveFrameBtn.disabled = !(frontVideo.src || sideVideo.src);
+    frontPrevFrameBtn.disabled = !frontVideo.src;
+    frontNextFrameBtn.disabled = !frontVideo.src;
+    sidePrevFrameBtn.disabled = !sideVideo.src;
+    sideNextFrameBtn.disabled = !sideVideo.src;
+    const selectionActive = selectedView !== null;
+    frontZoomRange.disabled = selectionActive || !frontVideo.src;
+    sideZoomRange.disabled = selectionActive || !sideVideo.src;
+    frontSpeedRange.disabled = !frontVideo.src;
+    sideSpeedRange.disabled = !sideVideo.src;
+    if(playPauseBothBtn.disabled){
+      updateDualPlayButtonLabel(false);
+    }
+    updateSelectionButtons();
+  }
+
+  function loadVideo(videoElem, file){
+    videoElem.src = URL.createObjectURL(file);
+    applyPlaybackRates();
+  }
+
+  function setFileName(spanId, file){
+    document.getElementById(spanId).textContent = file ? file.name : '';
+  }
+
+  async function handleFrontVideoFile(file){
+    setFileName('frontFileName', file);
+    if(!file) return;
+    loadVideo(frontVideo, file);
+    frontPoints = [];
+    frontLines = [];
+    frontZoom = 1;
+    frontZoomRange.value = frontZoom;
+    frontSpeedFactor = 1;
+    frontSpeedRange.value = frontSpeedFactor;
+    applyVideoZoom(frontVideo, frontZoom);
+    applyPlaybackRates();
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    pauseBothVideos();
+    firstDualPlay = true;
+    setSelectedView(null);
+    checkButtonsEnabled();
+    updateStatus();
+    // detect motion start
+    frontMotionStart = await detectMotionStart(frontVideo, frontCanvas, frontCtx);
+  }
+
+  async function handleSideVideoFile(file){
+    setFileName('sideFileName', file);
+    if(!file) return;
+    loadVideo(sideVideo, file);
+    sidePoints = [];
+    sideLines = [];
+    sideZoom = 1;
+    sideZoomRange.value = sideZoom;
+    sideSpeedFactor = 1;
+    sideSpeedRange.value = sideSpeedFactor;
+    applyVideoZoom(sideVideo, sideZoom);
+    applyPlaybackRates();
+    drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+    pauseBothVideos();
+    firstDualPlay = true;
+    setSelectedView(null);
+    checkButtonsEnabled();
+    updateStatus();
+    // detect motion start
+    sideMotionStart = await detectMotionStart(sideVideo, sideCanvas, sideCtx);
+  }
+
+  frontFileInput.addEventListener('change', async (e) => {
+    await handleFrontVideoFile(e.target.files[0]);
+  });
+  frontCameraInput.addEventListener('change', async (e) => {
+    await handleFrontVideoFile(e.target.files[0]);
+  });
+  sideFileInput.addEventListener('change', async (e) => {
+    await handleSideVideoFile(e.target.files[0]);
+  });
+  sideCameraInput.addEventListener('change', async (e) => {
+    await handleSideVideoFile(e.target.files[0]);
+  });
+
+  frontFileBtn.addEventListener('click', () => frontFileInput.click());
+  frontCameraBtn.addEventListener('click', () => frontCameraInput.click());
+  sideFileBtn.addEventListener('click', () => sideFileInput.click());
+  sideCameraBtn.addEventListener('click', () => sideCameraInput.click());
+
+  frontVideo.addEventListener('loadedmetadata', () => {
+    resizeVideosAndCanvases();
+    frontSlider.max = frontVideo.duration;
+    frontSlider.value = 0;
+    applyVideoZoom(frontVideo, frontZoom);
+    updateStatus();
+  });
+  sideVideo.addEventListener('loadedmetadata', () => {
+    resizeVideosAndCanvases();
+    sideSlider.max = sideVideo.duration;
+    sideSlider.value = 0;
+    applyVideoZoom(sideVideo, sideZoom);
+    updateStatus();
+  });
+
+  frontPlayBtn.addEventListener('click', () => {
+    if(frontVideo.paused){ frontVideo.play(); } else { frontVideo.pause(); }
+  });
+  sidePlayBtn.addEventListener('click', () => {
+    if(sideVideo.paused){ sideVideo.play(); } else { sideVideo.pause(); }
+  });
+
+  frontPrevFrameBtn.addEventListener('click', () => {
+    frontVideo.pause();
+    frontVideo.currentTime = Math.max(0, frontVideo.currentTime - (1/30));
+  });
+  frontNextFrameBtn.addEventListener('click', () => {
+    frontVideo.pause();
+    frontVideo.currentTime = Math.min(frontVideo.duration, frontVideo.currentTime + (1/30));
+  });
+  sidePrevFrameBtn.addEventListener('click', () => {
+    sideVideo.pause();
+    sideVideo.currentTime = Math.max(0, sideVideo.currentTime - (1/30));
+  });
+  sideNextFrameBtn.addEventListener('click', () => {
+    sideVideo.pause();
+    sideVideo.currentTime = Math.min(sideVideo.duration, sideVideo.currentTime + (1/30));
+  });
+
+  playbackRateInput.addEventListener('input', () => {
+    applyPlaybackRates();
+    updateStatus();
+  });
+
+  frontSlider.addEventListener('input', () => { frontVideo.currentTime = frontSlider.value; lastMovedVideo = 'front'; });
+  sideSlider.addEventListener('input', () => { sideVideo.currentTime = sideSlider.value; lastMovedVideo = 'side'; });
+
+  function setFrontZoom(value){
+    const zoom = Math.min(Math.max(value, 0.2), 4);
+    frontZoom = zoom;
+    frontZoomRange.value = zoom;
+    applyVideoZoom(frontVideo, zoom);
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, zoom);
+  }
+
+  function setSideZoom(value){
+    const zoom = Math.min(Math.max(value, 0.2), 4);
+    sideZoom = zoom;
+    sideZoomRange.value = zoom;
+    applyVideoZoom(sideVideo, zoom);
+    drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, zoom);
+  }
+
+  frontZoomRange.addEventListener('input', () => {
+    setFrontZoom(parseFloat(frontZoomRange.value));
+  });
+
+  sideZoomRange.addEventListener('input', () => {
+    setSideZoom(parseFloat(sideZoomRange.value));
+  });
+
+  const frontZoomIn = document.getElementById('frontZoomIn');
+  const frontZoomOut = document.getElementById('frontZoomOut');
+  const sideZoomIn = document.getElementById('sideZoomIn');
+  const sideZoomOut = document.getElementById('sideZoomOut');
+
+  if(frontZoomIn) frontZoomIn.addEventListener('click', () => setFrontZoom(frontZoom * 1.12));
+  if(frontZoomOut) frontZoomOut.addEventListener('click', () => setFrontZoom(frontZoom * 0.88));
+  if(sideZoomIn) sideZoomIn.addEventListener('click', () => setSideZoom(sideZoom * 1.12));
+  if(sideZoomOut) sideZoomOut.addEventListener('click', () => setSideZoom(sideZoom * 0.88));
+
+  if(selectFrontBtn){
+    selectFrontBtn.addEventListener('click', () => setSelectedView('front'));
+  }
+  if(selectSideBtn){
+    selectSideBtn.addEventListener('click', () => setSelectedView('side'));
+  }
+  if(selectBothBtn){
+    selectBothBtn.addEventListener('click', () => setSelectedView(null));
+  }
+
+  frontCanvas.addEventListener('wheel', e => {
+    if(selectedView) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.88;
+    setFrontZoom(frontZoom * factor);
+  });
+
+  sideCanvas.addEventListener('wheel', e => {
+    if(selectedView) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.88;
+    setSideZoom(sideZoom * factor);
+  });
+
+  frontSpeedRange.addEventListener('input', () => {
+    frontSpeedFactor = parseFloat(frontSpeedRange.value);
+    applyPlaybackRates();
+    updateStatus();
+  });
+
+  sideSpeedRange.addEventListener('input', () => {
+    sideSpeedFactor = parseFloat(sideSpeedRange.value);
+    applyPlaybackRates();
+    updateStatus();
+  });
+
+  function syncSliders() {
+    if(!frontSlider.disabled && !frontSlider.matches(':active')){
+      frontSlider.value = frontVideo.currentTime;
+    }
+    if(!sideSlider.disabled && !sideSlider.matches(':active')){
+      sideSlider.value = sideVideo.currentTime;
+    }
+    requestAnimationFrame(syncSliders);
+  }
+  function updateDualPlayButtonLabel(isPlaying){
+    playPauseBothBtn.textContent = isPlaying ? "⏸" : "▶";
+    playPauseBothBtn.title = isPlaying ? "Pause both" : "Play both";
+  }
+
+  function synchronizeCurrentTime(){
+    const frontTime = frontVideo.currentTime;
+    const sideTime = sideVideo.currentTime;
+    if(!isFinite(frontTime) || !isFinite(sideTime)) return;
+    const delta = frontTime - sideTime;
+    const threshold = 0.5; // allow 0.5s difference
+    const baseRate = parseFloat(playbackRateInput.value);
+    const safeBaseRate = Number.isFinite(baseRate) && baseRate > 0 ? baseRate : 1;
+    if(Math.abs(delta) > threshold){
+      if(delta > 0){
+        // if front is ahead, slow front and speed up side
+        frontVideo.playbackRate = safeBaseRate * frontSpeedFactor * 0.8;
+        sideVideo.playbackRate = safeBaseRate * sideSpeedFactor * 1.2;
+      } else {
+        frontVideo.playbackRate = safeBaseRate * frontSpeedFactor * 1.2;
+        sideVideo.playbackRate = safeBaseRate * sideSpeedFactor * 0.8;
+      }
+    } else {
+      // If difference is small, reset to normal speed
+      frontVideo.playbackRate = safeBaseRate * frontSpeedFactor;
+      sideVideo.playbackRate = safeBaseRate * sideSpeedFactor;
+    }
+  }
+
+  async function playBothVideos(){
+    if(dualPlayInProgress){
+      return;
+    }
+    dualPlayInProgress = true;
+    frontVideo.pause();
+    sideVideo.pause();
+    applyPlaybackRates();
+
+    try {
+      await Promise.all([ensureVideoReady(frontVideo), ensureVideoReady(sideVideo)]);
+      if(firstDualPlay){
+        await Promise.all([seekVideoTo(frontVideo, frontMotionStart), seekVideoTo(sideVideo, sideMotionStart)]);
+        firstDualPlay = false;
+      }
+      // On subsequent play, resume from current position without seeking
+      lastMovedVideo = null;
+
+      const playPromises = [frontVideo, sideVideo].map(video => {
+        try {
+          const result = video.play();
+          if(result && typeof result.then === 'function'){
+            return result.catch(() => {});
+          }
+          return Promise.resolve();
+        } catch (err) {
+          return Promise.resolve();
+        }
+      });
+
+      await Promise.allSettled(playPromises);
+      if(syncIntervalId) clearInterval(syncIntervalId);
+      syncIntervalId = setInterval(synchronizeCurrentTime, 100);
+    } finally {
+      const bothPlaying = !frontVideo.paused && !sideVideo.paused;
+      updateDualPlayButtonLabel(bothPlaying);
+      dualPlayInProgress = false;
+    }
+  }
+
+  function pauseBothVideos(){
+    if(!frontVideo.paused){ frontVideo.pause(); }
+    if(!sideVideo.paused){ sideVideo.pause(); }
+    dualPlayInProgress = false;
+    updateDualPlayButtonLabel(false);
+    applyPlaybackRates(); // reset playback rate
+    if(syncIntervalId){
+      clearInterval(syncIntervalId);
+      syncIntervalId = null;
+    }
+  }
+
+  function toggleDualPlayback(){
+    if(!frontVideo.src || !sideVideo.src) return;
+    const shouldPlay = frontVideo.paused || sideVideo.paused;
+    if(shouldPlay){
+      playBothVideos();
+    } else {
+      pauseBothVideos();
+    }
+  }
+
+  applyVideoZoom(frontVideo, frontZoom);
+  applyVideoZoom(sideVideo, sideZoom);
+  applyPlaybackRates();
+  resizeVideosAndCanvases();
+  syncSliders();
+  updateStatus();
+  updateDualPlayButtonLabel(false);
+  updateSelectionButtons();
+
+  playPauseBothBtn.addEventListener('click', toggleDualPlayback);
+
+  frontVideo.addEventListener('play', () => {
+    if(!sideVideo.paused){
+      updateDualPlayButtonLabel(true);
+    }
+  });
+  sideVideo.addEventListener('play', () => {
+    if(!frontVideo.paused){
+      updateDualPlayButtonLabel(true);
+    }
+  });
+
+  frontVideo.addEventListener('pause', () => {
+    if(sideVideo.paused){
+      updateDualPlayButtonLabel(false);
+    }
+  });
+  sideVideo.addEventListener('pause', () => {
+    if(frontVideo.paused){
+      updateDualPlayButtonLabel(false);
+    }
+  });
+
+  frontVideo.addEventListener('ended', () => {
+    pauseBothVideos();
+  });
+  sideVideo.addEventListener('ended', () => {
+    pauseBothVideos();
+  });
+
+  clearPointsBtn.addEventListener('click', () => {
+    frontPoints = [];
+    sidePoints = [];
+    frontLines = [];
+    sideLines = [];
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+  });
+
+  saveFrameBtn.addEventListener('click', () => {
+    if(!frontVideo.paused || !sideVideo.paused){
+      alert("Pause the video(s) before saving.");
+      return;
+    }
+    if(frontPoints.length === 0 && sidePoints.length === 0 && frontLines.length === 0 && sideLines.length === 0){
+      alert("Cannot save without any points or lines.");
+      return;
+    }
+
+    // When in AB mode (selectedView === null), include any loaded videos.
+    const includeFront = selectedView === 'front' || (selectedView === null && !!frontVideo.src);
+    const includeSide = selectedView === 'side' || (selectedView === null && !!sideVideo.src);
+
+    if(selectedView === 'front' && !frontVideo.src){
+      alert("Front video is not loaded.");
+      return;
+    }
+    if(selectedView === 'side' && !sideVideo.src){
+      alert("Side video is not loaded.");
+      return;
+    }
+
+    const gap = (includeFront && includeSide) ? 10 : 0;
+    const frontZoomedWidth = (frontVideo.videoWidth || 640) * frontZoom;
+    const frontZoomedHeight = (frontVideo.videoHeight || 360) * frontZoom;
+    const sideZoomedWidth = (sideVideo.videoWidth || 640) * sideZoom;
+    const sideZoomedHeight = (sideVideo.videoHeight || 360) * sideZoom;
+
+    let width = 0;
+    let height = 0;
+    if(includeFront && includeSide){
+      width = frontZoomedWidth + gap + sideZoomedWidth;
+      height = Math.max(frontZoomedHeight, sideZoomedHeight);
+    } else if(includeFront){
+      width = frontZoomedWidth;
+      height = frontZoomedHeight;
+    } else if(includeSide){
+      width = sideZoomedWidth;
+      height = sideZoomedHeight;
+    } else {
+      alert("No view selected to save.");
+      return;
+    }
+
+    const panoramaCanvas = document.createElement('canvas');
+    panoramaCanvas.width = width;
+    panoramaCanvas.height = height;
+    const pCtx = panoramaCanvas.getContext('2d');
+
+    if(includeFront){
+      pCtx.drawImage(frontVideo, 0, 0, frontZoomedWidth, frontZoomedHeight);
+      drawPointsOnFrame(pCtx, frontPoints, frontZoomedWidth, frontZoomedHeight);
+      drawLinesOnFrame(pCtx, frontLines, frontZoomedWidth, frontZoomedHeight);
+    }
+
+    if(includeSide){
+      const offsetX = includeFront ? frontZoomedWidth + gap : 0;
+      pCtx.save();
+      pCtx.translate(offsetX, 0);
+      pCtx.drawImage(sideVideo, 0, 0, sideZoomedWidth, sideZoomedHeight);
+      drawPointsOnFrame(pCtx, sidePoints, sideZoomedWidth, sideZoomedHeight);
+      drawLinesOnFrame(pCtx, sideLines, sideZoomedWidth, sideZoomedHeight);
+      pCtx.restore();
+    }
+
+    panoramaCanvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `swing_frame_capture_${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+  });
+</script>
+
+</body>
+</html>
