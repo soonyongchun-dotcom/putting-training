@@ -671,6 +671,16 @@
     localStorage.setItem('gsap_users', JSON.stringify(users));
   }
 
+  async function getUsers(){
+    // Prefer Supabase if available so different devices share the same user list
+    const supa = await supabaseLoadUsers();
+    if(Array.isArray(supa) && supa.length > 0){
+      saveUsers(supa);
+      return supa;
+    }
+    return loadUsers();
+  }
+
   // Supabase helpers for cross-device sync
   async function supabaseLoadUsers(){
     try {
@@ -856,7 +866,7 @@
         return;
       }
 
-      const users = loadUsers();
+      const users = await getUsers();
       const match = users.find(u => u.hash === hash && (u.id === id || u.email === id));
       if(match){
         currentUser = { id, isAdmin: false };
