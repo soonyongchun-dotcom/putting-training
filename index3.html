@@ -873,15 +873,17 @@
       try{
         const {error}=await sb.from('sytpt_users').select('performance_level').limit(1);
         if(error){
-        console.warn('performance column check error', error);
-        hasPerformanceColumn=false;
-        window.hasPerformanceColumn = false;
+          console.warn('performance column check error', error);
+          hasPerformanceColumn=false;
+          window.hasPerformanceColumn = false;
 
-        const errMsg = (error.message || String(error) || '').slice(0, 250);
-        if(error.code==='PGRST204' && errMsg.includes('performance_level')){
-          alert('경고: 데이터베이스에 performance_level 칼럼이 없습니다. 코치 기능이 제한됩니다.');
-        } else {
-          alert('경고: 데이터베이스에 접근할 수 없습니다.\n' + errMsg + '\n(이 문제는 Supabase 쿼터/접근 제한 또는 네트워크 오류로 인해 발생할 수 있습니다.)');
+          const errMsg = (error.message || String(error) || '').slice(0, 250);
+          if(error.code==='PGRST204' && errMsg.includes('performance_level')){
+            alert('경고: 데이터베이스에 performance_level 칼럼이 없습니다. 코치 기능이 제한됩니다.');
+          } else {
+            alert('경고: 데이터베이스에 접근할 수 없습니다.\n' + errMsg + '\n(이 문제는 Supabase 쿼터/접근 제한 또는 네트워크 오류로 인해 발생할 수 있습니다.)');
+          }
+          return false;
         }
       }catch(e){
         console.warn('error checking performance column',e);
