@@ -109,6 +109,27 @@
     .kpi .value{font-size:20px;font-weight:700;margin-top:4px}
     .mission-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
     .chip{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--chip);font-size:12px;color:#3730a3}
+    /* self-eval mood/stamina options styled as chips */
+    #selfEvalMindContainer label,
+    #selfEvalStaminaContainer label {
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--chip);
+      margin:3px 4px 3px 0;
+      cursor:pointer;
+      font-size:13px;
+    }
+    #selfEvalMindContainer label input,
+    #selfEvalStaminaContainer label input {
+      margin-right:6px;
+    }
+    #selfEvalMindContainer label input,
+    #selfEvalStaminaContainer label input {
+      /* keep default checkbox appearance */
+    }
     .muted{color:var(--sub);font-size:13px}
     .btn{border:none;background:var(--blue);color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
     .btn-green{background:var(--green)}
@@ -420,10 +441,7 @@
       </div>
 
       <div class="card player-block tone-mint" style="margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <h3 style="margin:0">시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</h3>
-          <button class="btn" type="button" onclick="window.location.href='https://soonyongchun-dotcom.github.io/putting-training/index1.html'">오늘경기데이터 입력</button>
-        </div>
+        <h3 style="margin:0 0 8px">시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</h3>
         <div id="phaseBoard" class="phase-board"></div>
       </div>
 
@@ -683,29 +701,7 @@
   <script>
     // ====== Supabase 초기화 ======
     const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
-    // ⚠️ 중요: Supabase 키는 공개 저장소/웹에 그대로 노출하면 안 됩니다.
-    // 현재는 Publishable Key를 사용하고 있으며, 반드시 RLS(Row Level Security)를 활성화한 후 사용해야 합니다.
-    // (서비스 역할 키(service_role)는 절대 클라이언트에 노출되지 않아야 합니다.)
-    const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
-
-    function isServiceRoleKey(key){
-      // Supabase 비밀 키는 절대 클라이언트에 두면 안 됩니다.
-      // publishable key는 `sb_publishable_...` 형태, 서비스 키/비밀 키는 `sb_service_...` / `sb_secret_...` 형태로 시작합니다.
-      if(!key || typeof key !== 'string') return false;
-      return (
-        key.startsWith('sb_service_') ||
-        key.startsWith('sb_secret_') ||
-        key.length > 80 ||
-        key.startsWith('eyJ')
-      );
-    }
-
-    if(isServiceRoleKey(SUPABASE_KEY)){
-      console.error('Supabase 서비스 역할 키가 클라이언트에 노출되어 있습니다. 즉시 키를 교체하고, 클라이언트에는 anon 키만 사용하세요.');
-      alert('보안 경고: Supabase 서비스 역할 키가 클라이언트에 노출되어 있습니다. 관리자에게 문의하세요.');
-      throw new Error('Supabase service role key is not allowed in the browser');
-    }
-
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZG1pdmpxZ3hkeWN1cGRieXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDk0NzIsImV4cCI6MjA4Nzk4NTQ3Mn0.T0XSwNNMmEd2xRASv16Dg0N58KlWJ4mYLP0pTvhB-60';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ====== 디바이스 전용 (localStorage) ======
@@ -715,10 +711,31 @@
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
+let hasPerformanceColumn = true; // will be checked at startup
+let hasCoachReadColumn = null; // will be checked at startup (null = unknown)
+let coachReadSchemaCheck = null; // promise for schema check
+let lastPerformanceEdit = null; // cache recent successful edit
+    // run checks immediately (fire-and-forget)
+    verifyPerformanceColumn().catch(()=>{});
+    coachReadSchemaCheck = verifyCoachReadColumn();
+
+    async function verifyCoachReadColumn(){
+      try{
+        const {error}=await sb.from('sytpt_messages').select('coach_read').limit(1);
+        if(error){
+          console.warn('coach_read column missing', error);
+          hasCoachReadColumn=false;
+        } else {
+          hasCoachReadColumn=true;
+        }
+      }catch(e){
+        console.warn('error checking coach_read column', e);
+        hasCoachReadColumn=false;
+      }
+    }
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
-      `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
 
     // ─── 시간 포맷 ───
     function formatTime(isoStr){
@@ -774,8 +791,7 @@
     }
     function fromDbDirective(r){
       return { directiveId:r.directive_id, playerId:r.player_id, text:r.text,
-               time:r.time, createdAt:r.created_at,
-               replies:r.replies||[],
+               time:r.time, createdAt:r.created_at, replies:r.replies||[],
                coachId:r.coach_id, attachments:r.attachments||[] };
     }
     function fromDbSelfEval(r){
@@ -795,17 +811,52 @@
       if(error) console.error('getUsers',error);
       return (data||[]).map(fromDbUser);
     }
+    // column check helper
+    async function verifyPerformanceColumn(){
+      try{
+        const {error}=await sb.from('sytpt_users').select('performance_level').limit(1);
+        if(error){
+          console.warn('performance column missing',error);
+          hasPerformanceColumn=false;
+          alert('경고: 데이터베이스에 performance_level 칼럼이 없습니다. 코치 기능이 제한됩니다.');
+        }
+      }catch(e){
+        console.warn('error checking performance column',e);
+        hasPerformanceColumn=false;
+        alert('경고: 성능 칼럼 체크 중 오류가 발생했습니다.');
+      }
+    }
     async function getMessages(){
       const {data}=await sb.from('sytpt_messages').select('*').order('created_at'); return data||[];
     }
     async function addMessage(msg){
-      // allow optional attachments array
-      await sb.from('sytpt_messages').insert({
-        player_id:msg.playerId, author:msg.author, text:msg.text,
-        message_type:msg.messageType||'chat',
-        attachments: msg.attachments || [],
-        created_at:msg.createdAt||new Date().toISOString()
-      });
+      console.log('addMessage invoked with', msg);
+      // allow optional attachments array; retry without it if the column is missing
+      try {
+        const res = await sb.from('sytpt_messages').insert({
+          player_id:msg.playerId, author:msg.author, text:msg.text,
+          message_type:msg.messageType||'chat',
+          attachments: msg.attachments || [],
+          created_at:msg.createdAt||new Date().toISOString()
+        });
+        console.log('addMessage insert response', res);
+        if(res.error) throw res.error;
+        return res;
+      } catch(e) {
+        console.error('addMessage error', e);
+        if(e && e.message && /column\s+"attachments"/i.test(e.message)) {
+          const {attachments, ...rest} = msg;
+          const res2 = await sb.from('sytpt_messages').insert({
+            player_id:rest.playerId, author:rest.author, text:rest.text,
+            message_type:rest.messageType||'chat',
+            created_at:rest.createdAt||new Date().toISOString()
+          });
+          if(res2.error) throw res2.error;
+          return res2;
+        } else {
+          throw e;
+        }
+      }
     }
     async function getAssignedMissions(){
       const {data}=await sb.from('sytpt_assigned_missions').select('*').order('created_at'); return data||[];
@@ -823,119 +874,14 @@
         .update({completed, completed_at:completedAt||null})
         .eq('mission_id', missionId);
     }
-    async function getCoachDirectives(playerId=null, force=false){
-      const now = Date.now();
-      // if asking for a specific player's directives, avoid serving cached data for a different player
-      if(playerId && playerId!==lastCoachDirectivesPlayerId){
-        coachDirectivesCache = [];
-        lastCoachDirectivesFetch = 0;
-        lastCoachDirectivesError = 0;
-        lastCoachDirectivesPlayerId = playerId;
-      }
-
-      // player-specific query (fastest path): only fetch recent directives for that player
-      if(playerId){
-        // cache per player to avoid repeated 500 errors
-        if(!force){
-          if(now - lastCoachDirectivesFetch < COACH_DIRECTIVES_CACHE_TTL && coachDirectivesCache.length){
-            return coachDirectivesCache;
-          }
-          if(now - lastCoachDirectivesError < COACH_DIRECTIVES_ERROR_TTL){
-            return [];
-          }
-        }
-
-        try{
-          const {data,error} = await sb.from('sytpt_coach_directives')
-            .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
-            .eq('player_id', playerId)
-            .order('created_at',{ascending:false})
-            .limit(COACH_DIRECTIVES_FETCH_LIMIT);
-          if(error){
-            console.warn('getCoachDirectives (player) error', error);
-
-            // handle statement timeout (often due to large table scans) by falling back to a smaller query
-            if(error.code==='57014' || (error.message && /statement timeout/i.test(error.message))){
-              try{
-                const {data:fastData,error:fastError} = await sb.from('sytpt_coach_directives')
-                  .select('directive_id,player_id,text,created_at,coach_id')
-                  .eq('player_id', playerId)
-                  .order('created_at',{ascending:false})
-                  .limit(COACH_DIRECTIVES_FETCH_LIMIT);
-                if(!fastError){
-                  coachDirectivesCache = fastData||[];
-                  lastCoachDirectivesFetch = now;
-                  return coachDirectivesCache;
-                }
-              }catch(_){ }
-            }
-
-            // fallback for missing column issues (attachments or replies)
-            if(error.message && /(attachments|replies|column)/i.test(error.message)){
-              try{
-                const {data:errorData,error:err2} = await sb.from('sytpt_coach_directives')
-                  .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
-                  .eq('player_id', playerId)
-                  .order('created_at',{ascending:false})
-                  .limit(COACH_DIRECTIVES_FETCH_LIMIT);
-                if(!err2){
-                  coachDirectivesCache = errorData||[];
-                  lastCoachDirectivesFetch = now;
-                  return coachDirectivesCache;
-                }
-              }catch(_){}
-            }
-
-            lastCoachDirectivesError = now;
-            return [];
-          }
-          coachDirectivesCache = data||[];
-          lastCoachDirectivesFetch = now;
-          return coachDirectivesCache;
-        }catch(e){
-          console.error('getCoachDirectives (player) exception', e);
-          lastCoachDirectivesError = now;
-          return [];
-        }
-      }
-
-      // global fetch (cached) for KPI/dashboard purposes
-      if(!force){
-        if(now - lastCoachDirectivesFetch < COACH_DIRECTIVES_CACHE_TTL && coachDirectivesCache.length){
-          return coachDirectivesCache;
-        }
-        if(now - lastCoachDirectivesError < COACH_DIRECTIVES_ERROR_TTL){
-          return coachDirectivesCache;
-        }
-      }
-
-      try{
-        const {data,error} = await sb.from('sytpt_coach_directives')
-          .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
-          .limit(20);
-        if(error){
-          console.warn('getCoachDirectives error', error, {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-          });
-          lastCoachDirectivesError = now;
-          return coachDirectivesCache;
-        }
-        coachDirectivesCache = data||[];
-        lastCoachDirectivesFetch = now;
-        return coachDirectivesCache;
-      }catch(e){
-        console.error('getCoachDirectives exception', e);
-        lastCoachDirectivesError = now;
-        return coachDirectivesCache;
-      }
+    async function getCoachDirectives(){
+      const {data}=await sb.from('sytpt_coach_directives').select('*').order('created_at'); return data||[];
     }
     async function addCoachDirective(item){
       await sb.from('sytpt_coach_directives').insert({
         directive_id:item.directiveId, player_id:item.playerId, text:item.text,
-        time:item.time||'방금', created_at:item.createdAt||new Date().toISOString(),
+        // using created_at for display timing; legacy `time` field not required
+        created_at:item.createdAt||new Date().toISOString(),
         replies:item.replies||[], coach_id:item.coachId||'',
         attachments:item.attachments||[]
       });
@@ -1027,7 +973,37 @@
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
+      // allow common docs plus PNG images
+      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
+    }
+
+    // helper: delete a coach directive by id
+    async function deleteCoachDirective(directiveId) {
+      await sb
+        .from('sytpt_coach_directives')
+        .delete()
+        .eq('directive_id', directiveId);
+    }
+
+    // helper: mark all unread player messages as read for a given player
+    async function markPlayerMessagesRead(playerId) {
+      // Ensure we know whether the coach_read column exists before attempting to update it.
+      if(coachReadSchemaCheck) await coachReadSchemaCheck;
+      if(hasCoachReadColumn!==true) return;
+      try {
+        await sb
+          .from('sytpt_messages')
+          .update({ coach_read: true })
+          .eq('player_id', playerId)
+          .eq('author', '선수');
+      } catch (e) {
+        if (e && e.message && e.message.includes('coach_read')) {
+          console.warn('coach_read column missing; skipping mark-as-read update');
+          hasCoachReadColumn=false;
+          return;
+        }
+        throw e;
+      }
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
@@ -1040,64 +1016,6 @@
       if(over) throw new Error('첨부파일은 1개당 5MB 이하로 업로드해주세요.');
       const out=[];
       for(const f of files){const d=await fileToDataUrl(f);out.push({name:f.name,mimeType:f.type||'application/octet-stream',dataUrl:d});}
-      return out;
-    }
-
-    function isStoragePolicyError(e){
-      if(!e) return false;
-      const m = String(e.message||e||'').toLowerCase();
-      return m.includes('row-level security') || m.includes('rls') || m.includes('new row violates') || m.includes('policy');
-    }
-
-    async function uploadMissionAttachmentsToStorage(fileList){
-      const files=Array.from(fileList||[]); if(!files.length) return [];
-      const inv=files.find(f=>!isAllowedAttachment(f));
-      if(inv) throw new Error('첨부 가능한 파일 형식은 PDF/Word/Excel 또는 PNG만 지원합니다.');
-      const over=files.find(f=>f.size>5*1024*1024);
-      if(over) throw new Error('첨부파일은 1개당 5MB 이하로 업로드해주세요.');
-
-      // Supabase Storage 버킷 이름 (필요에 따라 변경)
-      const bucket = 'attachments';
-      const out=[];
-
-      for(const f of files){
-        const unique = Date.now() + '-' + Math.random().toString(36).slice(2);
-        const path = `coach-directives/${unique}-${f.name}`;
-
-        if(storageUploadAllowed){
-          try {
-            const { data: uploadData, error: uploadError } = await sb.storage
-              .from(bucket)
-              .upload(path, f, { cacheControl: '3600', upsert: false });
-            if(uploadError) throw uploadError;
-
-            const { data: urlData, error: urlError } = sb.storage
-              .from(bucket)
-              .getPublicUrl(path);
-            if(urlError) throw urlError;
-
-            out.push({
-              name: f.name,
-              url: urlData.publicUrl,
-              size: f.size,
-              type: f.type
-            });
-            continue;
-          } catch (e) {
-            // If storage writes are blocked by an RLS policy, stop trying on future uploads
-            if(isStoragePolicyError(e)){
-              storageUploadAllowed = false;
-              console.warn('Storage upload blocked by policy; falling back to embedded dataUrl', e.message||e);
-            } else {
-              console.warn('Storage upload failed; falling back to embedded dataUrl', e);
-            }
-          }
-        }
-
-        const d = await fileToDataUrl(f);
-        out.push({name: f.name, mimeType: f.type||'application/octet-stream', dataUrl: d});
-      }
-
       return out;
     }
     function parseDateValue(raw){
@@ -1134,9 +1052,6 @@
         else risk='정상';
       }
       await sb.from('sytpt_users').update({today_completion:m.rate+'%',risk_level:risk}).eq('id',playerId);
-      // clear user cache so rendered views pick up the updated values
-      usersCache = [];
-      lastUsersFetch = 0;
     }
     async function getDisplayMissionsForPlayer(playerId){
       const [progressList, assignedRaw]=await Promise.all([getAllMissionProgress(), getAssignedMissions()]);
@@ -1206,8 +1121,9 @@
         const lastRead=getCommLastRead(session.id);
         const allDir=await getCoachDirectives();
         const forPlayer=allDir.filter(r=>r.player_id===session.id);
-        const unreadN=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
-        const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
+        // count unread directives
+        let unreadDir = lastRead ? forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length : forPlayer.length;
+        // also count any chat messages from coach after lastRead
         const allMsgs=await getMessages();
         const coachChats = allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.author==='코치'&&m.created_at);
         const unreadChat = lastRead ? coachChats.filter(m=>m.created_at>lastRead).length : coachChats.length;
@@ -1229,6 +1145,13 @@
 
       const session=getSession();
       const users=await getUsers();
+      // verify column presence once
+      if(hasPerformanceColumn) await verifyPerformanceColumn();
+      // if coach, sync the selector options before determining active player
+      // hide selector by default; only shown later if coach
+      const wrap=document.getElementById('playerPortalSelectWrap');
+      if(wrap) wrap.style.display = (session&&session.role==='coach') ? 'block' : 'none';
+      if(session&&session.role==='coach') syncPlayerPortalSelector(users);
       const player=getActivePlayerForView(users);
       const nr=document.getElementById('playerViewName');
       const cr=document.getElementById('playerViewCompletion');
@@ -1240,7 +1163,11 @@
       const isCoach=session&&session.role==='coach';
       nr.textContent=isCoach?(player.name+' ('+player.id+')'):player.name;
       cr.textContent=player.todayCompletion||'0%';
-      rr.textContent=player.riskLevel||'정상';
+      if(lastPerformanceEdit && player.id===lastPerformanceEdit.id){
+        rr.textContent=formatPerformance(lastPerformanceEdit.val);
+      } else {
+        rr.textContent=formatPerformance(player.performanceLevel);
+      }
       sr.textContent=player.statusLabel||'승인 완료';
       renderMissionCardsForActivePlayer();
       renderPlayerMessageThread();
@@ -1271,9 +1198,20 @@
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
       const all=await getCoachDirectives();
-      const directives=all.filter(r=>r.player_id===player.id).slice(-3).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';return;}
-      root.innerHTML=directives.map(function(d){return '<div class="message"><div class="meta">코치 · '+d.time+'</div><div>'+d.text+'</div></div>';}).join('');
+      // sort by created_at descending, then take top 3
+      const directives=all
+        .filter(r=>r.player_id===player.id)
+        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+        .slice(0,3)
+        .map(fromDbDirective);
+      if(!directives.length){
+        root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';
+        return;
+      }
+      root.innerHTML=directives.map(function(d){
+        var timeStr=formatTime(d.createdAt);
+        return '<div class="message"><div class="meta">코치 · '+timeStr+'</div><div>'+d.text+'</div></div>';
+      }).join('');
     }
     function renderBars(id, values, color){
       color=color||'#93c5fd';
@@ -1338,6 +1276,26 @@
       select.value=ap.some(function(p){return p.id===selId;})?selId:ap[0].id;
       if(!selId) setCoachSelectedPlayerId(select.value);
     }
+    // populate selector on player portal for coaches
+    function syncPlayerPortalSelector(users){
+      const wrap=document.getElementById('playerPortalSelectWrap');
+      const sel=document.getElementById('playerPortalAthleteSelect');
+      if(!wrap||!sel) return;
+      const ap=getApprovedPlayers(users);
+      if(!ap.length){wrap.style.display='none';return;}
+      wrap.style.display='block';
+      const selId=getCoachSelectedPlayerId();
+      sel.innerHTML=ap.map(function(p){return '<option value="'+p.id+'">'+p.name+' ('+p.id+')</option>';}).join('');
+      sel.value=ap.some(function(p){return p.id===selId;})?selId:ap[0].id;
+      // if no previous selection or it was invalid, save default
+      if(!selId || !ap.some(function(p){return p.id===selId;})){
+        setCoachSelectedPlayerId(sel.value);
+      }
+      sel.addEventListener('change',function(){
+        setCoachSelectedPlayerId(sel.value);
+        renderPlayerViewContext();
+      });
+    }
     async function syncCoachDirectiveTargetOptions(){
       const select=document.getElementById('coachDirectiveTarget'); if(!select) return;
       const users=await getUsers();
@@ -1347,21 +1305,30 @@
     }
     async function renderCoachDirectiveList(){
       const root=document.getElementById('coachDirectiveList'); if(!root) return;
-      root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
-      const targetSelect=document.getElementById('coachDirectiveTarget');
-      const target = targetSelect ? targetSelect.value : '';
       const users=await getUsers();
       const dirsRaw=await getCoachDirectives();
       const directives=dirsRaw.slice(-8).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';return;}
+      if(!directives.length){
+        root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
+        return;
+      }
       root.innerHTML=directives.map(function(item){
         var player=users.find(function(u){return u.id===item.playerId;});
+        var deleteBtn='<button class="btn btn-red delete-dir-btn" data-id="'+item.directiveId+'" style="margin-left:8px;padding:2px 6px;font-size:11px">삭제</button>';
         var replies=Array.isArray(item.replies)?item.replies:[];
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        var timeStr = formatTime(item.createdAt);
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+timeStr+deleteBtn+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
+      root.querySelectorAll('.delete-dir-btn').forEach(function(btn){
+        btn.addEventListener('click',async function(){
+          if(!confirm('이 지시를 정말 삭제하시겠습니까?')) return;
+          await deleteCoachDirective(btn.dataset.id);
+          renderCoachDirectiveList();
+        });
+      });
     }
     async function renderCoachKPIs(){
       var riskEl=document.getElementById('coachKpiRisk');
@@ -1402,8 +1369,6 @@
       root.querySelectorAll('.approve-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
         await sb.from('sytpt_users').update({approval_status:'approved',approved_at:new Date().toISOString(),today_completion:'0%',risk_level:'정상',status_label:'승인 완료'}).eq('id',pid);
-        usersCache = [];
-        lastUsersFetch = 0;
         renderPendingApprovals();renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
     }
@@ -1421,21 +1386,82 @@
         var rc=risk==='높음'?'risk-high':risk==='주의'?'risk-mid':'';
         var rowC=player.id===selectedId?'selected':'';
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
-        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td><td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
+        var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
+        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        let perfCell = '<td>-</td>';
+        if(hasPerformanceColumn){
+          perfCell = '<td><div style="display:flex;align-items:center;">'+
+                     '<input type="number" class="perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"'+
+                     (hasPerformanceColumn?'':' disabled')+'>'+
+                     '<span style="margin-left:4px">%</span></div></td>';
+        }
+        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
         if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?')) return;
         await sb.from('sytpt_users').update({approval_status:'inactive',status_label:'비활성화',deactivated_at:new Date().toISOString()}).eq('id',pid);
-        usersCache = [];
-        lastUsersFetch = 0;
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
         if(e.target.closest('.deactivate-btn')) return;
-        setCoachSelectedPlayerId(row.dataset.playerId);
-        renderCoachAthleteBoard();renderPlayerViewContext();
+        setCoachSelectedPlayerId(row.getAttribute('data-player-id'));
+        // only rerender the player view, avoid rebuilding full table for speed
+        renderPlayerViewContext();
       });});
+      // performance input handlers
+      tableRoot.querySelectorAll('.perf-input').forEach(function(input){
+        input.addEventListener('change',async function(){
+          var pid=input.getAttribute('data-player-id');
+          var val=parseInt(input.value,10);
+          if(isNaN(val)||val<0) val=0;
+          if(val>100) val=100;
+          input.value=val;
+          // attempt update and return the id so we can verify success
+          let res = await sb.from('sytpt_users')
+                         .update({performance_level:val})
+                         .match({id:pid})
+                         .select('id');
+          console.log('update attempt',pid,val,res);
+          if(res.error){
+            // if column missing, bail and notify once
+            if(res.error.code==='PGRST204' && res.error.message && res.error.message.includes('performance_level')){
+              alert('데이터베이스에 `performance_level` 컬럼이 존재하지 않습니다.\n관리자에게 추가를 요청해주세요.');
+              console.error('missing column performance_level');
+              return;
+            }
+            console.warn('match update failed for',pid,res.error);
+            // try quoting the id value to satisfy REST syntax
+            res = await sb.from('sytpt_users')
+                         .update({performance_level:val})
+                         .eq('id','"'+pid+'"')
+                         .select('id');
+            console.log('quoted update attempt',pid,val,res);
+          }
+          // supabase returns array of rows; if it's empty, nothing was updated
+          if(!res.data || (Array.isArray(res.data) && res.data.length===0)){
+            console.warn('no rows updated for',pid,res);
+            alert('업데이트 대상 선수가 없거나 권한이 없습니다 (id='+pid+')');
+            return;
+          }
+          if(res.error){
+            console.error('performance update error for',pid,res.error);
+            return; // do not re-render, keep entered value
+          }
+          // success -> remember edit and refresh only the visible KPI
+          lastPerformanceEdit = {id: pid, val: val};
+          // if the edited player is currently displayed, update the top KPI text
+          try{
+            const active=getActivePlayerForView(await getUsers());
+            if(active && active.id===pid){
+              const rr=document.getElementById('playerViewPerformance');
+              if(rr) rr.textContent = formatPerformance(val);
+            }
+          }catch(e){console.warn('could not refresh active performance',e);}
+          // keep input value shown
+          input.value = val;
+        });
+      });
     }
     async function renderCoachMatchBoard(){
       const root=document.getElementById('coachMatchBoard'); if(!root) return;
@@ -1450,6 +1476,9 @@
       root.innerHTML=ap.map(function(player,i){
         var info=infos[i];
         var cfg=phaseConfigs[i];
+        var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
+        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        var perfHtml = '<div style="margin-top:4px;font-size:12px">경기력 수준: <input type="number" class="coach-match-perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:40px"><span style="margin-left:4px">%</span></div>';
         var hasMatch=info.matchName&&info.matchName!=='경기명';
         var dateText=formatMatchRangeText(info.startDate,info.endDate);
         var isOpen=expandedMatchPlayerIds.has(player.id);
@@ -1474,6 +1503,33 @@
         if(expandedMatchPlayerIds.has(pid)) expandedMatchPlayerIds.delete(pid); else expandedMatchPlayerIds.add(pid);
         renderCoachMatchBoard();
       });});
+      // performance field listeners
+      root.querySelectorAll('.coach-match-perf-input').forEach(function(input){
+        input.addEventListener('change',async function(){
+          var pid=input.getAttribute('data-player-id');
+          var val=parseInt(input.value,10);
+          if(isNaN(val)||val<0) val=0;
+          if(val>100) val=100;
+          input.value=val;
+          let res = await sb.from('sytpt_users').update({performance_level:val}).match({id:pid});
+          if(res.error){
+            if(res.error.code==='PGRST204' && res.error.message && res.error.message.includes('performance_level')){
+              alert('데이터베이스에 `performance_level` 컬럼이 존재하지 않습니다.\n관리자에게 추가를 요청해주세요.');
+              console.error('missing column performance_level');
+              return;
+            }
+            console.warn('match update failed for',pid,res.error);
+            res = await sb.from('sytpt_users').update({performance_level:val}).eq('id','"'+pid+'"');
+          }
+          if(res.error){
+            console.error('performance update error for',pid,res.error);
+            return;
+          }
+          renderPlayerViewContext();
+          renderCoachAthleteBoard();
+          renderCoachMatchBoard();
+        });
+      });
     }
     async function renderCoachCompletedMissionList(){
       const root=document.getElementById('coachCompletedMissionList');
@@ -1509,15 +1565,17 @@
     }
     async function renderPlayerMessageThread(){
       const root=document.getElementById('playerMessageList'); if(!root) return;
-      root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
-      // Fetch directives for this player directly to avoid stale cache
-      const dirsRaw=await getCoachDirectives(player.id);
+      const dirsRaw=await getCoachDirectives();
       const msgsRaw=await getMessages();
-      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
-      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
+      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){
+        return {author:'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
+      });
+      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){
+        return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:(r.created_at||r.updated_at||''),attachments:r.attachments||[]};
+      });
       const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
       if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
       root.innerHTML=thread.map(function(m){
@@ -1536,8 +1594,7 @@
       var users=await getUsers();
       var player=getActivePlayerForView(users);
       if(!player){coachEl.textContent='–';playerEl.textContent='–';pendingEl.textContent='–';return;}
-      // Fetch directives for this player directly to avoid stale cache
-      var dirsRaw=await getCoachDirectives(player.id);
+      var dirsRaw=await getCoachDirectives();
       var msgsRaw=await getMessages();
       var dirItems=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
       var chatItems=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
@@ -1667,15 +1724,9 @@
     function setupRealtimeSubscriptions(){
       sb.channel('sytpt-realtime')
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_messages'},function(){
-          // Clear cache to ensure new messages show up immediately
-          messagesCache = [];
-          lastMessagesFetch = 0;
           renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
-          // Clear cache to ensure new coach directives show up immediately
-          coachDirectivesCache = [];
-          lastCoachDirectivesFetch = 0;
           renderDashboardCoachMessages();renderPlayerMessageThread();renderCoachInboxDynamic();renderCoachDirectiveList();renderCommCounts();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_assigned_missions'},function(){
@@ -1718,6 +1769,7 @@
       try{
         var fileInput=document.getElementById('playerQuestionFile');
         attachments = await readMissionAttachments(fileInput&&fileInput.files);
+        console.log('attachments read', attachments);
       }catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
       try {
         const result = await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
@@ -1789,7 +1841,7 @@
       var fileInput=document.getElementById('missionFileInput');
       if(!rawCode&&!message&&!(fileInput&&fileInput.files&&fileInput.files.length)) return;
       var attachments=[];
-      try{attachments=await uploadMissionAttachmentsToStorage(fileInput&&fileInput.files);}
+      try{attachments=await readMissionAttachments(fileInput&&fileInput.files);}
       catch(e){alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.');return;}
       await addAssignedMission({
         missionId:'ASG-'+Date.now()+'-'+Math.floor(Math.random()*1000),
@@ -1813,7 +1865,7 @@
       var fileInput=document.getElementById('directiveFileInput');
       if(!target||!text) return;
       var attachments=[];
-      try{ attachments=await uploadMissionAttachmentsToStorage(fileInput&&fileInput.files); }
+      try{ attachments=await readMissionAttachments(fileInput&&fileInput.files); }
       catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
       var users=await getUsers();
       var ap=getApprovedPlayers(users);
@@ -1832,13 +1884,6 @@
       if(fileInput) fileInput.value='';
       renderCoachDirectiveList();renderCoachInboxDynamic();renderDashboardCoachMessages();renderPlayerMessageThread();renderCommCounts();renderCoachKPIs();
     });
-
-    var directiveTargetSelect = document.getElementById('coachDirectiveTarget');
-    if(directiveTargetSelect){
-      directiveTargetSelect.addEventListener('change', function(){
-        renderCoachDirectiveList();
-      });
-    }
 
     document.querySelectorAll('.portal-tabs button[data-portal]').forEach(function(btn){btn.addEventListener('click',function(){
       document.querySelectorAll('.portal-tabs button[data-portal]').forEach(function(b){b.classList.remove('active');});
