@@ -422,7 +422,7 @@
       <div class="card player-block tone-mint" style="margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <h3 style="margin:0">시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</h3>
-          <button class="btn" type="button" onclick="window.location.href='https://soonyongchun-dotcom.github.io/putting-training/index1.html'">오늘경기데이터 입력</button>
+          <button class="btn" type="button" onclick="window.open('https://soonyongchun-dotcom.github.io/putting-training/index1.html','_blank','noopener,noreferrer')">오늘경기데이터 입력</button>
         </div>
         <div id="phaseBoard" class="phase-board"></div>
       </div>
@@ -717,6 +717,7 @@
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
+    let storageUploadAllowed = false;
     let coachDirectivesCache = [];
     let lastCoachDirectivesFetch = 0;
     let lastCoachDirectivesError = 0;
@@ -724,6 +725,7 @@
     const COACH_DIRECTIVES_CACHE_TTL = 15000;
     const COACH_DIRECTIVES_ERROR_TTL = 5000;
     const COACH_DIRECTIVES_FETCH_LIMIT = 100;
+    let hasCoachReadColumn = false;
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -757,6 +759,11 @@
     function setCommLastRead(pid){
       const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}");
       m[pid]=new Date().toISOString();
+      localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
+    }
+    function clearCommLastRead(pid){
+      const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}");
+      delete m[pid];
       localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
     }
 
@@ -949,6 +956,28 @@
         attachments:item.attachments||[]
       });
     }
+    async function deletePlayerAllData(playerId){
+      if(!playerId) return;
+
+      const tasks=[
+        sb.from('sytpt_messages').delete().eq('player_id',playerId),
+        sb.from('sytpt_coach_directives').delete().eq('player_id',playerId),
+        sb.from('sytpt_assigned_missions').delete().eq('player_id',playerId),
+        sb.from('sytpt_mission_progress').delete().eq('player_id',playerId),
+        sb.from('sytpt_self_eval').delete().eq('player_id',playerId),
+        sb.from('sytpt_match_info').delete().eq('player_id',playerId)
+      ];
+
+      const results=await Promise.all(tasks);
+      const failed=results.find(function(r){return r&&r.error;});
+      if(failed&&failed.error) throw failed.error;
+
+      const userDel=await sb.from('sytpt_users').delete().eq('id',playerId);
+      if(userDel.error) throw userDel.error;
+
+      if(getCoachSelectedPlayerId()===playerId) setCoachSelectedPlayerId('');
+      clearCommLastRead(playerId);
+    }
     async function getMissionProgressState(playerId, missionKey){
       const {data}=await sb.from('sytpt_mission_progress')
         .select('*').eq('player_id',playerId).eq('mission_key',missionKey).maybeSingle();
@@ -1059,7 +1088,34 @@
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
-      return ['pdf','doc','docx','xls','xlsx'].includes(ext);
+      return ['pdf','doc','docx','xls','xlsx','png'].includes(ext);
+    }
+    async function markPlayerMessagesRead(playerId){
+      if(!playerId) return;
+      if(hasCoachReadColumn!==true) return;
+      try{
+        await sb
+          .from('sytpt_messages')
+          .update({coach_read:true})
+          .eq('player_id',playerId)
+          .eq('author','선수');
+      }catch(e){
+        // Some deployments may not have coach_read column yet.
+        if(e&&e.message&&String(e.message).includes('coach_read')){
+          hasCoachReadColumn = false;
+          console.warn('coach_read column missing; skipping read-mark update');
+          return;
+        }
+        // mark-as-read failure should not break user flows
+        console.warn('markPlayerMessagesRead failed', e);
+      }
+    }
+    function resolveAttachmentLink(file){
+      if(!file) return '';
+      return file.url||file.dataUrl||'';
+    }
+    function resolveAttachmentName(file, idx){
+      return (file&&file.name)?file.name:('file-'+(idx+1));
     }
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
@@ -1078,7 +1134,7 @@
     function isStoragePolicyError(e){
       if(!e) return false;
       const m = String(e.message||e||'').toLowerCase();
-      return m.includes('row-level security') || m.includes('rls') || m.includes('new row violates') || m.includes('policy');
+      return m.includes('row-level security') || m.includes('rls') || m.includes('new row violates') || m.includes('policy') || m.includes('bucket not found');
     }
 
     async function uploadMissionAttachmentsToStorage(fileList){
@@ -1301,10 +1357,24 @@
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
-      const all=await getCoachDirectives();
-      const directives=all.filter(r=>r.player_id===player.id).slice(-3).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치</div><div>등록된 코치 지시 내용이 없습니다.</div></div>';return;}
-      root.innerHTML=directives.map(function(d){return '<div class="message"><div class="meta">코치 · '+d.time+'</div><div>'+d.text+'</div></div>';}).join('');
+
+      // force=true to avoid stale cache when switching back from Coach Communication.
+      const dirsRaw=await getCoachDirectives(player.id,true);
+      const lastRead=getCommLastRead(player.id);
+      const unreadDir=lastRead
+        ? dirsRaw.filter(function(r){return r.player_id===player.id&&r.created_at&&r.created_at>lastRead;}).length
+        : dirsRaw.filter(function(r){return r.player_id===player.id;}).length;
+
+      const msgsRaw=await getMessages();
+      const coachChats=msgsRaw.filter(function(r){
+        return r.player_id===player.id&&isChatMessage(fromDbMsg(r))&&r.author==='코치'&&r.created_at;
+      });
+      const unreadChat=lastRead
+        ? coachChats.filter(function(r){return r.created_at>lastRead;}).length
+        : coachChats.length;
+
+      const unreadTotal=unreadDir+unreadChat;
+      root.innerHTML='<div class="message"><div class="meta">코치 메시지 알림</div><div>새로도착한 <strong style="color:#dc2626">('+unreadTotal+')</strong>건의 코치 메시지가 있습니다. Coach Communication에서 확인해주세요.</div></div>';
     }
     function renderBars(id, values, color){
       color=color||'#93c5fd';
@@ -1327,7 +1397,12 @@
           var attachHtml='';
           if(m.attachments&&m.attachments.length){
             attachHtml='<div class="muted" style="margin-top:6px">📎 첨부파일</div><div class="message-list" style="max-height:120px;margin-top:6px">'+
-              m.attachments.map(function(f,i){return '<div class="message" style="padding:6px"><a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'">'+(i+1)+'. '+f.name+'</a></div>';}).join('')+'</div>';
+              m.attachments.map(function(f,i){
+                var href=resolveAttachmentLink(f);
+                var name=resolveAttachmentName(f,i);
+                if(!href) return '';
+                return '<div class="message" style="padding:6px"><a href="'+href+'" target="_blank" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
+              }).join('')+'</div>';
           }
           var statusHtml=m.completed?
             ('<span style="color:#16a34a;font-weight:700;font-size:13px">✅ 완료</span>'+(m.completedAt?'<span class="muted" style="font-size:12px">('+formatTime(m.completedAt)+')</span>':'')):
@@ -1382,16 +1457,39 @@
       const targetSelect=document.getElementById('coachDirectiveTarget');
       const target = targetSelect ? targetSelect.value : '';
       const users=await getUsers();
-      const dirsRaw=await getCoachDirectives();
-      const directives=dirsRaw.slice(-8).reverse().map(fromDbDirective);
+      const ap=getApprovedPlayers(users);
+      let filteredRaw=[];
+      if(target&&target!=='__all__'){
+        filteredRaw=await getCoachDirectives(target,true);
+      }else{
+        const allByPlayer=await Promise.all(ap.map(function(p){ return getCoachDirectives(p.id,true); }));
+        filteredRaw=allByPlayer.flat();
+      }
+
+      // Merge per-player results into one timeline: remove duplicates and sort by timestamp.
+      const uniqMap=new Map();
+      filteredRaw.forEach(function(r){
+        const key=r.directive_id||[r.player_id,r.created_at,r.text].join('|');
+        if(!uniqMap.has(key)) uniqMap.set(key,r);
+      });
+      const merged=Array.from(uniqMap.values())
+        .sort(function(a,b){return String(a.created_at||'').localeCompare(String(b.created_at||''));});
+
+      const directives=merged.slice(-8).reverse().map(fromDbDirective);
       if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';return;}
       root.innerHTML=directives.map(function(item){
         var player=users.find(function(u){return u.id===item.playerId;});
+        var displayTime=item.time||formatTime(item.createdAt)||'방금';
         var replies=Array.isArray(item.replies)?item.replies:[];
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
-        var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="margin-right:8px;font-size:12px">'+f.name+'</a>';}).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+item.time+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){
+          var href=resolveAttachmentLink(f);
+          var name=resolveAttachmentName(f,i);
+          if(!href) return '';
+          return '<a href="'+href+'" target="_blank" download="'+name+'" style="margin-right:8px;font-size:12px">'+name+'</a>';
+        }).join('')+'</div>':'';
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
     }
     async function renderCoachKPIs(){
@@ -1406,15 +1504,16 @@
       riskEl.textContent=riskCount+'건';
       riskEl.className='value '+(riskCount>0?'risk-high':'');
       // 2) 답장 대기중: 선수 마지막 메시지 이후 코치 답변 없는 선수 수
-      var dirsRaw=await getCoachDirectives();
       var msgsRaw=await getMessages();
-      var pendingCount=ap.filter(function(player){
-        var dirs=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
+      var pendingCount=0;
+      for(var i=0;i<ap.length;i++){
+        var player=ap[i];
+        var dirsRaw=await getCoachDirectives(player.id,true);
+        var dirs=dirsRaw.map(function(r){return {author:'코치',createdAt:r.created_at||''};});
         var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
         var thread=[...dirs,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
-        if(!thread.length) return false;
-        return thread[thread.length-1].author==='선수';
-      }).length;
+        if(thread.length&&thread[thread.length-1].author==='선수') pendingCount++;
+      }
       pendingEl.textContent=pendingCount+'건';
       pendingEl.className='value '+(pendingCount>0?'risk-mid':'');
       // 3) 미션 완료율 평균
@@ -1456,8 +1555,13 @@
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
-        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?')) return;
-        await sb.from('sytpt_users').update({approval_status:'inactive',status_label:'비활성화',deactivated_at:new Date().toISOString()}).eq('id',pid);
+        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?\n선수 계정과 관련 데이터(미션/메시지/지시사항/자기평가/시합정보)가 모두 삭제됩니다.')) return;
+        try{
+          await deletePlayerAllData(pid);
+        }catch(e){
+          alert('선수 데이터 삭제 중 오류가 발생했습니다.\n'+(e&&e.message?e.message:e));
+          return;
+        }
         usersCache = [];
         lastUsersFetch = 0;
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
@@ -1535,7 +1639,12 @@
         const mission=missions.find(function(m){return m.missionKey===mk;});
         if(!mission||!detailRoot) return;
         var attHtml=mission.attachments&&mission.attachments.length?
-          '<div class="muted" style="margin-bottom:4px">첨부 결과 파일</div><div class="message-list" style="max-height:140px">'+mission.attachments.map(function(f,i){return '<div class="message" style="padding:6px"><a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'">'+(i+1)+'. '+f.name+'</a></div>';}).join('')+'</div>':
+          '<div class="muted" style="margin-bottom:4px">첨부 결과 파일</div><div class="message-list" style="max-height:140px">'+mission.attachments.map(function(f,i){
+            var href=resolveAttachmentLink(f);
+            var name=resolveAttachmentName(f,i);
+            if(!href) return '';
+            return '<div class="message" style="padding:6px"><a href="'+href+'" target="_blank" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
+          }).join('')+'</div>':
           '<p class="muted" style="margin:0">첨부된 결과 파일이 없습니다.</p>';
         detailRoot.innerHTML='<div class="meta">미션: '+mission.code+' ('+mission.mode+')</div><div class="muted" style="margin:4px 0 6px">수행 상태: '+(mission.completed?'완료':'미완료')+'</div>'+(mission.feedback?'<div style="margin-bottom:8px">'+mission.feedback+'</div>':'')+attHtml;
       });});
@@ -1549,15 +1658,29 @@
       // Fetch directives for this player directly to avoid stale cache
       const dirsRaw=await getCoachDirectives(player.id);
       const msgsRaw=await getMessages();
-      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
-      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
+      const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',source:'directive',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
+      const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',source:'chat',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
       const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
       if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
-      root.innerHTML=thread.map(function(m){
+      var enriched=thread.map(function(m,idx){
+        if(m.author!=='코치'||m.source!=='chat') return Object.assign({},m,{replyToText:''});
+        var prevPlayer='';
+        for(var j=idx-1;j>=0;j--){
+          if(thread[j].author==='선수'){ prevPlayer=thread[j].text||''; break; }
+        }
+        return Object.assign({},m,{replyToText:prevPlayer});
+      });
+      root.innerHTML=enriched.map(function(m){
         var ic=m.author==='코치';
         var atts=Array.isArray(m.attachments)?m.attachments:[];
-        var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 첨부파일: '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
-        return '<div class="message '+(ic?'msg-coach':'msg-player')+'"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div><div style="margin-top:4px">'+m.text+'</div>'+attHtml+'</div>';
+        var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 첨부파일: '+atts.map(function(f,i){
+          var href=resolveAttachmentLink(f);
+          var name=resolveAttachmentName(f,i);
+          if(!href) return '';
+          return '<a href="'+href+'" target="_blank" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';
+        }).join('')+'</div>':'';
+        var replyHtml=(ic&&m.replyToText)?'<div style="margin-top:6px;padding:6px 8px;border-left:3px solid #93c5fd;background:#eff6ff;border-radius:6px;font-size:12px;color:#1e3a8a">↳ 선수 질문: '+m.replyToText+'</div>':'';
+        return '<div class="message '+(ic?'msg-coach':'msg-player')+'"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div>'+replyHtml+'<div style="margin-top:4px">'+m.text+'</div>'+attHtml+'</div>';
       }).join('');
       root.scrollTop=root.scrollHeight;
     }
@@ -1570,7 +1693,7 @@
       var player=getActivePlayerForView(users);
       if(!player){coachEl.textContent='–';playerEl.textContent='–';pendingEl.textContent='–';return;}
       // Fetch directives for this player directly to avoid stale cache
-      var dirsRaw=await getCoachDirectives(player.id);
+      var dirsRaw=await getCoachDirectives(player.id,true);
       var msgsRaw=await getMessages();
       var dirItems=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
       var chatItems=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
@@ -1598,13 +1721,32 @@
         return;
       }
       const msgsRaw=await getMessages();
+      const directivesByPlayer=new Map();
+      const directiveRows=await Promise.all(ap.map(async function(p){
+        const rows=await getCoachDirectives(p.id,true);
+        return {playerId:p.id,rows:rows||[]};
+      }));
+      directiveRows.forEach(function(d){directivesByPlayer.set(d.playerId,d.rows);});
       const groups=ap.map(function(player){
         const chats=msgsRaw
-          .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r)) && r.author==='선수';})
-          .map(function(r){return {author:r.author,text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[],coach_read:r.coach_read||false};});
-        const thread=chats.sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));}).slice(-5);
-        const unread=thread.filter(m=>!m.coach_read).length;
-        return {player:player,thread:thread,unread:unread};
+          .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r));})
+          .map(function(r){return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[],coach_read:r.coach_read||false};});
+        const sortedChats=chats.sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
+        const thread=sortedChats.slice(-5);
+        const unread=thread.filter(function(m){return m.author==='선수'&&!m.coach_read;}).length;
+        const dirs=directivesByPlayer.get(player.id)||[];
+        const latestPlayerMsg=[...sortedChats].reverse().find(function(m){return m.author==='선수';});
+        let needsReply=false;
+        if(latestPlayerMsg&&latestPlayerMsg.createdAt){
+          const hasCoachChatAfter=sortedChats.some(function(m){
+            return m.author==='코치'&&String(m.createdAt)>String(latestPlayerMsg.createdAt);
+          });
+          const hasDirectiveAfter=dirs.some(function(d){
+            return d&&d.created_at&&String(d.created_at)>String(latestPlayerMsg.createdAt);
+          });
+          needsReply=!(hasCoachChatAfter||hasDirectiveAfter);
+        }
+        return {player:player,thread:thread,unread:unread,needsReply:needsReply,dirs:dirs};
       }).filter(function(g){return g.thread.length>0;});
       if(!groups.length){
         root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';
@@ -1617,18 +1759,31 @@
           // decide if this player message has a coach reply later
           var replied=false;
           if(!ic){
-            replied = msgsRaw.some(function(r){
+            var hasCoachChatAfter=msgsRaw.some(function(r){
               return r.player_id===g.player.id && r.author==='코치' && String(r.created_at) > String(m.createdAt);
             });
+            var hasDirectiveAfter=(g.dirs||[]).some(function(d){
+              return d&&d.created_at&&String(d.created_at)>String(m.createdAt);
+            });
+            replied = hasCoachChatAfter || hasDirectiveAfter;
           }
           var atts=Array.isArray(m.attachments)?m.attachments:[];
-          var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f){return '<a href="'+f.dataUrl+'" target="_blank" download="'+f.name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+f.name+'</a>';}).join('')+'</div>':'';
+          var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f,i){
+            var href=resolveAttachmentLink(f);
+            var name=resolveAttachmentName(f,i);
+            if(!href) return '';
+            return '<a href="'+href+'" target="_blank" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';
+          }).join('')+'</div>':'';
           var replyBadge = replied ? '<span class="badge" style="background:#10b981;color:#fff;font-size:10px;margin-left:6px;">답변완료</span>' : '';
           return '<div class="message '+(ic?'msg-coach':'msg-player')+'"'+(m.coach_read?'':' style="background:#fffbeb;"')+'><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span>'+replyBadge+'</div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
         }).join('');
-        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span>'+badge+'<button class="btn-xs coach-quick-reply-btn" data-player-id="'+g.player.id+'" style="margin-left:8px">답변하기</button></div><div class="comm-group-body">'+msgsHtml+'</div></div>';
+        var replyBtn=g.needsReply
+          ? '<button class="btn-xs coach-quick-reply-btn" data-replied="false" data-player-id="'+g.player.id+'" style="margin-left:8px">답변하기</button>'
+          : '<button class="btn-xs coach-quick-reply-btn" data-replied="true" data-player-id="'+g.player.id+'" style="margin-left:8px;background:#dcfce7;color:#166534;cursor:default;">답변완료</button>';
+        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span>'+badge+replyBtn+'</div><div class="comm-group-body">'+msgsHtml+'</div></div>';
       }).join('');
       root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',async function(){
+        if(btn.dataset.replied==='true') return;
         var pid=btn.getAttribute('data-player-id');
         await markPlayerMessagesRead(pid);
         renderCoachInboxDynamic();
@@ -1703,13 +1858,13 @@
           // Clear cache to ensure new messages show up immediately
           messagesCache = [];
           lastMessagesFetch = 0;
-          renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();renderCoachKPIs();
+          renderPlayerMessageThread();renderDashboardCoachMessages();renderCoachInboxDynamic();renderCommCounts();renderReplyStatus();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
           // Clear cache to ensure new coach directives show up immediately
           coachDirectivesCache = [];
           lastCoachDirectivesFetch = 0;
-          renderDashboardCoachMessages();renderPlayerMessageThread();renderCoachInboxDynamic();renderCoachDirectiveList();renderCommCounts();renderCoachKPIs();
+          renderDashboardCoachMessages();renderPlayerMessageThread();renderCoachInboxDynamic();renderCoachDirectiveList();renderCommCounts();renderReplyStatus();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_assigned_missions'},function(){
           renderMissionCardsForActivePlayer();renderCoachCompletedMissionList();
@@ -1732,14 +1887,6 @@
       renderCoachInboxDynamic();
     }, 60 * 1000);
 
-    // periodically refresh time labels in message panels
-    setInterval(function(){
-      renderDashboardCoachMessages();
-      renderCoachDirectiveList();
-      renderPlayerMessageThread();
-      renderCoachInboxDynamic();
-    }, 60 * 1000); // every minute
-
     // ====== 이벤트 핸들러 ======
     document.getElementById('sendPlayerQuestion').addEventListener('click', async function(){
       console.log('sendPlayerQuestion clicked');
@@ -1750,7 +1897,7 @@
       var attachments=[];
       try{
         var fileInput=document.getElementById('playerQuestionFile');
-        attachments = await readMissionAttachments(fileInput&&fileInput.files);
+        attachments = await uploadMissionAttachmentsToStorage(fileInput&&fileInput.files);
       }catch(e){ alert(e.message||'첨부파일 처리 중 오류가 발생했습니다.'); return; }
       try {
         const result = await addMessage({playerId:session.id,author:'선수',text:text,messageType:'chat',attachments:attachments,createdAt:new Date().toISOString()});
@@ -1832,11 +1979,16 @@
       // when coach assigns a mission we can treat as a reply, clear unread flag
       await markPlayerMessagesRead(athleteId);
       await updatePlayerCompletionMetrics(athleteId);
-      renderMissionCardsForActivePlayer();renderCoachAthleteBoard();renderCoachCompletedMissionList();renderPlayerMessageThread();renderCoachKPIs();
+      await renderMissionCardsForActivePlayer();
+      await renderCoachAthleteBoard();
+      await renderCoachCompletedMissionList();
+      await renderPlayerMessageThread();
+      await renderCoachKPIs();
       document.getElementById('coachMessageInput').value='';
       document.getElementById('missionCodeInput').value='';
       if(fileInput) fileInput.value='';
-      renderCommCounts();
+      await renderCommCounts();
+      await renderReplyStatus();
     });
 
     document.getElementById('sendCoachDirectiveBtn').addEventListener('click', async function(){
@@ -1861,9 +2013,17 @@
         // mark their unread chat messages as read because coach has replied
         await markPlayerMessagesRead(targets[i]);
       }
+      coachDirectivesCache = [];
+      lastCoachDirectivesFetch = 0;
       document.getElementById('coachDirectiveInput').value='';
       if(fileInput) fileInput.value='';
-      renderCoachDirectiveList();renderCoachInboxDynamic();renderDashboardCoachMessages();renderPlayerMessageThread();renderCommCounts();renderCoachKPIs();
+      await renderCoachDirectiveList();
+      await renderCoachInboxDynamic();
+      await renderDashboardCoachMessages();
+      await renderPlayerMessageThread();
+      await renderCommCounts();
+      await renderReplyStatus();
+      await renderCoachKPIs();
     });
 
     var directiveTargetSelect = document.getElementById('coachDirectiveTarget');
@@ -1902,7 +2062,7 @@
     screenBtns.forEach(function(btn){btn.addEventListener('click',function(){
       var externalUrl=btn.dataset.externalUrl;
       if(externalUrl){
-        window.location.href=externalUrl;
+        window.open(externalUrl,'_blank','noopener,noreferrer');
         return;
       }
       var alreadyActive=btn.classList.contains('active');
@@ -1911,9 +2071,11 @@
       panels.forEach(function(p){p.classList.remove('active');});document.getElementById(btn.dataset.screen).classList.add('active');
       if(btn.dataset.screen==='comm'){
         var session=getSession();
-        if(session&&session.role==='player'){setCommLastRead(session.id);renderCommCounts();}
+        if(session&&session.role==='player'){setCommLastRead(session.id);renderCommCounts();renderDashboardCoachMessages();}
         renderPlayerMessageThread();
         renderReplyStatus();
+      }else if(btn.dataset.screen==='dashboard'){
+        renderDashboardCoachMessages();
       }
     });});
 
