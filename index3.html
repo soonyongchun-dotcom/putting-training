@@ -380,8 +380,8 @@
         <div class="topbar-brand-inner">
           <div class="topbar-logo">⛳</div>
           <div class="topbar-text">
-            <div class="topbar-abbr"><span>SY</span>-TPT</div>
-            <div class="topbar-fullname">SY Tour Performance Training System</div>
+            <div class="topbar-abbr"><span>SY</span>-EGTP</div>
+            <div class="topbar-fullname">SY-EGTP (Elit Golf Traning Platform)</div>
           </div>
         </div>
         <div class="topbar-session">
@@ -431,6 +431,8 @@
         <button class="active" data-screen="dashboard">Player Dashboard</button>
         <button data-screen="selfeval">Self Evaluation</button>
         <button data-screen="comm">Coach Communication <span id="commUnreadBadge" style="display:none;background:#dc2626;color:#fff;border-radius:999px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">0</span></button>
+        <button type="button" data-external-url="https://soonyongchun-dotcom.github.io/Mission-project/">Mission Dashboard</button>
+        <button type="button" data-external-url="https://sy-puttingtraining.web.app/">Putting Training</button>
       </div>
 
       <!-- 1) Player Dashboard -->
@@ -715,6 +717,13 @@
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
+    let coachDirectivesCache = [];
+    let lastCoachDirectivesFetch = 0;
+    let lastCoachDirectivesError = 0;
+    let lastCoachDirectivesPlayerId = null;
+    const COACH_DIRECTIVES_CACHE_TTL = 15000;
+    const COACH_DIRECTIVES_ERROR_TTL = 5000;
+    const COACH_DIRECTIVES_FETCH_LIMIT = 100;
 
     const today = new Date();
     document.getElementById("todayDate").textContent =
@@ -1021,9 +1030,32 @@
       }
       return users.find(u=>u.id===session.id&&u.role==='player')||null;
     }
-    function findUserForLogin(users, input){
-      const n=input.trim(), l=n.toLowerCase();
-      return users.find(u=>u.id===n)||users.find(u=>String(u.id||'').toLowerCase()===l)||users.find(u=>u.role==='player'&&u.name===n)||null;
+    function findUserForLogin(users, input, password){
+      const n=(input||'').trim(), l=n.toLowerCase();
+      const candidates=users.filter(function(u){
+        return u.id===n || String(u.id||'').toLowerCase()===l || (u.role==='player'&&u.name===n);
+      });
+      if(!candidates.length) return null;
+
+      const withPassword = typeof password==='string'
+        ? candidates.filter(function(u){ return String(u.password||'')===String(password); })
+        : candidates;
+      const pool = withPassword.length ? withPassword : candidates;
+
+      function approvalRank(u){
+        const s=String(u.approvalStatus||'').trim().toLowerCase();
+        if(s==='approved') return 3;
+        if(s==='pending') return 2;
+        if(s==='inactive') return 1;
+        return 0;
+      }
+
+      return pool.slice().sort(function(a,b){
+        const ar=approvalRank(a), br=approvalRank(b);
+        if(ar!==br) return br-ar;
+        const at=new Date(a.createdAt||0).getTime(), bt=new Date(b.createdAt||0).getTime();
+        return bt-at;
+      })[0]||null;
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
@@ -1206,8 +1238,7 @@
         const lastRead=getCommLastRead(session.id);
         const allDir=await getCoachDirectives();
         const forPlayer=allDir.filter(r=>r.player_id===session.id);
-        const unreadN=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
-        const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
+        const unreadDir=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
         const allMsgs=await getMessages();
         const coachChats = allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.author==='코치'&&m.created_at);
         const unreadChat = lastRead ? coachChats.filter(m=>m.created_at>lastRead).length : coachChats.length;
@@ -1450,6 +1481,8 @@
       root.innerHTML=ap.map(function(player,i){
         var info=infos[i];
         var cfg=phaseConfigs[i];
+        var perfVal=player.performanceLevel!=null?player.performanceLevel:'-';
+        var perfHtml='<div style="margin-top:4px;font-size:12px">경기력 수준: '+perfVal+(perfVal==='-'?'':'%')+'</div>';
         var hasMatch=info.matchName&&info.matchName!=='경기명';
         var dateText=formatMatchRangeText(info.startDate,info.endDate);
         var isOpen=expandedMatchPlayerIds.has(player.id);
@@ -1867,6 +1900,11 @@
     var screenBtns=document.querySelectorAll('.screen-tabs button');
     var panels=document.querySelectorAll('.panel');
     screenBtns.forEach(function(btn){btn.addEventListener('click',function(){
+      var externalUrl=btn.dataset.externalUrl;
+      if(externalUrl){
+        window.location.href=externalUrl;
+        return;
+      }
       var alreadyActive=btn.classList.contains('active');
       if(alreadyActive){btn.classList.remove('active');panels.forEach(function(p){p.classList.remove('active');});return;}
       screenBtns.forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
@@ -1904,11 +1942,12 @@
       var password=(document.getElementById('loginPw').value||'').trim();
       var err=document.getElementById('authError');
       var users=await getUsers();
-      var user=findUserForLogin(users,id);
+      var user=findUserForLogin(users,id,password);
       if(!user){err.textContent='등록된 선수ID/이름이 없습니다.';return;}
       if(String(user.password||'')!==String(password)){err.textContent='비밀번호가 올바르지 않습니다.';return;}
-      if(user.role==='player'&&user.approvalStatus!=='approved'){
-        var msg=user.approvalStatus==='inactive'?
+      var approvalStatus=String(user.approvalStatus||'').trim().toLowerCase();
+      if(user.role==='player'&&approvalStatus!=='approved'){
+        var msg=approvalStatus==='inactive'?
           (user.name+' 선수 계정은 현재 비활성화 상태입니다. 지도자에게 승인 재요청이 필요합니다.'):
           (user.name+' 선수는 현재 승인 대기 상태입니다. 지도자 승인 후 접속 가능합니다.');
         document.getElementById('pendingMessage').textContent=msg;setAuthPanel('pending');err.textContent='';return;
