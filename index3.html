@@ -17,7 +17,6 @@
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
     .app{max-width:1280px;margin:0 auto;padding:20px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    /* Topbar */
     .topbar{
       display:grid;
       grid-template-columns:1fr auto 1fr;
@@ -107,6 +106,9 @@
     .kpi{flex:1;min-width:180px}
     .kpi .label{color:var(--sub);font-size:12px}
     .kpi .value{font-size:20px;font-weight:700;margin-top:4px}
+    #coachPortal .coach-kpi-row{flex-wrap:nowrap;gap:10px}
+    #coachPortal .coach-kpi-row .kpi{flex:1 1 0;min-width:0}
+    #coachPortal .coach-kpi-row .kpi .label{white-space:nowrap}
     .mission-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
     .chip{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--chip);font-size:12px;color:#3730a3}
     .muted{color:var(--sub);font-size:13px}
@@ -318,6 +320,7 @@
         <button class="active" data-auth="login">로그인</button>
         <button data-auth="signup">선수 가입</button>
       </div>
+      <p class="muted" id="authSystemNotice" style="display:none;margin:6px 0 8px;color:#b45309"></p>
 
       <div class="auth-panel active" id="loginPanel">
         <div class="field">
@@ -343,20 +346,6 @@
         <div class="field">
           <label>비밀번호</label>
           <input id="signupPw" type="password" placeholder="8자 이상" />
-        </div>
-        <div class="grid-2">
-          <div class="field">
-            <label>전공 트랙</label>
-            <select id="signupTrack">
-              <option>Putting</option><option>Approach</option><option>Driver</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>시작 레벨</label>
-            <select id="signupLevel">
-              <option>초급</option><option>중급</option><option>상급</option>
-            </select>
-          </div>
         </div>
         <button class="btn btn-green" id="signupBtn" style="width:100%">선수 가입 완료</button>
       </div>
@@ -552,7 +541,7 @@
 
     <!-- COACH PORTAL -->
     <section id="coachPortal" style="display:none">
-      <div class="row" style="margin-bottom:14px">
+      <div class="row coach-kpi-row" style="margin-bottom:14px">
         <div class="card kpi"><div class="label">관리 선수</div><div class="value" id="managedAthleteCount">0명</div></div>
         <div class="card kpi"><div class="label">오늘 위험 신호</div><div class="value" id="coachKpiRisk">-</div></div>
         <div class="card kpi"><div class="label">답장 대기중</div><div class="value" id="coachKpiPending">-</div></div>
@@ -714,17 +703,25 @@
     const STORAGE_SESSION = "sytpt_session";
     const STORAGE_COACH_SELECTED_PLAYER = "sytpt_coach_selected_player";
     const STORAGE_COMM_LAST_READ = "sytpt_comm_last_read";
+    const STORAGE_SIGNUP_COOLDOWN_UNTIL = "sytpt_signup_cooldown_until";
+    const STORAGE_SIGNUP_RATE_LIMIT_STATE = "sytpt_signup_rate_limit_state";
+    const STORAGE_AUTH_EMAIL_HINT_PREFIX = "sytpt_auth_email_hint_";
+    const STORAGE_COACH_KPI_LAST = "sytpt_coach_kpi_last";
+    const SIGNUP_RETRY_MS = 120000;
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
     const expandedMatchPlayerIds = new Set();
-    let storageUploadAllowed = false;
+    let storageUploadAllowed = true;
     let coachDirectivesCache = [];
+    let coachDirectivesByPlayerCache = {};
+    let coachDirectivesByPlayerFetch = {};
+    let coachDirectivesByPlayerError = {};
     let lastCoachDirectivesFetch = 0;
     let lastCoachDirectivesError = 0;
-    let lastCoachDirectivesPlayerId = null;
     const COACH_DIRECTIVES_CACHE_TTL = 15000;
-    const COACH_DIRECTIVES_ERROR_TTL = 5000;
-    const COACH_DIRECTIVES_FETCH_LIMIT = 100;
+    const COACH_DIRECTIVES_ERROR_TTL = 30000;
+    const COACH_DIRECTIVES_FETCH_LIMIT = 30;
+    const COACH_DIRECTIVES_FALLBACK_LIMIT = 20;
     let hasCoachReadColumn = false;
 
     const today = new Date();
@@ -766,11 +763,74 @@
       delete m[pid];
       localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
     }
+    function getSignupCooldownLeftMs(){
+      var until=Number(localStorage.getItem(STORAGE_SIGNUP_COOLDOWN_UNTIL)||'0');
+      if(!until) return 0;
+      return Math.max(0, until-Date.now());
+    }
+    function setSignupCooldown(ms){
+      localStorage.setItem(STORAGE_SIGNUP_COOLDOWN_UNTIL, String(Date.now()+Math.max(0,ms||0)));
+    }
+    function getSignupRateLimitState(){
+      try{
+        var s=JSON.parse(localStorage.getItem(STORAGE_SIGNUP_RATE_LIMIT_STATE)||'null');
+        if(!s||typeof s!=='object') return {count:0,lastAt:0};
+        return {count:Number(s.count||0),lastAt:Number(s.lastAt||0)};
+      }catch(_){
+        return {count:0,lastAt:0};
+      }
+    }
+    function setSignupRateLimitState(state){
+      localStorage.setItem(STORAGE_SIGNUP_RATE_LIMIT_STATE, JSON.stringify({
+        count:Number(state&&state.count||0),
+        lastAt:Number(state&&state.lastAt||0)
+      }));
+    }
+    function resetSignupRateLimitState(){
+      localStorage.removeItem(STORAGE_SIGNUP_RATE_LIMIT_STATE);
+    }
+    function applyRateLimitBackoff(){
+      var st=getSignupRateLimitState();
+      var now=Date.now();
+      // decay counter if enough time has passed
+      if(st.lastAt && (now-st.lastAt)>30*60*1000) st.count=0;
+      st.count=Math.min(st.count+1,6);
+      st.lastAt=now;
+      setSignupRateLimitState(st);
+      var cooldownMs=Math.min(SIGNUP_RETRY_MS*Math.pow(2,Math.max(0,st.count-1)), 30*60*1000);
+      setSignupCooldown(cooldownMs);
+      return cooldownMs;
+    }
+    function setAuthSystemNotice(msg){
+      var el=document.getElementById('authSystemNotice');
+      if(!el) return;
+      el.textContent=String(msg||'').trim();
+      el.style.display=el.textContent?'block':'none';
+    }
+    function updateSignupCooldownUI(){
+      var btn=document.getElementById('signupBtn');
+      if(!btn) return;
+      var left=getSignupCooldownLeftMs();
+      if(left>0){
+        btn.disabled=true;
+        btn.textContent='선수 가입 완료 ('+Math.ceil(left/1000)+'초 후 재시도)';
+      }else{
+        btn.disabled=false;
+        btn.textContent='선수 가입 완료';
+      }
+    }
+    setInterval(updateSignupCooldownUI,1000);
+    function getCoachKpiLastCache(){
+      try{ return JSON.parse(localStorage.getItem(STORAGE_COACH_KPI_LAST)||'null'); }catch(_){ return null; }
+    }
+    function setCoachKpiLastCache(v){
+      try{ localStorage.setItem(STORAGE_COACH_KPI_LAST, JSON.stringify(v||null)); }catch(_){ }
+    }
 
     // ====== Supabase CRUD ======
 
     function fromDbUser(r){
-      return { id:r.id, password:r.password, name:r.name, role:r.role, track:r.track, level:r.level,
+      return { id:r.id, name:r.name, role:r.role, track:r.track, level:r.level,
                approvalStatus:r.approval_status, todayCompletion:r.today_completion,
                riskLevel:r.risk_level, statusLabel:r.status_label,
                // new performance field (stored as performance_level in DB)
@@ -781,7 +841,7 @@
       // ensure we always have a timestamp string
       const ts = r.created_at || r.updated_at || new Date().toISOString();
       return { playerId:r.player_id, author:r.author, text:r.text,
-               messageType:r.message_type, createdAt:ts };
+               messageType:r.message_type, attachments:r.attachments||[], createdAt:ts };
     }
     function fromDbMission(r){
       return { missionId:r.mission_id, playerId:r.player_id, code:r.code, category:r.category,
@@ -807,12 +867,37 @@
     }
 
     async function getUsers(){
-      const {data,error}=await sb.from('sytpt_users').select('*');
+      const {data,error}=await sb.from('sytpt_users').select('id,name,role,track,level,approval_status,today_completion,risk_level,status_label,performance_level,approved_at,deactivated_at,created_at');
       if(error) console.error('getUsers',error);
       return (data||[]).map(fromDbUser);
     }
     async function getMessages(){
-      const {data}=await sb.from('sytpt_messages').select('*').order('created_at'); return data||[];
+      const candidates=[
+        {select:'player_id,author,text,message_type,attachments,created_at', ordered:true, hasCoachRead:false},
+        {select:'player_id,author,text,attachments,created_at', ordered:true, hasCoachRead:false},
+        {select:'player_id,author,text,created_at', ordered:true, hasCoachRead:false},
+        {select:'player_id,author,text', ordered:false, hasCoachRead:false}
+      ];
+
+      const errs=[];
+      for(var i=0;i<candidates.length;i++){
+        try{
+          var c=candidates[i];
+          var q=sb.from('sytpt_messages').select(c.select);
+          if(c.ordered) q=q.order('created_at');
+          var res=await q;
+          if(!res.error){
+            hasCoachReadColumn = !!c.hasCoachRead;
+            return res.data||[];
+          }
+          errs.push({select:c.select,ordered:c.ordered,error:res.error});
+        }catch(e){
+          errs.push({select:candidates[i].select,ordered:candidates[i].ordered,error:e});
+        }
+      }
+
+      console.error('getMessages all fallbacks failed', errs);
+      return [];
     }
     async function addMessage(msg){
       // allow optional attachments array
@@ -824,7 +909,7 @@
       });
     }
     async function getAssignedMissions(){
-      const {data}=await sb.from('sytpt_assigned_missions').select('*').order('created_at'); return data||[];
+      const {data}=await sb.from('sytpt_assigned_missions').select('mission_id,player_id,code,category,feedback,attachments,level,time,completed,completed_at,created_at').order('created_at'); return data||[];
     }
     async function addAssignedMission(m){
       await sb.from('sytpt_assigned_missions').insert({
@@ -839,31 +924,32 @@
         .update({completed, completed_at:completedAt||null})
         .eq('mission_id', missionId);
     }
-    async function getCoachDirectives(playerId=null, force=false){
+    async function getCoachDirectives(playerId=null, force=false, includeAttachments=true){
       const now = Date.now();
-      // if asking for a specific player's directives, avoid serving cached data for a different player
-      if(playerId && playerId!==lastCoachDirectivesPlayerId){
-        coachDirectivesCache = [];
-        lastCoachDirectivesFetch = 0;
-        lastCoachDirectivesError = 0;
-        lastCoachDirectivesPlayerId = playerId;
-      }
+      const directiveSelectWithAttachments = includeAttachments
+        ? 'directive_id,player_id,text,created_at,coach_id,attachments'
+        : 'directive_id,player_id,text,created_at,coach_id';
+      const directiveSelectNoAttachments = 'directive_id,player_id,text,created_at,coach_id';
 
       // player-specific query (fastest path): only fetch recent directives for that player
       if(playerId){
+        const lastFetch = Number(coachDirectivesByPlayerFetch[playerId]||0);
+        const lastError = Number(coachDirectivesByPlayerError[playerId]||0);
+        const cachedRows = Array.isArray(coachDirectivesByPlayerCache[playerId]) ? coachDirectivesByPlayerCache[playerId] : [];
+
         // cache per player to avoid repeated 500 errors
         if(!force){
-          if(now - lastCoachDirectivesFetch < COACH_DIRECTIVES_CACHE_TTL && coachDirectivesCache.length){
-            return coachDirectivesCache;
+          if(now - lastFetch < COACH_DIRECTIVES_CACHE_TTL && cachedRows.length){
+            return cachedRows;
           }
-          if(now - lastCoachDirectivesError < COACH_DIRECTIVES_ERROR_TTL){
+          if(now - lastError < COACH_DIRECTIVES_ERROR_TTL){
             return [];
           }
         }
 
         try{
           const {data,error} = await sb.from('sytpt_coach_directives')
-            .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
+            .select(directiveSelectWithAttachments)
             .eq('player_id', playerId)
             .order('created_at',{ascending:false})
             .limit(COACH_DIRECTIVES_FETCH_LIMIT);
@@ -874,14 +960,14 @@
             if(error.code==='57014' || (error.message && /statement timeout/i.test(error.message))){
               try{
                 const {data:fastData,error:fastError} = await sb.from('sytpt_coach_directives')
-                  .select('directive_id,player_id,text,created_at,coach_id')
+                  .select(directiveSelectWithAttachments)
                   .eq('player_id', playerId)
                   .order('created_at',{ascending:false})
-                  .limit(COACH_DIRECTIVES_FETCH_LIMIT);
+                  .limit(COACH_DIRECTIVES_FALLBACK_LIMIT);
                 if(!fastError){
-                  coachDirectivesCache = fastData||[];
-                  lastCoachDirectivesFetch = now;
-                  return coachDirectivesCache;
+                  coachDirectivesByPlayerCache[playerId] = fastData||[];
+                  coachDirectivesByPlayerFetch[playerId] = now;
+                  return coachDirectivesByPlayerCache[playerId];
                 }
               }catch(_){ }
             }
@@ -890,27 +976,41 @@
             if(error.message && /(attachments|replies|column)/i.test(error.message)){
               try{
                 const {data:errorData,error:err2} = await sb.from('sytpt_coach_directives')
-                  .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
+                  .select(directiveSelectNoAttachments)
                   .eq('player_id', playerId)
                   .order('created_at',{ascending:false})
-                  .limit(COACH_DIRECTIVES_FETCH_LIMIT);
+                  .limit(COACH_DIRECTIVES_FALLBACK_LIMIT);
                 if(!err2){
-                  coachDirectivesCache = errorData||[];
-                  lastCoachDirectivesFetch = now;
-                  return coachDirectivesCache;
+                  coachDirectivesByPlayerCache[playerId] = errorData||[];
+                  coachDirectivesByPlayerFetch[playerId] = now;
+                  return coachDirectivesByPlayerCache[playerId];
                 }
               }catch(_){}
             }
 
-            lastCoachDirectivesError = now;
+            // generic 5xx/unknown error fallback: reduce scan cost and keep UI responsive
+            try{
+              const {data:lightData,error:lightErr} = await sb.from('sytpt_coach_directives')
+                .select(directiveSelectWithAttachments)
+                .eq('player_id', playerId)
+                .order('created_at',{ascending:false})
+                .limit(COACH_DIRECTIVES_FALLBACK_LIMIT);
+              if(!lightErr){
+                coachDirectivesByPlayerCache[playerId] = lightData||[];
+                coachDirectivesByPlayerFetch[playerId] = now;
+                return coachDirectivesByPlayerCache[playerId];
+              }
+            }catch(_){ }
+
+            coachDirectivesByPlayerError[playerId] = now;
             return [];
           }
-          coachDirectivesCache = data||[];
-          lastCoachDirectivesFetch = now;
-          return coachDirectivesCache;
+          coachDirectivesByPlayerCache[playerId] = data||[];
+          coachDirectivesByPlayerFetch[playerId] = now;
+          return coachDirectivesByPlayerCache[playerId];
         }catch(e){
           console.error('getCoachDirectives (player) exception', e);
-          lastCoachDirectivesError = now;
+          coachDirectivesByPlayerError[playerId] = now;
           return [];
         }
       }
@@ -927,7 +1027,7 @@
 
       try{
         const {data,error} = await sb.from('sytpt_coach_directives')
-          .select('directive_id,player_id,text,created_at,coach_id,replies,attachments')
+          .select(directiveSelectWithAttachments)
           .limit(20);
         if(error){
           console.warn('getCoachDirectives error', error, {
@@ -936,6 +1036,18 @@
             details: error.details,
             hint: error.hint,
           });
+          if(error.message && /(attachments|column)/i.test(error.message)){
+            try{
+              const {data:fallbackData,error:fallbackErr} = await sb.from('sytpt_coach_directives')
+                .select(directiveSelectNoAttachments)
+                .limit(20);
+              if(!fallbackErr){
+                coachDirectivesCache = fallbackData||[];
+                lastCoachDirectivesFetch = now;
+                return coachDirectivesCache;
+              }
+            }catch(_){ }
+          }
           lastCoachDirectivesError = now;
           return coachDirectivesCache;
         }
@@ -980,7 +1092,7 @@
     }
     async function getMissionProgressState(playerId, missionKey){
       const {data}=await sb.from('sytpt_mission_progress')
-        .select('*').eq('player_id',playerId).eq('mission_key',missionKey).maybeSingle();
+        .select('player_id,mission_key,completed,completed_at').eq('player_id',playerId).eq('mission_key',missionKey).maybeSingle();
       if(!data) return null;
       return {playerId:data.player_id,missionKey:data.mission_key,completed:data.completed,completedAt:data.completed_at};
     }
@@ -992,10 +1104,10 @@
       );
     }
     async function getAllMissionProgress(){
-      const {data}=await sb.from('sytpt_mission_progress').select('*'); return data||[];
+      const {data}=await sb.from('sytpt_mission_progress').select('player_id,mission_key,completed,completed_at'); return data||[];
     }
     async function getSelfEvalRecords(){
-      const {data}=await sb.from('sytpt_self_eval').select('*').order('date',{ascending:false}); return data||[];
+      const {data}=await sb.from('sytpt_self_eval').select('player_id,date,focus,mind_status,stamina_status,note,created_at,updated_at').order('date',{ascending:false}); return data||[];
     }
 
     // helper queries to support multi-value status fields
@@ -1003,7 +1115,7 @@
       if(!playerId || !status) return [];
       // use ILIKE for case-insensitive match on pipe-separated list
       const {data}=await sb.from('sytpt_self_eval')
-        .select('*')
+        .select('player_id,date,focus,mind_status,stamina_status,note,created_at,updated_at')
         .eq('player_id', playerId)
         .ilike('mind_status','%'+status+'%')
         .order('date',{ascending:false});
@@ -1013,7 +1125,7 @@
     async function querySelfEvalByStaminaStatus(playerId, status){
       if(!playerId || !status) return [];
       const {data}=await sb.from('sytpt_self_eval')
-        .select('*')
+        .select('player_id,date,focus,mind_status,stamina_status,note,created_at,updated_at')
         .eq('player_id', playerId)
         .ilike('stamina_status','%'+status+'%')
         .order('date',{ascending:false});
@@ -1029,7 +1141,7 @@
     }
     async function getMatchInfoByPlayerId(playerId){
       if(!playerId) return {matchName:"경기명",startDate:"시작일",endDate:"종료일"};
-      const {data}=await sb.from('sytpt_match_info').select('*').eq('player_id',playerId).maybeSingle();
+      const {data}=await sb.from('sytpt_match_info').select('player_id,match_name,start_date,end_date').eq('player_id',playerId).maybeSingle();
       if(!data) return {matchName:"경기명",startDate:"시작일",endDate:"종료일"};
       return {matchName:data.match_name||"경기명",startDate:data.start_date||"시작일",endDate:data.end_date||"종료일"};
     }
@@ -1049,6 +1161,9 @@
       if(mt==='chat') return true; if(mt==='mission') return false;
       return m.author==='선수';
     }
+    function normalizeApprovalStatus(v){
+      return String(v||'').trim().toLowerCase();
+    }
     function getApprovedPlayers(users){ return users.filter(u=>u.role==='player'&&u.approvalStatus==='approved'); }
     function getActivePlayerForView(users){
       const session=getSession(); if(!session) return null;
@@ -1059,17 +1174,132 @@
       }
       return users.find(u=>u.id===session.id&&u.role==='player')||null;
     }
-    function findUserForLogin(users, input, password){
+    function normalizeLoginId(v){
+      return String(v||'').trim().toLowerCase();
+    }
+    function toUtf8Hex(v){
+      try{
+        return Array.from(new TextEncoder().encode(String(v||'')))
+          .map(function(b){return b.toString(16).padStart(2,'0');})
+          .join('');
+      }catch(_){
+        return '';
+      }
+    }
+    const AUTH_ALIAS_DOMAIN='syegtp.app';
+    const AUTH_ALIAS_LEGACY_DOMAIN='syegtp.local';
+    function buildAuthEmailFromId(loginId){
+      const normalized=normalizeLoginId(loginId);
+      const asciiLocal=normalized.replace(/[^a-z0-9._-]/g,'');
+      const fallbackLocal=('id'+toUtf8Hex(normalized)).slice(0,48);
+      const local=(asciiLocal||fallbackLocal).replace(/^\.+|\.+$/g,'');
+      if(!local) return '';
+      return local+'@'+AUTH_ALIAS_DOMAIN;
+    }
+    function buildLegacyAuthEmailFromId(loginId){
+      const normalized=normalizeLoginId(loginId);
+      const asciiLocal=normalized.replace(/[^a-z0-9._-]/g,'');
+      const fallbackLocal=('id'+toUtf8Hex(normalized)).slice(0,48);
+      const local=(asciiLocal||fallbackLocal).replace(/^\.+|\.+$/g,'');
+      if(!local) return '';
+      return local+'@'+AUTH_ALIAS_LEGACY_DOMAIN;
+    }
+    function buildSignupAuthEmailCandidates(loginId){
+      var a=buildAuthEmailFromId(loginId);
+      var b=buildLegacyAuthEmailFromId(loginId);
+      var out=[];
+      [a,b].forEach(function(v){ if(v&&out.indexOf(v)===-1) out.push(v); });
+      return out;
+    }
+    function isRateLimitAuthError(e){
+      if(!e) return false;
+      var code=String(e.code||e.error_code||'').toLowerCase();
+      var msg=String(e.message||'').toLowerCase();
+      var status=Number(e.status||e.statusCode||0);
+      return status===429 || code.indexOf('rate')!==-1 || code.indexOf('limit')!==-1 || msg.indexOf('rate limit')!==-1 || msg.indexOf('429')!==-1;
+    }
+    function isInvalidEmailAuthError(e){
+      if(!e) return false;
+      var code=String(e.code||e.error_code||'').toLowerCase();
+      var msg=String(e.message||'').toLowerCase();
+      return code.indexOf('email_address_invalid')!==-1 || (msg.indexOf('email address')!==-1 && msg.indexOf('invalid')!==-1);
+    }
+    function isAlreadyRegisteredAuthError(e){
+      if(!e) return false;
+      var code=String(e.code||e.error_code||'').toLowerCase();
+      var msg=String(e.message||'').toLowerCase();
+      return code.indexOf('already')!==-1 || msg.indexOf('already registered')!==-1 || msg.indexOf('already exists')!==-1;
+    }
+    function formatAuthErrorMessage(e, fallback){
+      if(!e) return fallback||'인증 처리 중 오류가 발생했습니다.';
+      var msg=String(e.message||e.error_description||'').toLowerCase();
+      if(msg.indexOf('email signups are disabled')!==-1 || msg.indexOf('signup is disabled')!==-1 || msg.indexOf('email provider is disabled')!==-1){
+        return '현재 이메일 회원가입이 비활성화되어 있습니다. Supabase Authentication 설정에서 Email provider를 활성화하세요.';
+      }
+      if(isRateLimitAuthError(e)) return '요청이 많아 인증이 일시 제한되었습니다. 잠시 후 다시 시도해주세요.';
+      if(isInvalidEmailAuthError(e)) return '가입용 이메일 형식이 허용되지 않습니다. ID를 영문/숫자로 입력하거나 잠시 후 다시 시도해주세요.';
+      if(isAlreadyRegisteredAuthError(e)) return '이미 등록된 인증 계정입니다. 기존 비밀번호로 로그인하거나 코치에게 초기화를 요청하세요.';
+      return (fallback||'인증 처리 실패')+': '+String(e.message||e.error_description||'오류');
+    }
+    function findUserForAuthSession(users, authUser){
+      if(!authUser) return null;
+      const email=String(authUser.email||'').toLowerCase();
+      const emailLocal=email.includes('@')?email.split('@')[0]:'';
+      const meta=authUser.user_metadata||{};
+      const metaLoginId=normalizeLoginId(meta.login_id||'');
+      const metaName=String(meta.name||'').trim();
+      var user=null;
+
+      if(metaLoginId){
+        user=users.find(function(u){return normalizeLoginId(u.id)===metaLoginId;})||null;
+        if(user) return user;
+      }
+      if(emailLocal){
+        user=users.find(function(u){
+          var primary=buildAuthEmailFromId(u.id).toLowerCase();
+          var legacy=buildLegacyAuthEmailFromId(u.id).toLowerCase();
+          return primary===email||legacy===email;
+        })||null;
+        if(user) return user;
+      }
+      if(metaName){
+        user=users.find(function(u){return u.name===metaName;})||null;
+      }
+      return user||null;
+    }
+    async function syncLocalSessionWithAuth(){
+      const authRes=await sb.auth.getSession();
+      const authSession=authRes&&authRes.data?authRes.data.session:null;
+      if(!authSession||!authSession.user){
+        clearSession();
+        return null;
+      }
+      const users=await getUsers();
+      const mapped=findUserForAuthSession(users, authSession.user);
+      if(!mapped){
+        clearSession();
+        return null;
+      }
+      setSession({id:mapped.id,name:mapped.name,role:mapped.role});
+      return mapped;
+    }
+    async function safeAuthSignOut(){
+      try{
+        await sb.auth.signOut({scope:'local'});
+      }catch(e){
+        // local scope signout should not fail user flows
+        console.warn('safeAuthSignOut', e);
+      }
+    }
+    function findUserForLogin(users, input){
+      return findUsersForLogin(users,input)[0]||null;
+    }
+    function findUsersForLogin(users, input){
       const n=(input||'').trim(), l=n.toLowerCase();
       const candidates=users.filter(function(u){
-        return u.id===n || String(u.id||'').toLowerCase()===l || (u.role==='player'&&u.name===n);
+        return u.id===n || String(u.id||'').toLowerCase()===l || u.name===n;
       });
-      if(!candidates.length) return null;
-
-      const withPassword = typeof password==='string'
-        ? candidates.filter(function(u){ return String(u.password||'')===String(password); })
-        : candidates;
-      const pool = withPassword.length ? withPassword : candidates;
+      if(!candidates.length) return [];
 
       function approvalRank(u){
         const s=String(u.approvalStatus||'').trim().toLowerCase();
@@ -1079,12 +1309,59 @@
         return 0;
       }
 
-      return pool.slice().sort(function(a,b){
+      function loginMatchRank(u){
+        if(u.id===n) return 3;
+        if(String(u.id||'').toLowerCase()===l) return 2;
+        if(u.name===n) return 1;
+        return 0;
+      }
+
+      return candidates.slice().sort(function(a,b){
+        const mrA=loginMatchRank(a), mrB=loginMatchRank(b);
+        if(mrA!==mrB) return mrB-mrA;
         const ar=approvalRank(a), br=approvalRank(b);
         if(ar!==br) return br-ar;
         const at=new Date(a.createdAt||0).getTime(), bt=new Date(b.createdAt||0).getTime();
         return bt-at;
-      })[0]||null;
+      });
+    }
+    function looksLikeEmail(v){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').trim());
+    }
+    function getAuthEmailHint(loginInput){
+      const key=normalizeLoginId(loginInput);
+      if(!key) return '';
+      return String(localStorage.getItem(STORAGE_AUTH_EMAIL_HINT_PREFIX+key)||'').trim().toLowerCase();
+    }
+    function setAuthEmailHint(loginInput, email){
+      const key=normalizeLoginId(loginInput);
+      const v=String(email||'').trim().toLowerCase();
+      if(!key||!looksLikeEmail(v)) return;
+      localStorage.setItem(STORAGE_AUTH_EMAIL_HINT_PREFIX+key,v);
+    }
+    function buildAuthEmailCandidates(input, userOrUsers){
+      var list=[];
+      var raw=String(input||'').trim();
+      var hint=getAuthEmailHint(raw);
+      if(hint) list.push(hint);
+      if(raw&&looksLikeEmail(raw)) list.push(raw.toLowerCase());
+
+      var users=Array.isArray(userOrUsers)?userOrUsers:(userOrUsers?[userOrUsers]:[]);
+      users.forEach(function(user){
+        if(user&&user.id) list.push(buildAuthEmailFromId(user.id));
+        if(user&&user.id) list.push(buildLegacyAuthEmailFromId(user.id));
+        if(user&&user.name) list.push(buildAuthEmailFromId(user.name));
+        if(user&&user.name) list.push(buildLegacyAuthEmailFromId(user.name));
+      });
+
+      if(raw) list.push(buildAuthEmailFromId(raw));
+      if(raw) list.push(buildLegacyAuthEmailFromId(raw));
+      var uniq=[];
+      list.forEach(function(v){
+        var email=String(v||'').trim().toLowerCase();
+        if(email&&looksLikeEmail(email)&&uniq.indexOf(email)===-1) uniq.push(email);
+      });
+      return uniq;
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
@@ -1292,7 +1569,7 @@
       const session=getSession(); if(!session) return;
       if(session.role==='player'){
         const lastRead=getCommLastRead(session.id);
-        const allDir=await getCoachDirectives();
+        const allDir=await getCoachDirectives(null,false,false);
         const forPlayer=allDir.filter(r=>r.player_id===session.id);
         const unreadDir=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
         const allMsgs=await getMessages();
@@ -1359,7 +1636,7 @@
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
 
       // force=true to avoid stale cache when switching back from Coach Communication.
-      const dirsRaw=await getCoachDirectives(player.id,true);
+      const dirsRaw=await getCoachDirectives(player.id,false,false);
       const lastRead=getCommLastRead(player.id);
       const unreadDir=lastRead
         ? dirsRaw.filter(function(r){return r.player_id===player.id&&r.created_at&&r.created_at>lastRead;}).length
@@ -1460,10 +1737,12 @@
       const ap=getApprovedPlayers(users);
       let filteredRaw=[];
       if(target&&target!=='__all__'){
-        filteredRaw=await getCoachDirectives(target,true);
+        filteredRaw=await getCoachDirectives(target,false);
       }else{
-        const allByPlayer=await Promise.all(ap.map(function(p){ return getCoachDirectives(p.id,true); }));
-        filteredRaw=allByPlayer.flat();
+        filteredRaw=await getCoachDirectives(null,false,true);
+        filteredRaw=filteredRaw.filter(function(r){
+          return ap.some(function(p){return p.id===r.player_id;});
+        });
       }
 
       // Merge per-player results into one timeline: remove duplicates and sort by timestamp.
@@ -1497,36 +1776,62 @@
       var pendingEl=document.getElementById('coachKpiPending');
       var avgEl=document.getElementById('coachKpiAvgCompletion');
       if(!riskEl||!pendingEl||!avgEl) return;
-      var users=await getUsers();
-      var ap=getApprovedPlayers(users);
-      // 1) 위험 신호: risk_level === '높음' 인원수
-      var riskCount=ap.filter(function(p){return p.riskLevel==='높음';}).length;
-      riskEl.textContent=riskCount+'건';
-      riskEl.className='value '+(riskCount>0?'risk-high':'');
-      // 2) 답장 대기중: 선수 마지막 메시지 이후 코치 답변 없는 선수 수
-      var msgsRaw=await getMessages();
-      var pendingCount=0;
-      for(var i=0;i<ap.length;i++){
-        var player=ap[i];
-        var dirsRaw=await getCoachDirectives(player.id,true);
-        var dirs=dirsRaw.map(function(r){return {author:'코치',createdAt:r.created_at||''};});
-        var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
-        var thread=[...dirs,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
-        if(thread.length&&thread[thread.length-1].author==='선수') pendingCount++;
+      try{
+        var users=await getUsers();
+        var ap=getApprovedPlayers(users);
+        // 1) 위험 신호: risk_level === '높음' 인원수
+        var riskCount=ap.filter(function(p){return p.riskLevel==='높음';}).length;
+        riskEl.textContent=riskCount+'건';
+        riskEl.className='value '+(riskCount>0?'risk-high':'');
+        // 2) 답장 대기중: 선수 마지막 메시지 이후 코치 답변 없는 선수 수
+        var msgsRaw=await getMessages();
+        var allDirsRaw=await getCoachDirectives(null,false,false);
+        var pendingCount=0;
+        for(var i=0;i<ap.length;i++){
+          var player=ap[i];
+          var dirsRaw=allDirsRaw.filter(function(d){return d.player_id===player.id;});
+          var dirs=dirsRaw.map(function(r){return {author:'코치',createdAt:r.created_at||''};});
+          var chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
+          var thread=[...dirs,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
+          if(thread.length&&thread[thread.length-1].author==='선수') pendingCount++;
+        }
+        pendingEl.textContent=pendingCount+'건';
+        pendingEl.className='value '+(pendingCount>0?'risk-mid':'');
+        // 3) 미션 완료율 평균
+        if(!ap.length){avgEl.textContent='0%';return;}
+        var total=ap.reduce(function(sum,p){
+          return sum+parseInt((p.todayCompletion||'0%'),10);
+        },0);
+        avgEl.textContent=Math.round(total/ap.length)+'%';
+        setCoachKpiLastCache({
+          at:new Date().toISOString(),
+          risk:riskEl.textContent,
+          pending:pendingEl.textContent,
+          avg:avgEl.textContent
+        });
+      }catch(e){
+        console.warn('renderCoachKPIs fallback', e);
+        var c=getCoachKpiLastCache();
+        if(c&&c.risk&&c.pending&&c.avg){
+          riskEl.textContent=c.risk;
+          pendingEl.textContent=c.pending;
+          avgEl.textContent=c.avg;
+        }else{
+          riskEl.textContent='0건';
+          pendingEl.textContent='0건';
+          avgEl.textContent='0%';
+        }
       }
-      pendingEl.textContent=pendingCount+'건';
-      pendingEl.className='value '+(pendingCount>0?'risk-mid':'');
-      // 3) 미션 완료율 평균
-      if(!ap.length){avgEl.textContent='-';return;}
-      var total=ap.reduce(function(sum,p){
-        return sum+parseInt((p.todayCompletion||'0%'),10);
-      },0);
-      avgEl.textContent=Math.round(total/ap.length)+'%';
     }
     async function renderPendingApprovals(){
       const root=document.getElementById('pendingApprovalTable'); if(!root) return;
       const users=await getUsers();
-      const pending=users.filter(function(u){return u.role==='player'&&u.approvalStatus==='pending';});
+      const pending=users.filter(function(u){
+        if(String(u.role||'').toLowerCase()!=='player') return false;
+        const s=normalizeApprovalStatus(u.approvalStatus);
+        // include null/empty status rows as pending to avoid missing newly created applicants
+        return s!=='approved' && s!=='inactive';
+      });
       if(!pending.length){root.innerHTML='<tr><td colspan="5" class="muted">승인 대기 선수가 없습니다.</td></tr>';return;}
       root.innerHTML=pending.map(function(u){return '<tr><td>'+u.id+'</td><td>'+u.name+'</td><td>'+(u.track||'-')+'</td><td class="risk-mid">대기</td><td><button class="btn btn-green approve-btn" data-player-id="'+u.id+'">승인</button></td></tr>';}).join('');
       root.querySelectorAll('.approve-btn').forEach(function(btn){btn.addEventListener('click',async function(){
@@ -1555,11 +1860,17 @@
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
-        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?\n선수 계정과 관련 데이터(미션/메시지/지시사항/자기평가/시합정보)가 모두 삭제됩니다.')) return;
+        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?\n선수 계정은 비활성화되며, 필요 시 다시 승인할 수 있습니다.')) return;
         try{
-          await deletePlayerAllData(pid);
+          await sb.from('sytpt_users')
+            .update({
+              approval_status:'inactive',
+              status_label:'비활성화',
+              deactivated_at:new Date().toISOString()
+            })
+            .eq('id',pid);
         }catch(e){
-          alert('선수 데이터 삭제 중 오류가 발생했습니다.\n'+(e&&e.message?e.message:e));
+          alert('승인 취소 처리 중 오류가 발생했습니다.\n'+(e&&e.message?e.message:e));
           return;
         }
         usersCache = [];
@@ -1693,7 +2004,7 @@
       var player=getActivePlayerForView(users);
       if(!player){coachEl.textContent='–';playerEl.textContent='–';pendingEl.textContent='–';return;}
       // Fetch directives for this player directly to avoid stale cache
-      var dirsRaw=await getCoachDirectives(player.id,true);
+      var dirsRaw=await getCoachDirectives(player.id,false,false);
       var msgsRaw=await getMessages();
       var dirItems=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',createdAt:r.created_at||''};});
       var chatItems=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',createdAt:r.created_at||''};});
@@ -1722,11 +2033,10 @@
       }
       const msgsRaw=await getMessages();
       const directivesByPlayer=new Map();
-      const directiveRows=await Promise.all(ap.map(async function(p){
-        const rows=await getCoachDirectives(p.id,true);
-        return {playerId:p.id,rows:rows||[]};
-      }));
-      directiveRows.forEach(function(d){directivesByPlayer.set(d.playerId,d.rows);});
+      const allDirs=await getCoachDirectives(null,false,false);
+      ap.forEach(function(p){
+        directivesByPlayer.set(p.id, allDirs.filter(function(d){return d.player_id===p.id;}));
+      });
       const groups=ap.map(function(player){
         const chats=msgsRaw
           .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r));})
@@ -1812,6 +2122,7 @@
       }else{
         document.querySelector('.auth-tabs').style.display='none';
       }
+      if(panel==='signup') updateSignupCooldownUI();
     }
     function goBack(){
       var authVisible=document.getElementById('authScreen').style.display!=='none';
@@ -2084,19 +2395,79 @@
     });});
 
     document.getElementById('signupBtn').addEventListener('click', async function(){
+      var signupBtn=document.getElementById('signupBtn');
       var name=(document.getElementById('signupName').value||'').trim();
       var id=(document.getElementById('signupId').value||'').trim();
       var password=(document.getElementById('signupPw').value||'').trim();
-      var track=document.getElementById('signupTrack').value;
-      var level=document.getElementById('signupLevel').value;
       var err=document.getElementById('authError');
+      setAuthSystemNotice('');
+      updateSignupCooldownUI();
+      var cooldownLeft=getSignupCooldownLeftMs();
+      if(cooldownLeft>0){
+        err.textContent='요청이 너무 많아 잠시 제한되었습니다. '+Math.ceil(cooldownLeft/1000)+'초 후 다시 시도해주세요.';
+        setAuthSystemNotice('Supabase 인증 요청 제한으로 인해 가입 재시도가 지연되고 있습니다.');
+        return;
+      }
       if(!name||!id||!password){err.textContent='필수 항목(이름/ID/비밀번호)을 입력하세요.';return;}
       if(password.length<8){err.textContent='비밀번호는 8자 이상이어야 합니다.';return;}
+      var signupAuthCandidates=buildSignupAuthEmailCandidates(id);
+      if(!signupAuthCandidates.length){err.textContent='사용 가능한 선수 ID 형식이 아닙니다. (영문/숫자 권장)';return;}
+      if(signupBtn) signupBtn.disabled=true;
+      try{
       var res=await sb.from('sytpt_users').select('id').eq('id',id).maybeSingle();
       if(res.data){err.textContent='이미 사용 중인 선수 ID입니다.';return;}
-      await sb.from('sytpt_users').insert({id:id,password:password,name:name,role:'player',track:track,level:level,approval_status:'pending',today_completion:'0%',risk_level:'정상',created_at:new Date().toISOString()});
+      var authRes=null;
+      var signupEmail='';
+      var lastAuthErr=null;
+      for(var si=0;si<signupAuthCandidates.length;si++){
+        signupEmail=signupAuthCandidates[si];
+        authRes=await sb.auth.signUp({
+          email:signupEmail,
+          password:password,
+          options:{data:{login_id:id,name:name,role:'player'}}
+        });
+        if(!authRes.error) break;
+        lastAuthErr=authRes.error;
+        if(isRateLimitAuthError(authRes.error)){
+          var cooldownMs=applyRateLimitBackoff();
+          updateSignupCooldownUI();
+          err.textContent='요청이 너무 많아 잠시 제한되었습니다. '+Math.ceil(cooldownMs/60000)+'분 후 다시 시도해주세요.';
+          setAuthSystemNotice('인증 서버에서 이메일 전송 제한(429)이 발생했습니다.');
+          return;
+        }
+        if(isAlreadyRegisteredAuthError(authRes.error)){
+          var signInRes=await sb.auth.signInWithPassword({email:signupEmail,password:password});
+          if(signInRes.error){
+            err.textContent=formatAuthErrorMessage(signInRes.error,'인증 로그인 실패');
+            return;
+          }
+          break;
+        }
+        // invalid email for one alias can still succeed with another alias domain
+        if(isInvalidEmailAuthError(authRes.error)) continue;
+      }
+      if(authRes&&authRes.error&&lastAuthErr){
+        err.textContent=formatAuthErrorMessage(lastAuthErr,'인증 가입 실패');
+        return;
+      }
+      resetSignupRateLimitState();
+      var insertRes=await sb.from('sytpt_users').insert({id:id,name:name,role:'player',approval_status:'pending',today_completion:'0%',risk_level:'정상',created_at:new Date().toISOString()});
+      if(insertRes.error){
+        await safeAuthSignOut();
+        var msg=String(insertRes.error.message||'오류');
+        if(/permission|policy|row-level security|rls/i.test(msg)){
+          err.textContent='등록신청은 되었지만 승인대기 프로필 저장 권한이 없어 완료되지 않았습니다. 코치/관리자에게 RLS 정책 확인을 요청하세요.';
+        }else{
+          err.textContent='프로필 생성 실패: '+msg;
+        }
+        return;
+      }
+      await safeAuthSignOut();
       document.getElementById('pendingMessage').textContent=name+' 선수 등록 완료. 지도자 승인 후 로그인 가능합니다.';
       setAuthPanel('pending');err.textContent='';
+      }finally{
+        updateSignupCooldownUI();
+      }
     });
 
     document.getElementById('loginBtn').addEventListener('click', async function(){
@@ -2104,11 +2475,54 @@
       var password=(document.getElementById('loginPw').value||'').trim();
       var err=document.getElementById('authError');
       var users=await getUsers();
-      var user=findUserForLogin(users,id,password);
-      if(!user){err.textContent='등록된 선수ID/이름이 없습니다.';return;}
-      if(String(user.password||'')!==String(password)){err.textContent='비밀번호가 올바르지 않습니다.';return;}
+      var matchedUsers=findUsersForLogin(users,id);
+      var authCandidates=buildAuthEmailCandidates(id,matchedUsers);
+      if(!authCandidates.length){err.textContent='계정 로그인 ID 형식이 올바르지 않습니다.';return;}
+      var authLogin=null;
+      var lastAuthError=null;
+      var usedAuthEmail='';
+      for(var i=0;i<authCandidates.length;i++){
+        authLogin=await sb.auth.signInWithPassword({email:authCandidates[i],password:password});
+        if(!authLogin.error){
+          usedAuthEmail=authCandidates[i];
+          break;
+        }
+        lastAuthError=authLogin.error;
+      }
+      if(!authLogin||authLogin.error){
+        var hintedUser=matchedUsers[0]||null;
+        if(hintedUser&&hintedUser.role==='coach'){
+          err.textContent='관리자 인증 계정이 없거나 비밀번호가 일치하지 않습니다. Auth 계정 이관 상태를 확인하세요.';
+        }else{
+          err.textContent='아이디 또는 비밀번호가 올바르지 않거나 인증 계정이 없습니다.';
+        }
+        if(lastAuthError) console.warn('auth login failed', lastAuthError);
+        return;
+      }
+      if(usedAuthEmail) setAuthEmailHint(id,usedAuthEmail);
+      var authUser=authLogin.data&&authLogin.data.user;
+      var mappedUser=findUserForAuthSession(users,authUser);
+      var user=mappedUser||matchedUsers[0]||null;
+      if(!user&&authUser){
+        var md=authUser.user_metadata||{};
+        var mdRole=String(md.role||'').trim().toLowerCase();
+        if(mdRole==='coach'){
+          user={
+            id:String(md.login_id||id||authUser.id||'coach'),
+            name:String(md.name||id||'코치'),
+            role:'coach',
+            approvalStatus:'approved'
+          };
+        }
+      }
+      if(!user){
+        await safeAuthSignOut();
+        err.textContent='인증은 성공했지만 프로필 매핑에 실패했습니다. 코치에게 계정 매핑을 요청하세요.';
+        return;
+      }
       var approvalStatus=String(user.approvalStatus||'').trim().toLowerCase();
       if(user.role==='player'&&approvalStatus!=='approved'){
+        await safeAuthSignOut();
         var msg=approvalStatus==='inactive'?
           (user.name+' 선수 계정은 현재 비활성화 상태입니다. 지도자에게 승인 재요청이 필요합니다.'):
           (user.name+' 선수는 현재 승인 대기 상태입니다. 지도자 승인 후 접속 가능합니다.');
@@ -2120,7 +2534,7 @@
     document.getElementById('pendingToLogin').addEventListener('click',function(){setAuthPanel('login');});
     document.getElementById('globalBackBtn').addEventListener('click',goBack);
     document.getElementById('authBackBtn').addEventListener('click',goBack);
-    document.getElementById('logoutBtn').addEventListener('click',function(){clearSession();applySessionUI();});
+    document.getElementById('logoutBtn').addEventListener('click',async function(){await safeAuthSignOut();clearSession();applySessionUI();});
 
     var mnt=document.getElementById('matchNameDisplay');
     var mdt=document.getElementById('matchDateRangeDisplay');
@@ -2142,7 +2556,7 @@
     };
     function isLockedItem(phKey,item){return (LOCKED_PHASE_ITEMS[phKey]||[]).indexOf(item)!==-1;}
     async function getPhaseConfig(playerId){
-      const {data}=await sb.from('sytpt_messages').select('*').eq('player_id',playerId).eq('message_type','phase_config').order('created_at',{ascending:false}).limit(1).maybeSingle();
+      const {data}=await sb.from('sytpt_messages').select('text,created_at').eq('player_id',playerId).eq('message_type','phase_config').order('created_at',{ascending:false}).limit(1).maybeSingle();
       var base={pre:[...LOCKED_PHASE_ITEMS.pre],in:[...LOCKED_PHASE_ITEMS.in],post:[...LOCKED_PHASE_ITEMS.post]};
       if(!data) return base;
       try{
@@ -2289,6 +2703,20 @@
 
     async function init(){
       setupRealtimeSubscriptions();
+      await syncLocalSessionWithAuth();
+      sb.auth.onAuthStateChange(function(event, session){
+        if(event==='SIGNED_OUT' || !session){
+          clearSession();
+          applySessionUI();
+          return;
+        }
+        syncLocalSessionWithAuth().then(function(){
+          applySessionUI();
+        }).catch(function(){
+          clearSession();
+          applySessionUI();
+        });
+      });
       await applySessionUI();
     }
     init();
