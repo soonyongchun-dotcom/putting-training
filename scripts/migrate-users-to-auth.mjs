@@ -23,8 +23,29 @@ const DEFAULT_PASSWORD = process.env.MIGRATION_DEFAULT_PASSWORD || "";
 const AUTH_ALIAS_DOMAIN = process.env.AUTH_ALIAS_DOMAIN || "syegtp.app";
 const DRY_RUN = String(process.env.DRY_RUN || "true").toLowerCase() !== "false";
 
+function hasNonAscii(v) {
+  return /[^\x00-\x7F]/.test(String(v || ""));
+}
+
+function looksLikePlaceholder(v) {
+  const s = String(v || "");
+  return (
+    s.includes("<") ||
+    s.includes(">") ||
+    s.includes("여기에") ||
+    s.includes("실제") ||
+    s.includes("키")
+  );
+}
+
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error("Missing env: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.");
+  process.exit(1);
+}
+
+if (hasNonAscii(SERVICE_KEY) || looksLikePlaceholder(SERVICE_KEY)) {
+  console.error("Invalid SUPABASE_SERVICE_ROLE_KEY value detected.");
+  console.error("Use the real service_role key (ASCII only). Placeholder/Korean text is not allowed.");
   process.exit(1);
 }
 
