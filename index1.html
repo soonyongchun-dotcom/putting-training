@@ -345,7 +345,7 @@ textarea{
         <option value="m">Meter (미터)</option>
       </select>
     </div>
-    <button class="btn" id="btnStartRound">라운드 시작</button>
+    <button type="button" class="btn" id="btnStartRound">라운드 시작</button>
   </div>
 
   <!-- 홀 기록 화면 -->
@@ -387,7 +387,7 @@ textarea{
             <option value="yd">yd</option>
             <option value="m">m</option>
           </select>
-          <button id="btnConvertDistance" style="padding:2px 6px;font-size:11px;background:var(--accent);border:none;border-radius:4px;cursor:pointer;color:#000;font-weight:600;">⇄</button>
+          <button type="button" id="btnConvertDistance" style="padding:2px 6px;font-size:11px;background:var(--accent);border:none;border-radius:4px;cursor:pointer;color:#000;font-weight:600;">⇄</button>
           <span style="font-size:11px;color:var(--muted);">=</span>
           <span id="convertedDistance" style="font-size:12px;font-weight:600;color:var(--accent);">-</span>
           <span id="holeDistanceUnitLabel" style="font-size:12px;">yd</span>
@@ -397,8 +397,8 @@ textarea{
 
     <!-- 홀 탐색 -->
     <div class="hole-nav">
-      <button class="btn btn-secondary" id="btnPrevHole">◀ 이전</button>
-      <button class="btn btn-secondary" id="btnNextHole">다음 ▶</button>
+      <button type="button" class="btn btn-secondary" id="btnPrevHole">◀ 이전</button>
+      <button type="button" class="btn btn-secondary" id="btnNextHole">다음 ▶</button>
     </div>
 
     <!-- 샷 입력 폼 -->
@@ -414,7 +414,7 @@ textarea{
         </div>
         <div style="font-size:11px; color:var(--muted); margin-top:4px;">※ 홀을 지나친 경우 음수(-)로 입력</div>
       </div>
-      <button class="btn" id="btnConfirmDistance">확인</button>
+      <button type="button" class="btn" id="btnConfirmDistance">확인</button>
     </div>
     
     <!-- 단계 2: 추천 클럽 (거리 입력 후) -->
@@ -485,7 +485,7 @@ textarea{
         <textarea id="shotNote" placeholder="선택 사항"></textarea>
       </div>
 
-      <button class="btn" id="btnAddShot">저장</button>
+      <button type="button" class="btn" id="btnAddShot">저장</button>
     </div>
     
     <div class="form-group" style="margin-top:16px;">
@@ -524,8 +524,8 @@ textarea{
     <div class="shot-list" id="shotList"></div>
 
     <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="btn btn-secondary" id="btnCompleteHole" style="flex:1;margin:0;">홀 완료</button>
-      <button class="btn" id="btnEditHole" style="flex:1;margin:0;background:var(--accent-dark);">수정</button>
+      <button type="button" class="btn btn-secondary" id="btnCompleteHole" style="flex:1;margin:0;">홀 완료</button>
+      <button type="button" class="btn" id="btnEditHole" style="flex:1;margin:0;background:var(--accent-dark);">수정</button>
     </div>
   </div>
 
@@ -533,8 +533,8 @@ textarea{
   <!-- 저장 및 내보내기 -->
   <div class="section hidden" id="exportSection">
     <div class="section-title">저장 및 내보내기</div>
-    <button class="btn" id="btnExportCSV">CSV 파일로 저장</button>
-    <button class="btn btn-secondary" id="btnReset">새 라운드 시작</button>
+    <button type="button" class="btn" id="btnExportCSV">CSV 파일로 저장</button>
+    <button type="button" class="btn btn-secondary" id="btnReset">새 라운드 시작</button>
   </div>
 </div>
 
@@ -635,28 +635,33 @@ roundDateInput.value = new Date().toISOString().slice(0,10);
 const STORAGE_KEY = 'golf_quick_record_data';
 
 // 라운드 시작
-btnStartRound.addEventListener('click', ()=>{
-  roundData.player = playerNameInput.value.trim();
-  roundData.date = roundDateInput.value;
-  roundData.course = courseNameInput.value.trim();
-  roundData.distanceUnit = distanceUnitSel.value; // 단위 저장
-  
-  // 단위 라벨 업데이트
-  updateDistanceUnitLabels();
-  
-  // 모든 홀의 샷 데이터 초기화
-  for(let i = 0; i < 18; i++){
-    roundData.holes[i].shots = [];
-  }
-  
-  roundInfo.classList.add('hidden');
-  recordSection.classList.remove('hidden');
-  exportSection.classList.remove('hidden');
-  
-  currentHole = 0;
-  updateHoleDisplay();
-  saveData();
-});
+if(btnStartRound){
+  btnStartRound.addEventListener('click', ()=>{
+    console.log('btnStartRound 클릭 발생');
+    roundData.player = playerNameInput.value.trim();
+    roundData.date = roundDateInput.value;
+    roundData.course = courseNameInput.value.trim();
+    roundData.distanceUnit = distanceUnitSel.value; // 단위 저장
+    
+    // 단위 라벨 업데이트
+    updateDistanceUnitLabels();
+    
+    // 모든 홀의 샷 데이터 초기화
+    for(let i = 0; i < 18; i++){
+      roundData.holes[i].shots = [];
+    }
+    
+    roundInfo.classList.add('hidden');
+    recordSection.classList.remove('hidden');
+    exportSection.classList.remove('hidden');
+    
+    currentHole = 0;
+    updateHoleDisplay();
+    saveData();
+  });
+} else {
+  console.error('btnStartRound element not found');
+}
 
 // 거리 단위 라벨 업데이트
 function updateDistanceUnitLabels(){
@@ -1347,7 +1352,6 @@ btnExportCSV.addEventListener('click', ()=>{
   const lines = [];
   
   // 헤더
-  const unit = roundData.distanceUnit || 'yd';
   const unit = roundData.distanceUnit || 'yd';
   lines.push(['Player', roundData.player, '', 'Date', roundData.date, '', 'Course', roundData.course, '', 'Unit', unit].join(','));
   lines.push('');
