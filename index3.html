@@ -2511,6 +2511,24 @@
     renderBars('monthChart',   [48,55,63,77],'#22c55e');
 
     async function init(){
+      // URL 파라미터에서 선수 ID 자동 채우기
+      const urlParams = new URLSearchParams(window.location.search);
+      const playerId = urlParams.get('player_id');
+      if (playerId) {
+        // 로그인 폼에 선수 ID 자동 입력
+        const loginIdInput = document.getElementById('loginId');
+        if (loginIdInput) {
+          loginIdInput.value = playerId;
+          // 비밀번호 입력창으로 포커스 이동
+          const loginPwInput = document.getElementById('loginPw');
+          if (loginPwInput) {
+            loginPwInput.focus();
+          }
+        }
+        // URL 정리 (깔끔하게)
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       setupRealtimeSubscriptions();
       await applySessionUI();
     }
