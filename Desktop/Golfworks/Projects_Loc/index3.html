@@ -701,7 +701,7 @@
   <script>
     // ====== Supabase 초기화 ======
     const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZG1pdmpxZ3hkeWN1cGRieXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDk0NzIsImV4cCI6MjA4Nzk4NTQ3Mn0.T0XSwNNMmEd2xRASv16Dg0N58KlWJ4mYLP0pTvhB-60';
+    const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ====== 디바이스 전용 (localStorage) ======
@@ -950,6 +950,28 @@ let lastPerformanceEdit = null; // cache recent successful edit
         start_date:payload.startDate!=null?payload.startDate:prev.startDate,
         end_date:payload.endDate!=null?payload.endDate:prev.endDate
       },{onConflict:'player_id'});
+    }
+    async function deletePlayerAllData(playerId){
+      if(!playerId) return;
+
+      const tasks=[
+        sb.from('sytpt_messages').delete().eq('player_id',playerId),
+        sb.from('sytpt_coach_directives').delete().eq('player_id',playerId),
+        sb.from('sytpt_assigned_missions').delete().eq('player_id',playerId),
+        sb.from('sytpt_mission_progress').delete().eq('player_id',playerId),
+        sb.from('sytpt_self_eval').delete().eq('player_id',playerId),
+        sb.from('sytpt_match_info').delete().eq('player_id',playerId)
+      ];
+
+      const results=await Promise.all(tasks);
+      const failed=results.find(function(r){return r&&r.error;});
+      if(failed&&failed.error) throw failed.error;
+
+      const userDel=await sb.from('sytpt_users').delete().eq('id',playerId);
+      if(userDel.error) throw userDel.error;
+
+      if(getCoachSelectedPlayerId()===playerId) setCoachSelectedPlayerId('');
+      clearCommLastRead(playerId);
     }
     // ====== 유틸 ======
     function isChatMessage(m){
@@ -1399,8 +1421,13 @@ let lastPerformanceEdit = null; // cache recent successful edit
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
-        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?')) return;
-        await sb.from('sytpt_users').update({approval_status:'inactive',status_label:'비활성화',deactivated_at:new Date().toISOString()}).eq('id',pid);
+        if(!confirm('정말로 이 선수의 승인을 취소하시겠습니까?\n선수 계정과 관련 데이터(미션/메시지/지시사항/자기평가/시합정보)가 모두 삭제됩니다.')) return;
+        try{
+          await deletePlayerAllData(pid);
+        }catch(e){
+          alert('선수 데이터 삭제 중 오류가 발생했습니다.\n'+(e&&e.message?e.message:e));
+          return;
+        }
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Round Analysis Portal</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#071018;color:#E8F0F3;}
+  .login-card{max-width:360px;margin:40px auto;padding:24px;background:#0d2328;border-radius:10px;}
+  .login-card h2{margin-bottom:16px;color:#1fb57a;}
+  .login-card .field{margin-bottom:12px;}
+  .login-card label{display:block;margin-bottom:4px;font-size:14px;color:#8fa3ad;}
+  .login-card input{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(13,35,40,0.9);color:#fff;}
+  .btn{display:inline-block;padding:10px 14px;border:none;border-radius:6px;background:#1fb57a;color:#04221a;font-weight:700;cursor:pointer;}
+  #playerPortal,#coachPortal{display:none;}
+  #playerFrame,#coachFrame{width:100%;height:calc(100vh - 60px);border:none;}
+  #coachControls{margin-bottom:12px;}
+  #playerList{list-style:none;padding-left:0;color:#E8F0F3;}
+  #playerList li{margin:4px 0;}
+</style>
+</head>
+<body>
+  <div id="loginContainer" class="login-card">
+    <h2>로그인</h2>
+    <div class="field">
+      <label for="loginId">아이디</label>
+      <input id="loginId" type="text" />
+    </div>
+    <div class="field">
+      <label for="loginPw">비밀번호</label>
+      <input id="loginPw" type="password" />
+    </div>
+    <button id="loginBtn" class="btn">로그인</button>
+  </div>
+
+  <!-- 선수 전용 입력 앱 (quick record) -->
+  <div id="playerPortal">
+    <iframe id="playerFrame" src="golf_quick_record(26.1.2).html"></iframe>
+  </div>
+
+  <!-- 코치 포털: 선수관리 + 분석 iframe -->
+  <div id="coachPortal">
+    <div id="coachControls">
+      <h3>관리 선수 목록</h3>
+      <ul id="playerList"></ul>
+    </div>
+    <iframe id="coachFrame" src="golf_rounddatanput(26.2.1).html"></iframe>
+  </div>
+
+  <script>
+    const users = [
+      {id:'player1',pw:'p1',role:'player'},
+      {id:'player2',pw:'p2',role:'player'},
+      {id:'coach1',pw:'c1',role:'coach'},
+      {id:'전순용',pw:'1013',role:'coach'}
+    ];
+
+    document.getElementById('loginBtn').addEventListener('click', login);
+    function login(){
+      const id=document.getElementById('loginId').value.trim();
+      const pw=document.getElementById('loginPw').value;
+      const user=users.find(u=>u.id===id && u.pw===pw);
+      if(!user){ alert('등록된 사용자만 이용 가능합니다.'); return; }
+      document.getElementById('loginContainer').style.display='none';
+      if(user.role==='player'){
+        document.getElementById('playerPortal').style.display='block';
+      } else {
+        document.getElementById('coachPortal').style.display='block';
+        renderPlayerList();
+      }
+    }
+    function renderPlayerList(){
+      const ul=document.getElementById('playerList'); ul.innerHTML='';
+      users.filter(u=>u.role==='player').forEach(p=>{
+        const li=document.createElement('li'); li.textContent=p.id; ul.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
