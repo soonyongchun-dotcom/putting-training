@@ -724,6 +724,20 @@
     const COACH_DIRECTIVES_FALLBACK_LIMIT = 20;
     let hasCoachReadColumn = false;
 
+    function invalidateCoachDirectiveCache(playerId){
+      coachDirectivesCache = [];
+      lastCoachDirectivesFetch = 0;
+      if(playerId){
+        delete coachDirectivesByPlayerCache[playerId];
+        delete coachDirectivesByPlayerFetch[playerId];
+        delete coachDirectivesByPlayerError[playerId];
+      }else{
+        coachDirectivesByPlayerCache = {};
+        coachDirectivesByPlayerFetch = {};
+        coachDirectivesByPlayerError = {};
+      }
+    }
+
     const today = new Date();
     document.getElementById("todayDate").textContent =
       `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
@@ -1768,8 +1782,66 @@
           if(!href) return '';
           return '<a href="'+href+'" target="_blank" download="'+name+'" style="margin-right:8px;font-size:12px">'+name+'</a>';
         }).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+'</div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+'<div style="float:right;margin-left:8px"><button class="btn btn-sm btn-outline" onclick="editCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\',\''+escapeJsString(item.text)+'\')">수정</button> <button class="btn btn-sm btn-outline-red" onclick="deleteCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\')">삭제</button></div></div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
+    }
+    async function deleteCoachDirective(directiveId, playerId){
+      if(!confirm('이 코치 지시를 삭제하시겠습니까? 삭제된 메시지는 복구할 수 없습니다.')) return;
+      try{
+        const {error} = await sb.from('sytpt_coach_directives').delete().eq('directive_id', directiveId).eq('player_id', playerId);
+        if(error) throw error;
+        invalidateCoachDirectiveCache(playerId);
+        alert('코치 지시가 삭제되었습니다.');
+        await renderCoachDirectiveList();
+        await renderCoachInboxDynamic();
+        await renderDashboardCoachMessages();
+        await renderPlayerMessageThread();
+        await renderCommCounts();
+        await renderCoachKPIs();
+      }catch(e){
+        console.error('코치 지시 삭제 실패:', e);
+        alert('삭제 중 오류가 발생했습니다: '+e.message);
+      }
+    }
+    async function editCoachDirective(directiveId, playerId, currentText){
+      const newText = prompt('코치 지시 내용을 수정하세요:', unescapeJsString(currentText));
+      if(newText === null || newText.trim() === '') return;
+      try{
+        const {error} = await sb.from('sytpt_coach_directives').update({text: newText.trim()}).eq('directive_id', directiveId).eq('player_id', playerId);
+        if(error) throw error;
+        invalidateCoachDirectiveCache(playerId);
+        alert('코치 지시가 수정되었습니다.');
+        await renderCoachDirectiveList();
+        await renderCoachInboxDynamic();
+        await renderDashboardCoachMessages();
+        await renderPlayerMessageThread();
+        await renderCommCounts();
+        await renderCoachKPIs();
+      }catch(e){
+        console.error('코치 지시 수정 실패:', e);
+        alert('수정 중 오류가 발생했습니다: '+e.message);
+      }
+    }
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    function escapeJsString(text) {
+      return String(text)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n');
+    }
+    function unescapeJsString(text) {
+      return String(text)
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\"/g, '"')
+        .replace(/\\'/g, "'")
+        .replace(/\\\\/g, '\\');
     }
     async function renderCoachKPIs(){
       var riskEl=document.getElementById('coachKpiRisk');
@@ -1967,7 +2039,7 @@
       const player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
       // Fetch directives for this player directly to avoid stale cache
-      const dirsRaw=await getCoachDirectives(player.id);
+      const dirsRaw=await getCoachDirectives(player.id,true);
       const msgsRaw=await getMessages();
       const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',source:'directive',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
       const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',source:'chat',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
@@ -2173,8 +2245,7 @@
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
           // Clear cache to ensure new coach directives show up immediately
-          coachDirectivesCache = [];
-          lastCoachDirectivesFetch = 0;
+          invalidateCoachDirectiveCache();
           renderDashboardCoachMessages();renderPlayerMessageThread();renderCoachInboxDynamic();renderCoachDirectiveList();renderCommCounts();renderReplyStatus();renderCoachKPIs();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_assigned_missions'},function(){
@@ -2324,8 +2395,7 @@
         // mark their unread chat messages as read because coach has replied
         await markPlayerMessagesRead(targets[i]);
       }
-      coachDirectivesCache = [];
-      lastCoachDirectivesFetch = 0;
+      invalidateCoachDirectiveCache();
       document.getElementById('coachDirectiveInput').value='';
       if(fileInput) fileInput.value='';
       await renderCoachDirectiveList();
