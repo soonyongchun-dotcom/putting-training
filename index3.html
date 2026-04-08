@@ -2322,11 +2322,17 @@
           renderMissionCardsForActivePlayer();renderCoachCompletedMissionList();renderPlayerViewContext();renderCoachKPIs();
         })
         .subscribe(function(status){
-          if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED'){
+          if(status==='CHANNEL_ERROR' || status==='TIMED_OUT'){
             if(realtimeChannel){
-              sb.removeChannel(realtimeChannel);
+              var channelToRemove = realtimeChannel;
               realtimeChannel = null;
+              sb.removeChannel(channelToRemove);
             }
+            startRealtimePolling();
+            return;
+          }
+          if(status==='CLOSED'){
+            realtimeChannel = null;
             startRealtimePolling();
           }
         });
