@@ -723,6 +723,8 @@
     const COACH_DIRECTIVES_FETCH_LIMIT = 30;
     const COACH_DIRECTIVES_FALLBACK_LIMIT = 20;
     let hasCoachReadColumn = false;
+    let realtimeChannel = null;
+    let realtimePollingTimer = null;
 
     function invalidateCoachDirectiveCache(playerId){
       coachDirectivesCache = [];
@@ -1411,6 +1413,44 @@
     function fileToDataUrl(file){
       return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
     }
+
+    function getSafeFileExtension(name, mimeType){
+      const byName = String(name||'').split('.').pop();
+      let ext = (byName && byName !== name) ? byName : '';
+      ext = String(ext||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      if(ext) return ext;
+      const map = {
+        'application/pdf':'pdf',
+        'application/msword':'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx',
+        'application/vnd.ms-excel':'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx',
+        'image/png':'png'
+      };
+      return map[String(mimeType||'').toLowerCase()] || 'bin';
+    }
+
+    function buildStorageObjectPath(file){
+      const unique = Date.now() + '-' + Math.random().toString(36).slice(2);
+      const ext = getSafeFileExtension(file && file.name, file && file.type);
+      return 'coach-directives/' + unique + '.' + ext;
+    }
+
+    async function getAttachmentAccessUrl(bucket, path){
+      const { data: signedData, error: signedError } = await sb.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 60 * 24 * 30);
+      if(!signedError && signedData && signedData.signedUrl){
+        return signedData.signedUrl;
+      }
+      const { data: urlData, error: urlError } = sb.storage
+        .from(bucket)
+        .getPublicUrl(path);
+      if(urlError || !urlData || !urlData.publicUrl){
+        throw urlError || new Error('첨부 URL 생성 실패');
+      }
+      return urlData.publicUrl;
+    }
     async function readMissionAttachments(fileList){
       const files=Array.from(fileList||[]); if(!files.length) return [];
       const inv=files.find(f=>!isAllowedAttachment(f));
@@ -1440,8 +1480,7 @@
       const out=[];
 
       for(const f of files){
-        const unique = Date.now() + '-' + Math.random().toString(36).slice(2);
-        const path = `coach-directives/${unique}-${f.name}`;
+        const path = buildStorageObjectPath(f);
 
         if(storageUploadAllowed){
           try {
@@ -1449,15 +1488,13 @@
               .from(bucket)
               .upload(path, f, { cacheControl: '3600', upsert: false });
             if(uploadError) throw uploadError;
-
-            const { data: urlData, error: urlError } = sb.storage
-              .from(bucket)
-              .getPublicUrl(path);
-            if(urlError) throw urlError;
+            const accessUrl = await getAttachmentAccessUrl(bucket, path);
 
             out.push({
               name: f.name,
-              url: urlData.publicUrl,
+              url: accessUrl,
+              bucket: bucket,
+              path: path,
               size: f.size,
               type: f.type
             });
@@ -2235,8 +2272,34 @@
     }
 
     // ====== 리얼타임 구독 ======
+    function refreshAllViewsForRealtime(){
+      renderPlayerMessageThread();
+      renderDashboardCoachMessages();
+      renderCoachInboxDynamic();
+      renderCommCounts();
+      renderReplyStatus();
+      renderCoachKPIs();
+      renderCoachDirectiveList();
+      renderMissionCardsForActivePlayer();
+      renderCoachCompletedMissionList();
+      renderPlayerViewContext();
+      renderCoachAthleteBoard();
+      renderPendingApprovals();
+      syncCoachAthleteSelectOptions();
+      syncCoachDirectiveTargetOptions();
+    }
+
+    function startRealtimePolling(){
+      if(realtimePollingTimer) return;
+      console.warn('Realtime 연결이 불안정해 폴링 모드로 전환합니다.');
+      realtimePollingTimer = setInterval(function(){
+        refreshAllViewsForRealtime();
+      }, 15000);
+    }
+
     function setupRealtimeSubscriptions(){
-      sb.channel('sytpt-realtime')
+      if(realtimeChannel) return;
+      realtimeChannel = sb.channel('sytpt-realtime')
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_messages'},function(){
           // Clear cache to ensure new messages show up immediately
           messagesCache = [];
@@ -2258,7 +2321,15 @@
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_mission_progress'},function(){
           renderMissionCardsForActivePlayer();renderCoachCompletedMissionList();renderPlayerViewContext();renderCoachKPIs();
         })
-        .subscribe();
+        .subscribe(function(status){
+          if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED'){
+            if(realtimeChannel){
+              sb.removeChannel(realtimeChannel);
+              realtimeChannel = null;
+            }
+            startRealtimePolling();
+          }
+        });
     }
 
     // periodically refresh relative timestamps every minute
