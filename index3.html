@@ -1989,6 +1989,7 @@
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
         if(e.target.closest('.deactivate-btn')) return;
         setCoachSelectedPlayerId(row.dataset.playerId);
+        setCommLastRead(row.dataset.playerId);
         renderCoachAthleteBoard();renderPlayerViewContext();
       });});
     }
@@ -2488,6 +2489,15 @@
     if(directiveTargetSelect){
       directiveTargetSelect.addEventListener('change', function(){
         renderCoachDirectiveList();
+      });
+    }
+
+    var coachAthleteSelect = document.getElementById('coachAthleteSelect');
+    if(coachAthleteSelect){
+      coachAthleteSelect.addEventListener('change', function(){
+        setCoachSelectedPlayerId(coachAthleteSelect.value);
+        setCommLastRead(coachAthleteSelect.value);
+        renderPlayerViewContext();
       });
     }
 
