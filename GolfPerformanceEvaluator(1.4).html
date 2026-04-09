@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>SY_골프경기력 평가 플랫폼 (ver1.4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Noto Sans KR', Arial, Helvetica, sans-serif;background:#101418;color:#f5f7fa;margin:0;padding:0;}
+h1{margin:24px;text-align:center;font-size:26px;color:#2cc1ff;}
+h2{margin:0 0 10px 0;font-size:18px;color:#8fd8ff;}
+.container{display:flex;flex-wrap:wrap;justify-content:center;padding:0 24px 40px;}
+.panel{background:#1d2330;border:1px solid #263040;border-radius:12px;padding:20px;margin:12px;flex:1 1 340px;max-width:420px;box-shadow:0 10px 25px rgba(0,0,0,0.35);}
+.form-row{display:flex;align-items:center;margin-bottom:15px;}
+.form-row label{flex:0 0 150px;font-size:14px;color:#aeb8d6;}
+.form-row input[type="number"],.form-row input[type="range"]{flex:1;background:#121828;border:1px solid #2f3a4d;border-radius:6px;color:#e6ebff;padding:6px 10px;}
+.form-row input[type="range"]{height:6px;}
+.value-label{width:62px;text-align:right;font-size:13px;color:#d0d4e6;margin-left:10px;}
+button{width:100%;margin-top:6px;padding:10px 12px;font-size:15px;border:none;border-radius:8px;background:#2cc1ff;color:#07111e;font-weight:bold;cursor:pointer;}
+button:disabled{opacity:0.5;cursor:not-allowed;}
+.top-nav{padding:14px 24px 0;display:flex;justify-content:flex-start;}
+.nav-back-btn{width:auto;min-width:180px;margin:0;padding:8px 14px;border:1px solid #3c4b64;border-radius:8px;background:#172131;color:#d9e5ff;font-size:13px;font-weight:700;cursor:pointer;}
+.nav-back-btn:hover{background:#20314b;}
+.download-btn{background:#ffe066;color:#1b1f2d;margin-top:16px;}
+.results{margin-top:24px;}
+.results table{width:100%;border-collapse:collapse;font-size:13px;}
+.results th,.results td{padding:8px 6px;border-bottom:1px solid #2d3648;text-align:left;}
+.results th{color:#8fd8ff;font-weight:600;}
+.total-score{font-size:30px;font-weight:bold;color:#ffe066;margin:12px 0;text-align:center;}
+.total-score-sub{display:block;font-size:16px;font-weight:500;color:#8fd8ff;margin-top:6px;}
+#scoreBreakdown td.value{text-align:right;color:#f3f5ff;}
+.results tbody tr.highlight-positive,
+.results tbody tr.highlight-negative,
+.results tbody tr.highlight-strokes{background:rgba(255,235,150,0.22);}
+.results tbody tr.highlight-positive td.value,
+.results tbody tr.highlight-negative td.value,
+.results tbody tr.highlight-strokes td.value{color:#ffe066;font-weight:600;}
+.form-row.avg-fallback{background:rgba(255,214,102,0.22)!important;border:1px solid rgba(255,214,102,0.6)!important;border-radius:8px;box-shadow:0 0 0 1px rgba(255,214,102,0.3);} 
+.form-row.avg-fallback label{color:#ffd266!important;}
+.form-row.avg-fallback input{border-color:#ffd266!important;background:rgba(255,214,102,0.12)!important;color:#fff5d6!important;}
+.form-row.avg-fallback .value-label{color:#ffd266!important;}
+.chart-box{position:relative;height:320px;margin-top:10px;}
+.analysis-section{margin-top:18px;background:#141b28;border:1px solid #263040;border-radius:10px;padding:0 16px 12px;}
+.analysis-section summary{list-style:none;cursor:pointer;font-size:15px;font-weight:600;color:#8fd8ff;padding:12px 0;display:flex;align-items:center;gap:8px;}
+.analysis-section summary::before{content:'📂';font-size:16px;}
+.analysis-section[open] summary::before{content:'📂';}
+.analysis-content{font-size:13px;color:#c9d2ec;line-height:1.5;padding:0 0 4px 4px;}
+.analysis-list{margin:0;padding:0 0 0 16px;list-style:disc;}
+.analysis-list li{margin:4px 0;}
+.analysis-empty{margin:0;font-size:13px;color:#96a1c0;}
+.reference-note{margin:8px 0 0 0;font-size:12px;color:#8a93a8;line-height:1.4;}
+footer{margin:16px 0 24px 0;text-align:center;font-size:12px;color:#65708d;}
+</style>
+</head>
+<body>
+<div class="top-nav">
+  <button type="button" class="nav-back-btn" onclick="location.href='./index3.html'">코치포탈로 돌아가기</button>
+</div>
+<h1>SY_골프경기력 평가 플랫폼 (ver1.4)</h1>
+
+<div class="container">
+  <section class="panel">
+    <h2>선수 입력</h2>
+
+    <div class="form-row">
+      <label for="playerName">선수 이름</label>
+      <input id="playerName" type="text" placeholder="이름 입력" />
+    </div>
+
+    <div class="form-row">
+      <label for="tourSelect">비교 투어</label>
+      <select id="tourSelect" style="flex:1;background:#121828;border:1px solid #2f3a4d;border-radius:6px;color:#e6ebff;padding:6px 10px;">
+        <option value="lpga">LPGA</option>
+        <option value="klpga" selected>KLPGA</option>
+        <option value="pga">PGA</option>
+        <option value="kpga">KPGA</option>
+      </select>
+    </div>
+
+    <div class="form-row" style="background:#1f2a3d;border-radius:8px;padding:16px;">
+      <label style="flex:0 0 150px;color:#ffd27a;font-weight:600;">라운드 평균 타수</label>
+      <input id="avgStrokes" type="number" min="60" max="80" step="0.01" value="71.87" style="flex:1;background:#0f1726;border:1px solid #ffd27a;color:#ffe9c0;padding:8px 10px;border-radius:6px;font-size:15px;font-weight:600;" />
+    </div>
+
+    <div class="form-row">
+      <label>드라이버 거리 (yd)</label>
+      <input id="driveDistance" type="range" min="210" max="300" value="260" step="1" oninput="syncRange(this,'driveDistanceVal');">
+      <span id="driveDistanceVal" class="value-label">260</span>
+    </div>
+
+    <div class="form-row">
+      <label>드라이버 정확도 (%)</label>
+      <input id="driveAccuracy" type="range" min="40" max="90" value="75" oninput="syncRange(this,'driveAccuracyVal');">
+      <span id="driveAccuracyVal" class="value-label">75</span>
+    </div>
+    <div class="form-row">
+      <label>그린 적중률 (%)</label>
+      <input id="gir" type="range" min="40" max="90" value="70" oninput="syncRange(this,'girVal');">
+      <span id="girVal" class="value-label">70</span>
+    </div>
+
+    <div class="form-row">
+      <label>어프로치 핀 근접도 (ft)</label>
+      <input id="approachProx" type="range" min="10" max="40" value="22" step="0.5" oninput="syncRange(this,'approachVal');">
+      <span id="approachVal" class="value-label">22.0</span>
+    </div>
+
+    <div class="form-row">
+      <label>라운드당 퍼팅 수</label>
+      <input id="puttsRound" type="range" min="27" max="34" value="29" step="0.1" oninput="syncRange(this,'puttsRoundVal');">
+      <span id="puttsRoundVal" class="value-label">29.0</span>
+    </div>
+
+    <div class="form-row">
+      <label>GIR 퍼팅 수</label>
+      <input id="puttsGir" type="range" min="1.6" max="2.0" value="1.8" step="0.01" oninput="syncRange(this,'puttsGirVal');">
+      <span id="puttsGirVal" class="value-label">1.80</span>
+    </div>
+
+    <div class="form-row">
+      <label>칩샷 감각 (0-10)</label>
+      <input id="chipping" type="range" min="0" max="10" value="6" step="0.1" oninput="syncRange(this,'chippingVal');">
+      <span id="chippingVal" class="value-label">6.0</span>
+    </div>
+
+    <div class="form-row">
+      <label>트러블샷 대응 (0-10)</label>
+      <input id="recovery" type="range" min="0" max="10" value="7" step="0.1" oninput="syncRange(this,'recoveryVal');">
+      <span id="recoveryVal" class="value-label">7.0</span>
+    </div>
+
+    <div class="form-row">
+      <label>라운드당 버디 수</label>
+      <input id="birdieEagle" type="range" min="0" max="5" value="3.30" step="0.01" oninput="syncRange(this,'birdieEagleVal');">
+      <span id="birdieEagleVal" class="value-label">3.30</span>
+    </div>
+
+    <div class="form-row">
+      <label>라운드당 보기 수</label>
+      <input id="bogey" type="range" min="0" max="5" value="3.00" step="0.01" oninput="syncRange(this,'bogeyVal');">
+      <span id="bogeyVal" class="value-label">3.00</span>
+    </div>
+
+    <button onclick="handleEvaluate()">경기력 평가</button>
+    <p class="reference-note">* KLPGA 드림투어 데이터는 KLPGA 투어 경기력 평가 총점에서 5점을 감하여 환산함.</p>
+    <p class="reference-note">* 평가 결과 60-69: 투어 중하위권 · 70-75: 투어 중위권 · 76-80: 투어 중상위권 · 81-89: 투어 상위권 · 90-100: 최상위권 · 평균 타수는 총점의 50%를 차지합니다.</p>
+  </section>
+
+  <section class="panel" id="resultsPanel">
+    <h2>결과</h2>
+    <div class="total-score" id="totalScore">총점 0.0 / 100</div>
+
+    <button type="button" id="downloadPdfBtn" class="download-btn">결과 PDF 다운로드</button>
+
+    <div class="results">
+      <table id="scoreBreakdown">
+        <thead>
+          <tr><th>항목</th><th>점수(가중)</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>드라이버 거리</td><td class="value" id="distScore">-</td><td id="distNote">240~270yd가 LPGA 평균</td></tr>
+          <tr><td>드라이버 정확도</td><td class="value" id="accScore">-</td><td id="accNote">70% 이상 상위권</td></tr>
+          <tr><td>그린 적중률</td><td class="value" id="girScore">-</td><td id="girNote">75%+ 투어 최고 수준</td></tr>
+          <tr><td>어프로치 핀 근접도</td><td class="value" id="approachScore">-</td><td id="approachNote">평균 25ft 이내 우수</td></tr>
+          <tr><td>라운드 퍼팅</td><td class="value" id="puttRoundScore">-</td><td id="puttRoundNote">라운드당 30 이내 우수</td></tr>
+          <tr><td>GIR 퍼팅</td><td class="value" id="puttGirScore">-</td><td id="puttGirNote">GIR 시 평균 1.8퍼트</td></tr>
+          <tr><td>칩샷</td><td class="value" id="chipScore">-</td><td id="chipNote">코치 평가 입력</td></tr>
+          <tr><td>트러블샷</td><td class="value" id="recScore">-</td><td id="recNote">벙커/러프 회복력</td></tr>
+          <tr class="highlight-positive"><td>라운드 평균 버디</td><td class="value" id="birdieScore">-</td><td id="birdieNote">버디 3.3개 내외</td></tr>
+          <tr class="highlight-negative"><td>라운드 평균 보기</td><td class="value" id="bogeyScore">-</td><td id="bogeyNote">보기 3개 이하 목표</td></tr>
+          <tr class="highlight-strokes"><td>라운드 평균 타수</td><td class="value" id="strokesScore">-</td><td id="strokesNote">투어 평균 타수와 비교</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-box">
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <details class="analysis-section" id="analysisSection">
+      <summary>분석 요약</summary>
+      <div id="analysisContent" class="analysis-content">
+        <p class="analysis-empty">경기력 평가 후 분석 결과가 표시됩니다.</p>
+      </div>
+    </details>
+  </section>
+</div>
+
+<footer>참고 기준: LPGA 2023~2024 시즌 평균/상위권 통계. 필요시 수치 조정하세요.</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const { jsPDF } = window.jspdf || {};
+const weights = {
+  driveDistance: 0.15,
+  puttingGir: 0.15,
+  driveAccuracy: 0.05,
+  puttingRound: 0.05,
+  gir: 0.15,
+  approachProximity: 0.05,
+  chipping: 0.10,
+  recovery: 0.05,
+  birdieEagle: 0.15,
+  bogey: 0.10
+};
+const metricKeys = Object.keys(weights);
+const FINAL_WEIGHTS = { metrics: 0.5, avgStrokes: 0.5 };
+const AVERAGE_TARGET = 0.7;
+const STORAGE_KEY = 'SY_GOLF_PLAYER_SNAPSHOTS_V14';
+let playerSnapshots = {};
+
+function normalizePlayerName(name){
+  return (name || '').trim().toLowerCase();
+}
+
+function loadPlayerSnapshots(){
+  if (typeof window === 'undefined' || !window.localStorage) return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed ? parsed : {};
+  } catch (error){
+    console.warn('Failed to load player snapshots:', error);
+    return {};
+  }
+}
+
+function savePlayerSnapshots(){
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(playerSnapshots));
+  } catch (error){
+    console.warn('Failed to save player snapshots:', error);
+  }
+}
+
+function persistPlayerSnapshot(tour, playerName, metrics, fallbackStates = {}){
+  const cleanName = (playerName || '').trim();
+  if (!cleanName) return;
+
+  const normalizedKey = `${tour}::${normalizePlayerName(cleanName)}`;
+  const snapshotMetrics = {};
+  [...metricKeys, 'avgStrokes'].forEach(key => {
+    const value = metrics[key];
+    if (Number.isFinite(value)){
+      snapshotMetrics[key] = Number(value);
+    }
+  });
+
+  const fallbackMeta = {};
+  autoFillMetrics.forEach(key => {
+    fallbackMeta[key] = Boolean(fallbackStates?.[key]);
+  });
+
+  playerSnapshots[normalizedKey] = {
+    tour,
+    playerName: cleanName,
+    updatedAt: new Date().toISOString(),
+    metrics: snapshotMetrics,
+    fallback: fallbackMeta
+  };
+  savePlayerSnapshots();
+}
+
+function getLatestPlayerSnapshot(tour, playerName){
+  const normalizedName = normalizePlayerName(playerName);
+  if (!normalizedName) return null;
+  const key = `${tour}::${normalizedName}`;
+  return playerSnapshots[key] || null;
+}
+
+playerSnapshots = loadPlayerSnapshots();
+
+const tourBaselines = {
+  lpga: {
+    driveDistance: { min: 230, max: 280 },
+    driveAccuracy: { min: 55,  max: 85 },
+    gir:            { min: 55,  max: 80 },
+    approachProximity: { min: 16, max: 30 },
+    puttingRound:   { min: 27,  max: 34 },
+    puttingGir:     { min: 1.65, max: 2.00 },
+    chipping:       { min: 0,   max: 10 },
+    recovery:       { min: 0,   max: 10 },
+    birdieEagle:    { min: 0, max: 5 },
+    bogey:          { min: 0, max: 5 },
+    avgStrokes:     { min: 66, max: 75 }
+  },
+  klpga: {
+    driveDistance: { min: 225, max: 270 },
+    driveAccuracy: { min: 60,  max: 88 },
+    gir:            { min: 58,  max: 82 },
+    approachProximity: { min: 18, max: 32 },
+    puttingRound:   { min: 28,  max: 34 },
+    puttingGir:     { min: 1.70, max: 2.05 },
+    chipping:       { min: 0,   max: 10 },
+    recovery:       { min: 0,   max: 10 },
+    birdieEagle:    { min: 0, max: 5 },
+    bogey:          { min: 0, max: 5 },
+    avgStrokes:     { min: 67, max: 76 }
+  },
+  pga: {
+    driveDistance: { min: 275, max: 325 },
+    driveAccuracy: { min: 50,  max: 72 },
+    gir:            { min: 60,  max: 75 },
+    approachProximity: { min: 16, max: 26 },
+    puttingRound:   { min: 27.5,  max: 31.5 },
+    puttingGir:     { min: 1.65, max: 1.90 },
+    chipping:       { min: 0,   max: 10 },
+    recovery:       { min: 0,   max: 10 },
+    birdieEagle:    { min: 0, max: 5 },
+    bogey:          { min: 0, max: 5 },
+    avgStrokes:     { min: 63, max: 74 }
+  },
+  kpga: {
+    driveDistance: { min: 260, max: 305 },
+    driveAccuracy: { min: 55,  max: 78 },
+    gir:            { min: 60,  max: 75 },
+    approachProximity: { min: 17, max: 28 },
+    puttingRound:   { min: 28,  max: 32 },
+    puttingGir:     { min: 1.70, max: 1.95 },
+    chipping:       { min: 0,   max: 10 },
+    recovery:       { min: 0,   max: 10 },
+    birdieEagle:    { min: 0, max: 5 },
+    bogey:          { min: 0, max: 5 },
+    avgStrokes:     { min: 66, max: 75 }
+  }
+};
+
+const baselineNotes = {
+  lpga: {
+    driveDistance: 'LPGA 평균 255y, 상위권 270y+',
+    driveAccuracy: 'LPGA 상위권 75% 이상',
+    gir: 'LPGA 평균 67%, 상위권 75%+',
+    approachProximity: 'LPGA 평균 약 20ft, 18ft 이내 우수',
+    puttingRound: '라운드당 29 이하가 투어 우수',
+    puttingGir: 'GIR 시 평균 1.8퍼트 내외가 목표',
+    chipping: '투어 평균은 6~7점 수준',
+    recovery: '트러블샷 평균 3~5점, 파 세이브 능력',
+    birdieEagle: '라운드당 버디 3.3개 내외',
+    bogey: '라운드당 보기 3.0개 이하 유지 목표',
+    avgStrokes: '투어 평균 타수 약 71.11타, 70타 이하는 상위권'
+  },
+  klpga: {
+    driveDistance: 'KLPGA 평균 247y, 상위권 262y+',
+    driveAccuracy: 'KLPGA 상위권 78% 이상',
+    gir: 'KLPGA 평균 69%, 상위권 78%+',
+    approachProximity: 'KLPGA 평균 약 22ft, 20ft 이내 상위권',
+    puttingRound: '라운드당 30 이하가 상위권',
+    puttingGir: 'GIR 시 평균 1.9퍼트 이하 목표',
+    chipping: '투어 평균은 6~7점 수준',
+    recovery: '트러블샷 평균 3~5점 수준',
+    birdieEagle: '라운드당 버디 3개 내외',
+    bogey: '라운드당 보기 3.3개 이하가 상위권',
+    avgStrokes: '투어 평균 타수 약 71.87타, 70타 이내면 상위권'
+  },
+  pga: {
+    driveDistance: 'PGA 평균 298y, 상위권 310y+',
+    driveAccuracy: 'PGA 평균 60% 내외',
+    gir: 'PGA 평균 66%, 상위권 73%+',
+    approachProximity: 'PGA 평균 약 20ft, 17ft 이내 상위권',
+    puttingRound: '라운드당 28.5 이하가 우수',
+    puttingGir: 'GIR 시 평균 1.75퍼트 이내 상위권',
+    chipping: '투어 평균은 6~7점 수준',
+    recovery: '트러블샷 평균 3~5점, 스크램블링 관점',
+    birdieEagle: '라운드당 버디 4~4.5개',
+    bogey: '라운드당 보기 2.6개 이하가 목표',
+    avgStrokes: '투어 평균 타수 약 70.2타, 68타 이내면 최상위'
+  },
+  kpga: {
+    driveDistance: 'KPGA 평균 285y, 상위권 300y+',
+    driveAccuracy: 'KPGA 상위권 70% 이상',
+    gir: 'KPGA 평균 68%, 상위권 75%+',
+    approachProximity: 'KPGA 평균 약 21ft, 19ft 이내 상위권',
+    puttingRound: '라운드당 29.5 이하 목표',
+    puttingGir: 'GIR 시 평균 1.82퍼트 이내면 상위권',
+    chipping: '투어 평균은 6~7점 수준',
+    recovery: '트러블샷 평균 3~5점 수준',
+    birdieEagle: '라운드당 버디 3.5개 내외',
+    bogey: '라운드당 보기 3개 이하 관리',
+    avgStrokes: '투어 평균 타수 약 71.2타, 69타 이내면 상위권'
+  }
+};
+
+const tourSliderPresets = {
+  lpga: {
+    driveDistance: { min: 230, max: 280, avg: 255, step: 1, decimals: 0 },
+    driveAccuracy: { min: 55, max: 85, avg: 72, step: 0.5, decimals: 1 },
+    gir:            { min: 55, max: 80, avg: 67, step: 0.5, decimals: 1 },
+    approachProximity: { min: 16, max: 30, avg: 20, step: 0.5, decimals: 1 },
+    puttingRound:   { min: 27, max: 34, avg: 29, step: 0.1, decimals: 1 },
+    puttingGir:     { min: 1.65, max: 2.00, avg: 1.80, step: 0.01, decimals: 2 },
+    chipping:       { min: 0,  max: 10, avg: 6.5, step: 0.1, decimals: 1 },
+    recovery:       { min: 0,  max: 10, avg: 4.0, step: 0.1, decimals: 1 },
+    birdieEagle:    { min: 0, max: 5, avg: 3.3, step: 0.01, decimals: 2 },
+    bogey:          { min: 0, max: 5, avg: 3.0, step: 0.01, decimals: 2 },
+    avgStrokes:     { min: 66, max: 75, avg: 71.11, step: 0.01, decimals: 2 }
+  },
+  klpga: {
+    driveDistance: { min: 225, max: 270, avg: 247, step: 1, decimals: 0 },
+    driveAccuracy: { min: 60, max: 88, avg: 75, step: 0.5, decimals: 1 },
+    gir:            { min: 58, max: 82, avg: 69, step: 0.5, decimals: 1 },
+    approachProximity: { min: 18, max: 32, avg: 22, step: 0.5, decimals: 1 },
+    puttingRound:   { min: 28, max: 34, avg: 30, step: 0.1, decimals: 1 },
+    puttingGir:     { min: 1.70, max: 2.05, avg: 1.88, step: 0.01, decimals: 2 },
+    chipping:       { min: 0,  max: 10, avg: 6.5, step: 0.1, decimals: 1 },
+    recovery:       { min: 0,  max: 10, avg: 4.0, step: 0.1, decimals: 1 },
+    birdieEagle:    { min: 0, max: 5, avg: 3.0, step: 0.01, decimals: 2 },
+    bogey:          { min: 0, max: 5, avg: 3.3, step: 0.01, decimals: 2 },
+    avgStrokes:     { min: 67, max: 76, avg: 71.87, step: 0.01, decimals: 2 }
+  },
+  pga: {
+    driveDistance: { min: 275, max: 325, avg: 298, step: 1, decimals: 0 },
+    driveAccuracy: { min: 50, max: 72, avg: 60, step: 0.5, decimals: 1 },
+    gir:            { min: 60, max: 75, avg: 66.5, step: 0.5, decimals: 1 },
+    approachProximity: { min: 16, max: 26, avg: 20, step: 0.5, decimals: 1 },
+    puttingRound:   { min: 27.5, max: 31.5, avg: 28.5, step: 0.1, decimals: 1 },
+    puttingGir:     { min: 1.65, max: 1.90, avg: 1.75, step: 0.01, decimals: 2 },
+    chipping:       { min: 0,  max: 10, avg: 6.5, step: 0.1, decimals: 1 },
+    recovery:       { min: 0,  max: 10, avg: 4.2, step: 0.1, decimals: 1 },
+    birdieEagle:    { min: 0, max: 5, avg: 4.2, step: 0.01, decimals: 2 },
+    bogey:          { min: 0, max: 5, avg: 2.6, step: 0.01, decimals: 2 },
+    avgStrokes:     { min: 63, max: 74, avg: 70.2, step: 0.1, decimals: 1 }
+  },
+  kpga: {
+    driveDistance: { min: 260, max: 305, avg: 285, step: 1, decimals: 0 },
+    driveAccuracy: { min: 55, max: 78, avg: 68, step: 0.5, decimals: 1 },
+    gir:            { min: 60, max: 75, avg: 67, step: 0.5, decimals: 1 },
+    approachProximity: { min: 17, max: 28, avg: 21, step: 0.5, decimals: 1 },
+    puttingRound:   { min: 28, max: 32, avg: 29.5, step: 0.1, decimals: 1 },
+    puttingGir:     { min: 1.70, max: 1.95, avg: 1.82, step: 0.01, decimals: 2 },
+    chipping:       { min: 0,  max: 10, avg: 6.5, step: 0.1, decimals: 1 },
+    recovery:       { min: 0,  max: 10, avg: 4.0, step: 0.1, decimals: 1 },
+    birdieEagle:    { min: 0, max: 5, avg: 3.4, step: 0.01, decimals: 2 },
+    bogey:          { min: 0, max: 5, avg: 2.9, step: 0.01, decimals: 2 },
+    avgStrokes:     { min: 66, max: 75, avg: 71.2, step: 0.1, decimals: 1 }
+  }
+};
+
+const sliderBindings = {
+  driveDistance: { inputId: 'driveDistance', labelId: 'driveDistanceVal' },
+  driveAccuracy: { inputId: 'driveAccuracy', labelId: 'driveAccuracyVal' },
+  gir: { inputId: 'gir', labelId: 'girVal' },
+  approachProximity: { inputId: 'approachProx', labelId: 'approachVal' },
+  puttingRound: { inputId: 'puttsRound', labelId: 'puttsRoundVal' },
+  puttingGir: { inputId: 'puttsGir', labelId: 'puttsGirVal' },
+  chipping: { inputId: 'chipping', labelId: 'chippingVal' },
+  recovery: { inputId: 'recovery', labelId: 'recoveryVal' },
+  birdieEagle: { inputId: 'birdieEagle', labelId: 'birdieEagleVal' },
+  bogey: { inputId: 'bogey', labelId: 'bogeyVal' }
+};
+
+const analysisConfig = [
+  { key: 'avgStrokes', label: '라운드 평균 타수', unit: '타', decimals: 2, higherIsBetter: false },
+  { key: 'driveDistance', label: '드라이버 거리', unit: 'yd', decimals: 0, higherIsBetter: true, deltaScale: { near: 5, step: 10 } },
+  { key: 'driveAccuracy', label: '드라이버 정확도', unit: '%', decimals: 1, higherIsBetter: true },
+  { key: 'gir', label: '그린 적중률', unit: '%', decimals: 1, higherIsBetter: true },
+  { key: 'approachProximity', label: '어프로치 핀 근접도', unit: 'ft', decimals: 1, higherIsBetter: false },
+  { key: 'puttingRound', label: '라운드당 퍼팅 수', unit: '회', decimals: 1, higherIsBetter: false },
+  { key: 'puttingGir', label: 'GIR 퍼팅 수', unit: '회', decimals: 2, higherIsBetter: false },
+  { key: 'chipping', label: '칩샷 감각', unit: '점', decimals: 1, higherIsBetter: true },
+  { key: 'recovery', label: '트러블샷 대응', unit: '점', decimals: 1, higherIsBetter: true },
+  { key: 'birdieEagle', label: '라운드 평균 버디', unit: '개', decimals: 2, higherIsBetter: true },
+  { key: 'bogey', label: '라운드 평균 보기', unit: '개', decimals: 2, higherIsBetter: false }
+];
+
+const analysisLookup = analysisConfig.reduce((acc, cfg) => {
+  acc[cfg.key] = cfg;
+  return acc;
+}, {});
+
+const autoFillMetrics = [...metricKeys, 'avgStrokes'];
+
+const fallbackState = {};
+
+function getFormRowForMetric(metricKey){
+  if (metricKey === 'avgStrokes'){
+    const input = document.getElementById('avgStrokes');
+    return input ? input.closest('.form-row') : null;
+  }
+  const binding = sliderBindings[metricKey];
+  if (!binding) return null;
+  const input = document.getElementById(binding.inputId);
+  return input ? input.closest('.form-row') : null;
+}
+
+function toggleFallbackClass(metricKey, isFallback){
+  fallbackState[metricKey] = Boolean(isFallback);
+  const row = getFormRowForMetric(metricKey);
+  if (!row) return;
+  row.classList.toggle('avg-fallback', fallbackState[metricKey]);
+}
+
+function clearFallbackFlags(){
+  autoFillMetrics.forEach(metricKey => toggleFallbackClass(metricKey, false));
+}
+
+function hasUserMetricOverrides(){
+  return autoFillMetrics.some(metricKey => fallbackState[metricKey] === false);
+}
+
+function collectFallbackStatus(){
+  const snapshot = {};
+  autoFillMetrics.forEach(metricKey => {
+    snapshot[metricKey] = fallbackState[metricKey] !== false;
+  });
+  return snapshot;
+}
+
+function clampToPreset(value, preset){
+  if (!Number.isFinite(value) || !preset) return value;
+  const min = Number.isFinite(preset.min) ? preset.min : value;
+  const max = Number.isFinite(preset.max) ? preset.max : value;
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return value;
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+  return Math.min(Math.max(value, lower), upper);
+}
+
+function applyMetricValue(metricKey, value, isFallback){
+  const presets = tourSliderPresets[currentTour] || {};
+  const preset = metricKey === 'avgStrokes' ? presets.avgStrokes : presets[metricKey];
+  const clampedValue = clampToPreset(Number(value), preset);
+  if (!Number.isFinite(clampedValue)){
+    toggleFallbackClass(metricKey, isFallback);
+    return;
+  }
+
+  if (metricKey === 'avgStrokes'){
+    const input = document.getElementById('avgStrokes');
+    if (input){
+      const decimals = typeof preset?.decimals === 'number' ? preset.decimals : 1;
+      input.value = Number(clampedValue).toFixed(decimals);
+    }
+  } else {
+    const binding = sliderBindings[metricKey];
+    if (binding){
+      const input = document.getElementById(binding.inputId);
+      if (input){
+        const decimals = typeof preset?.decimals === 'number' ? preset.decimals : 0;
+        const numericValue = Number(clampedValue).toFixed(decimals);
+        input.value = Number(numericValue);
+        syncRange(input, binding.labelId);
+      }
+    }
+  }
+
+  toggleFallbackClass(metricKey, isFallback);
+}
+
+function autoFillFromLatest(options = {}){
+  const { triggerCalculation = true, preserveExisting = false } = options;
+  const playerField = document.getElementById('playerName');
+  if (!playerField) return;
+
+  const playerName = playerField.value.trim();
+  if (!preserveExisting){
+    clearFallbackFlags();
+  }
+
+  const presets = tourSliderPresets[currentTour] || {};
+
+  if (!playerName){
+    autoFillMetrics.forEach(metricKey => {
+      const preset = metricKey === 'avgStrokes' ? presets.avgStrokes : presets[metricKey];
+      const isFallbackRow = fallbackState[metricKey] !== false;
+      if (preserveExisting && !isFallbackRow) return;
+
+      const defaultValue = Number.isFinite(preset?.avg) ? preset.avg : undefined;
+      const currentValue = metricKey === 'avgStrokes'
+        ? Number(document.getElementById('avgStrokes')?.value)
+        : (() => {
+            const binding = sliderBindings[metricKey];
+            const input = binding ? document.getElementById(binding.inputId) : null;
+            return Number(input?.value);
+          })();
+      const valueToApply = Number.isFinite(defaultValue) ? defaultValue : currentValue;
+      applyMetricValue(metricKey, valueToApply, true);
+    });
+
+    if (triggerCalculation) calculateScore();
+    return;
+  }
+
+  const snapshot = getLatestPlayerSnapshot(currentTour, playerName);
+  const fallbackMeta = snapshot?.fallback || {};
+
+  autoFillMetrics.forEach(metricKey => {
+    const preset = metricKey === 'avgStrokes' ? presets.avgStrokes : presets[metricKey];
+    const storedValue = snapshot?.metrics?.[metricKey];
+    const hasStoredValue = Number.isFinite(storedValue);
+    let valueToApply = hasStoredValue ? storedValue : undefined;
+
+    if (!hasStoredValue){
+      const isFallbackRow = fallbackState[metricKey] !== false;
+      if (preserveExisting && !isFallbackRow) return;
+
+      if (Number.isFinite(preset?.avg)){
+        valueToApply = preset.avg;
+      } else if (Number.isFinite(preset?.min)){
+        valueToApply = preset.min;
+      } else if (metricKey !== 'avgStrokes'){
+        const binding = sliderBindings[metricKey];
+        const input = binding ? document.getElementById(binding.inputId) : null;
+        valueToApply = Number(input?.value) || 0;
+      } else {
+        const strokeInput = document.getElementById('avgStrokes');
+        valueToApply = Number(strokeInput?.value) || 0;
+      }
+    } else if (Boolean(fallbackMeta[metricKey]) && Number.isFinite(preset?.avg)){
+      valueToApply = preset.avg;
+    }
+
+    const isFallback = hasStoredValue ? Boolean(fallbackMeta[metricKey]) : !hasStoredValue;
+    applyMetricValue(metricKey, valueToApply, isFallback);
+  });
+
+  if (triggerCalculation) calculateScore();
+}
+
+function applyTourPresets(tour, options = {}){
+  const { preserveValues = false } = options;
+  const presets = tourSliderPresets[tour];
+  if (!presets) return;
+
+  Object.keys(sliderBindings).forEach(metric => {
+    const preset = presets[metric];
+    if (!preset) return;
+    const { inputId, labelId } = sliderBindings[metric];
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    const previousValue = Number(input.value);
+    input.min = preset.min;
+    input.max = preset.max;
+    if (preset.step !== undefined) input.step = preset.step;
+
+    let nextValue;
+    if (preserveValues && Number.isFinite(previousValue)){
+      const lower = Number(preset.min);
+      const upper = Number(preset.max);
+      nextValue = Math.min(Math.max(previousValue, Math.min(lower, upper)), Math.max(lower, upper));
+    } else {
+      nextValue = typeof preset.avg === 'number' ? preset.avg : preset.min;
+    }
+
+    if (!Number.isFinite(nextValue)){
+      nextValue = typeof preset.min === 'number' ? preset.min : 0;
+    }
+
+    input.value = nextValue;
+    syncRange(input, labelId);
+  });
+
+  const strokePreset = presets.avgStrokes;
+  const strokeInput = document.getElementById('avgStrokes');
+  if (strokePreset && strokeInput){
+    if (strokePreset.min !== undefined) strokeInput.min = strokePreset.min;
+    if (strokePreset.max !== undefined) strokeInput.max = strokePreset.max;
+    if (strokePreset.step !== undefined) strokeInput.step = strokePreset.step;
+
+    const decimals = typeof strokePreset.decimals === 'number' ? strokePreset.decimals : 1;
+    const prev = Number(strokeInput.value);
+    let nextValue;
+    if (preserveValues && Number.isFinite(prev)){
+      const lower = Math.min(strokePreset.min ?? prev, strokePreset.max ?? prev);
+      const upper = Math.max(strokePreset.min ?? prev, strokePreset.max ?? prev);
+      const clamped = Math.min(Math.max(prev, lower), upper);
+      nextValue = clamped;
+    } else {
+      nextValue = typeof strokePreset.avg === 'number' ? strokePreset.avg : strokePreset.min;
+    }
+
+    if (Number.isFinite(nextValue)){
+      strokeInput.value = decimals >= 0 ? Number(nextValue).toFixed(decimals) : String(nextValue);
+    }
+  }
+}
+
+let currentTour = 'klpga';
+
+const radarChart = new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['비거리','정확도','GIR','핀 근접도','라운드 퍼팅','GIR 퍼팅','칩샷','트러블','버디·이글','보기'],
+    datasets: [{
+      label: '표준화 점수 (0~100)',
+      data: [0,0,0,0,0,0,0,0,0,0],
+      backgroundColor: 'rgba(44,193,255,0.18)',
+      borderColor: '#2cc1ff',
+      pointBackgroundColor: '#ffe066',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        beginAtZero: true,
+        max: 100,
+        angleLines: { color: '#394357' },
+        grid: { color: '#2a3244' },
+        pointLabels: { color: '#c3c9df', font: { size: 12 } },
+        ticks: { display: false }
+      }
+    },
+    plugins: { legend: { labels: { color: '#c3c9df' } } }
+  }
+});
+
+function syncRange(el, labelId){
+  const label = document.getElementById(labelId);
+  if (!label) return;
+  const step = parseFloat(el.step || '1');
+  const decimals = (!Number.isNaN(step) && step < 1) ? (step.toString().split('.')[1]?.length || 1) : 0;
+  const value = Number(el.value);
+  label.textContent = Number.isFinite(value) ? value.toFixed(decimals) : el.value;
+}
+
+function classifyScore(score){
+  if (!Number.isFinite(score)) return '평가 불가';
+  if (score >= 90) return '최상위권 수준';
+  if (score >= 81) return '투어 상위권 수준';
+  if (score >= 76) return '투어 중상위권 수준';
+  if (score >= 70) return '투어 평균 수준';
+  if (score > 60) return '투어 중하위권 수준';
+  return '투어진입이 어려운 수준';
+}
+
+function classifyAnalysisScore(score){
+  if (!Number.isFinite(score)) return '평가 불가';
+  if (score >= 90) return '매우 우수';
+  if (score >= 80) return '우수';
+  if (score >= 70) return '투어 평균과 유사';
+  if (score >= 60) return '투어 평균 대비 미흡';
+  return '투어 평균 대비 매우 미흡';
+}
+
+function formatValue(value, decimals){
+  return Number.isFinite(value) ? Number(value).toFixed(decimals) : '-';
+}
+
+function renderAnalysis(metrics, presets, normScores){
+  const container = document.getElementById('analysisContent');
+  if (!container) return;
+
+  const list = document.createElement('ul');
+  list.className = 'analysis-list';
+
+  analysisConfig.forEach(cfg => {
+    const value = metrics[cfg.key];
+    const avg = presets[cfg.key]?.avg;
+    const normalized = normScores[cfg.key] * 100;
+
+    if (!Number.isFinite(value)) return;
+
+    const verdict = classifyAnalysisScore(normalized);
+    const avgText = Number.isFinite(avg) ? `${formatValue(avg, cfg.decimals)}${cfg.unit}` : '데이터 없음';
+    const valueText = `${formatValue(value, cfg.decimals)}${cfg.unit}`;
+
+    let deltaText = '';
+    if (Number.isFinite(avg)){
+      const diffRaw = cfg.higherIsBetter ? (value - avg) : (avg - value);
+      const diffAbs = Math.abs(diffRaw);
+      const tolerance = cfg.deltaScale ? cfg.deltaScale.near : (cfg.decimals >= 2 ? 0.02 : 0.1);
+
+      if (cfg.key === 'driveDistance' && cfg.deltaScale){
+        const { near, step } = cfg.deltaScale;
+        if (diffAbs <= near){
+          deltaText = '투어 평균과 유사 (±5yd)';
+        } else {
+          const level = Math.ceil((diffAbs - near) / step);
+          const positiveLabels = ['우수', '매우 우수'];
+          const negativeLabels = ['미흡', '매우 미흡'];
+          const label = diffRaw > 0
+            ? positiveLabels[Math.min(level - 1, positiveLabels.length - 1)]
+            : negativeLabels[Math.min(level - 1, negativeLabels.length - 1)];
+          const direction = diffRaw > 0 ? '+' : '-';
+          deltaText = `투어 평균 대비 ${direction}${formatValue(diffAbs, cfg.decimals)}${cfg.unit} ${label}`;
+        }
+      } else {
+        if (diffAbs <= tolerance){
+          deltaText = '투어 평균과 유사';
+        } else {
+          const sign = diffRaw > 0 ? '+' : '-';
+          const label = diffRaw > 0 ? '우수' : '미흡';
+          deltaText = `투어 평균 대비 ${sign}${formatValue(diffAbs, cfg.decimals)}${cfg.unit} ${label}`;
+        }
+      }
+    }
+
+    const li = document.createElement('li');
+    li.textContent = `${cfg.label}: ${valueText} (투어 평균 ${avgText}) → ${verdict}${deltaText ? `, ${deltaText}` : ''}`;
+    list.appendChild(li);
+  });
+
+  if (!list.childNodes.length){
+    container.innerHTML = '<p class="analysis-empty">분석 정보를 생성할 수 없습니다.</p>';
+  } else {
+    container.innerHTML = '';
+    container.appendChild(list);
+  }
+}
+
+function normalize(value, min, max, invert=false, averageValue, target=AVERAGE_TARGET){
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+  const clamped = Math.min(Math.max(value, lower), upper);
+  const range = upper - lower;
+  if (range <= 0.0001) return 0;
+
+  const baseRatio = invert
+    ? (max - clamped) / range
+    : (clamped - min) / range;
+
+  let ratio = Math.min(Math.max(baseRatio, 0), 1);
+
+  const hasAverage = typeof averageValue === 'number' && Number.isFinite(averageValue);
+  if (!hasAverage) return ratio;
+
+  const avgClamped = Math.min(Math.max(averageValue, lower), upper);
+  const avgRatioRaw = invert
+    ? (max - avgClamped) / range
+    : (avgClamped - min) / range;
+
+  const avgRatio = Math.min(Math.max(avgRatioRaw, 0), 1);
+
+  if (avgRatio === target || avgRatio <= 0 || avgRatio >= 1) return ratio;
+
+  if (ratio <= avgRatio){
+    const safeAvg = avgRatio <= 0 ? 1 : avgRatio;
+    ratio = (target / safeAvg) * ratio;
+  } else {
+    const upperSpan = 1 - avgRatio;
+    const safeSpan = upperSpan <= 0 ? 1 : upperSpan;
+    ratio = target + (ratio - avgRatio) * ((1 - target) / safeSpan);
+  }
+
+  return Math.min(Math.max(ratio, 0), 1);
+}
+
+function calculateScore(options = {}){
+  const isEventPayload = options && typeof options === 'object' && 'type' in options && 'target' in options;
+  const effectiveOptions = isEventPayload ? {} : (options || {});
+  const { persist = false } = effectiveOptions;
+  const baselines = tourBaselines[currentTour];
+  const presets = tourSliderPresets[currentTour] || {};
+  const metrics = {
+    driveDistance: Number(document.getElementById('driveDistance').value),
+    driveAccuracy: Number(document.getElementById('driveAccuracy').value),
+    gir: Number(document.getElementById('gir').value),
+    approachProximity: Number(document.getElementById('approachProx').value),
+    puttingRound: Number(document.getElementById('puttsRound').value),
+    puttingGir: Number(document.getElementById('puttsGir').value),
+    chipping: Number(document.getElementById('chipping').value),
+    recovery: Number(document.getElementById('recovery').value),
+    birdieEagle: Number(document.getElementById('birdieEagle').value),
+    bogey: Number(document.getElementById('bogey').value),
+    avgStrokes: Number(document.getElementById('avgStrokes').value)
+  };
+
+  const normScores = {
+    driveDistance: normalize(metrics.driveDistance, baselines.driveDistance.min, baselines.driveDistance.max, false, presets.driveDistance?.avg),
+    driveAccuracy: normalize(metrics.driveAccuracy, baselines.driveAccuracy.min, baselines.driveAccuracy.max, false, presets.driveAccuracy?.avg),
+    gir: normalize(metrics.gir, baselines.gir.min, baselines.gir.max, false, presets.gir?.avg),
+    approachProximity: normalize(metrics.approachProximity, baselines.approachProximity.min, baselines.approachProximity.max, true, presets.approachProximity?.avg),
+    puttingRound: normalize(metrics.puttingRound, baselines.puttingRound.min, baselines.puttingRound.max, true, presets.puttingRound?.avg),
+    puttingGir: normalize(metrics.puttingGir, baselines.puttingGir.min, baselines.puttingGir.max, true, presets.puttingGir?.avg),
+    chipping: normalize(metrics.chipping, baselines.chipping.min, baselines.chipping.max, false, presets.chipping?.avg),
+    recovery: normalize(metrics.recovery, baselines.recovery.min, baselines.recovery.max, false, presets.recovery?.avg),
+    birdieEagle: normalize(metrics.birdieEagle, baselines.birdieEagle.min, baselines.birdieEagle.max, false, presets.birdieEagle?.avg),
+    bogey: normalize(metrics.bogey, baselines.bogey.min, baselines.bogey.max, true, presets.bogey?.avg),
+    avgStrokes: normalize(metrics.avgStrokes, baselines.avgStrokes.min, baselines.avgStrokes.max, true, presets.avgStrokes?.avg)
+  };
+
+  const weightedScores = metricKeys.map(key => {
+    const raw = normScores[key] * 100;
+    const weighted = raw * weights[key];
+    const finalContribution = weighted * FINAL_WEIGHTS.metrics;
+    return { key, raw, weighted, finalContribution };
+  });
+
+  const metricsContributionRaw = weightedScores.reduce((acc, item) => acc + item.finalContribution, 0);
+  const strokesScoreRaw = Number.isFinite(normScores.avgStrokes) ? normScores.avgStrokes * 100 : 0;
+  const strokesContributionRaw = strokesScoreRaw * FINAL_WEIGHTS.avgStrokes;
+
+  const metricsContribution = Number.isFinite(metricsContributionRaw) ? metricsContributionRaw : 0;
+  const strokesContribution = Number.isFinite(strokesContributionRaw) ? strokesContributionRaw : 0;
+  const total = metricsContribution + strokesContribution;
+
+  const totalScoreEl = document.getElementById('totalScore');
+  if (totalScoreEl){
+    totalScoreEl.innerHTML = `총점 ${total.toFixed(1)} / 100 · ${classifyScore(total)} (${currentTour.toUpperCase()} 기준)` +
+      `<span class="total-score-sub">기술지표 ${metricsContribution.toFixed(1)}점 · 평균타수 ${strokesContribution.toFixed(1)}점</span>`;
+  }
+
+  const setCell = (id, value)=> document.getElementById(id).textContent = value;
+  const getMetricContribution = key => {
+    const item = weightedScores.find(x => x.key === key);
+    return item ? item.finalContribution : 0;
+  };
+
+  const formatMetricDisplay = key => {
+    const cfg = analysisLookup[key];
+    if (!cfg) return '';
+    const val = metrics[key];
+    if (!Number.isFinite(val)) return '';
+    return `${formatValue(val, cfg.decimals)}${cfg.unit}`;
+  };
+
+  const setMetricScoreCell = (cellId, key) => {
+    const contribution = getMetricContribution(key).toFixed(1);
+    const metricValueText = formatMetricDisplay(key);
+    setCell(cellId, metricValueText ? `${contribution}점 · ${metricValueText}` : `${contribution}점`);
+  };
+
+  setMetricScoreCell('distScore', 'driveDistance');
+  setMetricScoreCell('accScore', 'driveAccuracy');
+  setMetricScoreCell('girScore', 'gir');
+  setMetricScoreCell('approachScore', 'approachProximity');
+  setMetricScoreCell('puttRoundScore', 'puttingRound');
+  setMetricScoreCell('puttGirScore', 'puttingGir');
+  setMetricScoreCell('chipScore', 'chipping');
+  setMetricScoreCell('recScore', 'recovery');
+  setMetricScoreCell('birdieScore', 'birdieEagle');
+  setMetricScoreCell('bogeyScore', 'bogey');
+
+  const strokesValue = formatMetricDisplay('avgStrokes');
+  setCell('strokesScore', strokesValue ? `${strokesContribution.toFixed(1)}점 · ${strokesValue}` : `${strokesContribution.toFixed(1)}점`);
+
+  const notes = baselineNotes[currentTour];
+  document.getElementById('distNote').textContent = notes.driveDistance;
+  document.getElementById('accNote').textContent = notes.driveAccuracy;
+  document.getElementById('girNote').textContent = notes.gir;
+  document.getElementById('approachNote').textContent = notes.approachProximity;
+  document.getElementById('puttRoundNote').textContent = notes.puttingRound;
+  document.getElementById('puttGirNote').textContent = notes.puttingGir;
+  document.getElementById('chipNote').textContent = notes.chipping;
+  document.getElementById('recNote').textContent = notes.recovery;
+  document.getElementById('birdieNote').textContent = notes.birdieEagle;
+  document.getElementById('bogeyNote').textContent = notes.bogey;
+  document.getElementById('strokesNote').textContent = notes.avgStrokes;
+
+  radarChart.data.datasets[0].data = [
+    normScores.driveDistance * 100,
+    normScores.driveAccuracy * 100,
+    normScores.gir * 100,
+    normScores.approachProximity * 100,
+    normScores.puttingRound * 100,
+    normScores.puttingGir * 100,
+    normScores.chipping * 100,
+    normScores.recovery * 100,
+    normScores.birdieEagle * 100,
+    normScores.bogey * 100
+  ];
+  radarChart.update();
+
+  renderAnalysis(metrics, presets, normScores);
+
+  if (persist){
+    const playerField = document.getElementById('playerName');
+    const playerName = playerField ? playerField.value : '';
+    const fallbackStates = collectFallbackStatus();
+    persistPlayerSnapshot(currentTour, playerName, metrics, fallbackStates);
+  }
+}
+applyTourPresets(currentTour);
+autoFillFromLatest({ triggerCalculation: true });
+
+document.getElementById('tourSelect').addEventListener('change', (event)=>{
+  currentTour = event.target.value;
+  const preserveUserValues = hasUserMetricOverrides();
+  applyTourPresets(currentTour, { preserveValues: preserveUserValues });
+
+  const playerField = document.getElementById('playerName');
+  const playerName = playerField ? playerField.value.trim() : '';
+  const snapshotAvailable = playerName ? Boolean(getLatestPlayerSnapshot(currentTour, playerName)) : false;
+  const preserveExistingMetrics = preserveUserValues && (!playerName || !snapshotAvailable);
+
+  autoFillFromLatest({ triggerCalculation: false, preserveExisting: preserveExistingMetrics });
+  calculateScore();
+});
+
+const avgStrokesInput = document.getElementById('avgStrokes');
+if (avgStrokesInput){
+  avgStrokesInput.addEventListener('input', event => {
+    toggleFallbackClass('avgStrokes', false);
+    calculateScore();
+  });
+}
+
+Object.entries(sliderBindings).forEach(([metricKey, binding]) => {
+  const input = document.getElementById(binding.inputId);
+  if (!input) return;
+  ['input','change'].forEach(evt => {
+    input.addEventListener(evt, () => {
+      toggleFallbackClass(metricKey, false);
+      calculateScore();
+    });
+  });
+});
+
+const playerFieldEl = document.getElementById('playerName');
+if (playerFieldEl){
+  const handlePlayerUpdate = () => {
+    const preserveManual = hasUserMetricOverrides();
+    autoFillFromLatest({ triggerCalculation: true, preserveExisting: preserveManual });
+  };
+  ['change','blur'].forEach(evt => playerFieldEl.addEventListener(evt, handlePlayerUpdate));
+}
+
+function handleEvaluate(){
+  calculateScore({ persist: true });
+}
+
+async function downloadPdf(){
+  if (!jsPDF || typeof html2canvas === 'undefined'){
+    alert('PDF 생성 라이브러리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  calculateScore();
+  await new Promise(resolve => setTimeout(resolve, 180));
+
+  if (document.fonts && document.fonts.ready){
+    try { await document.fonts.ready; } catch(_){}
+  }
+
+  const panel = document.getElementById('resultsPanel');
+  if (!panel){
+    alert('결과 패널을 찾을 수 없습니다.');
+    return;
+  }
+
+  const playerName = document.getElementById('playerName').value?.trim() || '선수명 미입력';
+
+  const printable = document.createElement('div');
+  printable.style.padding = '24px';
+  printable.style.background = '#ffffff';
+  printable.style.color = '#111';
+  printable.style.fontFamily = "'Noto Sans KR', Arial, sans-serif";
+  printable.style.maxWidth = '640px';
+  printable.style.margin = '0 auto';
+
+  const printStyle = document.createElement('style');
+  printStyle.textContent = `
+    .print-panel { background:#ffffff !important; color:#1a2233 !important; border:1px solid #d7dbe6 !important; }
+    .print-panel * { color:#1a2233 !important; font-family:'Noto Sans KR', Arial, sans-serif !important; }
+    .print-panel .total-score { color:#c18500 !important; }
+    .print-panel table { border-collapse:collapse !important; }
+    .print-panel table th { color:#1a2233 !important; border-bottom:1px solid #d7dbe6 !important; }
+    .print-panel table td { border-bottom:1px solid #e2e5ef !important; }
+    .print-panel .results { color:#1a2233 !important; }
+    .print-panel .chart-box { background:#ffffff !important; }
+    .print-panel .analysis-section { background:#f4f6ff !important; border:1px solid #d2d8ed !important; border-radius:10px !important; padding:12px 16px 12px !important; }
+    .print-panel .analysis-section summary { color:#1a2233 !important; font-weight:600 !important; padding:0 0 8px 0 !important; }
+    .print-panel .analysis-section summary::before { content:'📄' !important; }
+    .print-panel .analysis-content { color:#1a2233 !important; padding:0 !important; }
+    .print-panel .analysis-list { padding-left:18px !important; }
+    .print-panel .analysis-list li { margin:4px 0 !important; }
+  `;
+  printable.appendChild(printStyle);
+
+  const headingWrap = document.createElement('div');
+  headingWrap.style.marginBottom = '18px';
+  const titleEl = document.createElement('h2');
+  titleEl.textContent = `SY 골프경기력 평가 플랫폼 (${currentTour.toUpperCase()})`;
+  titleEl.style.margin = '0 0 6px 0';
+  titleEl.style.fontSize = '20px';
+  titleEl.style.color = '#0f1a2d';
+  const playerEl = document.createElement('div');
+  playerEl.textContent = `선수: ${playerName}`;
+  playerEl.style.fontSize = '14px';
+  playerEl.style.color = '#364057';
+  headingWrap.appendChild(titleEl);
+  headingWrap.appendChild(playerEl);
+
+  const clone = panel.cloneNode(true);
+  clone.classList.add('print-panel');
+  clone.style.boxShadow = 'none';
+  clone.style.margin = '0';
+  clone.style.border = '1px solid #d6d9e2';
+  clone.style.borderRadius = '12px';
+  clone.style.fontFamily = "'Noto Sans KR', Arial, sans-serif";
+  clone.style.background = '#ffffff';
+
+  const cloneAnalysis = clone.querySelector('.analysis-section');
+  if (cloneAnalysis){
+    cloneAnalysis.setAttribute('open','open');
+    cloneAnalysis.open = true;
+  }
+
+  const originalCanvas = document.getElementById('radarChart');
+  const clonedCanvas = clone.querySelector('#radarChart');
+  if (originalCanvas && clonedCanvas){
+    clonedCanvas.width = originalCanvas.width;
+    clonedCanvas.height = originalCanvas.height;
+    const ctx = clonedCanvas.getContext('2d');
+    if (ctx){
+      ctx.drawImage(originalCanvas, 0, 0);
+    }
+  }
+
+  const cloneButton = clone.querySelector('#downloadPdfBtn');
+  if (cloneButton) cloneButton.remove();
+
+  printable.appendChild(headingWrap);
+  printable.appendChild(clone);
+  document.body.appendChild(printable);
+
+  const canvas = await html2canvas(printable, {
+    backgroundColor: '#ffffff',
+    scale: window.devicePixelRatio || 1,
+    useCORS: true
+  });
+  const imgData = canvas.toDataURL('image/png');
+  document.body.removeChild(printable);
+
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 12;
+
+  const imgProps = pdf.getImageProperties(imgData);
+  const availableWidth = pageWidth - margin * 2;
+  const availableHeight = pageHeight - margin * 2;
+  let imgWidth = availableWidth;
+  let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+  if (imgHeight > availableHeight){
+    imgHeight = availableHeight;
+    imgWidth = (imgProps.width * imgHeight) / imgProps.height;
+  }
+
+  const offsetX = (pageWidth - imgWidth) / 2;
+  const offsetY = (pageHeight - imgHeight) / 2;
+
+  pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgWidth, imgHeight, '', 'FAST');
+  pdf.save(`SY_선수경기력평가_${playerName || 'PLAYER'}_${currentTour.toUpperCase()}.pdf`);
+}
+
+document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdf);
+</script>
+</body>
+</html>

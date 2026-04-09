@@ -5,17 +5,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>SY-Golf Round Logger</title>
-<!-- Local-first CSS loader: tries libs/ then falls back to CDN -->
-<script>
-  (function(){
-    function loadCss(localHref, cdnHref){
-      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = localHref; l.onload = function(){}; l.onerror = function(){ l.href = cdnHref; };
-      document.head.appendChild(l);
-    }
-    loadCss('libs/modern-normalize.min.css', 'https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/1.1.0/modern-normalize.min.css');
-    loadCss('libs/pretendardvariable.css', 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/variable/pretendardvariable.css');
-  })();
-</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/1.1.0/modern-normalize.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/variable/pretendardvariable.css">
 <style>
   :root{
     --bg:#071018;
@@ -87,6 +78,8 @@
   .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--text); font-weight:600;}
   .btn:hover{filter:brightness(1.03)}
   .card .right-actions .btn, .card .export-row .btn{min-width:120px}
+  .nav-back-btn{display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); color:var(--text); font-size:13px; font-weight:700; cursor:pointer;}
+  .nav-back-btn:hover{background:rgba(255,255,255,0.08)}
 
   /* Keep export buttons inline (don't let the styled save button push to a new row) */
   .export-row{display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap}
@@ -231,6 +224,7 @@
 <div class="container">
   <header>
     <div>
+      <button type="button" class="nav-back-btn" onclick="location.href='./index3.html'">코치포탈로 돌아가기</button>
       <h1>SY-Golf Round Logger</h1>
       <p>18-hole: quick mobile input → analysis & export</p>
     </div>
@@ -517,22 +511,9 @@
   <footer>Created for quick mobile testing. Data is kept in your browser (local only). XLSX export uses client-side library.</footer>
 </div>
 
-<!-- Local-first JS loader: try libs/ then CDN fallback -->
-<script>
-  (function(){
-    function loadScript(localSrc, cdnSrc, onload){
-      var s = document.createElement('script'); s.src = localSrc; s.async = false;
-      s.onload = onload || function(){};
-      s.onerror = function(){
-        var s2 = document.createElement('script'); s2.src = cdnSrc; s2.async = false; if (onload) s2.onload = onload; document.body.appendChild(s2);
-      };
-      document.body.appendChild(s);
-    }
-    loadScript('libs/xlsx.full.min.js', 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js');
-    loadScript('libs/html2canvas.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-    loadScript('libs/html2pdf.bundle.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js');
-  })();
-</script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script>
 /* ======= App State ======= */
 const HOLES = []; // will contain 18 hole objects

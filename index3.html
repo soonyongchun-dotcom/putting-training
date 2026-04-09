@@ -555,6 +555,7 @@
         <button class="coach-tab-btn" data-coach-tab="match">경기 시합 준비 현황</button>
         <button class="coach-tab-btn" data-coach-tab="completed">선수별 완료미션 현황</button>
         <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
+        <button class="coach-tab-btn" data-coach-tab="analysis">경기내용 분석</button>
       </div>
 
       <!-- 탭 1: 선수 현황 목록 + 승인 대기 -->
@@ -668,6 +669,18 @@
           </div>
         </div>
       </div>
+
+      <!-- 탭 6: 경기내용 분석 -->
+      <div class="coach-tab-panel" id="coachTab-analysis">
+        <div class="card" style="max-width:760px">
+          <h3 style="margin-top:0">경기내용 분석</h3>
+          <p class="muted" style="margin:0 0 12px">분석 항목을 선택하면 해당 분석 도구를 새 창에서 엽니다.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" type="button" id="openCoachRoundAnalysisBtn">라운드결과분석</button>
+            <button class="btn" type="button" id="openCoachPerformanceAnalysisBtn">종합경기력분석</button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -707,6 +720,8 @@
     const STORAGE_SIGNUP_RATE_LIMIT_STATE = "sytpt_signup_rate_limit_state";
     const STORAGE_AUTH_EMAIL_HINT_PREFIX = "sytpt_auth_email_hint_";
     const STORAGE_COACH_KPI_LAST = "sytpt_coach_kpi_last";
+    const COACH_ROUND_ANALYSIS_PAGE = './golf_rounddatanput(26.2.1).html';
+    const COACH_PERFORMANCE_ANALYSIS_PAGE = './GolfPerformanceEvaluator(1.4).html';
     const SIGNUP_RETRY_MS = 120000;
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
@@ -778,6 +793,14 @@
       const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}");
       delete m[pid];
       localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
+    }
+    function openCoachAnalysisPage(pagePath){
+      var normalized=String(pagePath||'').trim();
+      if(!normalized){
+        alert('분석 페이지 경로가 비어 있습니다.');
+        return;
+      }
+      window.location.href=encodeURI(normalized);
     }
     function getSignupCooldownLeftMs(){
       var until=Number(localStorage.getItem(STORAGE_SIGNUP_COOLDOWN_UNTIL)||'0');
@@ -2489,6 +2512,19 @@
     if(directiveTargetSelect){
       directiveTargetSelect.addEventListener('change', function(){
         renderCoachDirectiveList();
+      });
+    }
+
+    var openCoachRoundAnalysisBtn=document.getElementById('openCoachRoundAnalysisBtn');
+    if(openCoachRoundAnalysisBtn){
+      openCoachRoundAnalysisBtn.addEventListener('click', function(){
+        openCoachAnalysisPage(COACH_ROUND_ANALYSIS_PAGE);
+      });
+    }
+    var openCoachPerformanceAnalysisBtn=document.getElementById('openCoachPerformanceAnalysisBtn');
+    if(openCoachPerformanceAnalysisBtn){
+      openCoachPerformanceAnalysisBtn.addEventListener('click', function(){
+        openCoachAnalysisPage(COACH_PERFORMANCE_ANALYSIS_PAGE);
       });
     }
 
