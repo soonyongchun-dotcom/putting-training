@@ -781,17 +781,34 @@
     function setCoachSelectedPlayerId(id){ localStorage.setItem(STORAGE_COACH_SELECTED_PLAYER, id||""); }
 
     // ─── 읽음 타임스탬프 (localStorage) ───
+    function getCommReadScope(){
+      const s=getSession();
+      if(s&&s.role==='coach') return 'coach:'+String(s.id||'coach');
+      if(s&&s.role==='player') return 'player:'+String(s.id||'player');
+      return 'anon';
+    }
+    function getCommLastReadScopedKey(pid){
+      return getCommReadScope()+'::'+String(pid||'');
+    }
     function getCommLastRead(pid){
-      const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}"); return m[pid]||null;
+      const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}");
+      const key=getCommLastReadScopedKey(pid);
+      return m[key]||null;
     }
     function setCommLastRead(pid){
       const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}");
-      m[pid]=new Date().toISOString();
+      const key=getCommLastReadScopedKey(pid);
+      m[key]=new Date().toISOString();
+      // cleanup legacy unscoped key to avoid cross-role read-state contamination
+      delete m[String(pid||'')];
       localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
     }
     function clearCommLastRead(pid){
       const m=JSON.parse(localStorage.getItem(STORAGE_COMM_LAST_READ)||"{}");
-      delete m[pid];
+      const suffix='::'+String(pid||'');
+      Object.keys(m).forEach(function(k){
+        if(k===String(pid||'')||k.endsWith(suffix)) delete m[k];
+      });
       localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
     }
     function openCoachAnalysisPage(pagePath){
