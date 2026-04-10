@@ -740,6 +740,12 @@
     let hasCoachReadColumn = false;
     let realtimeChannel = null;
     let realtimePollingTimer = null;
+    let dashboardCoachRenderSeq = 0;
+    let commCountsRenderSeq = 0;
+    let coachDirectiveRenderSeq = 0;
+    let lastDashboardCoachHtml = '';
+    let lastCoachDirectiveHtml = '';
+    let isSendingCoachDirective = false;
 
     function invalidateCoachDirectiveCache(playerId){
       coachDirectivesCache = [];
@@ -769,6 +775,14 @@
       if(diff<3600) return Math.floor(diff/60)+"분 전";
       if(diff<86400)return Math.floor(diff/3600)+"시간 전";
       return (d.getMonth()+1)+"/"+d.getDate();
+    }
+    function toTimeMs(v){
+      if(!v) return 0;
+      var n=new Date(v).getTime();
+      return isNaN(n)?0:n;
+    }
+    function isAfterTime(left,right){
+      return toTimeMs(left)>toTimeMs(right);
     }
 
     // ─── 세션 (localStorage) ───
@@ -1657,15 +1671,18 @@
       renderMatchHeader();
     }
     async function renderCommCounts(){
+      const renderSeq=++commCountsRenderSeq;
       const session=getSession(); if(!session) return;
       if(session.role==='player'){
         const lastRead=getCommLastRead(session.id);
         const allDir=await getCoachDirectives(null,false,false);
+        if(renderSeq!==commCountsRenderSeq) return;
         const forPlayer=allDir.filter(r=>r.player_id===session.id);
-        const unreadDir=lastRead?forPlayer.filter(d=>d.created_at&&d.created_at>lastRead).length:forPlayer.length;
+        const unreadDir=lastRead?forPlayer.filter(d=>d.created_at&&isAfterTime(d.created_at,lastRead)).length:forPlayer.length;
         const allMsgs=await getMessages();
+        if(renderSeq!==commCountsRenderSeq) return;
         const coachChats = allMsgs.filter(m=>m.player_id===session.id&&isChatMessage(fromDbMsg(m))&&m.author==='코치'&&m.created_at);
-        const unreadChat = lastRead ? coachChats.filter(m=>m.created_at>lastRead).length : coachChats.length;
+        const unreadChat = lastRead ? coachChats.filter(m=>isAfterTime(m.created_at,lastRead)).length : coachChats.length;
         const unreadN = unreadDir + unreadChat;
         const u=document.getElementById('unreadCount'); if(u) u.textContent=unreadN+'건';
         // calculate waiting count as before (queries vs directives)
@@ -1721,28 +1738,41 @@
       root.innerHTML='<table class="table"><thead><tr><th>일자</th><th>집중도</th><th>심리상태</th><th>체력상태</th><th>오늘훈련특이사항</th></tr></thead><tbody>'+rows+'</tbody></table>';
     }
     async function renderDashboardCoachMessages(){
+      const renderSeq=++dashboardCoachRenderSeq;
       const root=document.getElementById('dashboardCoachMessages'); if(!root) return;
       const users=await getUsers();
+      if(renderSeq!==dashboardCoachRenderSeq) return;
       const player=getActivePlayerForView(users);
-      if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';return;}
+      if(!player){
+        const emptyHtml='<div class="message"><div class="meta">안내</div><div>코치 메시지가 없습니다.</div></div>';
+        if(root.innerHTML!==emptyHtml) root.innerHTML=emptyHtml;
+        lastDashboardCoachHtml=emptyHtml;
+        return;
+      }
 
       // force=true to avoid stale cache when switching back from Coach Communication.
       const dirsRaw=await getCoachDirectives(player.id,false,false);
+      if(renderSeq!==dashboardCoachRenderSeq) return;
       const lastRead=getCommLastRead(player.id);
       const unreadDir=lastRead
-        ? dirsRaw.filter(function(r){return r.player_id===player.id&&r.created_at&&r.created_at>lastRead;}).length
+        ? dirsRaw.filter(function(r){return r.player_id===player.id&&r.created_at&&isAfterTime(r.created_at,lastRead);}).length
         : dirsRaw.filter(function(r){return r.player_id===player.id;}).length;
 
       const msgsRaw=await getMessages();
+      if(renderSeq!==dashboardCoachRenderSeq) return;
       const coachChats=msgsRaw.filter(function(r){
         return r.player_id===player.id&&isChatMessage(fromDbMsg(r))&&r.author==='코치'&&r.created_at;
       });
       const unreadChat=lastRead
-        ? coachChats.filter(function(r){return r.created_at>lastRead;}).length
+        ? coachChats.filter(function(r){return isAfterTime(r.created_at,lastRead);}).length
         : coachChats.length;
 
       const unreadTotal=unreadDir+unreadChat;
-      root.innerHTML='<div class="message"><div class="meta">코치 메시지 알림</div><div>새로도착한 <strong style="color:#dc2626">('+unreadTotal+')</strong>건의 코치 메시지가 있습니다. Coach Communication에서 확인해주세요.</div></div>';
+      const html='<div class="message"><div class="meta">코치 메시지 알림</div><div>새로도착한 <strong style="color:#dc2626">('+unreadTotal+')</strong>건의 코치 메시지가 있습니다. Coach Communication에서 확인해주세요.</div></div>';
+      if(lastDashboardCoachHtml!==html){
+        root.innerHTML=html;
+        lastDashboardCoachHtml=html;
+      }
     }
     function renderBars(id, values, color){
       color=color||'#93c5fd';
@@ -1820,11 +1850,15 @@
       select.innerHTML='<option value="__all__">전체 선수</option>'+ap.map(function(p){return '<option value="'+p.id+'">'+p.name+' ('+p.id+')</option>';}).join('');
     }
     async function renderCoachDirectiveList(){
+      const renderSeq=++coachDirectiveRenderSeq;
       const root=document.getElementById('coachDirectiveList'); if(!root) return;
-      root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
+      if(!root.innerHTML||!root.innerHTML.trim()){
+        root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
+      }
       const targetSelect=document.getElementById('coachDirectiveTarget');
       const target = targetSelect ? targetSelect.value : '';
       const users=await getUsers();
+      if(renderSeq!==coachDirectiveRenderSeq) return;
       const ap=getApprovedPlayers(users);
       let filteredRaw=[];
       if(target&&target!=='__all__'){
@@ -1835,6 +1869,7 @@
           return ap.some(function(p){return p.id===r.player_id;});
         });
       }
+      if(renderSeq!==coachDirectiveRenderSeq) return;
 
       // Merge per-player results into one timeline: remove duplicates and sort by timestamp.
       const uniqMap=new Map();
@@ -1846,8 +1881,15 @@
         .sort(function(a,b){return String(a.created_at||'').localeCompare(String(b.created_at||''));});
 
       const directives=merged.slice(-8).reverse().map(fromDbDirective);
-      if(!directives.length){root.innerHTML='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';return;}
-      root.innerHTML=directives.map(function(item){
+      if(!directives.length){
+        var emptyHtml='<div class="message"><div class="meta">코치지시</div><div>전송된 지시가 없습니다.</div></div>';
+        if(lastCoachDirectiveHtml!==emptyHtml){
+          root.innerHTML=emptyHtml;
+          lastCoachDirectiveHtml=emptyHtml;
+        }
+        return;
+      }
+      var nextHtml=directives.map(function(item){
         var player=users.find(function(u){return u.id===item.playerId;});
         var displayTime=item.time||formatTime(item.createdAt)||'방금';
         var replies=Array.isArray(item.replies)?item.replies:[];
@@ -1861,6 +1903,10 @@
         }).join('')+'</div>':'';
         return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+'<div style="float:right;margin-left:8px"><button class="btn btn-sm btn-outline" onclick="editCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\',\''+escapeJsString(item.text)+'\')">수정</button> <button class="btn btn-sm btn-outline-red" onclick="deleteCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\')">삭제</button></div></div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
+      if(lastCoachDirectiveHtml!==nextHtml){
+        root.innerHTML=nextHtml;
+        lastCoachDirectiveHtml=nextHtml;
+      }
     }
     async function deleteCoachDirective(directiveId, playerId){
       if(!confirm('이 코치 지시를 삭제하시겠습니까? 삭제된 메시지는 복구할 수 없습니다.')) return;
@@ -2493,6 +2539,11 @@
 
     document.getElementById('sendCoachDirectiveBtn').addEventListener('click', async function(){
       var session=getSession(); if(!session||session.role!=='coach') return;
+      if(isSendingCoachDirective) return;
+      isSendingCoachDirective = true;
+      var sendBtn=document.getElementById('sendCoachDirectiveBtn');
+      if(sendBtn) sendBtn.disabled=true;
+      try{
       var target=document.getElementById('coachDirectiveTarget').value;
       var text=(document.getElementById('coachDirectiveInput').value||'').trim();
       var fileInput=document.getElementById('directiveFileInput');
@@ -2523,6 +2574,10 @@
       await renderCommCounts();
       await renderReplyStatus();
       await renderCoachKPIs();
+      }finally{
+        isSendingCoachDirective = false;
+        if(sendBtn) sendBtn.disabled=false;
+      }
     });
 
     var directiveTargetSelect = document.getElementById('coachDirectiveTarget');
