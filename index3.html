@@ -720,6 +720,7 @@
     const STORAGE_SIGNUP_RATE_LIMIT_STATE = "sytpt_signup_rate_limit_state";
     const STORAGE_AUTH_EMAIL_HINT_PREFIX = "sytpt_auth_email_hint_";
     const STORAGE_COACH_KPI_LAST = "sytpt_coach_kpi_last";
+    const STORAGE_READ_RECEIPT_ACTIVATED_AT = "sytpt_read_receipt_activated_at";
     const COACH_ROUND_ANALYSIS_PAGE = './golf_rounddatanput(26.2.1).html';
     const COACH_PERFORMANCE_ANALYSIS_PAGE = './GolfPerformanceEvaluator(1.4).html';
     const SIGNUP_RETRY_MS = 120000;
@@ -738,6 +739,8 @@
     const COACH_DIRECTIVES_FETCH_LIMIT = 30;
     const COACH_DIRECTIVES_FALLBACK_LIMIT = 20;
     let hasCoachReadColumn = false;
+    let hasDirectiveReadAtColumn = true;
+    let lastDirectiveReadAtProbeAt = 0;
     let realtimeChannel = null;
     let realtimePollingTimer = null;
     let dashboardCoachRenderSeq = 0;
@@ -896,6 +899,18 @@
     function setCoachKpiLastCache(v){
       try{ localStorage.setItem(STORAGE_COACH_KPI_LAST, JSON.stringify(v||null)); }catch(_){ }
     }
+    function getReadReceiptActivatedAtMs(){
+      var raw=localStorage.getItem(STORAGE_READ_RECEIPT_ACTIVATED_AT);
+      var n=Number(raw||0);
+      return isNaN(n)?0:n;
+    }
+    function ensureReadReceiptActivatedAt(){
+      var n=getReadReceiptActivatedAtMs();
+      if(n>0) return n;
+      n=Date.now();
+      localStorage.setItem(STORAGE_READ_RECEIPT_ACTIVATED_AT,String(n));
+      return n;
+    }
 
     // ====== Supabase CRUD ======
 
@@ -922,7 +937,8 @@
       return { directiveId:r.directive_id, playerId:r.player_id, text:r.text,
                time:r.time, createdAt:r.created_at,
                replies:r.replies||[],
-               coachId:r.coach_id, attachments:r.attachments||[] };
+               coachId:r.coach_id, attachments:r.attachments||[],
+               playerReadAt:r.player_read_at||null };
     }
     function fromDbSelfEval(r){
       // mind_status and stamina_status may contain multiple values separated by '|'
@@ -996,10 +1012,22 @@
     }
     async function getCoachDirectives(playerId=null, force=false, includeAttachments=true){
       const now = Date.now();
+      if(hasDirectiveReadAtColumn===false && (now-lastDirectiveReadAtProbeAt)>30000){
+        lastDirectiveReadAtProbeAt = now;
+        try{
+          const probe = await sb.from('sytpt_coach_directives').select('player_read_at').limit(1);
+          if(!probe.error){
+            hasDirectiveReadAtColumn = true;
+            ensureReadReceiptActivatedAt();
+            invalidateCoachDirectiveCache();
+          }
+        }catch(_){ }
+      }
+      const readAtSelect = hasDirectiveReadAtColumn ? ',player_read_at' : '';
       const directiveSelectWithAttachments = includeAttachments
-        ? 'directive_id,player_id,text,created_at,coach_id,attachments'
-        : 'directive_id,player_id,text,created_at,coach_id';
-      const directiveSelectNoAttachments = 'directive_id,player_id,text,created_at,coach_id';
+        ? 'directive_id,player_id,text,created_at,coach_id,attachments'+readAtSelect
+        : 'directive_id,player_id,text,created_at,coach_id'+readAtSelect;
+      const directiveSelectNoAttachments = 'directive_id,player_id,text,created_at,coach_id'+readAtSelect;
 
       // player-specific query (fastest path): only fetch recent directives for that player
       if(playerId){
@@ -1025,6 +1053,9 @@
             .limit(COACH_DIRECTIVES_FETCH_LIMIT);
           if(error){
             console.warn('getCoachDirectives (player) error', error);
+            if(error.message && /player_read_at/i.test(error.message)){
+              hasDirectiveReadAtColumn = false;
+            }
 
             // handle statement timeout (often due to large table scans) by falling back to a smaller query
             if(error.code==='57014' || (error.message && /statement timeout/i.test(error.message))){
@@ -1046,11 +1077,12 @@
             if(error.message && /(attachments|replies|column)/i.test(error.message)){
               try{
                 const {data:errorData,error:err2} = await sb.from('sytpt_coach_directives')
-                  .select(directiveSelectNoAttachments)
+                  .select('directive_id,player_id,text,created_at,coach_id')
                   .eq('player_id', playerId)
                   .order('created_at',{ascending:false})
                   .limit(COACH_DIRECTIVES_FALLBACK_LIMIT);
                 if(!err2){
+                  if(error.message && /player_read_at/i.test(error.message)) hasDirectiveReadAtColumn = false;
                   coachDirectivesByPlayerCache[playerId] = errorData||[];
                   coachDirectivesByPlayerFetch[playerId] = now;
                   return coachDirectivesByPlayerCache[playerId];
@@ -1077,6 +1109,7 @@
           }
           coachDirectivesByPlayerCache[playerId] = data||[];
           coachDirectivesByPlayerFetch[playerId] = now;
+          if(hasDirectiveReadAtColumn) ensureReadReceiptActivatedAt();
           return coachDirectivesByPlayerCache[playerId];
         }catch(e){
           console.error('getCoachDirectives (player) exception', e);
@@ -1106,10 +1139,13 @@
             details: error.details,
             hint: error.hint,
           });
+          if(error.message && /player_read_at/i.test(error.message)){
+            hasDirectiveReadAtColumn = false;
+          }
           if(error.message && /(attachments|column)/i.test(error.message)){
             try{
               const {data:fallbackData,error:fallbackErr} = await sb.from('sytpt_coach_directives')
-                .select(directiveSelectNoAttachments)
+                .select('directive_id,player_id,text,created_at,coach_id')
                 .limit(20);
               if(!fallbackErr){
                 coachDirectivesCache = fallbackData||[];
@@ -1123,6 +1159,7 @@
         }
         coachDirectivesCache = data||[];
         lastCoachDirectivesFetch = now;
+        if(hasDirectiveReadAtColumn) ensureReadReceiptActivatedAt();
         return coachDirectivesCache;
       }catch(e){
         console.error('getCoachDirectives exception', e);
@@ -1135,8 +1172,27 @@
         directive_id:item.directiveId, player_id:item.playerId, text:item.text,
         time:item.time||'방금', created_at:item.createdAt||new Date().toISOString(),
         replies:item.replies||[], coach_id:item.coachId||'',
-        attachments:item.attachments||[]
+        attachments:item.attachments||[],
+        player_read_at:null
       });
+    }
+    async function markCoachDirectivesReadForPlayer(playerId){
+      if(!playerId) return;
+      if(hasDirectiveReadAtColumn!==true) return;
+      try{
+        await sb
+          .from('sytpt_coach_directives')
+          .update({player_read_at:new Date().toISOString()})
+          .eq('player_id',playerId)
+          .is('player_read_at',null);
+      }catch(e){
+        if(e&&e.message&&/player_read_at/i.test(String(e.message))){
+          hasDirectiveReadAtColumn = false;
+          console.warn('player_read_at column missing; skipping directive read-receipt update');
+          return;
+        }
+        console.warn('markCoachDirectivesReadForPlayer failed', e);
+      }
     }
     async function deletePlayerAllData(playerId){
       if(!playerId) return;
@@ -1892,6 +1948,22 @@
       var nextHtml=directives.map(function(item){
         var player=users.find(function(u){return u.id===item.playerId;});
         var displayTime=item.time||formatTime(item.createdAt)||'방금';
+        var readBadge='';
+        if(hasDirectiveReadAtColumn){
+          if(item.playerReadAt){
+            readBadge='<span class="badge" style="background:#16a34a;color:#fff;font-size:10px;margin-left:6px">읽음</span>';
+          }else{
+            var activatedAt=getReadReceiptActivatedAtMs();
+            var createdAtMs=toTimeMs(item.createdAt);
+            if(activatedAt>0 && createdAtMs>0 && createdAtMs<activatedAt){
+              readBadge='<span class="badge" style="background:#6b7280;color:#fff;font-size:10px;margin-left:6px">기존메시지</span>';
+            }else{
+              readBadge='<span class="badge" style="background:#dc2626;color:#fff;font-size:10px;margin-left:6px">미확인</span>';
+            }
+          }
+        }else{
+          readBadge='<span class="badge" style="background:#6b7280;color:#fff;font-size:10px;margin-left:6px">상태미지원</span>';
+        }
         var replies=Array.isArray(item.replies)?item.replies:[];
         var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
@@ -1901,7 +1973,7 @@
           if(!href) return '';
           return '<a href="'+href+'" target="_blank" download="'+name+'" style="margin-right:8px;font-size:12px">'+name+'</a>';
         }).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+'<div style="float:right;margin-left:8px"><button class="btn btn-sm btn-outline" onclick="editCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\',\''+escapeJsString(item.text)+'\')">수정</button> <button class="btn btn-sm btn-outline-red" onclick="deleteCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\')">삭제</button></div></div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+readBadge+'<div style="float:right;margin-left:8px"><button class="btn btn-sm btn-outline" onclick="editCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\',\''+escapeJsString(item.text)+'\')">수정</button> <button class="btn btn-sm btn-outline-red" onclick="deleteCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\')">삭제</button></div></div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
       if(lastCoachDirectiveHtml!==nextHtml){
         root.innerHTML=nextHtml;
@@ -2635,7 +2707,7 @@
 
     var screenBtns=document.querySelectorAll('.screen-tabs button');
     var panels=document.querySelectorAll('.panel');
-    screenBtns.forEach(function(btn){btn.addEventListener('click',function(){
+    screenBtns.forEach(function(btn){btn.addEventListener('click',async function(){
       var externalUrl=btn.dataset.externalUrl;
       if(externalUrl){
         window.open(externalUrl,'_blank','noopener,noreferrer');
@@ -2647,7 +2719,12 @@
       panels.forEach(function(p){p.classList.remove('active');});document.getElementById(btn.dataset.screen).classList.add('active');
       if(btn.dataset.screen==='comm'){
         var session=getSession();
-        if(session&&session.role==='player'){setCommLastRead(session.id);renderCommCounts();renderDashboardCoachMessages();}
+        if(session&&session.role==='player'){
+          setCommLastRead(session.id);
+          await markCoachDirectivesReadForPlayer(session.id);
+          invalidateCoachDirectiveCache(session.id);
+          renderCommCounts();renderDashboardCoachMessages();
+        }
         renderPlayerMessageThread();
         renderReplyStatus();
       }else if(btn.dataset.screen==='dashboard'){
