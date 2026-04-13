@@ -749,6 +749,7 @@
     let lastDashboardCoachHtml = '';
     let lastCoachDirectiveHtml = '';
     let isSendingCoachDirective = false;
+    let lastPerformanceEdit = null;
 
     function invalidateCoachDirectiveCache(playerId){
       coachDirectivesCache = [];
@@ -1753,10 +1754,24 @@
       if(val===null||val===undefined||val==='') return '-';
       return String(val)+'%';
     }
+    function formatRiskWithPerformance(risk, perf){
+      var perfNum=Number(perf);
+      if(isNaN(perfNum)){
+        var riskText=(risk&&String(risk).trim())?String(risk).trim():'정상';
+        return riskText;
+      }
+      var perfRounded=Math.max(0,Math.min(100,Math.round(perfNum)));
+      if(perfRounded>=80) return '정상('+perfRounded+'%)';
+      if(perfRounded>=70) return '부분훈련강화필요('+perfRounded+'%)';
+      return '체계적훈련필요('+perfRounded+'%)';
+    }
     async function renderPlayerViewContext(){
 
       const session=getSession();
       const users=await getUsers();
+      const wrap=document.getElementById('playerPortalSelectWrap');
+      if(session&&session.role==='coach') syncPlayerPortalSelector(users);
+      else if(wrap) wrap.style.display='none';
       const player=getActivePlayerForView(users);
       const nr=document.getElementById('playerViewName');
       const cr=document.getElementById('playerViewCompletion');
@@ -1768,7 +1783,9 @@
       const isCoach=session&&session.role==='coach';
       nr.textContent=isCoach?(player.name+' ('+player.id+')'):player.name;
       cr.textContent=player.todayCompletion||'0%';
-      rr.textContent=player.riskLevel||'정상';
+      var perfVal=player.performanceLevel;
+      if(lastPerformanceEdit&&lastPerformanceEdit.id===player.id) perfVal=lastPerformanceEdit.val;
+      rr.textContent=formatRiskWithPerformance(player.riskLevel,perfVal);
       sr.textContent=player.statusLabel||'승인 완료';
       renderMissionCardsForActivePlayer();
       renderPlayerMessageThread();
@@ -1897,6 +1914,23 @@
       select.innerHTML=ap.map(function(p){return '<option value="'+p.id+'">'+p.name+' ('+p.id+')</option>';}).join('');
       select.value=ap.some(function(p){return p.id===selId;})?selId:ap[0].id;
       if(!selId) setCoachSelectedPlayerId(select.value);
+    }
+    function syncPlayerPortalSelector(users){
+      const wrap=document.getElementById('playerPortalSelectWrap');
+      const sel=document.getElementById('playerPortalAthleteSelect');
+      if(!wrap||!sel) return;
+      const ap=getApprovedPlayers(users||[]);
+      if(!ap.length){wrap.style.display='none';return;}
+      wrap.style.display='block';
+      const selId=getCoachSelectedPlayerId();
+      sel.innerHTML=ap.map(function(p){return '<option value="'+p.id+'">'+p.name+' ('+p.id+')</option>';}).join('');
+      sel.value=ap.some(function(p){return p.id===selId;})?selId:ap[0].id;
+      if(!selId || !ap.some(function(p){return p.id===selId;})) setCoachSelectedPlayerId(sel.value);
+      sel.onchange=function(){
+        setCoachSelectedPlayerId(sel.value);
+        setCommLastRead(sel.value);
+        renderPlayerViewContext();
+      };
     }
     async function syncCoachDirectiveTargetOptions(){
       const select=document.getElementById('coachDirectiveTarget'); if(!select) return;
@@ -2123,7 +2157,10 @@
         var rc=risk==='높음'?'risk-high':risk==='주의'?'risk-mid':'';
         var rowC=player.id===selectedId?'selected':'';
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
-        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td><td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
+        var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
+        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
+        var perfCell = '<td><div style="display:flex;align-items:center;"><input type="number" class="perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:52px"><span style="margin-left:4px">%</span></div></td>';
+        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
@@ -2145,11 +2182,31 @@
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
-        if(e.target.closest('.deactivate-btn')) return;
+        if(e.target.closest('.deactivate-btn')||e.target.closest('.perf-input')) return;
         setCoachSelectedPlayerId(row.dataset.playerId);
         setCommLastRead(row.dataset.playerId);
         renderCoachAthleteBoard();renderPlayerViewContext();
       });});
+      tableRoot.querySelectorAll('.perf-input').forEach(function(input){
+        input.addEventListener('change',async function(){
+          var pid=input.getAttribute('data-player-id');
+          var val=parseInt(input.value,10);
+          if(isNaN(val)||val<0) val=0;
+          if(val>100) val=100;
+          input.value=val;
+          var res=await sb.from('sytpt_users').update({performance_level:val}).eq('id',pid).select('id,performance_level').maybeSingle();
+          if(res.error){
+            alert('경기력 수준 저장 중 오류가 발생했습니다. '+(res.error.message||''));
+            return;
+          }
+          lastPerformanceEdit={id:pid,val:val};
+          const active=getActivePlayerForView(await getUsers());
+          if(active&&active.id===pid){
+            var rr=document.getElementById('playerViewPerformance');
+            if(rr) rr.textContent=formatRiskWithPerformance(active.riskLevel,val);
+          }
+        });
+      });
     }
     async function renderCoachMatchBoard(){
       const root=document.getElementById('coachMatchBoard'); if(!root) return;
