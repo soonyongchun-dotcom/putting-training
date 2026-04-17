@@ -81,15 +81,11 @@
     width: min(90vw, 820px);
   }
   #userLog {
-    background: rgba(255,255,255,0.92);
-    color: #111;
+    background: rgba(0,0,0,0.12); /* 배경 흰색일 때도 글자가 보이도록 회색 배경으로 변경 */
+    color: #f7f7f7;
     border-radius: 8px;
     padding: 10px;
     font-size: 0.9rem;
-    border: 1px solid rgba(0,0,0,0.08);
-  }
-  #userLog .log-row span:last-child {
-    color: rgba(0,0,0,0.55);
   }
   #userLog .log-row {
     display: flex;
@@ -198,18 +194,11 @@
       width: 90px;
     }
     .playback-controls {
-      display: none; /* Hide global speed control on small screens */
+      padding: 4px 6px;
     }
     .playback-controls input[type=number] {
       width: 70px;
       padding: 3px 5px;
-    }
-  }
-
-  /* Hide global speed control on touch devices (phones/tablets) */
-  @media (hover: none) and (pointer: coarse) {
-    .playback-controls {
-      display: none !important;
     }
   }
   .video-wrapper.hidden {
@@ -368,10 +357,26 @@
       padding: 7px 0;
     }
 
-    /* Keep controls row layout; only shrink Global speed container */
-    .controls .zoom-controls.playback-controls {
-      max-width: 220px;
-      flex: 0 0 auto;
+    /* mobile: stack controls vertically to prevent overlap */
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .controls .zoom-controls.playback-controls,
+    .controls .speed-controls {
+      width: 100%;
+      max-width: 100%;
+      justify-content: space-between;
+    }
+    .controls .zoom-controls.playback-controls label,
+    .controls .speed-controls label {
+      flex: 1;
+      min-width: 0;
+    }
+    .controls .zoom-controls.playback-controls input,
+    .controls .speed-controls input {
+      max-width: 80px;
     }
   }
   .speed-controls {
@@ -455,6 +460,150 @@
     font-size: 1.1rem;
     padding: 6px 10px;
   }
+  .analysis-btn {
+    background: #ff8c00;
+    color: #fff;
+    border: 1px solid rgba(255, 140, 0, 0.9);
+    font-size: 0.9rem;
+    padding: 5px 10px;
+  }
+  .analysis-btn:hover {
+    background: #ff9f2b;
+  }
+  .analysis-panel {
+    margin: 0 auto 18px;
+    width: min(95vw, 990px);
+    max-width: 990px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    overflow: hidden;
+    color: #f7f7f7;
+    transition: max-height 0.26s ease, padding 0.26s ease;
+  }
+  .analysis-panel.collapsed {
+    max-height: 54px;
+    padding: 0 12px 6px;
+  }
+  .analysis-panel:not(.collapsed) {
+    max-height: 920px;
+    padding: 12px;
+  }
+  .analysis-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .analysis-panel-header button {
+    background: #005fa3;
+    padding: 5px 12px;
+    font-size: 0.9rem;
+  }
+  .analysis-panel-body {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .analysis-panel.collapsed .analysis-panel-body {
+    display: none;
+  }
+  .analysis-height-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .analysis-height-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 180px;
+    min-width: 180px;
+  }
+  .analysis-section {
+    display: grid;
+    gap: 6px;
+    background: rgba(0,0,0,0.22);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: left;
+  }
+  .analysis-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffd86c;
+  }
+  .analysis-score {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #ace7ff;
+  }
+  .analysis-metric {
+    font-size: 0.92rem;
+    color: #ddd;
+  }
+  .analysis-detail {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #cfd8ff;
+  }
+  .analysis-summary {
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    color: #eef;
+    font-size: 0.92rem;
+  }
+  .analysis-guide {
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(0, 95, 179, 0.12);
+    color: #fff;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .analysis-guide-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .analysis-guide-step {
+    color: #cfd8ff;
+    font-size: 0.88rem;
+  }
+  .analysis-height-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #fff;
+  }
+  .analysis-height-control label {
+    font-size: 0.9rem;
+    min-width: 110px;
+    text-align: left;
+  }
+  .analysis-height-control select {
+    width: 100%;
+    max-width: 120px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.12);
+    color: #000;
+  }
+  .analysis-note {
+    font-size: 0.82rem;
+    color: #aaa;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+  }
 </style>
 </head>
 <body class="login-page">
@@ -483,7 +632,7 @@
       </div>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-      <input id="addUserEmail" type="text" placeholder="ID" style="flex:1; min-width:180px;" />
+      <input id="addUserEmail" type="email" placeholder="User ID" style="flex:1; min-width:180px;" />
       <input id="addUserPassword" type="password" placeholder="Password" style="flex:1; min-width:180px;" />
     </div>
     <div style="display:flex; gap:8px;">
@@ -495,7 +644,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.3.1</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.4.1</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -504,6 +653,7 @@
   <div class="video-wrapper" id="frontWrapper">
     <div class="video-header">
       <span class="title">Image A</span>
+      <button type="button" id="frontAnalysisBtn" class="analysis-btn" title="비거리 모션 분석">🏌️</button>
       <button type="button" id="frontFileBtn" title="Select video">📁</button>
       <button type="button" id="frontCameraBtn" title="Record video">🎥</button>
       <span id="frontFileName" style="color:#0077cc; font-weight:600;"></span>
@@ -534,6 +684,7 @@
   <div class="video-wrapper" id="sideWrapper">
     <div class="video-header">
       <span class="title">Image B</span>
+      <button type="button" id="sideAnalysisBtn" class="analysis-btn" title="비거리 모션 분석">🏌️</button>
       <button type="button" id="sideFileBtn" title="Select video">📁</button>
       <button type="button" id="sideCameraBtn" title="Record video">🎥</button>
       <span id="sideFileName" style="color:#0077cc; font-weight:600;"></span>
@@ -560,6 +711,69 @@
       <label for="sideSpeedRange">Relative speed B</label>
       <input type="range" id="sideSpeedRange" min="0.5" max="1.5" step="0.01" value="1" disabled>
     </div>
+  </div>
+</div>
+
+<div class="analysis-panel collapsed" id="analysisPanel">
+  <div class="analysis-panel-header">
+    <span>영상분석점수</span>
+    <button type="button" id="analysisToggleBtn">펼치기</button>
+  </div>
+  <div class="analysis-panel-body" id="analysisPanelBody">
+    <div class="analysis-section" id="analysisFrontSection">
+      <div class="analysis-section-title">A 영상 분석</div>
+      <div class="analysis-metric" id="analysisFrontMoment">관성모멘트 프록시: -</div>
+      <div class="analysis-metric" id="analysisFrontRadius">회전반경 프록시: -</div>
+      <div class="analysis-metric" id="analysisFrontTiming">언코킹 정렬 각도: -</div>
+      <div class="analysis-detail" id="analysisFrontDetail"></div>
+    </div>
+    <div class="analysis-section" id="analysisSideSection">
+      <div class="analysis-section-title">B 영상 분석</div>
+      <div class="analysis-metric" id="analysisSideMoment">관성모멘트 프록시: -</div>
+      <div class="analysis-metric" id="analysisSideRadius">회전반경 프록시: -</div>
+      <div class="analysis-metric" id="analysisSideTiming">언코킹 정렬 각도: -</div>
+      <div class="analysis-detail" id="analysisSideDetail"></div>
+    </div>
+    <div class="analysis-summary" id="analysisSummary"></div>
+    <div class="analysis-section" id="analysisDeltaSection">
+      <div class="analysis-section-title">A/B 변화 비교</div>
+      <div class="analysis-metric" id="analysisDeltaMoment">관성모멘트 변화: -</div>
+      <div class="analysis-metric" id="analysisDeltaRadius">회전반경 변화: -</div>
+      <div class="analysis-metric" id="analysisDeltaTiming">언코킹 타이밍 변화: -</div>
+      <div class="analysis-detail" id="analysisDeltaDetail"></div>
+    </div>
+    <div class="analysis-guide" id="analysisGuide">분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.</div>
+    <div class="analysis-guide-actions">
+      <button type="button" id="analysisGuideNextBtn">다음</button>
+      <span class="analysis-guide-step" id="analysisGuideStep"></span>
+    </div>
+    <div class="analysis-height-control">
+      <div class="analysis-height-field">
+        <label for="analysisHeightInputA">A 영상 키(cm)</label>
+        <select id="analysisHeightInputA">
+          <option value="160">160</option>
+          <option value="165">165</option>
+          <option value="170" selected>170</option>
+          <option value="175">175</option>
+          <option value="180">180</option>
+          <option value="185">185</option>
+          <option value="190">190</option>
+        </select>
+      </div>
+      <div class="analysis-height-field">
+        <label for="analysisHeightInputB">B 영상 키(cm)</label>
+        <select id="analysisHeightInputB">
+          <option value="160">160</option>
+          <option value="165">165</option>
+          <option value="170" selected>170</option>
+          <option value="175">175</option>
+          <option value="180">180</option>
+          <option value="185">185</option>
+          <option value="190">190</option>
+        </select>
+      </div>
+    </div>
+    <div class="analysis-note">랜드마크를 3개 이상 표시하고 라인을 추가하면 물리적 평가가 더욱 실용적으로 만들어집니다.</div>
   </div>
 </div>
 
@@ -632,6 +846,335 @@
   const saveFrameBtn = document.getElementById('saveFrameBtn');
   const clearPointsBtn = document.getElementById('clearPointsBtn');
   const statusSpan = document.getElementById('status');
+  const analysisHeightInputA = document.getElementById('analysisHeightInputA');
+  const analysisHeightInputB = document.getElementById('analysisHeightInputB');
+  const analysisGuide = document.getElementById('analysisGuide');
+  const analysisGuideNextBtn = document.getElementById('analysisGuideNextBtn');
+  const analysisGuideStep = document.getElementById('analysisGuideStep');
+  const frontAnalysisBtn = document.getElementById('frontAnalysisBtn');
+  const sideAnalysisBtn = document.getElementById('sideAnalysisBtn');
+  const analysisPanel = document.getElementById('analysisPanel');
+  const analysisToggleBtn = document.getElementById('analysisToggleBtn');
+  const analysisFrontMoment = document.getElementById('analysisFrontMoment');
+  const analysisFrontRadius = document.getElementById('analysisFrontRadius');
+  const analysisFrontTiming = document.getElementById('analysisFrontTiming');
+  const analysisFrontDetail = document.getElementById('analysisFrontDetail');
+  const analysisSideMoment = document.getElementById('analysisSideMoment');
+  const analysisSideRadius = document.getElementById('analysisSideRadius');
+  const analysisSideTiming = document.getElementById('analysisSideTiming');
+  const analysisSideDetail = document.getElementById('analysisSideDetail');
+  const analysisDeltaMoment = document.getElementById('analysisDeltaMoment');
+  const analysisDeltaRadius = document.getElementById('analysisDeltaRadius');
+  const analysisDeltaTiming = document.getElementById('analysisDeltaTiming');
+  const analysisDeltaDetail = document.getElementById('analysisDeltaDetail');
+  const analysisSummary = document.getElementById('analysisSummary');
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  let guideView = null;
+  let guideStep = 0;
+
+  function getHeightScale(view) {
+    const selector = view === 'front' ? analysisHeightInputA : analysisHeightInputB;
+    if (!selector) return 1;
+    const heightCm = parseFloat(selector.value);
+    if (!Number.isFinite(heightCm) || heightCm <= 0) return 1;
+    return clamp(heightCm / 170, 0.7, 1.4);
+  }
+
+  function getGuideMessage() {
+    const viewLabel = guideView === 'front' ? 'A (백스윙 탑)' : 'B (허리 라인 도달)';
+    switch (guideStep) {
+      case 1:
+        return `(${viewLabel}) 1단계: 클럽 샤프트 방향을 나타내는 라인을 그리세요.`;
+      case 2:
+        return `(${viewLabel}) 2단계: 손목과 클럽 헤드를 점으로 찍어 샤프트를 명확히 표시하세요.`;
+      case 3:
+        return `(${viewLabel}) 3단계: 몸 축 위치를 찍어 중심 거리와 회전반경 변화를 비교할 수 있게 하세요.`;
+      case 4:
+        return `선택이 끝났습니다. 자동 분석을 실행합니다.`;
+      default:
+        return `분석 버튼을 눌러 스윙 단계별 A/B 동일 영상 비교를 시작하세요.`;
+    }
+  }
+
+  function showGuide() {
+    if (!analysisGuide || !analysisGuideStep || !analysisGuideNextBtn) return;
+    analysisGuide.textContent = getGuideMessage();
+    analysisGuideStep.textContent = guideStep > 0 ? `STEP ${guideStep} / 4` : '';
+    analysisGuideNextBtn.textContent = guideStep === 4 ? '분석 실행' : '다음';
+  }
+
+  function hasGuideSelectionCompleted() {
+    const points = guideView === 'front' ? frontPoints : sidePoints;
+    const lines = guideView === 'front' ? frontLines : sideLines;
+    return points.length >= 2 && lines.length >= 1;
+  }
+
+  function resetViewAnalysis(view) {
+    if (view === 'front') {
+      frontPoints = [];
+      frontLines = [];
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      const emptyResult = {
+        score: 0,
+        momentScore: 0,
+        radiusScore: 0,
+        timingScore: 0,
+        momentProxy: 0,
+        radiusProxy: 0,
+        angleDeg: 0,
+        summary: 'A 영상 분석이 초기화되었습니다. 새 랜드마크와 라인을 다시 입력하세요.'
+      };
+      updateAnalysisSection(emptyResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontDetail);
+    } else {
+      sidePoints = [];
+      sideLines = [];
+      drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+      const emptyResult = {
+        score: 0,
+        momentScore: 0,
+        radiusScore: 0,
+        timingScore: 0,
+        momentProxy: 0,
+        radiusProxy: 0,
+        angleDeg: 0,
+        summary: 'B 영상 분석이 초기화되었습니다. 새 랜드마크와 라인을 다시 입력하세요.'
+      };
+      updateAnalysisSection(emptyResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideDetail);
+    }
+  }
+
+  function performAnalysis() {
+    const frontResult = createAnalysisResult(frontPoints, frontLines, 'front', 'A');
+    updateAnalysisSection(frontResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontDetail);
+    const sideResult = createAnalysisResult(sidePoints, sideLines, 'side', 'B');
+    updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideDetail);
+    updateSummary(frontResult, sideResult);
+    const deltaResult = createDeltaResult(frontResult, sideResult);
+    updateComparisonSection(deltaResult);
+  }
+
+  function setGuideState(view) {
+    guideView = view;
+    resetViewAnalysis(view);
+    guideStep = 1;
+    showGuide();
+    analysisPanel.classList.remove('collapsed');
+    if (analysisToggleBtn) analysisToggleBtn.textContent = '접기';
+    if (hasGuideSelectionCompleted()) {
+      guideStep = 4;
+      showGuide();
+      performAnalysis();
+    }
+  }
+
+  function advanceGuideStep() {
+    if (!guideView) return;
+    if (guideStep < 4) {
+      guideStep += 1;
+      showGuide();
+    }
+    if (guideStep === 4) {
+      performAnalysis();
+    }
+  }
+
+  function normalizePointsAndLines(points, lines) {
+    const result = points.slice();
+    lines.forEach(line => {
+      result.push(line.start, line.end);
+    });
+    return result;
+  }
+
+  function computePairwiseMaxDistance(items) {
+    let maxDist = 0;
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const dx = items[i].x - items[j].x;
+        const dy = items[i].y - items[j].y;
+        const d = Math.hypot(dx, dy);
+        if (d > maxDist) maxDist = d;
+      }
+    }
+    return maxDist;
+  }
+
+  function computeAngleAlignment(lines) {
+    if (lines.length < 2) return 0;
+    const angles = lines.map(line => Math.atan2(line.end.y - line.start.y, line.end.x - line.start.x));
+    let total = 0;
+    let count = 0;
+    for (let i = 0; i < angles.length; i++) {
+      for (let j = i + 1; j < angles.length; j++) {
+        let diff = Math.abs(angles[i] - angles[j]);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        total += diff;
+        count += 1;
+      }
+    }
+    if (!count) return 0;
+    return (total / count) / Math.PI; // normalized 0..1, smaller means more aligned
+  }
+
+  function computeAverageAngleDifference(lines) {
+    if (lines.length < 2) return 0;
+    const angles = lines.map(line => Math.atan2(line.end.y - line.start.y, line.end.x - line.start.x));
+    let total = 0;
+    let count = 0;
+    for (let i = 0; i < angles.length; i++) {
+      for (let j = i + 1; j < angles.length; j++) {
+        let diff = Math.abs(angles[i] - angles[j]);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        total += diff;
+        count += 1;
+      }
+    }
+    if (!count) return 0;
+    return (total / count) * (180 / Math.PI);
+  }
+
+  function formatScore(value) {
+    return `${value.toFixed(1)} / 10`;
+  }
+
+  function formatDelta(value) {
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}`;
+  }
+
+  function formatPercent(value) {
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
+  }
+
+  function createDeltaResult(frontResult, sideResult) {
+    const momentChange = frontResult.momentProxy ? (sideResult.momentProxy - frontResult.momentProxy) / frontResult.momentProxy * 100 : 0;
+    const radiusChange = frontResult.radiusProxy ? (sideResult.radiusProxy - frontResult.radiusProxy) / frontResult.radiusProxy * 100 : 0;
+    const momentScore = clamp(-momentChange / 50, 0, 1) * 10;
+    const radiusScore = clamp(-radiusChange / 40, 0, 1) * 10;
+    const angleScore = clamp(1 - Math.abs(sideResult.angleDeg - frontResult.angleDeg) / 15, 0, 1) * 10;
+    const comparisonScore = (momentScore + radiusScore + angleScore) / 3;
+    return {
+      momentDelta: sideResult.momentProxy - frontResult.momentProxy,
+      momentPercent: momentChange,
+      radiusDelta: sideResult.radiusProxy - frontResult.radiusProxy,
+      radiusPercent: radiusChange,
+      timingDelta: sideResult.angleDeg - frontResult.angleDeg,
+      scoreDelta: sideResult.score - frontResult.score,
+      momentChangeScore: momentScore,
+      radiusChangeScore: radiusScore,
+      angleChangeScore: angleScore,
+      comparisonScore,
+      summary: 'A/B 동일 선택 변화 기반 비교입니다. 두 프레임/영상에서 같은 의미의 랜드마크를 사용하면 더 현실적인 분석이 가능합니다.',
+    };
+  }
+
+  function createAnalysisResult(points, lines, view, viewLabel) {
+    const result = {
+      view: viewLabel,
+      score: 0,
+      momentScore: 0,
+      radiusScore: 0,
+      timingScore: 0,
+      summary: '',
+      detail: '',
+      momentProxy: 0,
+      radiusProxy: 0,
+      angleDeg: 0,
+    };
+
+    const items = normalizePointsAndLines(points, lines);
+    if (items.length < 3) {
+      result.summary = '랜드마크와 라인을 3개 이상 입력하면 물리적 분석이 가능합니다. 어깨, 손목, 클럽 헤드를 중심으로 찍어주세요.';
+      return result;
+    }
+
+    const center = items.reduce((acc, point) => {
+      acc.x += point.x;
+      acc.y += point.y;
+      return acc;
+    }, { x: 0, y: 0 });
+    center.x /= items.length;
+    center.y /= items.length;
+
+    const avgDistFromCenter = items.reduce((sum, point) => {
+      const dx = point.x - center.x;
+      const dy = point.y - center.y;
+      return sum + Math.hypot(dx, dy);
+    }, 0) / items.length;
+
+    const maxSpan = computePairwiseMaxDistance(items);
+    const angleAlignment = computeAngleAlignment(lines);
+    const avgAngleDeg = computeAverageAngleDifference(lines);
+    const heightScale = getHeightScale(view);
+
+    result.momentProxy = avgDistFromCenter;
+    result.radiusProxy = maxSpan;
+    result.angleDeg = avgAngleDeg;
+
+    result.momentScore = clamp(1 - avgDistFromCenter / (0.45 * heightScale), 0, 1) * 10;
+    result.radiusScore = clamp(maxSpan / (0.55 * heightScale), 0, 1) * 10;
+
+    if (lines.length >= 2) {
+      result.timingScore = clamp((90 - avgAngleDeg) / 90, 0, 1) * 10;
+      result.summary = avgAngleDeg <= 25
+        ? `샤프트와 팔 정렬이 잘 맞아 언코킹 준비가 안정적으로 보입니다. 키 보정: ${Math.round(heightScale * 100)}%`
+        : `샤프트와 팔 각도가 벌어져 있어 언코킹 타이밍이 아직 개선 여지가 있습니다. 키 보정: ${Math.round(heightScale * 100)}%`;
+    } else {
+      result.timingScore = clamp(lines.length / 3, 0, 1) * 6 + 4;
+      result.summary = `언코킹 타이밍 평가에는 최소 2개 이상의 라인이 필요합니다. 손목과 클럽 축을 나타내는 선을 드래그하여 그려주세요. 키 보정: ${Math.round(heightScale * 100)}%`;
+    }
+
+    result.detail = `평균 중심 거리: ${avgDistFromCenter.toFixed(3)}, 회전반경 프록시: ${maxSpan.toFixed(3)}, 샤프트 각도: ${avgAngleDeg.toFixed(1)}°`;
+    result.score = (result.momentScore + result.radiusScore + result.timingScore) / 3;
+    return result;
+  }
+
+  function updateAnalysisSection(result, momentEl, radiusEl, timingEl, detailEl) {
+    if (!momentEl || !radiusEl || !timingEl || !detailEl) return;
+    const momentProxy = Number.isFinite(result.momentProxy) ? result.momentProxy : 0;
+    const radiusProxy = Number.isFinite(result.radiusProxy) ? result.radiusProxy : 0;
+    const angleDeg = Number.isFinite(result.angleDeg) ? result.angleDeg : 0;
+    momentEl.textContent = `관성모멘트 프록시: ${momentProxy.toFixed(3)}`;
+    radiusEl.textContent = `회전반경 프록시: ${radiusProxy.toFixed(3)}`;
+    timingEl.textContent = `언코킹 정렬 각도: ${angleDeg.toFixed(1)}°`;
+    detailEl.textContent = result.summary;
+  }
+
+  function updateComparisonSection(deltaResult) {
+    if (!analysisDeltaMoment || !analysisDeltaRadius || !analysisDeltaTiming || !analysisDeltaDetail) return;
+    analysisDeltaMoment.textContent = `관성모멘트 변화: ${formatDelta(deltaResult.momentDelta)} (${formatPercent(deltaResult.momentPercent)})`;
+    analysisDeltaRadius.textContent = `회전반경 변화: ${formatDelta(deltaResult.radiusDelta)} (${formatPercent(deltaResult.radiusPercent)})`;
+    analysisDeltaTiming.textContent = `언코킹 각도 변화: ${formatDelta(deltaResult.timingDelta)}°`;
+    analysisDeltaDetail.textContent = deltaResult.summary;
+  }
+
+  function updateSummary(frontResult, sideResult) {
+    if (!analysisSummary) return;
+    if (frontResult.score === 0 && sideResult.score === 0) {
+      analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 주요 랜드마크를 표시하면 결과의 신뢰도가 높아집니다.';
+      return;
+    }
+    const scores = [frontResult.score, sideResult.score].filter(v => v > 0);
+    const average = scores.length ? (scores.reduce((sum, v) => sum + v, 0) / scores.length).toFixed(1) : '-';
+    const heightA = analysisHeightInputA ? analysisHeightInputA.value : '170';
+    const heightB = analysisHeightInputB ? analysisHeightInputB.value : '170';
+    analysisSummary.textContent = `전체 평균 점수: ${average} / 10. 두 영상의 관성모멘트 제어, 회전 반경, 언코킹 타이밍을 랜드마크 기반으로 비교 평가합니다. 적용된 키: A=${heightA}cm, B=${heightB}cm`;
+  }
+
+  function runMotionAnalysis(view) {
+    setGuideState(view);
+  }
+
+  function toggleAnalysisPanel() {
+    if (!analysisPanel || !analysisToggleBtn) return;
+    analysisPanel.classList.toggle('collapsed');
+    analysisToggleBtn.textContent = analysisPanel.classList.contains('collapsed') ? '펼치기' : '접기';
+  }
 
 
   let frontPoints = [];
@@ -665,9 +1208,8 @@
 
   let currentUser = null;
   let isAdmin = false;
-  let selectedUserEmail = null; // still used as key for logs and selection
+  let selectedUserEmail = null;
 
-  // Local storage helpers (fallback when Supabase is unavailable)
   function loadUsers(){
     const raw = localStorage.getItem('gsap_users');
     if(!raw) return [];
@@ -680,60 +1222,6 @@
 
   function saveUsers(users){
     localStorage.setItem('gsap_users', JSON.stringify(users));
-  }
-
-  async function getUsers(){
-    // Prefer Supabase if available so different devices share the same user list
-    const supa = await supabaseLoadUsers();
-    if(Array.isArray(supa) && supa.length > 0){
-      saveUsers(supa);
-      return supa;
-    }
-    return loadUsers();
-  }
-
-  // Supabase helpers for cross-device sync
-  async function supabaseLoadUsers(){
-    try {
-      const { data, error } = await sb.from('gsap_users').select('id, hash');
-      if(error) {
-        // console.warn('Supabase load users failed', error);
-        return null;
-      }
-      return (data || []).map(u => ({ id: u.id, hash: u.hash }));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function supabaseSaveUser(id, hash){
-    try {
-      await sb.from('gsap_users').upsert({ id, hash });
-    } catch {}
-  }
-
-  async function supabaseDeleteUser(id){
-    try {
-      await sb.from('gsap_users').delete().eq('id', id);
-    } catch {}
-  }
-
-  async function supabaseLoadLogs(id){
-    try {
-      const { data, error } = await sb.from('gsap_user_logs').select('when, action').eq('id', id).order('when', { ascending: false }).limit(50);
-      if(error) {
-        return null;
-      }
-      return (data || []).map(r => ({ when: r.when, action: r.action }));
-    } catch {
-      return null;
-    }
-  }
-
-  async function supabaseAddLog(id, action){
-    try {
-      await sb.from('gsap_user_logs').insert({ id, action });
-    } catch {}
   }
 
   function loadUserLogs(){
@@ -750,57 +1238,27 @@
     localStorage.setItem('gsap_user_logs', JSON.stringify(logs));
   }
 
-  async function addUserLog(id, action){
-    if(!id) return;
+  function addUserLog(email, action){
+    if(!email) return;
+    const logs = loadUserLogs();
     const now = new Date().toISOString();
     const entry = { when: now, action };
-
-    // Try to save to Supabase (cross-device)
-    await supabaseAddLog(id, action);
-
-    // Always keep local copy as well (store under both id and any matching email)
-    const logs = loadUserLogs();
-    logs[id] = logs[id] || [];
-    logs[id].unshift(entry);
-
-    const users = loadUsers();
-    const user = users.find(u => u.id === id || u.email === id);
-    if(user && user.email && user.email !== id){
-      logs[user.email] = logs[user.email] || [];
-      logs[user.email].unshift(entry);
-    }
-
+    logs[email] = logs[email] || [];
+    logs[email].unshift(entry);
     saveUserLogs(logs);
   }
 
-  async function getUserLogs(idOrEmail){
-    // Try Supabase first (id-based)
-    const supaLogs = await supabaseLoadLogs(idOrEmail);
-    if(Array.isArray(supaLogs) && supaLogs.length > 0){
-      return supaLogs;
-    }
-
-    // Fallback to local logs (try both id and email keys)
+  function getUserLogs(email){
     const logs = loadUserLogs();
-    const found = logs[idOrEmail] || [];
-    if(found.length) return found;
-
-    // If idOrEmail looks like an id, try to find matching email in users
-    const users = loadUsers();
-    const user = users.find(u => u.id === idOrEmail);
-    if(user && user.email){
-      return logs[user.email] || [];
-    }
-
-    return [];
+    return logs[email] || [];
   }
 
-  async function showUserLogs(id){
-    selectedUserEmail = id;
+  function showUserLogs(email){
+    selectedUserEmail = email;
     const logEl = document.getElementById('userLog');
     if(!logEl) return;
     logEl.innerHTML = '';
-    const logs = await getUserLogs(id);
+    const logs = getUserLogs(email);
     if(logs.length === 0){
       const empty = document.createElement('div');
       empty.style.color = '#999';
@@ -814,8 +1272,7 @@
       row.style.justifyContent = 'space-between';
       row.style.fontSize = '0.85rem';
       row.style.padding = '2px 0';
-      row.style.color = '#fff';
-      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.75);">${new Date(entry.when).toLocaleString()}</span>`;
+      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.65);">${new Date(entry.when).toLocaleString()}</span>`;
       logEl.appendChild(row);
     });
   }
@@ -869,44 +1326,31 @@
     }
 
     loginBtn.addEventListener('click', async () => {
-      const rawId = loginEmail.value.trim();
-      const id = rawId.toLowerCase();
+      const email = loginEmail.value.trim();
       const password = loginPassword.value.trim();
-      if(!id || !password){
-        if(loginStatus) loginStatus.textContent = 'Please enter ID and password.';
+      if(!email || !password){
+        if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
         return;
       }
 
-      // Admin credential shortcut (for local/dev access)
-      // - ID: admin
-      // - Password: admin
-      if(id === 'admin' && password === 'admin'){
-        currentUser = { id, isAdmin: true };
-        setAdminMode(true);
-        setLoggedIn(true);
-        addUserLog(id, 'admin login');
-        if(loginStatus) loginStatus.textContent = 'Admin login successful.';
-        return;
-      }
-
-      const hash = await sha256(`${id}:${password}`);
+      const hash = await sha256(`${email}:${password}`);
       if(hash === ADMIN_HASH){
-        currentUser = { id, isAdmin: true };
+        currentUser = { email, isAdmin: true };
         setAdminMode(true);
         setLoggedIn(true);
-        addUserLog(id, 'admin login');
+        addUserLog(email, 'admin login');
         if(loginStatus) loginStatus.textContent = 'Admin login successful.';
         return;
       }
 
-      const users = await getUsers();
-      const match = users.find(u => u.hash === hash && (u.id === id || u.email === id));
+      const users = loadUsers();
+      const match = users.find(u => u.hash === hash && u.email === email);
       if(match){
-        currentUser = { id, isAdmin: false };
+        currentUser = { email, isAdmin: false };
         setAdminMode(false);
         setLoggedIn(true);
-        selectedUserEmail = id;
-        addUserLog(id, 'login');
+        selectedUserEmail = email;
+        addUserLog(email, 'login');
         if(loginStatus) loginStatus.textContent = 'User login successful.';
         return;
       }
@@ -919,16 +1363,9 @@
     });
   }
 
-  async function openUserMgmt(){
+  function openUserMgmt(){
     const overlay = document.getElementById('userMgmtOverlay');
     if(!overlay) return;
-
-    // Attempt to sync users from Supabase each time admin opens the panel
-    const supaUsers = await supabaseLoadUsers();
-    if(supaUsers && supaUsers.length){
-      saveUsers(supaUsers);
-    }
-
     overlay.style.display = 'flex';
     renderUserMgmt();
     if(selectedUserEmail) showUserLogs(selectedUserEmail);
@@ -964,11 +1401,10 @@
         row.style.padding = '6px 8px';
         row.style.borderRadius = '6px';
         row.style.cursor = 'pointer';
-        const userId = user.id || user.email;
-        row.style.background = selectedUserEmail === userId ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
+        row.style.background = selectedUserEmail === user.email ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
 
         const label = document.createElement('span');
-        label.textContent = userId;
+        label.textContent = user.email;
         row.appendChild(label);
 
         const buttonGroup = document.createElement('span');
@@ -982,7 +1418,7 @@
         selectBtn.className = 'user-action-btn';
         selectBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          showUserLogs(user.id || user.email);
+          showUserLogs(user.email);
           renderUserMgmt();
         });
         buttonGroup.appendChild(selectBtn);
@@ -992,14 +1428,13 @@
       del.innerHTML = '🗑️';
       del.title = '삭제';
       del.className = 'user-action-btn';
-      del.addEventListener('click', async (e) => {
+      del.addEventListener('click', (e) => {
         e.stopPropagation();
-        const confirmed = confirm(`${user.id || user.email} 사용자 계정을 삭제하시겠습니까?`);
+        const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
         if(!confirmed) return;
-        const remaining = loadUsers().filter(u => u.id !== user.id);
+        const remaining = loadUsers().filter(u => u.email !== user.email);
         saveUsers(remaining);
-        await supabaseDeleteUser(user.id);
-        if(selectedUserEmail === user.id){
+        if(selectedUserEmail === user.email){
           selectedUserEmail = null;
           const userLog = document.getElementById('userLog');
           if(userLog) userLog.innerHTML = '';
@@ -1015,42 +1450,30 @@
     const addBtn = document.getElementById('addUserBtn');
     if(addBtn){
       addBtn.onclick = async () => {
-        const idInput = addEmail.value.trim();
+        const email = addEmail.value.trim();
         const password = addPass.value.trim();
-        if(!idInput || !password){
-          if(loginStatus) loginStatus.textContent = 'ID와 비밀번호를 모두 입력하세요.';
+        if(!email || !password){
+          if(loginStatus) loginStatus.textContent = 'Email과 비밀번호를 모두 입력하세요.';
           return;
         }
-        const id = idInput.toLowerCase();
-        const hash = await sha256(`${id}:${password}`);
+        const hash = await sha256(`${email}:${password}`);
         const users = loadUsers();
-        if(users.find(u => u.id === id || u.email === id)){
+        if(users.find(u => u.email === email)){
           if(loginStatus) loginStatus.textContent = '이미 등록된 사용자입니다.';
           return;
         }
-        users.push({ id, hash });
+        users.push({ email, hash });
         saveUsers(users);
-        await supabaseSaveUser(id, hash);
         addEmail.value = '';
         addPass.value = '';
         if(loginStatus) loginStatus.textContent = '사용자가 추가되었습니다.';
         renderUserMgmt();
-        showUserLogs(id);
+        showUserLogs(email);
       };
     }
   }
 
   initLogin();
-
-  function hideMobileGlobalSpeedControl(){
-    const isMobile = window.matchMedia('(max-width: 600px), (hover: none) and (pointer: coarse)').matches;
-    const playback = document.querySelector('.playback-controls');
-    if(playback){
-      playback.style.display = isMobile ? 'none' : '';
-    }
-  }
-  hideMobileGlobalSpeedControl();
-  window.addEventListener('resize', hideMobileGlobalSpeedControl);
 
   function applyVideoZoom(videoElem, zoom){
     const baseTransform = `translate(-50%, -50%) scale(${zoom})`;
@@ -1492,6 +1915,8 @@
     sideZoomRange.disabled = selectionActive || !sideVideo.src;
     frontSpeedRange.disabled = !frontVideo.src;
     sideSpeedRange.disabled = !sideVideo.src;
+    if(frontAnalysisBtn) frontAnalysisBtn.disabled = !frontVideo.src;
+    if(sideAnalysisBtn) sideAnalysisBtn.disabled = !sideVideo.src;
     if(playPauseBothBtn.disabled){
       updateDualPlayButtonLabel(false);
     }
@@ -1834,6 +2259,25 @@
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
     drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
   });
+
+  if (frontAnalysisBtn) {
+    frontAnalysisBtn.addEventListener('click', () => runMotionAnalysis('front'));
+  }
+  if (sideAnalysisBtn) {
+    sideAnalysisBtn.addEventListener('click', () => runMotionAnalysis('side'));
+  }
+  if (analysisGuideNextBtn) {
+    analysisGuideNextBtn.addEventListener('click', advanceGuideStep);
+  }
+  if (analysisHeightInputA) {
+    analysisHeightInputA.addEventListener('change', () => performAnalysis());
+  }
+  if (analysisHeightInputB) {
+    analysisHeightInputB.addEventListener('change', () => performAnalysis());
+  }
+  if (analysisToggleBtn) {
+    analysisToggleBtn.addEventListener('click', toggleAnalysisPanel);
+  }
 
   saveFrameBtn.addEventListener('click', () => {
     if(!frontVideo.paused || !sideVideo.paused){
