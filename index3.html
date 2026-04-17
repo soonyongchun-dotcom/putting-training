@@ -322,33 +322,33 @@
       </div>
       <p class="muted" id="authSystemNotice" style="display:none;margin:6px 0 8px;color:#b45309"></p>
 
-      <div class="auth-panel active" id="loginPanel">
+      <form class="auth-panel active" id="loginPanel" autocomplete="off">
         <div class="field">
           <label>아이디 (코치이름 또는 선수ID)</label>
-          <input id="loginId" placeholder="player01" />
+          <input id="loginId" placeholder="player01" autocomplete="username" />
         </div>
         <div class="field">
           <label>비밀번호</label>
-          <input id="loginPw" type="password" placeholder="••••••••" />
+          <input id="loginPw" type="password" placeholder="••••••••" autocomplete="current-password" />
         </div>
-        <button class="btn" id="loginBtn" style="width:100%">로그인</button>
-      </div>
+        <button type="submit" class="btn" id="loginBtn" style="width:100%">로그인</button>
+      </form>
 
-      <div class="auth-panel" id="signupPanel">
+      <form class="auth-panel" id="signupPanel" autocomplete="off">
         <div class="field">
           <label>선수 이름</label>
-          <input id="signupName" placeholder="이름입력" />
+          <input id="signupName" placeholder="이름입력" autocomplete="name" />
         </div>
         <div class="field">
           <label>선수 ID</label>
-          <input id="signupId" placeholder="player01" />
+          <input id="signupId" placeholder="player01" autocomplete="username" />
         </div>
         <div class="field">
           <label>비밀번호</label>
-          <input id="signupPw" type="password" placeholder="8자 이상" />
+          <input id="signupPw" type="password" placeholder="8자 이상" autocomplete="new-password" />
         </div>
-        <button class="btn btn-green" id="signupBtn" style="width:100%">선수 가입 완료</button>
-      </div>
+        <button type="submit" class="btn btn-green" id="signupBtn" style="width:100%">선수 가입 완료</button>
+      </form>
 
       <div class="auth-panel" id="pendingPanel">
         <div class="card" style="padding:12px;background:#fffbeb;border-color:#fde68a">
@@ -795,8 +795,8 @@
     function clearSession(){ localStorage.removeItem(STORAGE_SESSION); }
 
     // ─── 코치 선택 선수 (localStorage) ───
-    function getCoachSelectedPlayerId(){ return localStorage.getItem(STORAGE_COACH_SELECTED_PLAYER)||""; }
-    function setCoachSelectedPlayerId(id){ localStorage.setItem(STORAGE_COACH_SELECTED_PLAYER, id||""); }
+    function getCoachSelectedPlayerId(){ return String(localStorage.getItem(STORAGE_COACH_SELECTED_PLAYER)||"").trim(); }
+    function setCoachSelectedPlayerId(id){ localStorage.setItem(STORAGE_COACH_SELECTED_PLAYER, String(id||"").trim()); }
 
     // ─── 읽음 타임스탬프 (localStorage) ───
     function getCommReadScope(){
@@ -1291,7 +1291,7 @@
     function normalizeApprovalStatus(v){
       return String(v||'').trim().toLowerCase();
     }
-    function getApprovedPlayers(users){ return users.filter(u=>u.role==='player'&&u.approvalStatus==='approved'); }
+    function getApprovedPlayers(users){ return users.filter(u=>u.role==='player'&&normalizeApprovalStatus(u.approvalStatus)==='approved'); }
     function getActivePlayerForView(users){
       const session=getSession(); if(!session) return null;
       if(session.role==='coach'){
@@ -2792,6 +2792,25 @@
     document.querySelectorAll('.auth-tabs button').forEach(function(btn){btn.addEventListener('click',function(){
       setAuthPanel(btn.dataset.auth);document.getElementById('authError').textContent='';
     });});
+
+    var loginPanel = document.getElementById('loginPanel');
+    if(loginPanel){
+      loginPanel.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(!e.submitter || e.submitter.id!=='loginBtn'){
+          document.getElementById('loginBtn').click();
+        }
+      });
+    }
+    var signupPanel = document.getElementById('signupPanel');
+    if(signupPanel){
+      signupPanel.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(!e.submitter || e.submitter.id!=='signupBtn'){
+          document.getElementById('signupBtn').click();
+        }
+      });
+    }
 
     document.getElementById('signupBtn').addEventListener('click', async function(){
       var signupBtn=document.getElementById('signupBtn');
