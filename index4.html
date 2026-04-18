@@ -6,6 +6,8 @@
 <title>SY-GSAP (Golf Swing Analysis Platform)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -491,11 +493,65 @@
   }
   .analysis-panel-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0;
     font-size: 0.95rem;
     border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .analysis-panel-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+  }
+  .analysis-title {
+    flex: 1;
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    color: #ffffff;
+  }
+  .analysis-panel-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  .analysis-guide-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    max-width: calc(100% - 130px);
+  }
+  .analysis-panel-controls .analysis-height-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+  .analysis-height-field select {
+    width: 50px;
+    padding: 4px 4px;
+    font-size: 0.88rem;
+  }
+  .analysis-height-field .height-unit {
+    color: #eee;
+    font-size: 0.88rem;
+    margin-left: 4px;
+  }
+  .analysis-height-field select {
+    width: 50px;
+    padding: 4px 4px;
+    font-size: 0.88rem;
   }
   .analysis-panel-header button {
     background: #005fa3;
@@ -518,9 +574,13 @@
   .analysis-height-field {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex: 1 1 180px;
-    min-width: 180px;
+    gap: 8px;
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+  .analysis-height-field select {
+    width: 76px;
+    padding: 4px 6px;
   }
   .analysis-section {
     display: grid;
@@ -555,6 +615,11 @@
     background: rgba(255,255,255,0.06);
     color: #eef;
     font-size: 0.92rem;
+  }
+  .analysis-summary .red-score {
+    color: #ff4d4f;
+    font-weight: 700;
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
   }
   .analysis-guide {
     padding: 12px;
@@ -716,8 +781,36 @@
 
 <div class="analysis-panel collapsed" id="analysisPanel">
   <div class="analysis-panel-header">
-    <span>영상분석점수</span>
-    <button type="button" id="analysisToggleBtn">펼치기</button>
+    <div class="analysis-panel-header-top">
+      <span class="analysis-title">비거리 모션 분석</span>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="downloadPdfBtn">PDF 다운로드</button>
+        <button type="button" id="analysisToggleBtn">펼치기</button>
+      </div>
+    </div>
+    <div class="analysis-panel-controls">
+      <div class="analysis-guide-row">
+        <div class="analysis-guide" id="analysisGuide">분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.</div>
+        <div class="analysis-guide-actions">
+          <button type="button" id="analysisGuideNextBtn">다음</button>
+          <span class="analysis-guide-step" id="analysisGuideStep"></span>
+        </div>
+      </div>
+      <div class="analysis-height-control">
+        <div class="analysis-height-field">
+          <select id="analysisHeightInput">
+            <option value="160">160</option>
+            <option value="165">165</option>
+            <option value="170" selected>170</option>
+            <option value="175">175</option>
+            <option value="180">180</option>
+            <option value="185">185</option>
+            <option value="190">190</option>
+          </select>
+          <span class="height-unit">cm</span>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="analysis-panel-body" id="analysisPanelBody">
     <div class="analysis-section" id="analysisFrontSection">
@@ -742,38 +835,6 @@
       <div class="analysis-metric" id="analysisDeltaTiming">언코킹 타이밍 변화: -</div>
       <div class="analysis-detail" id="analysisDeltaDetail"></div>
     </div>
-    <div class="analysis-guide" id="analysisGuide">분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.</div>
-    <div class="analysis-guide-actions">
-      <button type="button" id="analysisGuideNextBtn">다음</button>
-      <span class="analysis-guide-step" id="analysisGuideStep"></span>
-    </div>
-    <div class="analysis-height-control">
-      <div class="analysis-height-field">
-        <label for="analysisHeightInputA">A 영상 키(cm)</label>
-        <select id="analysisHeightInputA">
-          <option value="160">160</option>
-          <option value="165">165</option>
-          <option value="170" selected>170</option>
-          <option value="175">175</option>
-          <option value="180">180</option>
-          <option value="185">185</option>
-          <option value="190">190</option>
-        </select>
-      </div>
-      <div class="analysis-height-field">
-        <label for="analysisHeightInputB">B 영상 키(cm)</label>
-        <select id="analysisHeightInputB">
-          <option value="160">160</option>
-          <option value="165">165</option>
-          <option value="170" selected>170</option>
-          <option value="175">175</option>
-          <option value="180">180</option>
-          <option value="185">185</option>
-          <option value="190">190</option>
-        </select>
-      </div>
-    </div>
-    <div class="analysis-note">랜드마크를 3개 이상 표시하고 라인을 추가하면 물리적 평가가 더욱 실용적으로 만들어집니다.</div>
   </div>
 </div>
 
@@ -846,8 +907,7 @@
   const saveFrameBtn = document.getElementById('saveFrameBtn');
   const clearPointsBtn = document.getElementById('clearPointsBtn');
   const statusSpan = document.getElementById('status');
-  const analysisHeightInputA = document.getElementById('analysisHeightInputA');
-  const analysisHeightInputB = document.getElementById('analysisHeightInputB');
+  const analysisHeightInput = document.getElementById('analysisHeightInput');
   const analysisGuide = document.getElementById('analysisGuide');
   const analysisGuideNextBtn = document.getElementById('analysisGuideNextBtn');
   const analysisGuideStep = document.getElementById('analysisGuideStep');
@@ -868,6 +928,7 @@
   const analysisDeltaTiming = document.getElementById('analysisDeltaTiming');
   const analysisDeltaDetail = document.getElementById('analysisDeltaDetail');
   const analysisSummary = document.getElementById('analysisSummary');
+  const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -876,10 +937,17 @@
   let guideView = null;
   let guideStep = 0;
 
-  function getHeightScale(view) {
-    const selector = view === 'front' ? analysisHeightInputA : analysisHeightInputB;
-    if (!selector) return 1;
-    const heightCm = parseFloat(selector.value);
+  function getAutoPointType(points) {
+    if (points.length === 0) return 'wrist';
+    if (points.length === 1) return 'club';
+    if (points.length === 2) return 'shoulder';
+    if (points.length === 3) return 'pelvis';
+    return null;
+  }
+
+  function getHeightScale() {
+    if (!analysisHeightInput) return 1;
+    const heightCm = parseFloat(analysisHeightInput.value);
     if (!Number.isFinite(heightCm) || heightCm <= 0) return 1;
     return clamp(heightCm / 170, 0.7, 1.4);
   }
@@ -892,7 +960,7 @@
       case 2:
         return `(${viewLabel}) 2단계: 손목과 클럽 헤드를 점으로 찍어 샤프트를 명확히 표시하세요.`;
       case 3:
-        return `(${viewLabel}) 3단계: 몸 축 위치를 찍어 중심 거리와 회전반경 변화를 비교할 수 있게 하세요.`;
+        return `(${viewLabel}) 3단계: 어깨와 골반 중심을 추가로 선택하세요. 기존 손목/클럽 점은 유지됩니다.`;
       case 4:
         return `선택이 끝났습니다. 자동 분석을 실행합니다.`;
       default:
@@ -910,7 +978,7 @@
   function hasGuideSelectionCompleted() {
     const points = guideView === 'front' ? frontPoints : sidePoints;
     const lines = guideView === 'front' ? frontLines : sideLines;
-    return points.length >= 2 && lines.length >= 1;
+    return points.length >= 4 && lines.length >= 1;
   }
 
   function resetViewAnalysis(view) {
@@ -952,8 +1020,8 @@
     updateAnalysisSection(frontResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontDetail);
     const sideResult = createAnalysisResult(sidePoints, sideLines, 'side', 'B');
     updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideDetail);
-    updateSummary(frontResult, sideResult);
     const deltaResult = createDeltaResult(frontResult, sideResult);
+    updateSummary(frontResult, sideResult, deltaResult);
     updateComparisonSection(deltaResult);
   }
 
@@ -1018,6 +1086,23 @@
     }
     if (!count) return 0;
     return (total / count) / Math.PI; // normalized 0..1, smaller means more aligned
+  }
+
+  function computeLandmarkAngle(points) {
+    if (!points || points.length === 0) return null;
+    const shoulder = points.find(p => p.type === 'shoulder');
+    const wrist = points.find(p => p.type === 'wrist');
+    const club = points.find(p => p.type === 'club');
+    if (!shoulder || !wrist || !club) return null;
+    const v1x = shoulder.x - wrist.x;
+    const v1y = shoulder.y - wrist.y;
+    const v2x = club.x - wrist.x;
+    const v2y = club.y - wrist.y;
+    const len1 = Math.hypot(v1x, v1y);
+    const len2 = Math.hypot(v2x, v2y);
+    if (len1 === 0 || len2 === 0) return null;
+    const cos = clamp((v1x * v2x + v1y * v2y) / (len1 * len2), -1, 1);
+    return Math.acos(cos) * (180 / Math.PI);
   }
 
   function normalizeLineAngleDeg(line) {
@@ -1117,18 +1202,25 @@
     const maxSpan = computePairwiseMaxDistance(items);
     const angleAlignment = computeAngleAlignment(lines);
     const avgAngleDeg = computeAverageAngleDifference(lines);
-    const heightScale = getHeightScale(view);
+    const landmarkAngle = computeLandmarkAngle(points);
+    const angleDeg = landmarkAngle !== null ? landmarkAngle : avgAngleDeg;
+    const heightScale = getHeightScale();
 
     result.momentProxy = avgDistFromCenter;
     result.radiusProxy = maxSpan;
-    result.angleDeg = avgAngleDeg;
+    result.angleDeg = angleDeg;
 
     result.momentScore = clamp(1 - avgDistFromCenter / (0.45 * heightScale), 0, 1) * 10;
     result.radiusScore = clamp(maxSpan / (0.55 * heightScale), 0, 1) * 10;
 
-    if (lines.length >= 2) {
-      result.timingScore = clamp((90 - avgAngleDeg) / 90, 0, 1) * 10;
-      result.summary = avgAngleDeg <= 25
+    if (landmarkAngle !== null) {
+      result.timingScore = clamp((90 - angleDeg) / 90, 0, 1) * 10;
+      result.summary = angleDeg <= 25
+        ? `어깨-손목-클럽 내각이 안정적인 언코킹 자세를 보여줍니다. 키 보정: ${Math.round(heightScale * 100)}%`
+        : `어깨-손목-클럽 내각이 벌어져 있어 언코킹 타이밍 개선이 필요합니다. 키 보정: ${Math.round(heightScale * 100)}%`;
+    } else if (lines.length >= 2) {
+      result.timingScore = clamp((90 - angleDeg) / 90, 0, 1) * 10;
+      result.summary = angleDeg <= 25
         ? `샤프트와 팔 정렬이 잘 맞아 언코킹 준비가 안정적으로 보입니다. 키 보정: ${Math.round(heightScale * 100)}%`
         : `샤프트와 팔 각도가 벌어져 있어 언코킹 타이밍이 아직 개선 여지가 있습니다. 키 보정: ${Math.round(heightScale * 100)}%`;
     } else if (lines.length === 1) {
@@ -1139,7 +1231,7 @@
       result.summary = `언코킹 타이밍 분석을 위해 최소 한 개 이상의 라인이 필요합니다. 손목과 클럽 축을 나타내는 선을 드래그하여 그려주세요. 키 보정: ${Math.round(heightScale * 100)}%`;
     }
 
-    result.detail = `평균 중심 거리: ${avgDistFromCenter.toFixed(3)}, 회전반경 프록시: ${maxSpan.toFixed(3)}, 샤프트 각도: ${avgAngleDeg.toFixed(1)}°`;
+    result.detail = `평균 중심 거리: ${avgDistFromCenter.toFixed(3)}, 회전반경 프록시: ${maxSpan.toFixed(3)}, 언코킹 각도: ${angleDeg.toFixed(1)}°`;
     result.score = (result.momentScore + result.radiusScore + result.timingScore) / 3;
     return result;
   }
@@ -1163,17 +1255,68 @@
     analysisDeltaDetail.textContent = deltaResult.summary;
   }
 
-  function updateSummary(frontResult, sideResult) {
+  function computeDistanceMotionScore(deltaResult) {
+    if (!deltaResult) return 0;
+    const momentPct = Math.abs(deltaResult.momentPercent);
+    const radiusPct = Math.abs(deltaResult.radiusPercent);
+    const rawScore = (momentPct + radiusPct) / 6.5;
+    return clamp(rawScore, 0, 10);
+  }
+
+  function updateSummary(frontResult, sideResult, deltaResult) {
     if (!analysisSummary) return;
     if (frontResult.score === 0 && sideResult.score === 0) {
       analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 주요 랜드마크를 표시하면 결과의 신뢰도가 높아집니다.';
       return;
     }
-    const scores = [frontResult.score, sideResult.score].filter(v => v > 0);
-    const average = scores.length ? (scores.reduce((sum, v) => sum + v, 0) / scores.length).toFixed(1) : '-';
-    const heightA = analysisHeightInputA ? analysisHeightInputA.value : '170';
-    const heightB = analysisHeightInputB ? analysisHeightInputB.value : '170';
-    analysisSummary.textContent = `전체 평균 점수: ${average} / 10. 두 영상의 관성모멘트 제어, 회전 반경, 언코킹 타이밍을 랜드마크 기반으로 비교 평가합니다. 적용된 키: A=${heightA}cm, B=${heightB}cm`;
+    const height = analysisHeightInput ? analysisHeightInput.value : '170';
+    const motionScore = deltaResult ? computeDistanceMotionScore(deltaResult).toFixed(1) : '-';
+    analysisSummary.innerHTML = `비거리모션점수: <span class="red-score">${motionScore} / 10</span>. 변화 % 값(관성모멘트 / 회전반경)을 기준으로 평가합니다. 적용된 키: ${height}cm`;
+  }
+
+  async function downloadAnalysisPDF() {
+    if (!window.jspdf || !window.html2canvas) {
+      alert('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.');
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const clone = analysisPanel.cloneNode(true);
+    clone.classList.remove('collapsed');
+    clone.style.position = 'fixed';
+    clone.style.top = '-9999px';
+    clone.style.left = '-9999px';
+    clone.style.width = '800px';
+    clone.style.background = '#ffffff';
+    clone.style.color = '#000000';
+    clone.style.padding = '16px';
+    clone.style.border = '1px solid #cccccc';
+    clone.style.boxShadow = 'none';
+    clone.querySelectorAll('button').forEach(btn => btn.remove());
+    clone.querySelectorAll('*').forEach(el => {
+      el.style.color = '#000000';
+      el.style.background = '#ffffff';
+      el.style.borderColor = '#cccccc';
+      el.style.boxShadow = 'none';
+    });
+    document.body.appendChild(clone);
+
+    try {
+      const canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = pageWidth - 80;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      doc.addImage(imgData, 'PNG', 40, 40, imgWidth, imgHeight);
+    } catch (error) {
+      console.warn('PDF 생성 중 오류가 발생했습니다.', error);
+      alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      clone.remove();
+    }
+
+    doc.save(`비거리모션분석_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
   function runMotionAnalysis(view) {
@@ -1709,16 +1852,24 @@
 
   function drawPointsOnFrame(ctx, points, width, height){
     ctx.save();
-    ctx.fillStyle = 'yellow';
-    ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
-
     points.forEach(p => {
+      const color = p.type === 'shoulder' ? '#4caf50' : p.type === 'wrist' ? '#ff9800' : p.type === 'club' ? '#2196f3' : p.type === 'pelvis' ? '#9c27b0' : 'yellow';
+      const label = p.type === 'shoulder' ? 'S' : p.type === 'wrist' ? 'W' : p.type === 'club' ? 'C' : p.type === 'pelvis' ? 'P' : '?';
+      const x = p.x * width;
+      const y = p.y * height;
       ctx.beginPath();
-      ctx.arc(p.x * width, p.y * height, 6, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#000';
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, y);
     });
-
     ctx.restore();
   }
 
@@ -1820,7 +1971,9 @@
   }
 
   function addPoint(points, lines, pos, ctx, canvas, video, zoom){
-    points.push(pos); // add without count limit
+    const type = getAutoPointType(points);
+    if (!type) return;
+    points.push({ x: pos.x, y: pos.y, type });
     drawOverlay(ctx, points, lines, canvas, video, zoom);
   }
 
@@ -2279,14 +2432,14 @@
   if (analysisGuideNextBtn) {
     analysisGuideNextBtn.addEventListener('click', advanceGuideStep);
   }
-  if (analysisHeightInputA) {
-    analysisHeightInputA.addEventListener('change', () => performAnalysis());
-  }
-  if (analysisHeightInputB) {
-    analysisHeightInputB.addEventListener('change', () => performAnalysis());
+  if (analysisHeightInput) {
+    analysisHeightInput.addEventListener('change', () => performAnalysis());
   }
   if (analysisToggleBtn) {
     analysisToggleBtn.addEventListener('click', toggleAnalysisPanel);
+  }
+  if (downloadPdfBtn) {
+    downloadPdfBtn.addEventListener('click', downloadAnalysisPDF);
   }
 
   saveFrameBtn.addEventListener('click', () => {
