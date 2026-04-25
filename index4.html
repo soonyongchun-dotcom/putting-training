@@ -1389,7 +1389,7 @@
         : clamp(1 + deltaResult.impactPercent / 40, 0, 1);
       const otherScore = transferScore * 0.7 + impactScore * 0.3;
       score = 10 * (accelScore * 0.6 + otherScore * 0.4);
-      score = clamp(score * 1.9, 0, 10);
+      score = clamp(score, 0, 10);
     } else {
       const impactScore = deltaResult.impactPercent >= 0
         ? clamp(deltaResult.impactPercent / 30, 0, 1)
