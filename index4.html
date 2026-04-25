@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+ <!DOCTYPE html> 
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -488,7 +488,7 @@
     padding: 0 12px 6px;
   }
   .analysis-panel:not(.collapsed) {
-    max-height: 920px;
+    max-height: none;
     padding: 12px;
   }
   .analysis-panel-header {
@@ -599,6 +599,61 @@
     font-size: 1.3rem;
     font-weight: 800;
     color: #ace7ff;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(0, 95, 179, 0.12);
+    border-radius: 10px;
+  }
+  .analysis-score-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+  }
+  .analysis-score-items {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .analysis-segment-compare-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .analysis-segment-compare-card {
+    flex: 1 1 200px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 180px;
+  }
+  .analysis-segment-compare-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffd86c;
+    margin-bottom: 8px;
+  }
+  .analysis-segment-compare-card .analysis-metric {
+    margin-bottom: 4px;
+  }
+  .analysis-score-item {
+    font-size: 0.95rem;
+    color: #d0d8ff;
+    font-weight: 700;
+  }
+  .analysis-score-average {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffcb4c;
+    background: rgba(255, 203, 76, 0.12);
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
   }
   .analysis-metric {
     font-size: 0.92rem;
@@ -800,40 +855,107 @@
         <div class="analysis-height-field">
           <select id="analysisHeightInput">
             <option value="160">160</option>
+            <option value="161">161</option>
+            <option value="162">162</option>
+            <option value="163">163</option>
+            <option value="164">164</option>
             <option value="165">165</option>
+            <option value="166">166</option>
+            <option value="167">167</option>
+            <option value="168">168</option>
+            <option value="169">169</option>
             <option value="170" selected>170</option>
+            <option value="171">171</option>
+            <option value="172">172</option>
+            <option value="173">173</option>
+            <option value="174">174</option>
             <option value="175">175</option>
+            <option value="176">176</option>
+            <option value="177">177</option>
+            <option value="178">178</option>
+            <option value="179">179</option>
             <option value="180">180</option>
+            <option value="181">181</option>
+            <option value="182">182</option>
+            <option value="183">183</option>
+            <option value="184">184</option>
             <option value="185">185</option>
+            <option value="186">186</option>
+            <option value="187">187</option>
+            <option value="188">188</option>
+            <option value="189">189</option>
             <option value="190">190</option>
           </select>
           <span class="height-unit">cm</span>
+        </div>
+        <div class="analysis-height-field">
+          <select id="analysisSegmentSelect">
+            <option value="3/5">3/5 구간</option>
+            <option value="5/4">5/4 구간</option>
+            <option value="impact">임팩트 구간</option>
+          </select>
+          <span class="height-unit">구간 선택</span>
         </div>
       </div>
     </div>
   </div>
   <div class="analysis-panel-body" id="analysisPanelBody">
     <div class="analysis-section" id="analysisFrontSection">
-      <div class="analysis-section-title">A 영상 분석</div>
+      <div class="analysis-section-title">A영상분석(백스윙탑)</div>
       <div class="analysis-metric" id="analysisFrontMoment">관성모멘트 프록시: -</div>
       <div class="analysis-metric" id="analysisFrontRadius">회전반경 프록시: -</div>
-      <div class="analysis-metric" id="analysisFrontTiming">언코킹 정렬 각도: -</div>
+      <div class="analysis-metric" id="analysisFrontTiming">코킹 정렬 각도: -</div>
+      <div class="analysis-metric" id="analysisFrontAcceleration">가속능력: -</div>
+      <div class="analysis-metric" id="analysisFrontTransfer">에너지전환효율: -</div>
+      <div class="analysis-metric" id="analysisFrontImpact">임팩트 파워: -</div>
       <div class="analysis-detail" id="analysisFrontDetail"></div>
     </div>
-    <div class="analysis-section" id="analysisSideSection">
-      <div class="analysis-section-title">B 영상 분석</div>
-      <div class="analysis-metric" id="analysisSideMoment">관성모멘트 프록시: -</div>
-      <div class="analysis-metric" id="analysisSideRadius">회전반경 프록시: -</div>
-      <div class="analysis-metric" id="analysisSideTiming">언코킹 정렬 각도: -</div>
-      <div class="analysis-detail" id="analysisSideDetail"></div>
+    <div class="analysis-section" id="analysisSegmentCompareSection">
+      <div class="analysis-section-title">B 영상 분석(구간별 비교)</div>
+      <div class="analysis-segment-compare-row" id="analysisSegmentCompareRow">
+        <div class="analysis-segment-compare-card" id="analysisDeltaCard35">
+          <div class="analysis-segment-compare-title">3/5 구간 비교</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Score">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Moment">관성모멘트 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Radius">회전반경 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Timing">코킹 각도 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Accel">가속능력 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Transfer">에너지전환효율 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Impact">임팩트 파워 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard35Motion">비거리 모션 평균 변화: -</div>
+        </div>
+        <div class="analysis-segment-compare-card" id="analysisDeltaCard54">
+          <div class="analysis-segment-compare-title">5/4 구간 비교</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Score">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Moment">관성모멘트 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Radius">회전반경 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Timing">코킹 각도 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Accel">가속능력 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Transfer">에너지전환효율 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Impact">임팩트 파워 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCard54Motion">비거리 모션 평균 변화: -</div>
+        </div>
+        <div class="analysis-segment-compare-card" id="analysisDeltaCardImpact">
+          <div class="analysis-segment-compare-title">임팩트 구간 비교</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactScore">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactMoment">관성모멘트 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactRadius">회전반경 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactTiming">코킹 각도 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactAccel">가속능력 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactTransfer">에너지전환효율 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactImpact">임팩트 파워 변화: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardImpactMotion">비거리 모션 평균 변화: -</div>
+        </div>
+      </div>
     </div>
     <div class="analysis-summary" id="analysisSummary"></div>
-    <div class="analysis-section" id="analysisDeltaSection">
-      <div class="analysis-section-title">A/B 변화 비교</div>
-      <div class="analysis-metric" id="analysisDeltaMoment">관성모멘트 변화: -</div>
-      <div class="analysis-metric" id="analysisDeltaRadius">회전반경 변화: -</div>
-      <div class="analysis-metric" id="analysisDeltaTiming">언코킹 타이밍 변화: -</div>
-      <div class="analysis-detail" id="analysisDeltaDetail"></div>
+    <div class="analysis-score-block" id="analysisSegmentScores">
+      <div class="analysis-score-items">
+        <span class="analysis-score-item" id="analysisSegmentScore35">3/5: -</span>
+        <span class="analysis-score-item" id="analysisSegmentScore54">5/4: -</span>
+        <span class="analysis-score-item" id="analysisSegmentScoreImpact">임팩트: -</span>
+      </div>
+      <span class="analysis-score-average" id="analysisSegmentAverage">평균: -</span>
     </div>
   </div>
 </div>
@@ -908,6 +1030,7 @@
   const clearPointsBtn = document.getElementById('clearPointsBtn');
   const statusSpan = document.getElementById('status');
   const analysisHeightInput = document.getElementById('analysisHeightInput');
+  const analysisSegmentSelect = document.getElementById('analysisSegmentSelect');
   const analysisGuide = document.getElementById('analysisGuide');
   const analysisGuideNextBtn = document.getElementById('analysisGuideNextBtn');
   const analysisGuideStep = document.getElementById('analysisGuideStep');
@@ -918,16 +1041,43 @@
   const analysisFrontMoment = document.getElementById('analysisFrontMoment');
   const analysisFrontRadius = document.getElementById('analysisFrontRadius');
   const analysisFrontTiming = document.getElementById('analysisFrontTiming');
+  const analysisFrontAcceleration = document.getElementById('analysisFrontAcceleration');
+  const analysisFrontTransfer = document.getElementById('analysisFrontTransfer');
+  const analysisFrontImpact = document.getElementById('analysisFrontImpact');
   const analysisFrontDetail = document.getElementById('analysisFrontDetail');
   const analysisSideMoment = document.getElementById('analysisSideMoment');
   const analysisSideRadius = document.getElementById('analysisSideRadius');
   const analysisSideTiming = document.getElementById('analysisSideTiming');
+  const analysisSideAcceleration = document.getElementById('analysisSideAcceleration');
+  const analysisSideTransfer = document.getElementById('analysisSideTransfer');
+  const analysisSideImpact = document.getElementById('analysisSideImpact');
   const analysisSideDetail = document.getElementById('analysisSideDetail');
-  const analysisDeltaMoment = document.getElementById('analysisDeltaMoment');
-  const analysisDeltaRadius = document.getElementById('analysisDeltaRadius');
-  const analysisDeltaTiming = document.getElementById('analysisDeltaTiming');
-  const analysisDeltaDetail = document.getElementById('analysisDeltaDetail');
+  const analysisDeltaCard35Score = document.getElementById('analysisDeltaCard35Score');
+  const analysisDeltaCard35Timing = document.getElementById('analysisDeltaCard35Timing');
+  const analysisDeltaCard35Accel = document.getElementById('analysisDeltaCard35Accel');
+  const analysisDeltaCard35Transfer = document.getElementById('analysisDeltaCard35Transfer');
+  const analysisDeltaCard35Impact = document.getElementById('analysisDeltaCard35Impact');
+  const analysisDeltaCard54Score = document.getElementById('analysisDeltaCard54Score');
+  const analysisDeltaCard54Moment = document.getElementById('analysisDeltaCard54Moment');
+  const analysisDeltaCard54Radius = document.getElementById('analysisDeltaCard54Radius');
+  const analysisDeltaCard54Timing = document.getElementById('analysisDeltaCard54Timing');
+  const analysisDeltaCard54Accel = document.getElementById('analysisDeltaCard54Accel');
+  const analysisDeltaCard54Transfer = document.getElementById('analysisDeltaCard54Transfer');
+  const analysisDeltaCard54Impact = document.getElementById('analysisDeltaCard54Impact');
+  const analysisDeltaCard54Motion = document.getElementById('analysisDeltaCard54Motion');
+  const analysisDeltaCardImpactScore = document.getElementById('analysisDeltaCardImpactScore');
+  const analysisDeltaCardImpactMoment = document.getElementById('analysisDeltaCardImpactMoment');
+  const analysisDeltaCardImpactRadius = document.getElementById('analysisDeltaCardImpactRadius');
+  const analysisDeltaCardImpactTiming = document.getElementById('analysisDeltaCardImpactTiming');
+  const analysisDeltaCardImpactAccel = document.getElementById('analysisDeltaCardImpactAccel');
+  const analysisDeltaCardImpactTransfer = document.getElementById('analysisDeltaCardImpactTransfer');
+  const analysisDeltaCardImpactImpact = document.getElementById('analysisDeltaCardImpactImpact');
+  const analysisDeltaCardImpactMotion = document.getElementById('analysisDeltaCardImpactMotion');
   const analysisSummary = document.getElementById('analysisSummary');
+  const analysisSegmentScore35 = document.getElementById('analysisSegmentScore35');
+  const analysisSegmentScore54 = document.getElementById('analysisSegmentScore54');
+  const analysisSegmentScoreImpact = document.getElementById('analysisSegmentScoreImpact');
+  const analysisFinalScore = document.getElementById('analysisFinalScore');
   const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 
   function clamp(value, min, max) {
@@ -936,6 +1086,18 @@
 
   let guideView = null;
   let guideStep = 0;
+  let selectedSegment = '3/5';
+  let baselineFrontResult = null;
+  let segmentScoreHistory = {
+    '3/5': null,
+    '5/4': null,
+    impact: null,
+  };
+  let segmentDeltaHistory = {
+    '3/5': null,
+    '5/4': null,
+    impact: null,
+  };
 
   function getAutoPointType(points) {
     if (points.length === 0) return 'wrist';
@@ -952,6 +1114,25 @@
     return clamp(heightCm / 170, 0.7, 1.4);
   }
 
+  function computeExpectedSpan(heightScale) {
+    return 0.55 * heightScale;
+  }
+
+  function applyProjectionNormalization(result, baselineResult) {
+    if (!baselineResult || !baselineResult.rawRadiusProxy) return;
+    const heightScale = getHeightScale();
+    const expectedSpan = computeExpectedSpan(heightScale);
+    const scale = baselineResult.rawRadiusProxy ? expectedSpan / baselineResult.rawRadiusProxy : 1;
+    result.projectionScale = scale;
+    result.radiusProxy = result.rawRadiusProxy * scale;
+    result.momentProxy = result.rawMomentProxy * scale;
+    result.accelerationScore = computeAccelerationScore(result.momentProxy, heightScale);
+    result.transferScore = computeTransferScore(result.radiusProxy, result.angleDeg, heightScale);
+    result.impactScore = computeImpactScore(result.radiusProxy, result.angleDeg, heightScale);
+    result.motionScore = (result.accelerationScore + result.transferScore + result.impactScore) / 3;
+    result.summary += ` 보정계수: ${scale.toFixed(3)} (백스윙 탑 기준, 키 보정 ${Math.round(heightScale * 100)}%).`;
+  }
+
   function getGuideMessage() {
     const viewLabel = guideView === 'front' ? 'A (백스윙 탑)' : 'B (허리 라인 도달)';
     switch (guideStep) {
@@ -964,7 +1145,7 @@
       case 4:
         return `선택이 끝났습니다. 자동 분석을 실행합니다.`;
       default:
-        return `분석 버튼을 눌러 스윙 단계별 A/B 동일 영상 비교를 시작하세요.`;
+        return `분석 버튼을 눌러 스윙 단계별 A/B 동일 영상 비교를 시작하세요. A/B 모두 동일한 3개 지점을 선택해 주세요.`;
     }
   }
 
@@ -987,42 +1168,51 @@
       frontLines = [];
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       const emptyResult = {
-        score: 0,
-        momentScore: 0,
-        radiusScore: 0,
-        timingScore: 0,
+        accelerationScore: 0,
+        transferScore: 0,
+        impactScore: 0,
+        motionScore: 0,
         momentProxy: 0,
         radiusProxy: 0,
         angleDeg: 0,
         summary: 'A 영상 분석이 초기화되었습니다. 새 랜드마크와 라인을 다시 입력하세요.'
       };
-      updateAnalysisSection(emptyResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontDetail);
+      updateAnalysisSection(emptyResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontAcceleration, analysisFrontTransfer, analysisFrontImpact, analysisFrontDetail);
     } else {
       sidePoints = [];
       sideLines = [];
       drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
       const emptyResult = {
-        score: 0,
-        momentScore: 0,
-        radiusScore: 0,
-        timingScore: 0,
+        accelerationScore: 0,
+        transferScore: 0,
+        impactScore: 0,
+        motionScore: 0,
         momentProxy: 0,
         radiusProxy: 0,
         angleDeg: 0,
         summary: 'B 영상 분석이 초기화되었습니다. 새 랜드마크와 라인을 다시 입력하세요.'
       };
-      updateAnalysisSection(emptyResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideDetail);
+      updateAnalysisSection(emptyResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
     }
   }
 
   function performAnalysis() {
-    const frontResult = createAnalysisResult(frontPoints, frontLines, 'front', 'A');
-    updateAnalysisSection(frontResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontDetail);
+    const currentFrontResult = createAnalysisResult(frontPoints, frontLines, 'front', 'A');
+    if (!baselineFrontResult) {
+      baselineFrontResult = JSON.parse(JSON.stringify(currentFrontResult));
+      applyProjectionNormalization(baselineFrontResult, baselineFrontResult);
+    }
+    const displayedFrontResult = JSON.parse(JSON.stringify(currentFrontResult));
+    applyProjectionNormalization(displayedFrontResult, baselineFrontResult);
+    updateAnalysisSection(displayedFrontResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontAcceleration, analysisFrontTransfer, analysisFrontImpact, analysisFrontDetail);
     const sideResult = createAnalysisResult(sidePoints, sideLines, 'side', 'B');
-    updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideDetail);
-    const deltaResult = createDeltaResult(frontResult, sideResult);
-    updateSummary(frontResult, sideResult, deltaResult);
+    applyProjectionNormalization(sideResult, baselineFrontResult);
+    updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
+    const deltaResult = createDeltaResult(displayedFrontResult, sideResult, selectedSegment);
+    segmentScoreHistory[selectedSegment] = deltaResult.segmentScore;
+    updateSummary(displayedFrontResult, sideResult, deltaResult);
     updateComparisonSection(deltaResult);
+    updateSegmentScoresDisplay();
   }
 
   function setGuideState(view) {
@@ -1088,12 +1278,31 @@
     return (total / count) / Math.PI; // normalized 0..1, smaller means more aligned
   }
 
-  function computeLandmarkAngle(points) {
+  function computeLandmarkAngle(points, lines) {
     if (!points || points.length === 0) return null;
     const shoulder = points.find(p => p.type === 'shoulder');
-    const wrist = points.find(p => p.type === 'wrist');
-    const club = points.find(p => p.type === 'club');
-    if (!shoulder || !wrist || !club) return null;
+    const wristPoint = points.find(p => p.type === 'wrist');
+    const clubPoint = points.find(p => p.type === 'club');
+    if (!shoulder) return null;
+
+    let wrist = wristPoint || null;
+    let club = clubPoint || null;
+
+    if (lines && lines.length > 0) {
+      const shaft = lines[0];
+      const start = shaft.start;
+      const end = shaft.end;
+      const startDist = Math.hypot(start.x - shoulder.x, start.y - shoulder.y);
+      const endDist = Math.hypot(end.x - shoulder.x, end.y - shoulder.y);
+      const nearer = startDist < endDist ? start : end;
+      const farther = startDist < endDist ? end : start;
+      if (!wrist) wrist = nearer;
+      if (!club) club = farther;
+      if (wrist && !club) club = (wrist === start ? end : start);
+      if (club && !wrist) wrist = nearer;
+    }
+
+    if (!wrist || !club) return null;
     const v1x = shoulder.x - wrist.x;
     const v1y = shoulder.y - wrist.y;
     const v2x = club.x - wrist.x;
@@ -1143,35 +1352,97 @@
     return `${sign}${value.toFixed(1)}%`;
   }
 
-  function createDeltaResult(frontResult, sideResult) {
+  function computeAccelerationScore(avgDistFromCenter, heightScale) {
+    return clamp((1 - avgDistFromCenter / (0.45 * heightScale)) * 10, 0, 10);
+  }
+
+  function computeTransferScore(maxSpan, angleDeg, heightScale) {
+    const radiusFactor = clamp(maxSpan / (0.55 * heightScale), 0, 1);
+    const timingFactor = clamp((angleDeg - 45) / 45, 0, 1);
+    return clamp((radiusFactor * 0.6 + timingFactor * 0.4) * 10, 0, 10);
+  }
+
+  function computeImpactScore(maxSpan, angleDeg, heightScale) {
+    const radiusFactor = clamp(maxSpan / (0.55 * heightScale), 0, 1);
+    const timingFactor = clamp((angleDeg - 35) / 55, 0, 1);
+    return clamp((radiusFactor * 0.7 + timingFactor * 0.3) * 10, 0, 10);
+  }
+
+  function computeSegmentScore(deltaResult, segment) {
+    let score = 0;
+    if (segment === '3/5') {
+      const momentScore = clamp(-deltaResult.momentPercent / 30, 0, 1);
+      const radiusScore = clamp(-deltaResult.radiusPercent / 36.8, 0, 1);
+      const angleScore = deltaResult.timingDelta <= 0
+        ? 1
+        : clamp(1 - deltaResult.timingDelta / 50, 0, 1);
+      score = 10 * (momentScore * 0.6 + radiusScore * 0.2 + angleScore * 0.2);
+    } else if (segment === '5/4') {
+      const accelScore = deltaResult.accelerationPercent >= 38
+        ? 1
+        : clamp(deltaResult.accelerationPercent / 38, 0, 1);
+      const transferScore = deltaResult.transferPercent >= 0
+        ? clamp(deltaResult.transferPercent / 20, 0, 1)
+        : clamp(1 + deltaResult.transferPercent / 40, 0, 1);
+      const impactScore = deltaResult.impactPercent >= 0
+        ? clamp(deltaResult.impactPercent / 20, 0, 1)
+        : clamp(1 + deltaResult.impactPercent / 40, 0, 1);
+      const otherScore = transferScore * 0.7 + impactScore * 0.3;
+      score = 10 * (accelScore * 0.6 + otherScore * 0.4);
+      score = clamp(score * 1.9, 0, 10);
+    } else {
+      const impactScore = deltaResult.impactPercent >= 0
+        ? clamp(deltaResult.impactPercent / 30, 0, 1)
+        : clamp(1 + deltaResult.impactPercent / 60, 0, 1);
+      const transferScore = deltaResult.transferPercent >= 0
+        ? clamp(deltaResult.transferPercent / 25, 0, 1)
+        : clamp(1 + deltaResult.transferPercent / 50, 0, 1);
+      const accelScore = deltaResult.accelerationPercent >= 0
+        ? clamp(deltaResult.accelerationPercent / 25, 0, 1)
+        : clamp(1 + deltaResult.accelerationPercent / 50, 0, 1);
+      score = 10 * (accelScore * 0.68 + impactScore * 0.18 + transferScore * 0.14);
+    }
+    return clamp(score, 0, 10);
+  }
+
+  function createDeltaResult(frontResult, sideResult, segment = '3/5') {
     const momentChange = frontResult.momentProxy ? (sideResult.momentProxy - frontResult.momentProxy) / frontResult.momentProxy * 100 : 0;
     const radiusChange = frontResult.radiusProxy ? (sideResult.radiusProxy - frontResult.radiusProxy) / frontResult.radiusProxy * 100 : 0;
-    const momentScore = clamp(-momentChange / 50, 0, 1) * 10;
-    const radiusScore = clamp(-radiusChange / 40, 0, 1) * 10;
-    const angleScore = clamp(1 - Math.abs(sideResult.angleDeg - frontResult.angleDeg) / 15, 0, 1) * 10;
-    const comparisonScore = (momentScore + radiusScore + angleScore) / 3;
-    return {
+    const accelerationPercent = frontResult.accelerationScore ? (sideResult.accelerationScore - frontResult.accelerationScore) / frontResult.accelerationScore * 100 : 0;
+    const transferPercent = frontResult.transferScore ? (sideResult.transferScore - frontResult.transferScore) / frontResult.transferScore * 100 : 0;
+    const impactPercent = frontResult.impactScore ? (sideResult.impactScore - frontResult.impactScore) / frontResult.impactScore * 100 : 0;
+    const deltaResult = {
       momentDelta: sideResult.momentProxy - frontResult.momentProxy,
       momentPercent: momentChange,
       radiusDelta: sideResult.radiusProxy - frontResult.radiusProxy,
       radiusPercent: radiusChange,
       timingDelta: sideResult.angleDeg - frontResult.angleDeg,
-      scoreDelta: sideResult.score - frontResult.score,
-      momentChangeScore: momentScore,
-      radiusChangeScore: radiusScore,
-      angleChangeScore: angleScore,
-      comparisonScore,
-      summary: 'A/B 동일 선택 변화 기반 비교입니다. 두 프레임/영상에서 같은 의미의 랜드마크를 사용하면 더 현실적인 분석이 가능합니다.',
+      accelerationDelta: sideResult.accelerationScore - frontResult.accelerationScore,
+      accelerationPercent,
+      transferDelta: sideResult.transferScore - frontResult.transferScore,
+      transferPercent,
+      impactDelta: sideResult.impactScore - frontResult.impactScore,
+      impactPercent,
+      motionScoreDelta: sideResult.motionScore - frontResult.motionScore,
     };
+    deltaResult.segmentScore = computeSegmentScore(deltaResult, segment);
+    deltaResult.segmentScores = {
+      '3/5': computeSegmentScore(deltaResult, '3/5'),
+      '5/4': computeSegmentScore(deltaResult, '5/4'),
+      impact: computeSegmentScore(deltaResult, 'impact'),
+    };
+    deltaResult.segmentName = segment;
+    deltaResult.summary = '';
+    return deltaResult;
   }
 
   function createAnalysisResult(points, lines, view, viewLabel) {
     const result = {
       view: viewLabel,
-      score: 0,
-      momentScore: 0,
-      radiusScore: 0,
-      timingScore: 0,
+      accelerationScore: 0,
+      transferScore: 0,
+      impactScore: 0,
+      motionScore: 0,
       summary: '',
       detail: '',
       momentProxy: 0,
@@ -1200,78 +1471,119 @@
     }, 0) / items.length;
 
     const maxSpan = computePairwiseMaxDistance(items);
-    const angleAlignment = computeAngleAlignment(lines);
     const avgAngleDeg = computeAverageAngleDifference(lines);
-    const landmarkAngle = computeLandmarkAngle(points);
+    const landmarkAngle = computeLandmarkAngle(points, lines);
     const angleDeg = landmarkAngle !== null ? landmarkAngle : avgAngleDeg;
     const heightScale = getHeightScale();
 
+    result.rawMomentProxy = avgDistFromCenter;
+    result.rawRadiusProxy = maxSpan;
+    result.projectionScale = 1;
     result.momentProxy = avgDistFromCenter;
     result.radiusProxy = maxSpan;
     result.angleDeg = angleDeg;
 
-    result.momentScore = clamp(1 - avgDistFromCenter / (0.45 * heightScale), 0, 1) * 10;
-    result.radiusScore = clamp(maxSpan / (0.55 * heightScale), 0, 1) * 10;
+    result.accelerationScore = computeAccelerationScore(avgDistFromCenter, heightScale);
+    result.transferScore = computeTransferScore(maxSpan, angleDeg, heightScale);
+    result.impactScore = computeImpactScore(maxSpan, angleDeg, heightScale);
+    result.motionScore = (result.accelerationScore + result.transferScore + result.impactScore) / 3;
 
     if (landmarkAngle !== null) {
-      result.timingScore = clamp((90 - angleDeg) / 90, 0, 1) * 10;
-      result.summary = angleDeg <= 25
-        ? `어깨-손목-클럽 내각이 안정적인 언코킹 자세를 보여줍니다. 키 보정: ${Math.round(heightScale * 100)}%`
-        : `어깨-손목-클럽 내각이 벌어져 있어 언코킹 타이밍 개선이 필요합니다. 키 보정: ${Math.round(heightScale * 100)}%`;
+      result.summary = `키 보정: ${Math.round(heightScale * 100)}%`;
     } else if (lines.length >= 2) {
-      result.timingScore = clamp((90 - angleDeg) / 90, 0, 1) * 10;
-      result.summary = angleDeg <= 25
-        ? `샤프트와 팔 정렬이 잘 맞아 언코킹 준비가 안정적으로 보입니다. 키 보정: ${Math.round(heightScale * 100)}%`
-        : `샤프트와 팔 각도가 벌어져 있어 언코킹 타이밍이 아직 개선 여지가 있습니다. 키 보정: ${Math.round(heightScale * 100)}%`;
+      result.summary = `샤프트와 팔 정렬을 기반으로 3개 지점 물리 지표를 계산했습니다. 키 보정: ${Math.round(heightScale * 100)}%`;
     } else if (lines.length === 1) {
-      result.timingScore = 4;
-      result.summary = `한 개의 라인만 입력되었습니다. A/B 영상 간 언코킹 각도 차이를 비교할 수 있습니다. 키 보정: ${Math.round(heightScale * 100)}%`;
+      result.summary = `한 개의 라인만 입력되었습니다. 동일한 3개 포인트 선택으로 분석 정확도를 높이세요. 키 보정: ${Math.round(heightScale * 100)}%`;
     } else {
-      result.timingScore = 0;
-      result.summary = `언코킹 타이밍 분석을 위해 최소 한 개 이상의 라인이 필요합니다. 손목과 클럽 축을 나타내는 선을 드래그하여 그려주세요. 키 보정: ${Math.round(heightScale * 100)}%`;
+      result.summary = `코킹 타이밍 분석을 위해 최소 한 개 이상의 라인이 필요합니다. 손목과 클럽 축을 나타내는 선을 그려주세요. 키 보정: ${Math.round(heightScale * 100)}%`;
     }
 
-    result.detail = `평균 중심 거리: ${avgDistFromCenter.toFixed(3)}, 회전반경 프록시: ${maxSpan.toFixed(3)}, 언코킹 각도: ${angleDeg.toFixed(1)}°`;
-    result.score = (result.momentScore + result.radiusScore + result.timingScore) / 3;
+    result.detail = `평균 중심 거리: ${avgDistFromCenter.toFixed(3)}, 회전반경 프록시: ${maxSpan.toFixed(3)}, 코킹 각도: ${angleDeg.toFixed(1)}°`;
     return result;
   }
 
-  function updateAnalysisSection(result, momentEl, radiusEl, timingEl, detailEl) {
-    if (!momentEl || !radiusEl || !timingEl || !detailEl) return;
+  function updateAnalysisSection(result, momentEl, radiusEl, timingEl, accelEl, transferEl, impactEl, detailEl) {
+    if (!momentEl || !radiusEl || !timingEl || !accelEl || !transferEl || !impactEl || !detailEl) return;
     const momentProxy = Number.isFinite(result.momentProxy) ? result.momentProxy : 0;
     const radiusProxy = Number.isFinite(result.radiusProxy) ? result.radiusProxy : 0;
     const angleDeg = Number.isFinite(result.angleDeg) ? result.angleDeg : 0;
+    const accelScore = Number.isFinite(result.accelerationScore) ? result.accelerationScore : 0;
+    const transferScore = Number.isFinite(result.transferScore) ? result.transferScore : 0;
+    const impactScore = Number.isFinite(result.impactScore) ? result.impactScore : 0;
     momentEl.textContent = `관성모멘트 프록시: ${momentProxy.toFixed(3)}`;
     radiusEl.textContent = `회전반경 프록시: ${radiusProxy.toFixed(3)}`;
-    timingEl.textContent = `언코킹 정렬 각도: ${angleDeg.toFixed(1)}°`;
+    timingEl.textContent = `코킹 정렬 각도: ${angleDeg.toFixed(1)}°`;
+    accelEl.textContent = `가속능력: ${formatScore(accelScore)}`;
+    transferEl.textContent = `에너지전환효율: ${formatScore(transferScore)}`;
+    impactEl.textContent = `임팩트 파워: ${formatScore(impactScore)}`;
     detailEl.textContent = result.summary;
   }
 
   function updateComparisonSection(deltaResult) {
-    if (!analysisDeltaMoment || !analysisDeltaRadius || !analysisDeltaTiming || !analysisDeltaDetail) return;
-    analysisDeltaMoment.textContent = `관성모멘트 변화: ${formatDelta(deltaResult.momentDelta)} (${formatPercent(deltaResult.momentPercent)})`;
-    analysisDeltaRadius.textContent = `회전반경 변화: ${formatDelta(deltaResult.radiusDelta)} (${formatPercent(deltaResult.radiusPercent)})`;
-    analysisDeltaTiming.textContent = `언코킹 각도 변화: ${formatDelta(deltaResult.timingDelta)}°`;
-    analysisDeltaDetail.textContent = deltaResult.summary;
+    segmentDeltaHistory[selectedSegment] = deltaResult;
+    updateSegmentComparisonCard(selectedSegment, deltaResult);
+    if (analysisSegmentScore35) {
+      analysisSegmentScore35.textContent = `3/5구간: ${segmentScoreHistory['3/5'] !== null ? segmentScoreHistory['3/5'].toFixed(1) : '-'}`;
+    }
+    if (analysisSegmentScore54) {
+      analysisSegmentScore54.textContent = `5/4구간: ${segmentScoreHistory['5/4'] !== null ? segmentScoreHistory['5/4'].toFixed(1) : '-'}`;
+    }
+    if (analysisSegmentScoreImpact) {
+      analysisSegmentScoreImpact.textContent = `임팩트구간: ${segmentScoreHistory.impact !== null ? segmentScoreHistory.impact.toFixed(1) : '-'}`;
+    }
+    if (analysisSegmentAverage) {
+      const scores = Object.values(segmentScoreHistory).filter(v => v !== null);
+      const avg = scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : 0;
+      analysisSegmentAverage.textContent = scores.length ? `평균: ${avg.toFixed(1)}` : '평균: -';
+    }
   }
 
-  function computeDistanceMotionScore(deltaResult) {
-    if (!deltaResult) return 0;
-    const momentPct = Math.abs(deltaResult.momentPercent);
-    const radiusPct = Math.abs(deltaResult.radiusPercent);
-    const rawScore = (momentPct + radiusPct) / 6.5;
-    return clamp(rawScore, 0, 10);
+  function updateSegmentComparisonCard(segment, deltaResult) {
+    const scoreEl = segment === '3/5' ? analysisDeltaCard35Score : segment === '5/4' ? analysisDeltaCard54Score : analysisDeltaCardImpactScore;
+    const momentEl = segment === '3/5' ? analysisDeltaCard35Moment : segment === '5/4' ? analysisDeltaCard54Moment : analysisDeltaCardImpactMoment;
+    const radiusEl = segment === '3/5' ? analysisDeltaCard35Radius : segment === '5/4' ? analysisDeltaCard54Radius : analysisDeltaCardImpactRadius;
+    const timingEl = segment === '3/5' ? analysisDeltaCard35Timing : segment === '5/4' ? analysisDeltaCard54Timing : analysisDeltaCardImpactTiming;
+    const accelEl = segment === '3/5' ? analysisDeltaCard35Accel : segment === '5/4' ? analysisDeltaCard54Accel : analysisDeltaCardImpactAccel;
+    const transferEl = segment === '3/5' ? analysisDeltaCard35Transfer : segment === '5/4' ? analysisDeltaCard54Transfer : analysisDeltaCardImpactTransfer;
+    const impactEl = segment === '3/5' ? analysisDeltaCard35Impact : segment === '5/4' ? analysisDeltaCard54Impact : analysisDeltaCardImpactImpact;
+    const motionEl = segment === '3/5' ? analysisDeltaCard35Motion : segment === '5/4' ? analysisDeltaCard54Motion : analysisDeltaCardImpactMotion;
+    if (scoreEl) scoreEl.textContent = `점수: ${deltaResult.segmentScore.toFixed(1)}`;
+    if (momentEl) momentEl.textContent = `관성모멘트 변화: ${formatDelta(deltaResult.momentDelta)} (${formatPercent(deltaResult.momentPercent)})`;
+    if (radiusEl) radiusEl.textContent = `회전반경 변화: ${formatDelta(deltaResult.radiusDelta)} (${formatPercent(deltaResult.radiusPercent)})`;
+    if (timingEl) timingEl.textContent = `코킹 각도 변화: ${formatDelta(deltaResult.timingDelta)}°`;
+    if (accelEl) accelEl.textContent = `가속능력 변화: ${formatDelta(deltaResult.accelerationDelta)} (${formatPercent(deltaResult.accelerationPercent)})`;
+    if (transferEl) transferEl.textContent = `에너지전환효율 변화: ${formatDelta(deltaResult.transferDelta)} (${formatPercent(deltaResult.transferPercent)})`;
+    if (impactEl) impactEl.textContent = `임팩트 파워 변화: ${formatDelta(deltaResult.impactDelta)} (${formatPercent(deltaResult.impactPercent)})`;
+    if (motionEl) motionEl.textContent = `비거리 모션 평균 변화: ${formatDelta(deltaResult.motionScoreDelta)}`;
+  }
+
+  function updateSegmentScoresDisplay() {
+    if (analysisSegmentScore35) {
+      analysisSegmentScore35.textContent = `3/5구간: ${segmentScoreHistory['3/5'] !== null ? segmentScoreHistory['3/5'].toFixed(1) : '-'}`;
+    }
+    if (analysisSegmentScore54) {
+      analysisSegmentScore54.textContent = `5/4구간: ${segmentScoreHistory['5/4'] !== null ? segmentScoreHistory['5/4'].toFixed(1) : '-'}`;
+    }
+    if (analysisSegmentScoreImpact) {
+      analysisSegmentScoreImpact.textContent = `임팩트구간: ${segmentScoreHistory.impact !== null ? segmentScoreHistory.impact.toFixed(1) : '-'}`;
+    }
+    if (analysisSegmentAverage) {
+      const scores = Object.values(segmentScoreHistory).filter(v => v !== null);
+      const avg = scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : 0;
+      analysisSegmentAverage.textContent = scores.length ? `평균: ${avg.toFixed(1)}` : '평균: -';
+    }
   }
 
   function updateSummary(frontResult, sideResult, deltaResult) {
     if (!analysisSummary) return;
-    if (frontResult.score === 0 && sideResult.score === 0) {
-      analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 주요 랜드마크를 표시하면 결과의 신뢰도가 높아집니다.';
+    if (!deltaResult) {
+      analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. B 영상의 3개 포인트 해석 결과가 완료되면 변화값이 업데이트됩니다.';
+      if (analysisSegmentAverage) {
+        analysisSegmentAverage.textContent = '평균: -';
+      }
       return;
     }
-    const height = analysisHeightInput ? analysisHeightInput.value : '170';
-    const motionScore = deltaResult ? computeDistanceMotionScore(deltaResult).toFixed(1) : '-';
-    analysisSummary.innerHTML = `비거리모션점수: <span class="red-score">${motionScore} / 10</span>. 변화 % 값(관성모멘트 / 회전반경)을 기준으로 평가합니다. 적용된 키: ${height}cm`;
+    analysisSummary.textContent = '';
   }
 
   async function downloadAnalysisPDF() {
@@ -1319,7 +1631,48 @@
     doc.save(`비거리모션분석_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
+  function clearAnalysisResults() {
+    if (analysisDeltaCard35Score) analysisDeltaCard35Score.textContent = '점수: -';
+    if (analysisDeltaCard35Moment) analysisDeltaCard35Moment.textContent = '관성모멘트 변화: -';
+    if (analysisDeltaCard35Radius) analysisDeltaCard35Radius.textContent = '회전반경 변화: -';
+    if (analysisDeltaCard35Timing) analysisDeltaCard35Timing.textContent = '코킹 각도 변화: -';
+    if (analysisDeltaCard35Accel) analysisDeltaCard35Accel.textContent = '가속능력 변화: -';
+    if (analysisDeltaCard35Transfer) analysisDeltaCard35Transfer.textContent = '에너지전환효율 변화: -';
+    if (analysisDeltaCard35Impact) analysisDeltaCard35Impact.textContent = '임팩트 파워 변화: -';
+    if (analysisDeltaCard35Motion) analysisDeltaCard35Motion.textContent = '비거리 모션 평균 변화: -';
+    if (analysisDeltaCard54Score) analysisDeltaCard54Score.textContent = '점수: -';
+    if (analysisDeltaCard54Moment) analysisDeltaCard54Moment.textContent = '관성모멘트 변화: -';
+    if (analysisDeltaCard54Radius) analysisDeltaCard54Radius.textContent = '회전반경 변화: -';
+    if (analysisDeltaCard54Timing) analysisDeltaCard54Timing.textContent = '코킹 각도 변화: -';
+    if (analysisDeltaCard54Accel) analysisDeltaCard54Accel.textContent = '가속능력 변화: -';
+    if (analysisDeltaCard54Transfer) analysisDeltaCard54Transfer.textContent = '에너지전환효율 변화: -';
+    if (analysisDeltaCard54Impact) analysisDeltaCard54Impact.textContent = '임팩트 파워 변화: -';
+    if (analysisDeltaCard54Motion) analysisDeltaCard54Motion.textContent = '비거리 모션 평균 변화: -';
+    if (analysisDeltaCardImpactScore) analysisDeltaCardImpactScore.textContent = '점수: -';
+    if (analysisDeltaCardImpactMoment) analysisDeltaCardImpactMoment.textContent = '관성모멘트 변화: -';
+    if (analysisDeltaCardImpactRadius) analysisDeltaCardImpactRadius.textContent = '회전반경 변화: -';
+    if (analysisDeltaCardImpactTiming) analysisDeltaCardImpactTiming.textContent = '코킹 각도 변화: -';
+    if (analysisDeltaCardImpactAccel) analysisDeltaCardImpactAccel.textContent = '가속능력 변화: -';
+    if (analysisDeltaCardImpactTransfer) analysisDeltaCardImpactTransfer.textContent = '에너지전환효율 변화: -';
+    if (analysisDeltaCardImpactImpact) analysisDeltaCardImpactImpact.textContent = '임팩트 파워 변화: -';
+    if (analysisDeltaCardImpactMotion) analysisDeltaCardImpactMotion.textContent = '비거리 모션 평균 변화: -';
+    if (analysisSegmentScore35) analysisSegmentScore35.textContent = '3/5구간: -';
+    if (analysisSegmentScore54) analysisSegmentScore54.textContent = '5/4구간: -';
+    if (analysisSegmentScoreImpact) analysisSegmentScoreImpact.textContent = '임팩트구간: -';
+    if (analysisSegmentAverage) analysisSegmentAverage.textContent = '평균: -';
+    if (analysisSummary) analysisSummary.textContent = '새로운 분석을 위해 프레임을 선택하세요.';
+  }
+
   function runMotionAnalysis(view) {
+    if (view === 'front') {
+      baselineFrontResult = null;
+      segmentScoreHistory = {
+        '3/5': null,
+        '5/4': null,
+        impact: null,
+      };
+      clearAnalysisResults();
+    }
     setGuideState(view);
   }
 
@@ -2098,6 +2451,13 @@
   async function handleFrontVideoFile(file){
     setFileName('frontFileName', file);
     if(!file) return;
+    clearAnalysisResults();
+    baselineFrontResult = null;
+    segmentScoreHistory = {
+      '3/5': null,
+      '5/4': null,
+      impact: null,
+    };
     loadVideo(frontVideo, file);
     frontPoints = [];
     frontLines = [];
@@ -2120,6 +2480,12 @@
   async function handleSideVideoFile(file){
     setFileName('sideFileName', file);
     if(!file) return;
+    clearAnalysisResults();
+    segmentScoreHistory = {
+      '3/5': null,
+      '5/4': null,
+      impact: null,
+    };
     loadVideo(sideVideo, file);
     sidePoints = [];
     sideLines = [];
@@ -2434,6 +2800,12 @@
   }
   if (analysisHeightInput) {
     analysisHeightInput.addEventListener('change', () => performAnalysis());
+  }
+  if (analysisSegmentSelect) {
+    analysisSegmentSelect.addEventListener('change', (e) => {
+      selectedSegment = e.target.value;
+      performAnalysis();
+    });
   }
   if (analysisToggleBtn) {
     analysisToggleBtn.addEventListener('click', toggleAnalysisPanel);
