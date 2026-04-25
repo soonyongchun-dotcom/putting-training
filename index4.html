@@ -764,7 +764,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.4.2</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.4.3</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1628,7 +1628,12 @@
       clone.remove();
     }
 
-    doc.save(`비거리모션분석_${new Date().toISOString().slice(0,10)}.pdf`);
+    const frontFileNameText = frontFileInput && frontFileInput.files && frontFileInput.files[0]
+      ? frontFileInput.files[0].name
+      : document.getElementById('frontFileName') ? document.getElementById('frontFileName').textContent : '';
+    let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : '비거리모션분석';
+    baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || '비거리모션분석';
+    doc.save(`${baseFileName}_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
   function clearAnalysisResults() {
