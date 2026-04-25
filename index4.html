@@ -764,7 +764,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.4.1</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.4.2</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -891,7 +891,7 @@
         <div class="analysis-height-field">
           <select id="analysisSegmentSelect">
             <option value="3/5">3/5 구간</option>
-            <option value="5/4">5/4 구간</option>
+            <option value="5/4">4/5 구간</option>
             <option value="impact">임팩트 구간</option>
           </select>
           <span class="height-unit">구간 선택</span>
@@ -925,7 +925,7 @@
           <div class="analysis-metric" id="analysisDeltaCard35Motion">비거리 모션 평균 변화: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCard54">
-          <div class="analysis-segment-compare-title">5/4 구간 비교</div>
+          <div class="analysis-segment-compare-title">4/5 구간 비교</div>
           <div class="analysis-metric" id="analysisDeltaCard54Score">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCard54Moment">관성모멘트 변화: -</div>
           <div class="analysis-metric" id="analysisDeltaCard54Radius">회전반경 변화: -</div>
@@ -952,7 +952,7 @@
     <div class="analysis-score-block" id="analysisSegmentScores">
       <div class="analysis-score-items">
         <span class="analysis-score-item" id="analysisSegmentScore35">3/5: -</span>
-        <span class="analysis-score-item" id="analysisSegmentScore54">5/4: -</span>
+        <span class="analysis-score-item" id="analysisSegmentScore54">4/5: -</span>
         <span class="analysis-score-item" id="analysisSegmentScoreImpact">임팩트: -</span>
       </div>
       <span class="analysis-score-average" id="analysisSegmentAverage">평균: -</span>
@@ -1526,7 +1526,7 @@
       analysisSegmentScore35.textContent = `3/5구간: ${segmentScoreHistory['3/5'] !== null ? segmentScoreHistory['3/5'].toFixed(1) : '-'}`;
     }
     if (analysisSegmentScore54) {
-      analysisSegmentScore54.textContent = `5/4구간: ${segmentScoreHistory['5/4'] !== null ? segmentScoreHistory['5/4'].toFixed(1) : '-'}`;
+      analysisSegmentScore54.textContent = `4/5구간: ${segmentScoreHistory['5/4'] !== null ? segmentScoreHistory['5/4'].toFixed(1) : '-'}`;
     }
     if (analysisSegmentScoreImpact) {
       analysisSegmentScoreImpact.textContent = `임팩트구간: ${segmentScoreHistory.impact !== null ? segmentScoreHistory.impact.toFixed(1) : '-'}`;
@@ -1562,7 +1562,7 @@
       analysisSegmentScore35.textContent = `3/5구간: ${segmentScoreHistory['3/5'] !== null ? segmentScoreHistory['3/5'].toFixed(1) : '-'}`;
     }
     if (analysisSegmentScore54) {
-      analysisSegmentScore54.textContent = `5/4구간: ${segmentScoreHistory['5/4'] !== null ? segmentScoreHistory['5/4'].toFixed(1) : '-'}`;
+      analysisSegmentScore54.textContent = `4/5구간: ${segmentScoreHistory['5/4'] !== null ? segmentScoreHistory['5/4'].toFixed(1) : '-'}`;
     }
     if (analysisSegmentScoreImpact) {
       analysisSegmentScoreImpact.textContent = `임팩트구간: ${segmentScoreHistory.impact !== null ? segmentScoreHistory.impact.toFixed(1) : '-'}`;
@@ -1657,7 +1657,7 @@
     if (analysisDeltaCardImpactImpact) analysisDeltaCardImpactImpact.textContent = '임팩트 파워 변화: -';
     if (analysisDeltaCardImpactMotion) analysisDeltaCardImpactMotion.textContent = '비거리 모션 평균 변화: -';
     if (analysisSegmentScore35) analysisSegmentScore35.textContent = '3/5구간: -';
-    if (analysisSegmentScore54) analysisSegmentScore54.textContent = '5/4구간: -';
+    if (analysisSegmentScore54) analysisSegmentScore54.textContent = '4/5구간: -';
     if (analysisSegmentScoreImpact) analysisSegmentScoreImpact.textContent = '임팩트구간: -';
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '평균: -';
     if (analysisSummary) analysisSummary.textContent = '새로운 분석을 위해 프레임을 선택하세요.';
