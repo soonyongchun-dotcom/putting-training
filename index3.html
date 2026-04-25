@@ -423,6 +423,8 @@
         <button data-screen="comm">Coach Communication <span id="commUnreadBadge" style="display:none;background:#dc2626;color:#fff;border-radius:999px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">0</span></button>
         <button type="button" data-external-url="https://soonyongchun-dotcom.github.io/Mission-project/">Mission Dashboard</button>
         <button type="button" data-external-url="https://sy-puttingtraining.web.app/">Putting Training</button>
+        <button type="button" id="rhythmTempoTrainingBtn" style="background:#fde68a;color:#222;font-weight:700;">Rhythm_Tempo Training</button>
+
       </div>
 
       <!-- 1) Player Dashboard -->
@@ -2775,11 +2777,15 @@
         window.open(externalUrl,'_blank','noopener,noreferrer');
         return;
       }
+      var screenId = btn.dataset.screen;
+      if(!screenId) return; // data-screen 없는 버튼은 무시
       var alreadyActive=btn.classList.contains('active');
       if(alreadyActive){btn.classList.remove('active');panels.forEach(function(p){p.classList.remove('active');});return;}
       screenBtns.forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
-      panels.forEach(function(p){p.classList.remove('active');});document.getElementById(btn.dataset.screen).classList.add('active');
-      if(btn.dataset.screen==='comm'){
+      panels.forEach(function(p){p.classList.remove('active');});
+      var panel = document.getElementById(screenId);
+      if(panel) panel.classList.add('active');
+      if(screenId==='comm'){
         var session=getSession();
         if(session&&session.role==='player'){
           setCommLastRead(session.id);
@@ -2789,7 +2795,7 @@
         }
         renderPlayerMessageThread();
         renderReplyStatus();
-      }else if(btn.dataset.screen==='dashboard'){
+      }else if(screenId==='dashboard'){
         renderDashboardCoachMessages();
       }
     });});
@@ -3125,6 +3131,13 @@
     renderBars('monthChart',   [48,55,63,77],'#22c55e');
 
     async function init(){
+      // Rhythm_Tempo Training 버튼 핸들러 (스크립트 하단에 위치해야 정상 동작)
+      var rhythmTempoTrainingBtn = document.getElementById('rhythmTempoTrainingBtn');
+      if(rhythmTempoTrainingBtn){
+        rhythmTempoTrainingBtn.addEventListener('click', function(){
+          window.open('Rhythm_Tempo/index.html','_blank','noopener,noreferrer');
+        });
+      }
       // URL 파라미터에서 선수 ID 자동 채우기
       const urlParams = new URLSearchParams(window.location.search);
       const playerId = urlParams.get('player_id');
