@@ -2311,6 +2311,7 @@
       if(dist2 < threshold*threshold){
         lines.splice(i, 1);
         drawOverlay(ctx, points, lines, canvas, video, zoom);
+        if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
         return true;
       }
     }
@@ -2333,6 +2334,7 @@
     if (!type) return;
     points.push({ x: pos.x, y: pos.y, type });
     drawOverlay(ctx, points, lines, canvas, video, zoom);
+    if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
   }
 
   function onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter){
@@ -2391,6 +2393,7 @@
     if(pointerIsDragging && dist > 0.01){
       lines.push({ start: startPos, end: endPos });
       drawOverlay(ctx, points, lines, canvas, video, zoom);
+      if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
     } else if(wasDoubleTap){
       setSelectedView(view);
       lastTapTime = 0;
