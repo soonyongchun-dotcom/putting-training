@@ -324,6 +324,22 @@ textarea{
   <h1>⛳ 골프 간편 기록</h1>
   <p class="subtitle">경기 중 빠른 샷 기록용</p>
 
+  <!-- 로그인 / 서버 연결 -->
+  <div class="section" id="authSection">
+    <div class="section-title">로그인 / 서버 연결</div>
+    <div class="form-group">
+      <label class="form-label">이메일</label>
+      <input type="email" id="authEmail" placeholder="Email 입력">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <input type="password" id="authPassword" placeholder="Password 입력">
+    </div>
+    <button class="btn btn-secondary" id="btnAuthSignIn">로그인</button>
+    <button class="btn btn-secondary" id="btnAuthSignOut" type="button" style="margin-top:8px;">로그아웃</button>
+    <div id="authStatus" class="tiny muted" style="margin-top:10px;line-height:1.5;font-size:13px;">로그인 상태를 확인 중입니다...</div>
+  </div>
+
   <!-- 라운드 기본 정보 -->
   <div class="section" id="roundInfo">
     <div class="section-title">라운드 정보</div>
@@ -347,6 +363,10 @@ textarea{
       </select>
     </div>
     <button class="btn" id="btnStartRound">라운드 시작</button>
+    <div id="preSyncInfo" class="tiny muted" style="margin-top:12px;line-height:1.5;font-size:13px;">
+      서버 동기화는 동일 브라우저에서 로그인 세션이 있을 때에만 작동합니다. 먼저 로그인 후 라운드 기록을 시작하세요.
+    </div>
+    <button class="btn btn-secondary" id="btnSyncHelpTop" type="button" style="margin-top:10px;">로그인/서버 동기화 확인</button>
   </div>
 
   <!-- 홀 기록 화면 -->
@@ -535,6 +555,10 @@ textarea{
     <div class="section-title">저장 및 내보내기</div>
     <button class="btn" id="btnExportCSV">CSV 파일로 저장</button>
     <button class="btn btn-secondary" id="btnReset">새 라운드 시작</button>
+    <div id="syncInfo" class="tiny muted" style="margin-top:12px;line-height:1.5;font-size:13px;">
+      서버 동기화는 동일 브라우저에서 로그인 세션이 있을 때에만 작동합니다. 로그인 세션이 없는 경우 <strong>index3.html</strong>에서 로그인 후 다시 시도하세요.
+    </div>
+    <button class="btn btn-secondary" id="btnSyncHelp" type="button" style="margin-top:10px;">로그인/서버 동기화 확인</button>
   </div>
 </div>
 
@@ -572,6 +596,13 @@ const btnAddShot = document.getElementById('btnAddShot');
 const btnCompleteHole = document.getElementById('btnCompleteHole');
 const btnEditHole = document.getElementById('btnEditHole');
 const btnExportCSV = document.getElementById('btnExportCSV');
+const btnSyncHelp = document.getElementById('btnSyncHelp');
+const btnSyncHelpTop = document.getElementById('btnSyncHelpTop');
+const btnAuthSignIn = document.getElementById('btnAuthSignIn');
+const btnAuthSignOut = document.getElementById('btnAuthSignOut');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authStatus = document.getElementById('authStatus');
 const btnReset = document.getElementById('btnReset');
 const btnConfirmDistance = document.getElementById('btnConfirmDistance');
 const btnManualClubSelect = document.getElementById('btnManualClubSelect');
@@ -666,7 +697,7 @@ async function saveRoundToSupabase(){
   initSupabase();
   if(!sb){
     console.warn('Supabase client missing.');
-    return;
+    return false;
   }
 
   try{
@@ -674,7 +705,7 @@ async function saveRoundToSupabase(){
     const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
     if(!authSession || !authSession.user){
       console.warn('Supabase auth session not available; server sync skipped.');
-      return;
+      return false;
     }
     const playerId = getRoundSyncPlayerId();
     const row = {
@@ -701,11 +732,90 @@ async function saveRoundToSupabase(){
     });
     if(error){
       console.warn('Supabase round sync failed', error);
-      return;
+      return false;
     }
     console.log('Round synced to Supabase', row);
+    return true;
   }catch(e){
     console.error('saveRoundToSupabase exception', e);
+    return false;
+  }
+}
+
+async function refreshSyncStatus(){
+  const syncInfo = document.getElementById('syncInfo');
+  const preSyncInfo = document.getElementById('preSyncInfo');
+  if(!syncInfo && !preSyncInfo) return;
+  initSupabase();
+  if(!sb){
+    const msg = 'Supabase 클라이언트 초기화에 실패했습니다. 네트워크를 확인하거나 페이지를 새로고침하세요.';
+    if(syncInfo) syncInfo.innerHTML = msg;
+    if(preSyncInfo) preSyncInfo.innerHTML = msg;
+    return;
+  }
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
+    if(!authSession || !authSession.user){
+      const msg = '서버 동기화를 사용하려면 먼저 동일 브라우저에서 <strong>index3.html</strong>을 열어 로그인해야 합니다.';
+      if(syncInfo) syncInfo.innerHTML = msg;
+      if(preSyncInfo) preSyncInfo.innerHTML = msg;
+      if(authStatus) authStatus.textContent = '로그인되지 않았습니다.';
+    } else {
+      const userId = authSession.user.id || authSession.user.email || '로그인 사용자';
+      const msg = `서버 동기화 준비 완료: 로그인됨 (${userId}). CSV 저장 후 코치 포털에서 라운드를 확인할 수 있습니다.`;
+      if(syncInfo) syncInfo.innerHTML = msg;
+      if(preSyncInfo) preSyncInfo.innerHTML = msg;
+      if(authStatus) authStatus.textContent = `로그인됨: ${userId}`;
+    }
+  }catch(err){
+    console.warn('refreshSyncStatus failed', err);
+    const msg = '서버 동기화 상태를 확인할 수 없습니다. 콘솔을 확인하세요.';
+    if(syncInfo) syncInfo.innerHTML = msg;
+    if(preSyncInfo) preSyncInfo.innerHTML = msg;
+    if(authStatus) authStatus.textContent = msg;
+  }
+}
+
+async function signInWithEmail(){
+  initSupabase();
+  if(!sb){
+    if(authStatus) authStatus.textContent = 'Supabase 클라이언트 초기화에 실패했습니다.';
+    return;
+  }
+  const email = authEmail?.value.trim();
+  const password = authPassword?.value.trim();
+  if(!email || !password){
+    if(authStatus) authStatus.textContent = '이메일과 비밀번호를 모두 입력하세요.';
+    return;
+  }
+  try{
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      if(authStatus) authStatus.textContent = '로그인 실패: ' + error.message;
+      return;
+    }
+    if(authStatus) authStatus.textContent = `로그인 성공: ${data.user?.email || '사용자'}`;
+    refreshSyncStatus();
+  }catch(e){
+    console.error('signInWithEmail failed', e);
+    if(authStatus) authStatus.textContent = '로그인 중 오류가 발생했습니다.';
+  }
+}
+
+async function signOutSupabase(){
+  initSupabase();
+  if(!sb){
+    if(authStatus) authStatus.textContent = 'Supabase 클라이언트 초기화에 실패했습니다.';
+    return;
+  }
+  try{
+    await sb.auth.signOut();
+    if(authStatus) authStatus.textContent = '로그아웃되었습니다.';
+    refreshSyncStatus();
+  }catch(e){
+    console.error('signOutSupabase failed', e);
+    if(authStatus) authStatus.textContent = '로그아웃 중 오류가 발생했습니다.';
   }
 }
 
@@ -1418,7 +1528,7 @@ btnEditHole.addEventListener('click', ()=>{
 });
 
 // CSV 내보내기 (원본 분석 파일과 호환되는 형식)
-btnExportCSV.addEventListener('click', ()=>{
+btnExportCSV.addEventListener('click', async ()=>{
   const lines = [];
   
   // 헤더
@@ -1517,17 +1627,48 @@ btnExportCSV.addEventListener('click', ()=>{
   }, 100);
 
   saveCoachSharedDraft();
-  saveRoundToSupabase();
+  const syncSuccess = await saveRoundToSupabase();
 
   // 저장 성공 메시지와 함께 통계 정보 표시
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
-  alert(`CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`);
+  let message = `CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`;
+  if(syncSuccess === false){
+    message += '\n\n서버 동기화는 로그인 세션이 없어 완료되지 않았습니다. 동일 브라우저에서 index3.html에 로그인한 후 다시 시도하세요.';
+  }
+  alert(message);
 });
+
+if (btnAuthSignIn) {
+  btnAuthSignIn.addEventListener('click', () => {
+    signInWithEmail();
+  });
+}
+if (btnAuthSignOut) {
+  btnAuthSignOut.addEventListener('click', () => {
+    signOutSupabase();
+  });
+}
+if (btnSyncHelp) {
+  btnSyncHelp.addEventListener('click', () => {
+    refreshSyncStatus();
+    window.open('index3.html', '_blank');
+  });
+}
+if (btnSyncHelpTop) {
+  btnSyncHelpTop.addEventListener('click', () => {
+    refreshSyncStatus();
+    window.open('index3.html', '_blank');
+  });
+}
 
 // 새 라운드
 btnReset.addEventListener('click', ()=>{
   if(confirm('현재 기록을 모두 삭제하고 새 라운드를 시작하시겠습니까?')){
     localStorage.removeItem(STORAGE_KEY);
+    if (roundInfo) roundInfo.classList.remove('hidden');
+    if (recordSection) recordSection.classList.add('hidden');
+    if (exportSection) exportSection.classList.add('hidden');
+    if (btnStartRound) btnStartRound.scrollIntoView({behavior:'smooth',block:'center'});
     location.reload();
   }
 });
@@ -1683,10 +1824,14 @@ function checkAndRestorePreviousData(){
 
 // DOM이 준비되면 이전 데이터 확인
 if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', checkAndRestorePreviousData);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    checkAndRestorePreviousData();
+    refreshSyncStatus();
+  });
 } else {
   // 이미 로드된 경우 즉시 실행
   checkAndRestorePreviousData();
+  refreshSyncStatus();
 }
 
 // 자동 저장 (5초마다)

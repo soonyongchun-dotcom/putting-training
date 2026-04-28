@@ -603,7 +603,7 @@ async function populateSyncedRoundSelect(){
   const rounds = await fetchSyncedRounds();
   syncedRoundsCache = rounds;
   if(!rounds.length){
-    if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 저장된 라운드가 없습니다.';
+    if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 저장된 라운드가 없습니다. 선수 포털에서 로그인 후 CSV 저장 시 서버 동기화가 필요합니다.';
     return;
   }
   if(syncedRoundStatus) syncedRoundStatus.textContent = `${rounds.length}개의 서버 라운드를 불러왔습니다.`;

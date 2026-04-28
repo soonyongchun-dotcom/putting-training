@@ -538,6 +538,7 @@ textarea{
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // 데이터 구조
 let roundData = {
@@ -633,6 +634,56 @@ roundDateInput.value = new Date().toISOString().slice(0,10);
 
 // 로컬 저장소 키
 const STORAGE_KEY = 'golf_quick_record_data';
+const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+let sb = null;
+
+function initSupabase(){
+  if(sb || typeof supabase === 'undefined') return;
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+async function saveRoundToSupabase(){
+  initSupabase();
+  if(!sb) return false;
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
+    if(!authSession || !authSession.user){
+      console.warn('Supabase auth session missing; cannot sync without login.');
+      return false;
+    }
+    const playerId = authSession.user.id || authSession.user.email || roundData.player || playerNameInput.value.trim() || 'anonymous';
+    const row = {
+      player_id: playerId,
+      player_name: roundData.player || playerNameInput.value.trim() || '',
+      round_date: roundData.date || roundDateInput.value || new Date().toISOString().slice(0,10),
+      course: roundData.course || courseNameInput.value.trim() || '',
+      distance_unit: roundData.distanceUnit || distanceUnitSel.value || 'yd',
+      round_meta: {
+        player: roundData.player || playerNameInput.value.trim() || '',
+        date: roundData.date || roundDateInput.value || '',
+        course: roundData.course || courseNameInput.value.trim() || '',
+        distanceUnit: roundData.distanceUnit || distanceUnitSel.value || 'yd'
+      },
+      round_payload: { holes: roundData.holes || [] },
+      source: 'index1_quick_record'
+    };
+    const { error } = await sb.from('sytpt_player_rounds').upsert(row, {
+      onConflict: ['player_id','round_date','course'],
+      returning: 'minimal'
+    });
+    if(error){
+      console.warn('Supabase round sync failed', error);
+      return false;
+    }
+    console.log('Round synced to Supabase', row);
+    return true;
+  }catch(e){
+    console.error('saveRoundToSupabase exception', e);
+    return false;
+  }
+}
 
 // 라운드 시작
 if(btnStartRound){
@@ -1348,7 +1399,7 @@ btnEditHole.addEventListener('click', ()=>{
 });
 
 // CSV 내보내기 (원본 분석 파일과 호환되는 형식)
-btnExportCSV.addEventListener('click', ()=>{
+btnExportCSV.addEventListener('click', async ()=>{
   const lines = [];
   
   // 헤더
@@ -1446,9 +1497,19 @@ btnExportCSV.addEventListener('click', ()=>{
     a.remove();
   }, 100);
   
+  // 서버 동기화 시도
+  const syncSuccess = await saveRoundToSupabase();
+  if(!syncSuccess){
+    console.warn('서버 동기화가 실패했습니다. 코치 포털에 데이터가 반영되지 않을 수 있습니다.');
+  }
+  
   // 저장 성공 메시지와 함께 통계 정보 표시
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
-  alert(`CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`);
+  let message = `CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`;
+  if(!syncSuccess){
+    message += '\n\n서버 동기화에 실패했습니다. 콘솔을 확인하세요.';
+  }
+  alert(message);
 });
 
 // 새 라운드
