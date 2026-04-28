@@ -766,14 +766,30 @@ function playNatureSound(type) {
   }
 }
 
-function createAudioContext() {
+async function createAudioContext() {
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (audioContext.state === 'suspended') {
-    return audioContext.resume();
+    try {
+      await audioContext.resume();
+    } catch (err) {
+      console.warn('AudioContext resume failed:', err);
+    }
   }
-  return Promise.resolve();
+}
+
+async function unlockAudioOnGesture() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioContext.state === 'suspended') {
+    try {
+      await audioContext.resume();
+    } catch (err) {
+      console.warn('AudioContext unlock on gesture failed:', err);
+    }
+  }
 }
 
 function createPulse(time, frequency, duration, gainValue) {
@@ -876,6 +892,7 @@ loadBackgroundSampleButton.addEventListener('click', async () => {
     alert('Please choose a WAV or MP3 file first.');
     return;
   }
+  await unlockAudioOnGesture();
   const file = backgroundFileInput.files[0];
   const buffer = await decodeLocalAudioFile(file);
   if (!buffer) {
@@ -893,9 +910,22 @@ loadBackgroundSampleButton.addEventListener('click', async () => {
     await startBackgroundMusic();
   }
 });
-playButton.addEventListener('click', startPlay);
+playButton.addEventListener('click', async (event) => {
+  await unlockAudioOnGesture();
+  await startPlay();
+});
 stopButton.addEventListener('click', stopPlay);
 savePresetButton.addEventListener('click', saveCurrentPreset);
+
+document.addEventListener('touchend', async () => {
+  if (audioContext && audioContext.state === 'suspended') {
+    try {
+      await audioContext.resume();
+    } catch (err) {
+      console.warn('AudioContext resume from touchend failed:', err);
+    }
+  }
+}, {passive: true});
 
 loadPresets();
 renderPresetList();
