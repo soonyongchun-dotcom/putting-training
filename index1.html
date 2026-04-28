@@ -317,6 +317,7 @@ textarea{
   50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(31,181,122,0.6); }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -538,7 +539,6 @@ textarea{
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // 데이터 구조
 let roundData = {
@@ -636,9 +636,111 @@ roundDateInput.value = new Date().toISOString().slice(0,10);
 const STORAGE_KEY_BASE = 'golf_quick_record_data';
 const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
-let sb = null;
+let restoredAuthSession = null;
 let loggedInUserId = null;
 let loggedInUserEmail = null;
+let supabaseClient = null;
+
+function initSupabaseClient(){
+  if(!window.supabase) return null;
+  if(!supabaseClient){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+  return supabaseClient;
+}
+
+async function restoreSessionFromLocalAuth(){
+  const sb = initSupabaseClient();
+  if(!sb) return null;
+  try{
+    const authRes = await sb.auth.getSession();
+    const session = authRes?.data?.session || authRes?.session || null;
+    if(session && session.user && session.access_token){
+      return session;
+    }
+  }catch(e){
+    console.warn('Failed to restore Supabase session from local auth storage', e);
+  }
+  return null;
+}
+
+function normalizeLoginId(value){
+  if(!value) return null;
+  let trimmed = String(value).trim();
+  if(trimmed === '') return null;
+  if (/^".*"$/s.test(trimmed)) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  if(trimmed === '') return null;
+
+  const lower = trimmed.toLowerCase();
+  const loginId = lower.includes('@') ? lower.split('@')[0] : lower;
+  if(loginId === '') return null;
+
+  if(/^[a-z0-9._-]+$/.test(loginId)){
+    return loginId;
+  }
+  return 'id' + Array.from(new TextEncoder().encode(loginId)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,48);
+}
+
+function getPlayerIdFromAuthSession(authSession){
+  const authUser = authSession?.user || {};
+  const tokenPayload = parseJwtPayload(authSession?.access_token || '');
+  const loginId = normalizeLoginId(authUser.user_metadata?.login_id || tokenPayload?.user_metadata?.login_id || '');
+  if(loginId) return loginId;
+  const email = String(authUser.email || tokenPayload?.email || '').trim().toLowerCase();
+  const emailLocal = email.includes('@') ? email.split('@')[0] : '';
+  return normalizeLoginId(emailLocal || '');
+}
+
+function parseJwtPayload(token){
+  if(!token) return null;
+  try{
+    const parts = token.split('.');
+    if(parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    const json = atob(padded);
+    return JSON.parse(json);
+  }catch(e){
+    console.warn('Failed to parse JWT payload', e);
+    return null;
+  }
+}
+
+function getAuthPlayerId(session){
+  const authUser = session?.user || {};
+  const tokenPayload = parseJwtPayload(session?.access_token || '');
+  const loginId = normalizeLoginId(authUser.user_metadata?.login_id || tokenPayload?.user_metadata?.login_id || '');
+  if(loginId) return loginId;
+  const email = String(authUser.email || tokenPayload?.email || '').trim().toLowerCase();
+  const emailLocal = email.includes('@') ? email.split('@')[0] : '';
+  return normalizeLoginId(emailLocal || '');
+}
+
+function computeRoundStats(data){
+  const holes = Array.isArray(data?.holes) ? data.holes : [];
+  let score = 0;
+  let putts = 0;
+  let fairwaysHit = 0;
+  let greensInRegulation = 0;
+
+  holes.forEach(h => {
+    if(!h || !Array.isArray(h.shots)) return;
+    h.shots.filter(shot => shot && (shot.club || shot.shotType)).forEach(shot => {
+      score += 1;
+      if(shot.club === 'Putter'){
+        putts += 1;
+      } else if(typeof shot.putts === 'number' && shot.putts > 0){
+        putts += shot.putts;
+      }
+      if(String(shot.result || '').trim().toLowerCase() === 'fairway') fairwaysHit += 1;
+      if(String(shot.result || '').trim().toLowerCase() === 'green') greensInRegulation += 1;
+    });
+  });
+
+  return { score, putts, fairwaysHit, greensInRegulation };
+}
 
 function makeStorageKey(userId, date){
   if(userId && date){
@@ -652,49 +754,189 @@ function getCurrentStorageKey(){
   return makeStorageKey(loggedInUserId, date);
 }
 
-function initSupabase(){
-  if(sb || typeof supabase === 'undefined') return;
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+function base64DecodeUnicode(str){
+  const decoded = atob(str);
+  const percentEncoded = Array.from(decoded).map(ch => '%'+ch.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  return decodeURIComponent(percentEncoded);
 }
 
 function getSessionFromUrl(){
   const params = new URLSearchParams(window.location.search);
   const encoded = params.get('supabase_session');
   if(!encoded) return null;
+  const decodedString = decodeURIComponent(encoded);
   try{
-    return JSON.parse(decodeURIComponent(atob(encoded)));
+    return JSON.parse(base64DecodeUnicode(decodedString));
   }catch(e){
-    console.warn('Invalid supabase_session param', e);
+    console.warn('Invalid supabase_session param after base64DecodeUnicode', e);
     return null;
   }
 }
 
+function normalizeSupabaseSession(session){
+  if(!session || typeof session !== 'object') return null;
+  if(session.data && typeof session.data === 'object'){
+    const data = session.data;
+    if(data.session && typeof data.session === 'object'){
+      session = data.session;
+    } else if(data.user && data.access_token){
+      session = data;
+    }
+  }
+  if(session.session && typeof session.session === 'object'){
+    session = session.session;
+  }
+  if(session.user && session.access_token) return session;
+  return null;
+}
+
 async function restoreSessionFromUrl(){
-  const session = getSessionFromUrl();
-  if(!session) return;
-  initSupabase();
-  if(!sb) return;
-  try{
-    await sb.auth.setSession(session);
-    loggedInUserId = session.user?.id || null;
-    loggedInUserEmail = session.user?.email || null;
-    console.log('Supabase session restored from URL', loggedInUserId);
-  }catch(e){
-    console.warn('Supabase setSession failed', e);
+  let rawSession = getSessionFromUrl();
+  if(rawSession){
+    const normalizedSession = normalizeSupabaseSession(rawSession);
+    console.log('restoreSessionFromUrl raw session shape', {
+      source: 'url',
+      rawKeys: rawSession && typeof rawSession === 'object' ? Object.keys(rawSession) : null,
+      hasData: rawSession && typeof rawSession === 'object' ? Boolean(rawSession.data) : false,
+      hasSession: rawSession && typeof rawSession === 'object' ? Boolean(rawSession.session) : false,
+      normalizedSessionKeys: normalizedSession && typeof normalizedSession === 'object' ? Object.keys(normalizedSession) : null
+    });
+    if(normalizedSession){
+      restoredAuthSession = normalizedSession;
+      const aliasId = getAuthPlayerId(normalizedSession);
+      loggedInUserId = aliasId || null;
+      loggedInUserEmail = normalizedSession.user?.email || null;
+      console.log('Supabase session restored from URL', {
+        loggedInUserId,
+        loggedInUserEmail,
+        sessionFromUrl: normalizedSession,
+        authUserMetadata: normalizedSession.user?.user_metadata
+      });
+      if(!normalizedSession.user){
+        console.warn('Supabase session restored but user object is missing from session');
+      }
+      return;
+    }
+    console.warn('Supabase session parsed from URL but did not normalize to a valid auth session', {
+      rawSession
+    });
+  }
+
+  const localSession = await restoreSessionFromLocalAuth();
+  if(localSession){
+    restoredAuthSession = localSession;
+    const aliasId = getAuthPlayerId(localSession);
+    loggedInUserId = aliasId || null;
+    loggedInUserEmail = localSession.user?.email || null;
+    console.log('Supabase session restored from local storage auth', {
+      loggedInUserId,
+      loggedInUserEmail,
+      userMetadata: localSession.user?.user_metadata
+    });
   }
 }
 
 async function saveRoundToSupabase(){
-  initSupabase();
-  if(!sb) return false;
   try{
-    const authRes = await sb.auth.getSession();
-    const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
-    if(!authSession || !authSession.user){
+    const resolvedAuthSession = restoredAuthSession;
+    if(!resolvedAuthSession || !resolvedAuthSession.user){
       console.warn('Supabase auth session missing; cannot sync without login.');
       return false;
     }
-    const playerId = authSession.user.id || authSession.user.email || roundData.player || playerNameInput.value.trim() || 'anonymous';
+    if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      console.warn('Offline detected; skipping Supabase sync.');
+      return false;
+    }
+    const authPlayerId = getPlayerIdFromAuthSession(resolvedAuthSession);
+    const userEmail = String(resolvedAuthSession.user.email || loggedInUserEmail || '').trim().toLowerCase();
+    const tokenPayload = parseJwtPayload(resolvedAuthSession.access_token || '');
+    const tokenMetaLoginId = normalizeLoginId(tokenPayload?.user_metadata?.login_id || '');
+    let serverAuthLoginId = null;
+    try {
+      const rpcUrl = `${SUPABASE_URL}/rest/v1/rpc/app_auth_login_id`;
+      const rpcResponse = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${resolvedAuthSession.access_token}`
+        },
+        body: JSON.stringify({})
+      });
+      if(rpcResponse.ok){
+        serverAuthLoginId = await rpcResponse.text();
+        serverAuthLoginId = String(serverAuthLoginId || '').trim();
+        if (/^".*"$/s.test(serverAuthLoginId)) {
+          serverAuthLoginId = serverAuthLoginId.slice(1, -1);
+        }
+      } else {
+        const rpcBody = await rpcResponse.text();
+        console.warn('saveRoundToSupabase app_auth_login_id rpc failed', {
+          status: rpcResponse.status,
+          statusText: rpcResponse.statusText,
+          body: rpcBody
+        });
+      }
+    } catch(rpcError) {
+      console.warn('saveRoundToSupabase app_auth_login_id rpc exception', rpcError);
+    }
+    const normalizedServerAuthLoginId = normalizeLoginId(serverAuthLoginId || '');
+    const normalizedAuthPlayerId = normalizeLoginId(authPlayerId || '');
+    const normalizedTokenMetaLoginId = normalizeLoginId(tokenMetaLoginId || '');
+    const normalizedUserEmail = normalizeLoginId(userEmail || '');
+    const playerId = normalizedServerAuthLoginId || normalizedAuthPlayerId || normalizedTokenMetaLoginId || normalizedUserEmail;
+
+    if(normalizedServerAuthLoginId && normalizedServerAuthLoginId !== normalizedAuthPlayerId){
+      console.warn('Supabase server auth alias differs from client auth alias', {
+        normalizedServerAuthLoginId,
+        normalizedAuthPlayerId,
+        tokenMetaLoginId,
+        userEmail
+      });
+    }
+
+    if(!playerId){
+      console.error('Unable to derive a valid Supabase player_id from auth session; aborting sync.', {
+        authPlayerId,
+        normalizedServerAuthLoginId,
+        normalizedAuthPlayerId,
+        normalizedTokenMetaLoginId,
+        normalizedUserEmail,
+        authSessionUser: resolvedAuthSession.user
+      });
+      return false;
+    }
+
+    const stats = computeRoundStats(roundData);
+    roundData.score = stats.score;
+    roundData.putts = stats.putts;
+    roundData.fairwaysHit = stats.fairwaysHit;
+    roundData.greensInRegulation = stats.greensInRegulation;
+
+    const rowData = {
+      player_id: playerId,
+      round_date: roundData.date || roundDateInput.value,
+      course: roundData.course || courseNameInput.value.trim(),
+      score: stats.score,
+      putts: stats.putts,
+      fairways_hit: stats.fairwaysHit,
+      greens_in_regulation: stats.greensInRegulation,
+      notes: roundData.notes || ''
+    };
+    console.warn('saveRoundToSupabase auth state', {
+      authSessionUser: resolvedAuthSession.user,
+      authUserMetadata: resolvedAuthSession.user?.user_metadata,
+      authPlayerId,
+      serverAuthLoginId,
+      tokenMetaLoginId,
+      userEmail,
+      playerId,
+      accessTokenPresent: Boolean(resolvedAuthSession.access_token),
+      refreshTokenPresent: Boolean(resolvedAuthSession.refresh_token),
+      roundDate: rowData.round_date,
+      course: rowData.course,
+      rowData
+    });
     const row = {
       player_id: playerId,
       player_name: roundData.player || playerNameInput.value.trim() || '',
@@ -710,15 +952,28 @@ async function saveRoundToSupabase(){
       round_payload: { holes: roundData.holes || [] },
       source: 'index1_quick_record'
     };
-    const { error } = await sb.from('sytpt_player_rounds').upsert(row, {
-      onConflict: ['player_id','round_date','course'],
-      returning: 'minimal'
+    const url = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?on_conflict=player_id,round_date,course`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
+        'Prefer': 'resolution=merge-duplicates, return=minimal'
+      },
+      body: JSON.stringify([row])
     });
-    if(error){
-      console.warn('Supabase round sync failed', error);
+    const errorBody = await response.text();
+    if(!response.ok){
+      console.warn('Supabase round sync failed', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+        row
+      });
       return false;
     }
-    console.log('Round synced to Supabase', row);
+    console.log('Round synced to Supabase', { row, response: response.status });
     return true;
   }catch(e){
     console.error('saveRoundToSupabase exception', e);

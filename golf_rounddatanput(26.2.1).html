@@ -623,6 +623,25 @@ function restoreRoundFromRemote(row){
 
   for(let i=1;i<=18;i++){
     const holeData = holes[i-1] || {};
+    const rawShots = Array.isArray(holeData.shots) ? holeData.shots : [];
+    const normalizedShots = rawShots.map((s, idx) => {
+      const input = s || {};
+      return {
+        hole: i,
+        shotNumber: idx + 1,
+        shotType: input.shotType || input.club || '',
+        result: input.result || '',
+        distanceToHole: input.distanceToHole != null ? input.distanceToHole : null,
+        putts: Number(input.putts || 0),
+        penalty: Number(input.penalty || 0),
+        note: input.note || '',
+        lie: input.lie || '',
+        slope: input.slope || '',
+        puttStartDistance: input.puttStartDistance != null ? input.puttStartDistance : null,
+        timestamp: input.timestamp || ''
+      };
+    });
+
     HOLES[i] = {
       hole: i,
       par: holeData.par != null ? holeData.par : 4,
@@ -630,9 +649,9 @@ function restoreRoundFromRemote(row){
       score: holeData.score != null ? holeData.score : null,
       computedStrokes: holeData.computedStrokes != null ? holeData.computedStrokes : 0,
       manualScore: holeData.manualScore || false,
-      shots: holeData.shots || []
+      shots: normalizedShots
     };
-    shotsByHole[i] = Array.isArray(holeData.shots) ? holeData.shots.map(s => Object.assign({}, s)) : [];
+    shotsByHole[i] = normalizedShots.slice();
   }
 
   const playerNameEl = document.getElementById('playerName');
@@ -1370,14 +1389,18 @@ function renderCurrentHoleShots(){
   if (headerEl) headerEl.textContent = `Shots this hole (Total to hole: ${cum})`;
   const arr = shotsByHole[activeHole];
   if (!arr || !arr.length) { currentHoleShotsEl.textContent = '샷 없음'; return; }
-  arr.forEach(s=>{
+  arr.forEach((s, idx)=>{
+    const shotNumber = s.shotNumber != null ? s.shotNumber : idx + 1;
+    const shotType = s.shotType || s.club || 'Shot';
+    const shotResult = s.result || '';
+
     const div = document.createElement('div'); div.className = 'shot-item';
     // fixed-width shot number column
-    const num = document.createElement('div'); num.className = 'shot-num'; num.textContent = `#${s.shotNumber}`;
+    const num = document.createElement('div'); num.className = 'shot-num'; num.textContent = `#${shotNumber}`;
     // main content: club/result and small meta row
     const content = document.createElement('div'); content.className = 'shot-content';
     const line = document.createElement('div'); line.className = 'shot-line';
-    const title = document.createElement('div'); title.innerHTML = `${s.shotType} · ${s.result} ${s.penalty?'<span class="danger">· Penalty</span>':''}`;
+    const title = document.createElement('div'); title.innerHTML = `${shotType} · ${shotResult} ${s.penalty?'<span class="danger">· Penalty</span>':''}`;
     line.appendChild(title);
     
     // 퍼팅 샷의 경우 퍼팅 거리 표시 추가

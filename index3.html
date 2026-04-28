@@ -719,16 +719,16 @@
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    function base64EncodeUnicode(str){
+      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode('0x'+p)));
+    }
+
     async function openIndex1WithSession(url){
       try{
         const authRes = await sb.auth.getSession();
         const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
         if(authSession && authSession.access_token && authSession.refresh_token){
-          const payload = {
-            access_token: authSession.access_token,
-            refresh_token: authSession.refresh_token
-          };
-          const encoded = encodeURIComponent(btoa(JSON.stringify(payload)));
+          const encoded = encodeURIComponent(base64EncodeUnicode(JSON.stringify(authSession)));
           url += (url.indexOf('?') === -1 ? '?' : '&') + 'supabase_session=' + encoded;
         }
       }catch(e){
