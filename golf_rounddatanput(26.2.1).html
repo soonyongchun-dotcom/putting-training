@@ -275,10 +275,17 @@
           <option>Windy</option>
         </select>
       </label>
-      
+      <label style="flex:1 1 280px; min-width:220px;">
+        서버 라운드 선택<br>
+        <select id="syncedRoundSelect">
+          <option value="">서버에서 불러올 라운드를 선택하세요</option>
+        </select>
+        <div id="syncedRoundStatus" class="tiny muted" style="margin-top:6px;">서버 라운드 목록을 불러오는 중입니다...</div>
+      </label>
     </div>
     <div class="right-actions mt8">
       <button class="btn" id="btnStartRound" aria-label="Start round">라운드 시작 (Start Round)</button>
+      <button class="btn ghost" id="btnLoadSyncedRound" aria-label="Load synced round" style="min-width:160px;">서버에서 라운드 불러오기</button>
     </div>
     </div>
   </section>
@@ -512,6 +519,7 @@
 </div>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script>
@@ -520,8 +528,139 @@ const HOLES = []; // will contain 18 hole objects
 const shotsByHole = {}; // holeNumber -> array of shots
 let activeHole = null;
 let DISTANCE_UNIT = 'yd'; // 'yd' or 'm'
+const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+let sb = null;
+let syncedRoundsCache = [];
 
-/* ======= Distance Conversion Functions ======= */
+function initSupabase(){
+  if(sb || typeof supabase === 'undefined') return;
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  try{
+    sb.auth.onAuthStateChange((event, session) => {
+      if(syncedRoundSelect) populateSyncedRoundSelect();
+    });
+  }catch(e){
+    console.warn('auth state listener init failed', e);
+  }
+}
+
+function getStoredSession(){
+  try{ return JSON.parse(localStorage.getItem('sytpt_session')||'null'); }catch(_){ return null; }
+}
+
+function normalizePlayerId(value){
+  if(!value) return '';
+  return String(value).trim();
+}
+
+function getRoundSyncPlayerId(){
+  const session = getStoredSession();
+  if(session && session.id) return normalizePlayerId(session.id);
+  const input = document.getElementById('playerName');
+  return input ? normalizePlayerId(input.value) : 'anonymous';
+}
+
+async function fetchSyncedRounds(){
+  initSupabase();
+  if(!sb) return [];
+
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
+    if(!authSession){
+      console.warn('Supabase auth session missing.');
+      if(syncedRoundStatus) syncedRoundStatus.textContent = '로그인 세션이 없습니다. 코치 포털에서 로그인 후 다시 시도하세요.';
+      return [];
+    }
+  }catch(e){
+    console.warn('fetchSyncedRounds auth check failed', e);
+  }
+
+  try{
+    const { data, error } = await sb.from('sytpt_player_rounds')
+      .select('id,player_id,player_name,round_date,course,exported_at,round_meta,round_payload,distance_unit')
+      .order('exported_at', { ascending:false })
+      .limit(20);
+    if(error){
+      console.warn('fetchSyncedRounds error', error);
+      if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 라운드 목록 조회에 실패했습니다. 콘솔을 확인하세요.';
+      return [];
+    }
+    return data || [];
+  }catch(e){
+    console.error('fetchSyncedRounds exception', e);
+    if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 라운드 목록 조회 중 오류가 발생했습니다.';
+    return [];
+  }
+}
+
+async function populateSyncedRoundSelect(){
+  const select = document.getElementById('syncedRoundSelect');
+  if(!select) return;
+  if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 라운드 목록을 불러오는 중입니다...';
+  select.innerHTML = '<option value="">서버에서 불러올 라운드를 선택하세요</option>';
+  const rounds = await fetchSyncedRounds();
+  syncedRoundsCache = rounds;
+  if(!rounds.length){
+    if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 저장된 라운드가 없습니다.';
+    return;
+  }
+  if(syncedRoundStatus) syncedRoundStatus.textContent = `${rounds.length}개의 서버 라운드를 불러왔습니다.`;
+  rounds.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = `${r.player_name || r.player_id} · ${r.round_date || ''} · ${r.course || ''}`;
+    select.appendChild(opt);
+  });
+}
+
+function restoreRoundFromRemote(row){
+  if(!row || !row.id) return;
+  const meta = row.round_meta || {};
+  const payload = row.round_payload || {};
+  const holes = Array.isArray(payload.holes) ? payload.holes : [];
+
+  for(let i=1;i<=18;i++){
+    const holeData = holes[i-1] || {};
+    HOLES[i] = {
+      hole: i,
+      par: holeData.par != null ? holeData.par : 4,
+      yard: holeData.yard != null ? holeData.yard : '',
+      score: holeData.score != null ? holeData.score : null,
+      computedStrokes: holeData.computedStrokes != null ? holeData.computedStrokes : 0,
+      manualScore: holeData.manualScore || false,
+      shots: holeData.shots || []
+    };
+    shotsByHole[i] = Array.isArray(holeData.shots) ? holeData.shots.map(s => Object.assign({}, s)) : [];
+  }
+
+  const playerNameEl = document.getElementById('playerName');
+  const roundDateEl = document.getElementById('roundDate');
+  const courseNameEl = document.getElementById('courseName');
+  const roundParEl = document.getElementById('roundPar');
+  const roundYardEl = document.getElementById('roundYard');
+  const roundWeatherEl = document.getElementById('roundWeather');
+  const distanceUnitEl = document.getElementById('distanceUnit');
+
+  if(playerNameEl) playerNameEl.value = meta.player || row.player_name || row.player_id || '';
+  if(roundDateEl) roundDateEl.value = meta.date || row.round_date || new Date().toISOString().slice(0,10);
+  if(courseNameEl) courseNameEl.value = meta.course || row.course || '';
+  if(roundParEl) roundParEl.value = meta.roundPar || 72;
+  if(roundYardEl) roundYardEl.value = meta.totalYard || '';
+  if(roundWeatherEl) roundWeatherEl.value = meta.weather || '';
+  if(distanceUnitEl){
+    distanceUnitEl.value = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
+    DISTANCE_UNIT = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
+  }
+
+  renderHoles();
+  recomputeRound();
+  if(roundInfoCard) roundInfoCard.classList.add('hidden');
+  const holesContainer = document.getElementById('holesContainer');
+  if(holesContainer) holesContainer.classList.remove('hidden');
+  if(analysisCard) analysisCard.classList.remove('hidden');
+}
 function convertDistance(yards, toUnit) {
   if (yards == null || isNaN(yards)) return null;
   const y = Number(yards);
@@ -707,6 +846,9 @@ let distanceTouched = false;
 const btnUpdateShot = document.getElementById('btnUpdateShot');
 
 const btnStartRound = document.getElementById('btnStartRound');
+const btnLoadSyncedRound = document.getElementById('btnLoadSyncedRound');
+const syncedRoundSelect = document.getElementById('syncedRoundSelect');
+const syncedRoundStatus = document.getElementById('syncedRoundStatus');
 const roundInfoCard = document.getElementById('roundInfoCard');
 const analysisCard = document.getElementById('analysisCard');
 const distanceUnitSelect = document.getElementById('distanceUnit');
@@ -856,6 +998,20 @@ function startRound(){
   updateUnitLabels();
 }
 if (btnStartRound) btnStartRound.addEventListener('click', startRound);
+if (btnLoadSyncedRound) btnLoadSyncedRound.addEventListener('click', async ()=>{
+  if(!syncedRoundSelect || !syncedRoundSelect.value){
+    alert('불러올 서버 라운드를 선택하세요.');
+    return;
+  }
+  const selected = syncedRoundsCache.find(r => r.id === syncedRoundSelect.value);
+  if(!selected){
+    alert('선택한 서버 라운드를 찾을 수 없습니다. 목록을 다시 불러옵니다.');
+    await populateSyncedRoundSelect();
+    return;
+  }
+  restoreRoundFromRemote(selected);
+});
+if (syncedRoundSelect) populateSyncedRoundSelect();
 
 // navigation controls
 if (btnToggleAll) btnToggleAll.addEventListener('click', ()=>{
@@ -3217,6 +3373,7 @@ window.startHole = startHole;
 
 /* ======= Auto-save / Restore Draft (localStorage) ======= */
 const STORAGE_KEY = 'golf_round_draft_v1';
+const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
 function debounce(fn, wait){ let t; return function(){ clearTimeout(t); const args = arguments; t = setTimeout(()=> fn.apply(this, args), wait); }; }
 
 function saveDraft(){
@@ -3322,7 +3479,27 @@ window.addEventListener('beforeunload', saveDraft);
 (function(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    if (!raw) {
+      const sharedRaw = localStorage.getItem(COACH_SHARED_ROUND_KEY);
+      if (sharedRaw){
+        try{
+          const sharedDraft = JSON.parse(sharedRaw);
+          if (sharedDraft && sharedDraft.meta && sharedDraft.holes){
+            const playerName = sharedDraft.meta.player || '이름없음';
+            const roundDate = sharedDraft.meta.date || '날짜없음';
+            const courseName = sharedDraft.meta.course || '코스없음';
+            const msg = `선수 포털에서 저장된 라운드 데이터가 있습니다.\n플레이어: ${playerName}\n날짜: ${roundDate}\n코스: ${courseName}\n\n불러오시겠습니까?`;
+            if (confirm(msg)){
+              localStorage.setItem(STORAGE_KEY, sharedRaw);
+              loadDraft();
+              localStorage.removeItem(COACH_SHARED_ROUND_KEY);
+              return;
+            }
+          }
+        }catch(e){ console.warn('shared draft parse failed', e); }
+      }
+      return;
+    }
     // Only ask to restore if the draft actually contains hole/shot data
     let parsed;
     try{ parsed = JSON.parse(raw); }catch(e){ parsed = null; }

@@ -538,6 +538,7 @@ textarea{
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // 데이터 구조
 let roundData = {
@@ -633,6 +634,80 @@ roundDateInput.value = new Date().toISOString().slice(0,10);
 
 // 로컬 저장소 키
 const STORAGE_KEY = 'golf_quick_record_data';
+const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
+const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+let sb = null;
+
+function initSupabase(){
+  if (sb || typeof supabase === 'undefined') return;
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+function getStoredSession(){
+  try{
+    return JSON.parse(localStorage.getItem('sytpt_session')||'null');
+  }catch(e){ return null; }
+}
+
+function normalizePlayerId(raw){
+  if(!raw) return '';
+  return String(raw).trim();
+}
+
+function getRoundSyncPlayerId(){
+  const session = getStoredSession();
+  if(session && session.id) return normalizePlayerId(session.id);
+  if(playerNameInput && playerNameInput.value.trim()) return normalizePlayerId(playerNameInput.value.trim());
+  return 'anonymous';
+}
+
+async function saveRoundToSupabase(){
+  initSupabase();
+  if(!sb){
+    console.warn('Supabase client missing.');
+    return;
+  }
+
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
+    if(!authSession || !authSession.user){
+      console.warn('Supabase auth session not available; server sync skipped.');
+      return;
+    }
+    const playerId = getRoundSyncPlayerId();
+    const row = {
+      player_id: playerId,
+      player_name: roundData.player || playerNameInput.value.trim() || '',
+      round_date: roundData.date || roundDateInput.value || new Date().toISOString().slice(0,10),
+      course: roundData.course || courseNameInput.value.trim() || '',
+      distance_unit: roundData.distanceUnit || distanceUnitSel.value || 'yd',
+      round_meta: {
+        player: roundData.player || playerNameInput.value.trim() || '',
+        date: roundData.date || roundDateInput.value || '',
+        course: roundData.course || courseNameInput.value.trim() || '',
+        distanceUnit: roundData.distanceUnit || distanceUnitSel.value || 'yd'
+      },
+      round_payload: {
+        holes: roundData.holes || []
+      },
+      source: 'player_quick_record'
+    };
+
+    const { error } = await sb.from('sytpt_player_rounds').upsert(row, {
+      onConflict: ['player_id','round_date','course'],
+      returning: 'minimal'
+    });
+    if(error){
+      console.warn('Supabase round sync failed', error);
+      return;
+    }
+    console.log('Round synced to Supabase', row);
+  }catch(e){
+    console.error('saveRoundToSupabase exception', e);
+  }
+}
 
 // 라운드 시작
 btnStartRound.addEventListener('click', ()=>{
@@ -1440,7 +1515,10 @@ btnExportCSV.addEventListener('click', ()=>{
     URL.revokeObjectURL(url);
     a.remove();
   }, 100);
-  
+
+  saveCoachSharedDraft();
+  saveRoundToSupabase();
+
   // 저장 성공 메시지와 함께 통계 정보 표시
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
   alert(`CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`);
@@ -1466,6 +1544,60 @@ function saveData(){
     }));
   }catch(e){
     console.error('저장 실패:', e);
+  }
+}
+
+function buildCoachSharedDraft(){
+  const draft = {
+    meta: {
+      player: roundData.player || '',
+      date: roundData.date || '',
+      course: roundData.course || '',
+      roundPar: '',
+      totalYard: '',
+      weather: ''
+    },
+    holes: {},
+    shots: {},
+    activeHole: currentHole,
+    showAllHoles: true,
+    savedAt: new Date().toISOString()
+  };
+
+  roundData.holes.forEach(hole => {
+    if(!hole || typeof hole !== 'object') return;
+    draft.holes[hole.hole] = {
+      hole: hole.hole,
+      par: hole.par || 4,
+      yard: hole.yard || '',
+      score: hole.score || ''
+    };
+    if(Array.isArray(hole.shots) && hole.shots.length){
+      draft.shots[hole.hole] = hole.shots.map((shot, idx) => ({
+        hole: hole.hole,
+        shotNumber: shot.shotNumber || idx + 1,
+        shotType: shot.club || shot.shotType || '',
+        result: shot.result || '',
+        distanceToHole: shot.distanceToHole != null ? shot.distanceToHole : '',
+        putts: shot.putts != null ? shot.putts : 0,
+        penalty: shot.penalty != null ? shot.penalty : 0,
+        note: shot.note || '',
+        lie: shot.lie || '',
+        slope: shot.slope || '',
+        puttStartDistance: shot.puttStartDistance != null ? shot.puttStartDistance : '',
+        timestamp: shot.timestamp || new Date().toISOString()
+      }));
+    }
+  });
+
+  return draft;
+}
+
+function saveCoachSharedDraft(){
+  try{
+    localStorage.setItem(COACH_SHARED_ROUND_KEY, JSON.stringify(buildCoachSharedDraft()));
+  }catch(e){
+    console.warn('saveCoachSharedDraft failed:', e);
   }
 }
 

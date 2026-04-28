@@ -2239,12 +2239,19 @@
           {key:'in',label:'🟢 In-Match (경기 중)',color:'#16a34a'},
           {key:'post',label:'🔵 Post-Match (경기 후)',color:'#2563eb'}
         ];
+        var sel=getPhaseSelections(player.id);
         var phaseCells=phaseDefs.map(function(ph){
           var items=cfg[ph.key]||[];
-          var liHtml=items.length?items.map(function(item){
-            return '<li style="font-size:12px;padding:2px 0;color:var(--sub)">'+item+'</li>';
+          var completedCount=0;
+          var liHtml=items.length?items.map(function(item,i){
+            var done=!!sel[ph.key+'_'+i];
+            if(done) completedCount++;
+            var labelText = (done? '✅ ' : '') + item;
+            var textStyle = done ? 'text-decoration:line-through;color:#9ca3af;' : 'color:var(--sub);';
+            return '<li style="font-size:12px;padding:2px 0;'+textStyle+'">'+labelText+'</li>';
           }).join(''):'<li class="muted" style="font-size:12px">항목 없음</li>';
-          return '<div class="match-phase-cell"><div class="phase-label" style="color:'+ph.color+'">'+ph.label+'</div><ul style="padding-left:16px;margin:4px 0">'+liHtml+'</ul></div>';
+          var statusBadge = items.length ? '<span style="font-size:11px;color:var(--muted);margin-left:6px">'+completedCount+'/'+items.length+' 완료</span>' : '';
+          return '<div class="match-phase-cell"><div class="phase-label" style="color:'+ph.color+'">'+ph.label+statusBadge+'</div><ul style="padding-left:16px;margin:4px 0">'+liHtml+'</ul></div>';
         }).join('');
         var phaseHtml='<div class="match-player-detail">'+(hasMatch?'<div style="font-size:12px;color:var(--blue);font-weight:700;margin-bottom:8px">📅 '+info.matchName+' · '+dateText+'</div>':'')+'<div class="match-phase-grid">'+phaseCells+'</div></div>';
         return '<div class="match-player-row"><button class="match-player-toggle'+(isOpen?' open':'')+'" data-player-id="'+player.id+'"><span>👤 <strong>'+player.name+'</strong>'+matchLabel+'</span><span style="font-size:11px;color:var(--sub)">'+(isOpen?'▲ 닫기':'▼ 펼치기')+'</span></button>'+perfHtml+(isOpen?phaseHtml:'')+'</div>';
