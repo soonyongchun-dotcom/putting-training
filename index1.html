@@ -633,14 +633,55 @@ const completedHolesEl = document.getElementById('completedHoles');
 roundDateInput.value = new Date().toISOString().slice(0,10);
 
 // 로컬 저장소 키
-const STORAGE_KEY = 'golf_quick_record_data';
+const STORAGE_KEY_BASE = 'golf_quick_record_data';
 const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
 let sb = null;
+let loggedInUserId = null;
+let loggedInUserEmail = null;
+
+function makeStorageKey(userId, date){
+  if(userId && date){
+    return `${STORAGE_KEY_BASE}_${userId}_${date}`;
+  }
+  return STORAGE_KEY_BASE;
+}
+
+function getCurrentStorageKey(){
+  const date = roundData && roundData.date ? roundData.date : roundDateInput.value;
+  return makeStorageKey(loggedInUserId, date);
+}
 
 function initSupabase(){
   if(sb || typeof supabase === 'undefined') return;
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+function getSessionFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('supabase_session');
+  if(!encoded) return null;
+  try{
+    return JSON.parse(decodeURIComponent(atob(encoded)));
+  }catch(e){
+    console.warn('Invalid supabase_session param', e);
+    return null;
+  }
+}
+
+async function restoreSessionFromUrl(){
+  const session = getSessionFromUrl();
+  if(!session) return;
+  initSupabase();
+  if(!sb) return;
+  try{
+    await sb.auth.setSession(session);
+    loggedInUserId = session.user?.id || null;
+    loggedInUserEmail = session.user?.email || null;
+    console.log('Supabase session restored from URL', loggedInUserId);
+  }catch(e){
+    console.warn('Supabase setSession failed', e);
+  }
 }
 
 async function saveRoundToSupabase(){
@@ -1515,7 +1556,7 @@ btnExportCSV.addEventListener('click', async ()=>{
 // 새 라운드
 btnReset.addEventListener('click', ()=>{
   if(confirm('현재 기록을 모두 삭제하고 새 라운드를 시작하시겠습니까?')){
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(getCurrentStorageKey());
     location.reload();
   }
 });
@@ -1525,7 +1566,8 @@ function saveData(){
   try{
     // recordSection이 보이면 라운드가 시작된 것으로 판단
     const isStarted = recordSection && !recordSection.classList.contains('hidden');
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const storageKey = getCurrentStorageKey();
+    localStorage.setItem(storageKey, JSON.stringify({
       roundData: roundData,
       currentHole: currentHole,
       started: isStarted
@@ -1538,7 +1580,12 @@ function saveData(){
 // 데이터 복구
 function restoreData(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const storageKey = getCurrentStorageKey();
+    let raw = localStorage.getItem(storageKey);
+    if(!raw && storageKey !== STORAGE_KEY_BASE){
+      // 로그인 사용자 기반 키가 없으면 공통 키도 확인
+      raw = localStorage.getItem(STORAGE_KEY_BASE);
+    }
     if(!raw) return;
     
     const saved = JSON.parse(raw);
@@ -1590,7 +1637,11 @@ clubIronWedgeSel.addEventListener('change', ()=>{
 // 페이지 로드 시 이전 데이터 확인
 function checkAndRestorePreviousData(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const storageKey = getCurrentStorageKey();
+    let raw = localStorage.getItem(storageKey);
+    if(!raw && storageKey !== STORAGE_KEY_BASE){
+      raw = localStorage.getItem(STORAGE_KEY_BASE);
+    }
     console.log('저장된 데이터:', raw); // 디버깅용
     if(raw){
       const saved = JSON.parse(raw);
@@ -1607,7 +1658,7 @@ function checkAndRestorePreviousData(){
           restoreData();
         } else {
           // 사용자가 거부하면 저장된 데이터 삭제
-          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(getCurrentStorageKey());
         }
       }
     }
@@ -1616,12 +1667,16 @@ function checkAndRestorePreviousData(){
   }
 }
 
-// DOM이 준비되면 이전 데이터 확인
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', checkAndRestorePreviousData);
-} else {
-  // 이미 로드된 경우 즉시 실행
+// DOM이 준비되면 이전 데이터 및 URL 세션 복원
+async function initPage(){
+  await restoreSessionFromUrl();
   checkAndRestorePreviousData();
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initPage);
+} else {
+  initPage();
 }
 
 // 자동 저장 (5초마다)

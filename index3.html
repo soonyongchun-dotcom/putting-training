@@ -412,7 +412,7 @@
       <div class="card player-block tone-mint" style="margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <h3 style="margin:0">시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</h3>
-          <button class="btn" type="button" onclick="window.open('https://soonyongchun-dotcom.github.io/putting-training/index1.html','_blank','noopener,noreferrer')">오늘경기데이터 입력</button>
+          <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">오늘경기데이터 입력</button>
         </div>
         <div id="phaseBoard" class="phase-board"></div>
       </div>
@@ -546,7 +546,7 @@
     <section id="coachPortal" style="display:none">
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px;gap:8px">
         <button class="btn" type="button" onclick="window.open('https://soonyongchun-dotcom.github.io/putting-training/index4.html','_blank','noopener,noreferrer')">스윙모션분석 연결</button>
-        <button class="btn" type="button" onclick="window.open('https://soonyongchun-dotcom.github.io/putting-training/index1.html','_blank','noopener,noreferrer')">경기데이터 입력</button>
+        <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">경기데이터 입력</button>
       </div>
       <div class="row coach-kpi-row" style="margin-bottom:14px">
         <div class="card kpi"><div class="label">관리 선수</div><div class="value" id="managedAthleteCount">0명</div></div>
@@ -718,6 +718,24 @@
     }
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function openIndex1WithSession(url){
+      try{
+        const authRes = await sb.auth.getSession();
+        const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
+        if(authSession && authSession.access_token && authSession.refresh_token){
+          const payload = {
+            access_token: authSession.access_token,
+            refresh_token: authSession.refresh_token
+          };
+          const encoded = encodeURIComponent(btoa(JSON.stringify(payload)));
+          url += (url.indexOf('?') === -1 ? '?' : '&') + 'supabase_session=' + encoded;
+        }
+      }catch(e){
+        console.warn('openIndex1WithSession failed', e);
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
 
     // ====== 디바이스 전용 (localStorage) ======
     const STORAGE_SESSION = "sytpt_session";
