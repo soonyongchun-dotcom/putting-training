@@ -364,8 +364,7 @@
 
   <div class="app">
     <div class="topbar">
-      <div class="topbar-left"></div>
-        <div class="topbar-left"><span style="font-size:12px;color:#e0e7ef;font-weight:400;letter-spacing:0.5px;">ver26.04.2</span></div>
+      <div class="topbar-left"><span style="font-size:12px;color:#e0e7ef;font-weight:400;letter-spacing:0.5px;">ver26.04.2</span></div>
       <div class="topbar-brand">
         <div class="topbar-brand-inner">
           <div class="topbar-logo">⛳</div>
@@ -719,21 +718,10 @@
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function base64EncodeUnicode(str){
-      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode('0x'+p)));
-    }
-
-    async function openIndex1WithSession(url){
-      try{
-        const authRes = await sb.auth.getSession();
-        const authSession = authRes && authRes.data ? authRes.data.session : (authRes ? authRes.session : null);
-        if(authSession && authSession.access_token && authSession.refresh_token){
-          const encoded = encodeURIComponent(base64EncodeUnicode(JSON.stringify(authSession)));
-          url += (url.indexOf('?') === -1 ? '?' : '&') + 'supabase_session=' + encoded;
-        }
-      }catch(e){
-        console.warn('openIndex1WithSession failed', e);
-      }
+    function openIndex1WithSession(url){
+      // 보안: 세션 토큰을 URL 쿼리 파라미터로 전달하지 않습니다.
+      // 대상 페이지는 Supabase 자체 세션 쿠키/localStorage를 통해 인증합니다.
+      // (동일 Supabase 프로젝트를 공유하므로 별도 토큰 전달 불필요)
       window.open(url, '_blank', 'noopener,noreferrer');
     }
 
@@ -775,6 +763,16 @@
     let lastCoachDirectiveHtml = '';
     let isSendingCoachDirective = false;
     let lastPerformanceEdit = null;
+    // 메시지 / 사용자 캐시 (getMessages, getUsers 내부에서도 사용)
+    let messagesCache = [];
+    let lastMessagesFetch = 0;
+    let usersCache = [];
+    let lastUsersFetch = 0;
+    // setInterval 핸들 — 필요시 clearInterval로 정리 가능
+    let signupCooldownInterval = null;
+    let timestampRefreshInterval = null;
+    // 코치 인박스: 답변하기 클릭 후 녹색 표시용 대기 Set
+    const pendingReplyPlayerIds = new Set();
 
     function invalidateCoachDirectiveCache(playerId){
       coachDirectivesCache = [];
@@ -918,7 +916,7 @@
         btn.textContent='선수 가입 완료';
       }
     }
-    setInterval(updateSignupCooldownUI,1000);
+    signupCooldownInterval = setInterval(updateSignupCooldownUI,1000);
     function getCoachKpiLastCache(){
       try{ return JSON.parse(localStorage.getItem(STORAGE_COACH_KPI_LAST)||'null'); }catch(_){ return null; }
     }
@@ -1157,7 +1155,8 @@
       try{
         const {data,error} = await sb.from('sytpt_coach_directives')
           .select(directiveSelectWithAttachments)
-          .limit(20);
+          .order('created_at',{ascending:false})
+          .limit(50);
         if(error){
           console.warn('getCoachDirectives error', error, {
             code: error.code,
@@ -1831,7 +1830,7 @@
       var rows=records.map(function(r){
         var mindDisplay = (r.mindStatuses && r.mindStatuses.length) ? r.mindStatuses.join(', ') : (r.mindStatus||'-');
         var stamDisplay = (r.staminaStatuses && r.staminaStatuses.length) ? r.staminaStatuses.join(', ') : (r.staminaStatus||'-');
-        return '<tr><td>'+(r.date||'-')+'</td><td>'+(r.focus||'-')+'</td><td>'+mindDisplay+'</td><td>'+stamDisplay+'</td><td>'+(r.note||'-')+'</td></tr>';
+        return '<tr><td>'+escapeHtml(r.date||'-')+'</td><td>'+escapeHtml(String(r.focus||'-'))+'</td><td>'+escapeHtml(mindDisplay)+'</td><td>'+escapeHtml(stamDisplay)+'</td><td>'+escapeHtml(r.note||'-')+'</td></tr>';
       }).join('');
       root.innerHTML='<table class="table"><thead><tr><th>일자</th><th>집중도</th><th>심리상태</th><th>체력상태</th><th>오늘훈련특이사항</th></tr></thead><tbody>'+rows+'</tbody></table>';
     }
@@ -1866,7 +1865,7 @@
         : coachChats.length;
 
       const unreadTotal=unreadDir+unreadChat;
-      const html='<div class="message"><div class="meta">코치 메시지 알림</div><div>새로도착한 <strong style="color:#dc2626">('+unreadTotal+')</strong>건의 코치 메시지가 있습니다. Coach Communication에서 확인해주세요.</div></div>';
+      const html='<div class="message"><div class="meta">코치 메시지 알림</div><div>새로도착한 <strong style="color:#dc2626">('+escapeHtml(String(unreadTotal))+')</strong>건의 코치 메시지가 있습니다. Coach Communication에서 확인해주세요.</div></div>';
       if(lastDashboardCoachHtml!==html){
         root.innerHTML=html;
         lastDashboardCoachHtml=html;
@@ -1895,23 +1894,23 @@
             attachHtml='<div class="muted" style="margin-top:6px">📎 첨부파일</div><div class="message-list" style="max-height:120px;margin-top:6px">'+
               m.attachments.map(function(f,i){
                 var href=resolveAttachmentLink(f);
-                var name=resolveAttachmentName(f,i);
+                var name=escapeHtml(resolveAttachmentName(f,i));
                 if(!href) return '';
-                return '<div class="message" style="padding:6px"><a href="'+href+'" target="_blank" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
+                return '<div class="message" style="padding:6px"><a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
               }).join('')+'</div>';
           }
           var statusHtml=m.completed?
-            ('<span style="color:#16a34a;font-weight:700;font-size:13px">✅ 완료</span>'+(m.completedAt?'<span class="muted" style="font-size:12px">('+formatTime(m.completedAt)+')</span>':'')):
+            ('<span style="color:#16a34a;font-weight:700;font-size:13px">✅ 완료</span>'+(m.completedAt?'<span class="muted" style="font-size:12px">('+escapeHtml(formatTime(m.completedAt))+')</span>':'')):
             '<span style="color:#d97706;font-weight:700;font-size:13px">⏳ 미완료</span>';
           var btnHtml='';
           if(session&&session.role==='player'){
-            btnHtml='<div style="height:10px"></div><button class="btn '+(m.completed?'btn-amber':'btn-green')+' mission-complete-btn" data-mission-key="'+m.missionKey+'" data-assigned-id="'+(m.missionId||'')+'" style="width:100%;font-size:15px;padding:10px 12px;letter-spacing:0.5px">'+(m.completed?'↩ 완료 취소 (재개)':'✅ 미션 종료')+'</button>';
+            btnHtml='<div style="height:10px"></div><button class="btn '+(m.completed?'btn-amber':'btn-green')+' mission-complete-btn" data-mission-key="'+escapeHtml(m.missionKey)+'" data-assigned-id="'+escapeHtml(m.missionId||'')+'" style="width:100%;font-size:15px;padding:10px 12px;letter-spacing:0.5px">'+(m.completed?'↩ 완료 취소 (재개)':'✅ 미션 종료')+'</button>';
           }
-          detailHtml='<div class="mission-detail">'+(m.feedback?'<div class="muted" style="margin-top:2px;margin-bottom:4px">💬 코치 피드백: '+m.feedback+'</div>':'')+attachHtml+'<div style="margin-top:8px;padding:8px 0 4px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600">수행 상태:</span>'+statusHtml+'</div>'+btnHtml+'</div>';
+          detailHtml='<div class="mission-detail">'+(m.feedback?'<div class="muted" style="margin-top:2px;margin-bottom:4px">💬 코치 피드백: '+escapeHtml(m.feedback)+'</div>':'')+attachHtml+'<div style="margin-top:8px;padding:8px 0 4px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600">수행 상태:</span>'+statusHtml+'</div>'+btnHtml+'</div>';
         } else {
           detailHtml='<div style="height:6px"></div><div class="muted" style="font-size:12px">▶ 제목을 누르면 상세 및 미션 종료 버튼이 열립니다.</div>';
         }
-        return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button class="mission-title-btn mission-toggle-btn" data-mission-key="'+m.missionKey+'">'+m.code+'</button><span class="chip">'+m.mode+'</span></div><div class="muted" style="margin-top:6px">난이도: '+m.level+'</div><div class="muted">예상 소요시간: '+m.time+'</div><div class="muted">출처: '+m.source+'</div>'+detailHtml+'</div>';
+        return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button class="mission-title-btn mission-toggle-btn" data-mission-key="'+escapeHtml(m.missionKey)+'">'+escapeHtml(m.code)+'</button><span class="chip">'+escapeHtml(m.mode)+'</span></div><div class="muted" style="margin-top:6px">난이도: '+escapeHtml(m.level)+'</div><div class="muted">예상 소요시간: '+escapeHtml(m.time)+'</div><div class="muted">출처: '+escapeHtml(m.source)+'</div>'+detailHtml+'</div>';
       }).join('');
       missionCards.querySelectorAll('.mission-toggle-btn').forEach(function(btn){btn.addEventListener('click',function(){
         var k=btn.dataset.missionKey;
@@ -2024,15 +2023,18 @@
           readBadge='<span class="badge" style="background:#6b7280;color:#fff;font-size:10px;margin-left:6px">상태미지원</span>';
         }
         var replies=Array.isArray(item.replies)?item.replies:[];
-        var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+r.author+' · '+r.time+'</div><div>'+r.text+'</div></div>';}).join('')+'</div>':'';
+        var repHtml=replies.length?'<div style="margin-top:8px;border-top:1px dashed #d1d5db;padding-top:6px">'+replies.map(function(r){return '<div class="message" style="padding:6px;margin-top:6px"><div class="meta">'+escapeHtml(String(r.author||''))+' · '+escapeHtml(String(r.time||''))+'</div><div>'+escapeHtml(String(r.text||''))+'</div></div>';}).join('')+'</div>':'';
         var atts=Array.isArray(item.attachments)?item.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px">📎 '+atts.map(function(f,i){
           var href=resolveAttachmentLink(f);
-          var name=resolveAttachmentName(f,i);
+          var name=escapeHtml(resolveAttachmentName(f,i));
           if(!href) return '';
-          return '<a href="'+href+'" target="_blank" download="'+name+'" style="margin-right:8px;font-size:12px">'+name+'</a>';
+          return '<a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'" style="margin-right:8px;font-size:12px">'+name+'</a>';
         }).join('')+'</div>':'';
-        return '<div class="message"><div class="meta">대상: '+(player?player.name:item.playerId)+' · '+displayTime+readBadge+'<div style="float:right;margin-left:8px"><button class="btn btn-sm btn-outline" onclick="editCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\',\''+escapeJsString(item.text)+'\')">수정</button> <button class="btn btn-sm btn-outline-red" onclick="deleteCoachDirective(\''+item.directiveId+'\',\''+item.playerId+'\')">삭제</button></div></div><div>'+item.text+'</div>'+attHtml+repHtml+'</div>';
+        var safeDirectiveId=escapeJsString(item.directiveId);
+        var safePlayerId=escapeJsString(item.playerId);
+        var safeText=escapeJsString(item.text);
+        return '<div class="message"><div class="meta">대상: '+escapeHtml(player?player.name:item.playerId)+' · '+escapeHtml(displayTime)+readBadge+'<div style="float:right;margin-left:8px"><button class="btn btn-sm btn-outline" onclick="editCoachDirective(\''+safeDirectiveId+'\',\''+safePlayerId+'\',\''+safeText+'\')">수정</button> <button class="btn btn-sm btn-outline-red" onclick="deleteCoachDirective(\''+safeDirectiveId+'\',\''+safePlayerId+'\')">삭제</button></div></div><div>'+escapeHtml(item.text)+'</div>'+attHtml+repHtml+'</div>';
       }).join('');
       if(lastCoachDirectiveHtml!==nextHtml){
         root.innerHTML=nextHtml;
@@ -2159,7 +2161,7 @@
         return s!=='approved' && s!=='inactive';
       });
       if(!pending.length){root.innerHTML='<tr><td colspan="5" class="muted">승인 대기 선수가 없습니다.</td></tr>';return;}
-      root.innerHTML=pending.map(function(u){return '<tr><td>'+u.id+'</td><td>'+u.name+'</td><td>'+(u.track||'-')+'</td><td class="risk-mid">대기</td><td><button class="btn btn-green approve-btn" data-player-id="'+u.id+'">승인</button></td></tr>';}).join('');
+      root.innerHTML=pending.map(function(u){return '<tr><td>'+escapeHtml(u.id)+'</td><td>'+escapeHtml(u.name)+'</td><td>'+escapeHtml(u.track||'-')+'</td><td class="risk-mid">대기</td><td><button class="btn btn-green approve-btn" data-player-id="'+escapeHtml(u.id)+'">승인</button></td></tr>';}).join('');
       root.querySelectorAll('.approve-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
         await sb.from('sytpt_users').update({approval_status:'approved',approved_at:new Date().toISOString(),today_completion:'0%',risk_level:'정상',status_label:'승인 완료'}).eq('id',pid);
@@ -2170,7 +2172,11 @@
     }
     async function renderCoachAthleteBoard(){
       const users=await getUsers();
-      const ap=getApprovedPlayers(users);
+      const ap=getApprovedPlayers(users).slice().sort(function(a,b){
+        var da=a.approvedAt?new Date(a.approvedAt).getTime():0;
+        var db=b.approvedAt?new Date(b.approvedAt).getTime():0;
+        return da-db;
+      });
       const tableRoot=document.getElementById('coachAthleteTable');
       const countRoot=document.getElementById('managedAthleteCount');
       const selectedId=getCoachSelectedPlayerId();
@@ -2184,8 +2190,8 @@
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
         var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
         if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
-        var perfCell = '<td><div style="display:flex;align-items:center;"><input type="number" class="perf-input" data-player-id="'+player.id+'" value="'+perfVal+'" min="0" max="100" style="width:52px"><span style="margin-left:4px">%</span></div></td>';
-        return '<tr class="'+rowC+'" data-player-id="'+player.id+'"><td>'+player.name+'</td><td>'+(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+risk+'</td><td>'+status+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+player.id+'" style="padding:6px 10px">승인 취소</button></td></tr>';
+        var perfCell = '<td><div style="display:flex;align-items:center;"><input type="number" class="perf-input" data-player-id="'+escapeHtml(player.id)+'" value="'+escapeHtml(String(perfVal))+'" min="0" max="100" style="width:52px"><span style="margin-left:4px">%</span></div></td>';
+        return '<tr class="'+rowC+'" data-player-id="'+escapeHtml(player.id)+'"><td>'+escapeHtml(player.name)+'</td><td>'+escapeHtml(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+escapeHtml(risk)+'</td><td>'+escapeHtml(status)+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+escapeHtml(player.id)+'" style="padding:6px 10px">승인 취소</button></td></tr>';
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id');
@@ -2247,11 +2253,11 @@
         var info=infos[i];
         var cfg=phaseConfigs[i];
         var perfVal=player.performanceLevel!=null?player.performanceLevel:'-';
-        var perfHtml='<div style="margin-top:4px;font-size:12px">경기력 수준: '+perfVal+(perfVal==='-'?'':'%')+'</div>';
+        var perfHtml='<div style="margin-top:4px;font-size:12px">경기력 수준: '+escapeHtml(String(perfVal))+(perfVal==='-'?'':'%')+'</div>';
         var hasMatch=info.matchName&&info.matchName!=='경기명';
         var dateText=formatMatchRangeText(info.startDate,info.endDate);
         var isOpen=expandedMatchPlayerIds.has(player.id);
-        var matchLabel=hasMatch?'<span class="chip" style="font-size:11px;margin-left:6px">'+(seq++)+'. '+info.matchName+', '+dateText+'</span>':'<span class="muted" style="font-size:12px;margin-left:6px">시합 미등록</span>';
+        var matchLabel=hasMatch?'<span class="chip" style="font-size:11px;margin-left:6px">'+(seq++)+'. '+escapeHtml(info.matchName)+', '+escapeHtml(dateText)+'</span>':'<span class="muted" style="font-size:12px;margin-left:6px">시합 미등록</span>';
         var phaseDefs=[
           {key:'pre',label:'🟡 Pre-Match (경기 전)',color:'#d97706'},
           {key:'in',label:'🟢 In-Match (경기 중)',color:'#16a34a'},
@@ -2264,15 +2270,15 @@
           var liHtml=items.length?items.map(function(item,i){
             var done=!!sel[ph.key+'_'+i];
             if(done) completedCount++;
-            var labelText = (done? '✅ ' : '') + item;
+            var labelText = escapeHtml((done? '✅ ' : '') + getItemText(item));
             var textStyle = done ? 'text-decoration:line-through;color:#9ca3af;' : 'color:var(--sub);';
             return '<li style="font-size:12px;padding:2px 0;'+textStyle+'">'+labelText+'</li>';
           }).join(''):'<li class="muted" style="font-size:12px">항목 없음</li>';
-          var statusBadge = items.length ? '<span style="font-size:11px;color:var(--muted);margin-left:6px">'+completedCount+'/'+items.length+' 완료</span>' : '';
+          var statusBadge = items.length ? '<span style="font-size:11px;color:var(--muted);margin-left:6px">'+escapeHtml(String(completedCount))+'/'+escapeHtml(String(items.length))+' 완료</span>' : '';
           return '<div class="match-phase-cell"><div class="phase-label" style="color:'+ph.color+'">'+ph.label+statusBadge+'</div><ul style="padding-left:16px;margin:4px 0">'+liHtml+'</ul></div>';
         }).join('');
-        var phaseHtml='<div class="match-player-detail">'+(hasMatch?'<div style="font-size:12px;color:var(--blue);font-weight:700;margin-bottom:8px">📅 '+info.matchName+' · '+dateText+'</div>':'')+'<div class="match-phase-grid">'+phaseCells+'</div></div>';
-        return '<div class="match-player-row"><button class="match-player-toggle'+(isOpen?' open':'')+'" data-player-id="'+player.id+'"><span>👤 <strong>'+player.name+'</strong>'+matchLabel+'</span><span style="font-size:11px;color:var(--sub)">'+(isOpen?'▲ 닫기':'▼ 펼치기')+'</span></button>'+perfHtml+(isOpen?phaseHtml:'')+'</div>';
+        var phaseHtml='<div class="match-player-detail">'+(hasMatch?'<div style="font-size:12px;color:var(--blue);font-weight:700;margin-bottom:8px">📅 '+escapeHtml(info.matchName)+' · '+escapeHtml(dateText)+'</div>':'')+'<div class="match-phase-grid">'+phaseCells+'</div></div>';
+        return '<div class="match-player-row"><button class="match-player-toggle'+(isOpen?' open':'')+'" data-player-id="'+escapeHtml(player.id)+'"><span>👤 <strong>'+escapeHtml(player.name)+'</strong>'+matchLabel+'</span><span style="font-size:11px;color:var(--sub)">'+(isOpen?'▲ 닫기':'▼ 펼치기')+'</span></button>'+perfHtml+(isOpen?phaseHtml:'')+'</div>';
       }).join('');
       root.querySelectorAll('.match-player-toggle').forEach(function(btn){btn.addEventListener('click',function(){
         var pid=btn.getAttribute('data-player-id');
@@ -2300,7 +2306,7 @@
         if(detailRoot) detailRoot.innerHTML='<p class="muted" style="margin:0">완료미션을 선택하면 첨부 결과를 확인할 수 있습니다.</p>';
         return;
       }
-      root.innerHTML=completed.map(function(item){return '<button class="completed-item completed-mission-btn" data-player-id="'+item.playerId+'" data-mission-key="'+item.missionKey+'"><div class="meta">'+item.playerName+' · '+item.mode+'</div><div>'+item.missionCode+'</div></button>';}).join('');
+      root.innerHTML=completed.map(function(item){return '<button class="completed-item completed-mission-btn" data-player-id="'+escapeHtml(item.playerId)+'" data-mission-key="'+escapeHtml(item.missionKey)+'"><div class="meta">'+escapeHtml(item.playerName)+' · '+escapeHtml(item.mode)+'</div><div>'+escapeHtml(item.missionCode)+'</div></button>';}).join('');
       root.querySelectorAll('.completed-mission-btn').forEach(function(btn){btn.addEventListener('click',async function(){
         var pid=btn.getAttribute('data-player-id'); var mk=btn.getAttribute('data-mission-key');
         const missions=await getDisplayMissionsForPlayer(pid);
@@ -2309,12 +2315,12 @@
         var attHtml=mission.attachments&&mission.attachments.length?
           '<div class="muted" style="margin-bottom:4px">첨부 결과 파일</div><div class="message-list" style="max-height:140px">'+mission.attachments.map(function(f,i){
             var href=resolveAttachmentLink(f);
-            var name=resolveAttachmentName(f,i);
+            var name=escapeHtml(resolveAttachmentName(f,i));
             if(!href) return '';
-            return '<div class="message" style="padding:6px"><a href="'+href+'" target="_blank" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
+            return '<div class="message" style="padding:6px"><a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
           }).join('')+'</div>':
           '<p class="muted" style="margin:0">첨부된 결과 파일이 없습니다.</p>';
-        detailRoot.innerHTML='<div class="meta">미션: '+mission.code+' ('+mission.mode+')</div><div class="muted" style="margin:4px 0 6px">수행 상태: '+(mission.completed?'완료':'미완료')+'</div>'+(mission.feedback?'<div style="margin-bottom:8px">'+mission.feedback+'</div>':'')+attHtml;
+        detailRoot.innerHTML='<div class="meta">미션: '+escapeHtml(mission.code)+' ('+escapeHtml(mission.mode)+')</div><div class="muted" style="margin:4px 0 6px">수행 상태: '+(mission.completed?'완료':'미완료')+'</div>'+(mission.feedback?'<div style="margin-bottom:8px">'+escapeHtml(mission.feedback)+'</div>':'')+attHtml;
       });});
     }
     async function renderPlayerMessageThread(){
@@ -2343,12 +2349,12 @@
         var atts=Array.isArray(m.attachments)?m.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 첨부파일: '+atts.map(function(f,i){
           var href=resolveAttachmentLink(f);
-          var name=resolveAttachmentName(f,i);
+          var name=escapeHtml(resolveAttachmentName(f,i));
           if(!href) return '';
-          return '<a href="'+href+'" target="_blank" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';
+          return '<a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';
         }).join('')+'</div>':'';
-        var replyHtml=(ic&&m.replyToText)?'<div style="margin-top:6px;padding:6px 8px;border-left:3px solid #93c5fd;background:#eff6ff;border-radius:6px;font-size:12px;color:#1e3a8a">↳ 선수 질문: '+m.replyToText+'</div>':'';
-        return '<div class="message '+(ic?'msg-coach':'msg-player')+'"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span></div>'+replyHtml+'<div style="margin-top:4px">'+m.text+'</div>'+attHtml+'</div>';
+        var replyHtml=(ic&&m.replyToText)?'<div style="margin-top:6px;padding:6px 8px;border-left:3px solid #93c5fd;background:#eff6ff;border-radius:6px;font-size:12px;color:#1e3a8a">↳ 선수 질문: '+escapeHtml(m.replyToText)+'</div>':'';
+        return '<div class="message '+(ic?'msg-coach':'msg-player')+'"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+escapeHtml(m.author)+'</span><span>'+escapeHtml(formatTime(m.createdAt))+'</span></div>'+replyHtml+'<div style="margin-top:4px">'+escapeHtml(m.text)+'</div>'+attHtml+'</div>';
       }).join('');
       root.scrollTop=root.scrollHeight;
     }
@@ -2398,60 +2404,67 @@
         const chats=msgsRaw
           .filter(function(r){return r.player_id===player.id && isChatMessage(fromDbMsg(r));})
           .map(function(r){return {author:r.author==='선수'?'선수':'코치',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[],coach_read:r.coach_read||false};});
-        const sortedChats=chats.sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
-        const thread=sortedChats.slice(-5);
-        const unread=thread.filter(function(m){return m.author==='선수'&&!m.coach_read;}).length;
+        // 코치 지시사항도 thread에 포함 (Q&A 쌍 구조를 위해)
+        const dirMsgs=(directivesByPlayer.get(player.id)||[]).map(function(d){
+          return {author:'코치',text:d.text,createdAt:d.created_at||'',attachments:d.attachments||[],coach_read:true};
+        });
+        const allMsgs=[...chats,...dirMsgs].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
+        const thread=allMsgs.slice(-10);
+        const unread=chats.filter(function(m){return m.author==='선수'&&!m.coach_read;}).length;
         const dirs=directivesByPlayer.get(player.id)||[];
-        const latestPlayerMsg=[...sortedChats].reverse().find(function(m){return m.author==='선수';});
-        let needsReply=false;
-        if(latestPlayerMsg&&latestPlayerMsg.createdAt){
-          const hasCoachChatAfter=sortedChats.some(function(m){
-            return m.author==='코치'&&String(m.createdAt)>String(latestPlayerMsg.createdAt);
-          });
-          const hasDirectiveAfter=dirs.some(function(d){
-            return d&&d.created_at&&String(d.created_at)>String(latestPlayerMsg.createdAt);
-          });
-          needsReply=!(hasCoachChatAfter||hasDirectiveAfter);
-        }
-        return {player:player,thread:thread,unread:unread,needsReply:needsReply,dirs:dirs};
+        const lastMsg=allMsgs.length>0?allMsgs[allMsgs.length-1]:null;
+        const needsReply=!!(lastMsg&&lastMsg.author==='선수');
+        return {player:player,thread:thread,allMsgs:allMsgs,unread:unread,needsReply:needsReply,dirs:dirs};
       }).filter(function(g){return g.thread.length>0;});
       if(!groups.length){
         root.innerHTML='<div class="message"><div class="meta">Inbox</div><div>선수 메시지가 없습니다.</div></div>';
         return;
       }
+      // coachCommBadge: 미답변 선수 수로 실시간 갱신
+      var needsReplyCount=groups.filter(function(g){return g.needsReply;}).length;
+      var coachBadge=document.getElementById('coachCommBadge');
+      if(coachBadge){
+        if(needsReplyCount>0){coachBadge.textContent=String(needsReplyCount);coachBadge.style.display='inline';}
+        else{coachBadge.style.display='none';}
+      }
       root.innerHTML=groups.map(function(g){
         var badge = g.unread>0 ? '<span class="badge unread" style="background:#dc2626;color:#fff;margin-left:6px;font-size:10px;padding:2px 4px;">'+g.unread+'</span>' : '';
-        var msgsHtml=g.thread.map(function(m){
-          var ic=m.author==='코치';
-          // decide if this player message has a coach reply later
-          var replied=false;
-          if(!ic){
-            var hasCoachChatAfter=msgsRaw.some(function(r){
-              return r.player_id===g.player.id && r.author==='코치' && String(r.created_at) > String(m.createdAt);
-            });
-            var hasDirectiveAfter=(g.dirs||[]).some(function(d){
-              return d&&d.created_at&&String(d.created_at)>String(m.createdAt);
-            });
-            replied = hasCoachChatAfter || hasDirectiveAfter;
-          }
-          var atts=Array.isArray(m.attachments)?m.attachments:[];
-          var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f,i){
-            var href=resolveAttachmentLink(f);
-            var name=resolveAttachmentName(f,i);
-            if(!href) return '';
-            return '<a href="'+href+'" target="_blank" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';
-          }).join('')+'</div>':'';
-          var replyBadge = replied ? '<span class="badge" style="background:#10b981;color:#fff;font-size:10px;margin-left:6px;">답변완료</span>' : '';
-          return '<div class="message '+(ic?'msg-coach':'msg-player')+'"'+(m.coach_read?'':' style="background:#fffbeb;"')+'><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+m.author+'</span><span>'+formatTime(m.createdAt)+'</span>'+replyBadge+'</div><div style="margin-top:2px">'+m.text+'</div>'+attHtml+'</div>';
-        }).join('');
-        var replyBtn=g.needsReply
-          ? '<button class="btn-xs coach-quick-reply-btn" data-replied="false" data-player-id="'+g.player.id+'" style="margin-left:8px">답변하기</button>'
-          : '<button class="btn-xs coach-quick-reply-btn" data-replied="true" data-player-id="'+g.player.id+'" style="margin-left:8px;background:#dcfce7;color:#166534;cursor:default;">답변완료</button>';
-        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+g.player.name+' ('+g.player.id+')</span>'+badge+replyBtn+'</div><div class="comm-group-body">'+msgsHtml+'</div></div>';
+        // 선수/코치 메시지를 Q&A 쌍으로 그룹화
+        var pairs=[];var leadCoach=[];var curP=null;var curCR=[];
+        for(var ji=0;ji<g.thread.length;ji++){
+          var tm=g.thread[ji];
+          if(tm.author==='선수'){if(curP!==null)pairs.push({pm:curP,cr:curCR});curP=tm;curCR=[];}
+          else{if(curP!==null)curCR.push(tm);else leadCoach.push(tm);}
+        }
+        if(curP!==null)pairs.push({pm:curP,cr:curCR});
+        var msgsHtml=
+          leadCoach.map(function(m){
+            var atts=Array.isArray(m.attachments)?m.attachments:[];
+            var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+atts.map(function(f,i){var href=resolveAttachmentLink(f);var name=escapeHtml(resolveAttachmentName(f,i));if(!href)return '';return '<a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';}).join('')+'</div>':'';
+            return '<div class="message msg-coach"><div class="meta"><span class="badge-role badge-coach">'+escapeHtml(m.author)+'</span><span>'+escapeHtml(formatTime(m.createdAt))+'</span></div><div style="margin-top:2px">'+escapeHtml(m.text)+'</div>'+attHtml+'</div>';
+          }).join('')+
+          pairs.map(function(pair){
+            var pm=pair.pm;
+            var replied=g.allMsgs.some(function(m){return m.author==='코치'&&String(m.createdAt)>String(pm.createdAt);});
+            var replyStatusHtml=replied
+              ?'<div style="margin-top:5px"><span style="display:inline-block;background:#dcfce7;color:#166534;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;">✓ 답변완료</span></div>'
+              :(pendingReplyPlayerIds.has(g.player.id)
+                ?'<div style="margin-top:5px"><button class="coach-quick-reply-btn" data-player-id="'+escapeHtml(g.player.id)+'" style="padding:3px 12px;font-size:11px;font-weight:600;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;">✏ 입력 중...</button></div>'
+                :'<div style="margin-top:5px"><button class="coach-quick-reply-btn" data-player-id="'+escapeHtml(g.player.id)+'" style="padding:3px 12px;font-size:11px;font-weight:600;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;">✏ 답변하기</button></div>');
+            var pmAtts=Array.isArray(pm.attachments)?pm.attachments:[];
+            var pmAttHtml=pmAtts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+pmAtts.map(function(f,i){var href=resolveAttachmentLink(f);var name=escapeHtml(resolveAttachmentName(f,i));if(!href)return '';return '<a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';}).join('')+'</div>':'';
+            var coachRepliesHtml=pair.cr.map(function(m){
+              var catts=Array.isArray(m.attachments)?m.attachments:[];
+              var cattHtml=catts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 '+catts.map(function(f,i){var href=resolveAttachmentLink(f);var name=escapeHtml(resolveAttachmentName(f,i));if(!href)return '';return '<a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'" style="display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;background:#dbeafe;border-radius:4px;font-size:12px;color:#1d4ed8;text-decoration:none">⬇ '+name+'</a>';}).join('')+'</div>':'';
+              return '<div class="message msg-coach" style="margin-left:14px;margin-top:3px;border-left:3px solid #93c5fd;padding-left:10px;"><div class="meta"><span class="badge-role badge-coach">'+escapeHtml(m.author)+'</span><span>'+escapeHtml(formatTime(m.createdAt))+'</span></div><div style="margin-top:2px">'+escapeHtml(m.text)+'</div>'+cattHtml+'</div>';
+            }).join('');
+            return '<div class="message msg-player"'+(pm.coach_read?'':' style="background:#fffbeb;"')+'><div class="meta"><span class="badge-role badge-player">'+escapeHtml(pm.author)+'</span><span>'+escapeHtml(formatTime(pm.createdAt))+'</span></div><div style="margin-top:2px">'+escapeHtml(pm.text)+'</div>'+pmAttHtml+replyStatusHtml+'</div>'+coachRepliesHtml;
+          }).join('');
+        return '<div class="comm-group"><div class="comm-group-header"><span>&#128100; '+escapeHtml(g.player.name)+' ('+escapeHtml(g.player.id)+')</span>'+badge+'</div><div class="comm-group-body">'+msgsHtml+'</div></div>';
       }).join('');
       root.querySelectorAll('.coach-quick-reply-btn').forEach(function(btn){btn.addEventListener('click',async function(){
-        if(btn.dataset.replied==='true') return;
         var pid=btn.getAttribute('data-player-id');
+        pendingReplyPlayerIds.add(pid);
         await markPlayerMessagesRead(pid);
         renderCoachInboxDynamic();
         var ts=document.getElementById('coachDirectiveTarget'); if(ts) ts.value=pid;
@@ -2586,8 +2599,8 @@
         });
     }
 
-    // periodically refresh relative timestamps every minute
-    setInterval(function(){
+    // 상대 타임스탬프를 매 1분마다 갱신
+    timestampRefreshInterval = setInterval(function(){
       renderDashboardCoachMessages();
       renderCoachDirectiveList();
       renderPlayerMessageThread();
@@ -2616,8 +2629,6 @@
       ta.value='';
       var fileInputEl=document.getElementById('playerQuestionFile'); if(fileInputEl) fileInputEl.value='';
       renderPlayerMessageThread();renderCoachInboxDynamic();renderCommCounts();
-      var badge=document.getElementById('coachCommBadge');
-      if(badge){badge.textContent=String((parseInt(badge.textContent||'0',10))+1);badge.style.display='inline';}
     });
 
     function updateMindDisplay(){
@@ -2685,6 +2696,7 @@
       });
       // when coach assigns a mission we can treat as a reply, clear unread flag
       await markPlayerMessagesRead(athleteId);
+      pendingReplyPlayerIds.delete(athleteId);
       await updatePlayerCompletionMetrics(athleteId);
       await renderMissionCardsForActivePlayer();
       await renderCoachAthleteBoard();
@@ -2724,6 +2736,8 @@
         });
         // mark their unread chat messages as read because coach has replied
         await markPlayerMessagesRead(targets[i]);
+        // 답변 완료 → 녹색 pending 상태 해제
+        pendingReplyPlayerIds.delete(targets[i]);
       }
       invalidateCoachDirectiveCache();
       document.getElementById('coachDirectiveInput').value='';
@@ -2789,7 +2803,6 @@
       if(tabId==='completed'){renderCoachCompletedMissionList();}
       if(tabId==='comm'){
         renderCoachInboxDynamic();renderCoachDirectiveList();syncCoachDirectiveTargetOptions();
-        var badge=document.getElementById('coachCommBadge'); if(badge) badge.style.display='none';
       }
     }
     document.querySelectorAll('.coach-tab-btn').forEach(function(btn){btn.addEventListener('click',function(){switchCoachTab(btn.dataset.coachTab);});});
@@ -3008,7 +3021,9 @@
       in:['홀별 결과를 빠르게 기록하고 멘탈 리셋','위기 상황 시 코치 지시 우선 적용','다음라운드 위해 퍼팅에 집중'],
       post:['다음 경기까지 보완 미션 자동 이월','4주 추세 기준 훈련 계획 재설정']
     };
-    function isLockedItem(phKey,item){return (LOCKED_PHASE_ITEMS[phKey]||[]).indexOf(item)!==-1;}
+    function getItemText(item){return typeof item==='object'&&item!==null?item.text||'':String(item||'');}
+    function getItemDesc(item){return typeof item==='object'&&item!==null?item.desc||'':'';}
+    function isLockedItem(phKey,item){return (LOCKED_PHASE_ITEMS[phKey]||[]).indexOf(getItemText(item))!==-1;}
     async function getPhaseConfig(playerId){
       const {data}=await sb.from('sytpt_messages').select('text,created_at').eq('player_id',playerId).eq('message_type','phase_config').order('created_at',{ascending:false}).limit(1).maybeSingle();
       var base={pre:[...LOCKED_PHASE_ITEMS.pre],in:[...LOCKED_PHASE_ITEMS.in],post:[...LOCKED_PHASE_ITEMS.post]};
@@ -3019,7 +3034,7 @@
         ['pre','in','post'].forEach(function(k){
           LOCKED_PHASE_ITEMS[k].forEach(function(locked){
             if(!parsed[k]) parsed[k]=[];
-            if(parsed[k].indexOf(locked)===-1) parsed[k].unshift(locked);
+            if(parsed[k].findIndex(function(x){return getItemText(x)===locked;})===-1) parsed[k].unshift(locked);
           });
         });
         return parsed;
@@ -3030,7 +3045,7 @@
       ['pre','in','post'].forEach(function(k){
         LOCKED_PHASE_ITEMS[k].forEach(function(locked){
           if(!config[k]) config[k]=[];
-          if(config[k].indexOf(locked)===-1) config[k].unshift(locked);
+          if(config[k].findIndex(function(x){return getItemText(x)===locked;})===-1) config[k].unshift(locked);
         });
       });
       await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_config');
@@ -3059,10 +3074,23 @@
           var done=sel[ph.key+'_'+i];
           var textStyle=done?'text-decoration:line-through;color:#9ca3af;':'';
           var disabled=isCoach?'disabled':'';
-          return '<li style="list-style:none;margin:5px 0"><label style="display:flex;align-items:center;gap:6px;cursor:'+(isCoach?'default':'pointer')+';font-size:13px"><input type="checkbox" class="phase-check" data-phase="'+ph.key+'" data-idx="'+i+'" '+checked+' '+disabled+' style="width:15px;height:15px;flex-shrink:0"><span class="phase-item-text" style="'+textStyle+'color:'+(done?'#9ca3af':'var(--sub)')+'">'+item+'</span></label></li>';
+          var itemText=getItemText(item);
+          var itemDesc=getItemDesc(item);
+          var descHtml=itemDesc?'<div class="phase-item-desc" style="display:none;margin:4px 0 4px 22px;padding:6px 8px;background:rgba(0,0,0,0.04);border-left:3px solid #93c5fd;border-radius:0 6px 6px 0;font-size:12px;color:var(--sub);line-height:1.6">'+escapeHtml(itemDesc)+'</div>':'';
+          var toggleBtn=itemDesc?'<button type="button" class="phase-desc-toggle" style="border:none;background:none;cursor:pointer;font-size:11px;color:#3b82f6;padding:0 2px;flex-shrink:0" title="상세 설명 보기">▼</button>':'';
+          return '<li style="list-style:none;margin:5px 0"><div style="display:flex;align-items:center;gap:4px"><label style="display:flex;align-items:center;gap:6px;cursor:'+(isCoach?'default':'pointer')+';font-size:13px;flex:1"><input type="checkbox" class="phase-check" data-phase="'+ph.key+'" data-idx="'+i+'" '+checked+' '+disabled+' style="width:15px;height:15px;flex-shrink:0"><span class="phase-item-text" style="'+textStyle+'color:'+(done?'#9ca3af':'var(--sub)')+'">'+escapeHtml(itemText)+'</span></label>'+toggleBtn+'</div>'+descHtml+'</li>';
         }).join('');
         return '<div class="phase" style="margin-bottom:10px"><h4 style="color:'+ph.color+';margin:0 0 6px">'+ph.label+'</h4><ul style="padding:0;margin:0">'+itemsHtml+'</ul></div>';
       }).join('');
+      root.querySelectorAll('.phase-desc-toggle').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          var desc=btn.closest('li').querySelector('.phase-item-desc');
+          if(!desc) return;
+          var open=desc.style.display!=='none';
+          desc.style.display=open?'none':'block';
+          btn.textContent=open?'▼':'▲';
+        });
+      });
       if(!isCoach){
         root.querySelectorAll('.phase-check').forEach(function(cb){
           cb.addEventListener('change',function(){
@@ -3070,7 +3098,7 @@
             var newSel=getPhaseSelections(player.id);
             newSel[key]=cb.checked;
             setPhaseSelections(player.id,newSel);
-            var span=cb.parentElement.querySelector('.phase-item-text');
+            var span=cb.closest('label').querySelector('.phase-item-text');
             if(span){span.style.textDecoration=cb.checked?'line-through':'none';span.style.color=cb.checked?'#9ca3af':'var(--sub)';}
           });
         });
@@ -3092,7 +3120,10 @@
           var suggBtns=sugg.map(function(s){return '<button class="phase-sugg-btn" data-phase="'+ph.key+'" data-text="'+s.replace(/"/g,'&quot;')+'" style="display:block;width:100%;text-align:left;padding:4px 6px;margin-bottom:4px;background:#f8fafc;border:1px solid var(--line);border-radius:6px;font-size:11px;cursor:pointer;color:var(--sub)">+ '+s+'</button>';}).join('');
           return '<div><div style="font-weight:700;font-size:12px;margin-bottom:6px">'+ph.label+'</div>'+
             '<div style="margin-bottom:8px"><div style="font-size:11px;color:#9ca3af;margin-bottom:4px">추천 항목</div>'+suggBtns+'</div>'+
-            '<div style="display:flex;gap:4px"><input id="phaseInput_'+ph.key+'" placeholder="직접 입력" style="flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px"><button class="btn btn-green phase-add-btn" data-phase="'+ph.key+'" style="white-space:nowrap;padding:6px 10px;font-size:12px">추가</button></div></div>';
+            '<div style="display:flex;flex-direction:column;gap:4px">'+
+              '<div style="display:flex;gap:4px"><input id="phaseInput_'+ph.key+'" placeholder="항목 제목" style="flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px"><button class="btn btn-green phase-add-btn" data-phase="'+ph.key+'" style="white-space:nowrap;padding:6px 10px;font-size:12px">추가</button></div>'+
+              '<textarea id="phaseDesc_'+ph.key+'" placeholder="상세 설명 (선택 — 선수 화면에서 ▼ 누르면 펼쳐집니다)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;resize:vertical;min-height:52px;box-sizing:border-box"></textarea>'+
+            '</div></div>';
         }).join('')+
         '</div><div id="phaseEditorPreview"></div>';
       async function loadPreview(){
@@ -3105,9 +3136,13 @@
             return '<div class="card" style="padding:8px"><div style="font-weight:700;font-size:12px;margin-bottom:6px">'+ph.label+'</div>'+
               (items.length?items.map(function(item,i){
                 var locked=isLockedItem(ph.key,item);
-                return '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f3f4f6;gap:4px">'+
-                  '<span style="font-size:12px;color:var(--sub);flex:1">'+item+'</span>'+
+                var desc=getItemDesc(item);
+                return '<div style="padding:3px 0;border-bottom:1px solid #f3f4f6">'+
+                  '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
+                  '<span style="font-size:12px;color:var(--sub);flex:1">'+escapeHtml(getItemText(item))+'</span>'+
                   (locked?'<span style="font-size:10px;color:#9ca3af;white-space:nowrap">🔒고정</span>':'<button class="btn btn-amber phase-del-btn" data-phase="'+ph.key+'" data-idx="'+i+'" style="padding:2px 6px;font-size:11px;white-space:nowrap">삭제</button>')+
+                  '</div>'+
+                  (desc?'<div style="font-size:11px;color:#6b7280;margin:2px 0 4px;padding:4px 6px;background:#f9fafb;border-radius:4px;line-height:1.5">'+escapeHtml(desc)+'</div>':'')+
                   '</div>';
               }).join(''):'<p class="muted" style="font-size:11px;margin:0">항목 없음</p>')+
               '</div>';
@@ -3124,13 +3159,14 @@
           });
         });
       }
-      async function addItem(phKey,text){
+      async function addItem(phKey,text,desc){
         text=(text||'').trim(); if(!text) return;
+        desc=(desc||'').trim();
         var pid=document.getElementById('phaseEditorPlayer').value;
         var cfg=await getPhaseConfig(pid);
         if(!cfg[phKey]) cfg[phKey]=[...LOCKED_PHASE_ITEMS[phKey]||[]];
-        if(cfg[phKey].indexOf(text)!==-1) return; // 중복 방지
-        cfg[phKey].push(text);
+        if(cfg[phKey].findIndex(function(x){return getItemText(x)===text;})!==-1) return; // 중복 방지
+        cfg[phKey].push(desc?{text:text,desc:desc}:text);
         await savePhaseConfig(pid,cfg);
         await loadPreview(); renderPhaseBoard();
       }
@@ -3138,7 +3174,9 @@
       root.querySelectorAll('.phase-add-btn').forEach(function(btn){
         btn.addEventListener('click',async function(){
           var inp=document.getElementById('phaseInput_'+btn.dataset.phase);
-          await addItem(btn.dataset.phase,inp.value); inp.value='';
+          var descInp=document.getElementById('phaseDesc_'+btn.dataset.phase);
+          await addItem(btn.dataset.phase,inp.value,descInp?descInp.value:'');
+          inp.value=''; if(descInp) descInp.value='';
         });
       });
       root.querySelectorAll('.phase-sugg-btn').forEach(function(btn){
@@ -3148,12 +3186,6 @@
     }
 
     // ====== 초기화 ======
-    renderBars('trendChart',   [52,58,61,67,64,72,78],'#60a5fa');
-    renderBars('stabilityChart',[70,75,68,80,83,78,86],'#34d399');
-    renderBars('stdChart',     [32,28,36,24,22,20,18],'#fbbf24');
-    renderBars('probChart',    [40,48,57,63,69,74,81],'#a78bfa');
-    renderBars('compareChart', [62,58,66,60,71,64,73],'#f87171');
-    renderBars('monthChart',   [48,55,63,77],'#22c55e');
 
     async function init(){
       // Rhythm_Tempo Training 버튼 핸들러 (스크립트 하단에 위치해야 정상 동작)
