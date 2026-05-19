@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SY-GSAP (Golf Swing Analysis Platform)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
@@ -975,10 +974,6 @@
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
   const loginOverlay = document.getElementById('loginOverlay');
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
@@ -1756,6 +1751,7 @@
     const entry = { when: now, action };
     logs[email] = logs[email] || [];
     logs[email].unshift(entry);
+    if(logs[email].length > 50) logs[email] = logs[email].slice(0, 50); // 로그 엔트리 최대 50개 유지
     saveUserLogs(logs);
   }
 
@@ -1783,7 +1779,13 @@
       row.style.justifyContent = 'space-between';
       row.style.fontSize = '0.85rem';
       row.style.padding = '2px 0';
-      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.65);">${new Date(entry.when).toLocaleString()}</span>`;
+      const actionSpan = document.createElement('span');
+      actionSpan.textContent = entry.action;
+      const timeSpan = document.createElement('span');
+      timeSpan.style.color = 'rgba(255,255,255,0.65)';
+      timeSpan.textContent = new Date(entry.when).toLocaleString();
+      row.appendChild(actionSpan);
+      row.appendChild(timeSpan);
       logEl.appendChild(row);
     });
   }
@@ -1838,7 +1840,7 @@
 
     loginBtn.addEventListener('click', async () => {
       const email = loginEmail.value.trim();
-      const password = loginPassword.value.trim();
+      const password = loginPassword.value;
       if(!email || !password){
         if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
         return;
@@ -2448,6 +2450,9 @@
   }
 
   function loadVideo(videoElem, file){
+    if(videoElem.src && videoElem.src.startsWith('blob:')){
+      URL.revokeObjectURL(videoElem.src); // 기존 blob URL 메모리 해제
+    }
     videoElem.src = URL.createObjectURL(file);
     applyPlaybackRates();
   }
@@ -2459,6 +2464,10 @@
   async function handleFrontVideoFile(file){
     setFileName('frontFileName', file);
     if(!file) return;
+    if(!file.type.startsWith('video/')){
+      if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
+      return;
+    }
     clearAnalysisResults();
     baselineFrontResult = null;
     segmentScoreHistory = {
@@ -2488,6 +2497,10 @@
   async function handleSideVideoFile(file){
     setFileName('sideFileName', file);
     if(!file) return;
+    if(!file.type.startsWith('video/')){
+      if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
+      return;
+    }
     clearAnalysisResults();
     segmentScoreHistory = {
       '3/5': null,
