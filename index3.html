@@ -436,8 +436,15 @@
         <div style="height:12px"></div>
 
         <div class="card">
-          <h3 style="margin:0 0 12px">오늘 수행할 미션</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+            <h3 style="margin:0">오늘 수행할 미션</h3>
+            <button type="button" class="btn btn-sm" id="completedMissionToggle">완료 미션 보기</button>
+          </div>
           <div class="mission-list" id="missionCards"></div>
+          <div class="mission-completed-section" id="completedMissionSection" style="display:none;margin-top:16px">
+            <h4 style="margin:0 0 12px">완료 미션</h4>
+            <div class="mission-list" id="completedMissionCards"></div>
+          </div>
         </div>
 
         <div style="height:12px"></div>
@@ -739,6 +746,7 @@
     const SIGNUP_RETRY_MS = 120000;
     const MAX_DAILY_MISSION_CARDS = 10;
     const expandedMissionIds = new Set();
+    let showCompletedMissionSection = false;
     const expandedMatchPlayerIds = new Set();
     let storageUploadAllowed = true;
     let coachDirectivesCache = [];
@@ -1659,6 +1667,13 @@
       if(p.length===2){const m=Number(p[0]),d=Number(p[1]);if(Number.isInteger(m)&&Number.isInteger(d))return{year:null,month:m,day:d};}
       return null;
     }
+    function isTodayDate(value){
+      if(!value) return false;
+      const d=new Date(value);
+      if(Number.isNaN(d.getTime())) return false;
+      const now=new Date();
+      return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+    }
     function formatMatchRangeText(s,e){
       if(!s||!e||s==='시작일'||e==='종료일') return '시작일~종료일';
       const st=parseDateValue(s),en=parseDateValue(e);
@@ -1878,56 +1893,110 @@
     }
     async function renderMissionCardsForActivePlayer(){
       const missionCards=document.getElementById('missionCards');
+      const completedSection=document.getElementById('completedMissionSection');
+      const completedCards=document.getElementById('completedMissionCards');
+      const toggleBtn=document.getElementById('completedMissionToggle');
       const countRoot=document.getElementById('todayMissionCount');
-      if(!missionCards||!countRoot) return;
+      if(!missionCards||!countRoot||!toggleBtn||!completedSection||!completedCards) return;
       const session=getSession();
       const users=await getUsers();
       const player=getActivePlayerForView(users);
       const allM=player?await getDisplayMissionsForPlayer(player.id):[];
-      countRoot.textContent=String(allM.length);
-      if(!allM.length){missionCards.innerHTML='<div class="muted" style="padding:16px;text-align:center">코치가 배정한 미션이 없습니다.</div>';return;}
-      missionCards.innerHTML=allM.map(function(m){
-        var detailHtml='';
-        if(expandedMissionIds.has(m.missionKey)){
-          var attachHtml='';
-          if(m.attachments&&m.attachments.length){
-            attachHtml='<div class="muted" style="margin-top:6px">📎 첨부파일</div><div class="message-list" style="max-height:120px;margin-top:6px">'+
-              m.attachments.map(function(f,i){
-                var href=resolveAttachmentLink(f);
-                var name=escapeHtml(resolveAttachmentName(f,i));
-                if(!href) return '';
-                return '<div class="message" style="padding:6px"><a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
-              }).join('')+'</div>';
+      const incompleteMissions=allM.filter(function(m){return !m.completed;});
+      const completedMissions=allM.filter(function(m){return !!m.completed;});
+      const newlyAssignedCompleted=completedMissions.filter(function(m){return isTodayDate(m.createdAt);});
+      countRoot.textContent=String(incompleteMissions.length + newlyAssignedCompleted.length);
+      if(!allM.length){
+        missionCards.innerHTML='<div class="muted" style="padding:16px;text-align:center">코치가 배정한 미션이 없습니다.</div>';
+        completedCards.innerHTML='';
+        completedSection.style.display='none';
+        toggleBtn.textContent='완료 미션 보기';
+        showCompletedMissionSection=false;
+        return;
+      }
+      if(!incompleteMissions.length){
+        missionCards.innerHTML='<div class="muted" style="padding:16px;text-align:center">오늘 수행할 미션이 없습니다.</div>';
+      } else {
+        missionCards.innerHTML=incompleteMissions.map(function(m){
+          var detailHtml='';
+          if(expandedMissionIds.has(m.missionKey)){
+            var attachHtml='';
+            if(m.attachments&&m.attachments.length){
+              attachHtml='<div class="muted" style="margin-top:6px">📎 첨부파일</div><div class="message-list" style="max-height:120px;margin-top:6px">'+
+                m.attachments.map(function(f,i){
+                  var href=resolveAttachmentLink(f);
+                  var name=escapeHtml(resolveAttachmentName(f,i));
+                  if(!href) return '';
+                  return '<div class="message" style="padding:6px"><a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
+                }).join('')+'</div>';
+            }
+            var statusHtml='<span style="color:#d97706;font-weight:700;font-size:13px">⏳ 미완료</span>';
+            var btnHtml='';
+            if(session&&session.role==='player'){
+              btnHtml='<div style="height:10px"></div><button class="btn btn-green mission-complete-btn" data-mission-key="'+escapeHtml(m.missionKey)+'" data-assigned-id="'+escapeHtml(m.missionId||'')+'" style="width:100%;font-size:15px;padding:10px 12px;letter-spacing:0.5px">✅ 미션 종료</button>';
+            }
+            detailHtml='<div class="mission-detail">'+(m.feedback?'<div class="muted" style="margin-top:2px;margin-bottom:4px">💬 코치 피드백: '+escapeHtml(m.feedback)+'</div>':'')+attachHtml+'<div style="margin-top:8px;padding:8px 0 4px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600">수행 상태:</span>'+statusHtml+'</div>'+btnHtml+'</div>';
+          } else {
+            detailHtml='<div style="height:6px"></div><div class="muted" style="font-size:12px">▶ 제목을 누르면 상세 및 미션 종료 버튼이 열립니다.</div>';
           }
-          var statusHtml=m.completed?
-            ('<span style="color:#16a34a;font-weight:700;font-size:13px">✅ 완료</span>'+(m.completedAt?'<span class="muted" style="font-size:12px">('+escapeHtml(formatTime(m.completedAt))+')</span>':'')):
-            '<span style="color:#d97706;font-weight:700;font-size:13px">⏳ 미완료</span>';
-          var btnHtml='';
-          if(session&&session.role==='player'){
-            btnHtml='<div style="height:10px"></div><button class="btn '+(m.completed?'btn-amber':'btn-green')+' mission-complete-btn" data-mission-key="'+escapeHtml(m.missionKey)+'" data-assigned-id="'+escapeHtml(m.missionId||'')+'" style="width:100%;font-size:15px;padding:10px 12px;letter-spacing:0.5px">'+(m.completed?'↩ 완료 취소 (재개)':'✅ 미션 종료')+'</button>';
+          return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button class="mission-title-btn mission-toggle-btn" data-mission-key="'+escapeHtml(m.missionKey)+'">'+escapeHtml(m.code)+'</button><span class="chip">'+escapeHtml(m.mode)+'</span></div><div class="muted" style="margin-top:6px">난이도: '+escapeHtml(m.level)+'</div><div class="muted">예상 소요시간: '+escapeHtml(m.time)+'</div><div class="muted">출처: '+escapeHtml(m.source)+'</div>'+detailHtml+'</div>';
+        }).join('');
+      }
+      if(!completedMissions.length){
+        completedCards.innerHTML='<div class="muted" style="padding:16px;text-align:center">완료된 미션이 없습니다.</div>';
+      } else {
+        completedCards.innerHTML=completedMissions.map(function(m){
+          var detailHtml='';
+          if(expandedMissionIds.has(m.missionKey)){
+            var attachHtml='';
+            if(m.attachments&&m.attachments.length){
+              attachHtml='<div class="muted" style="margin-top:6px">📎 첨부파일</div><div class="message-list" style="max-height:120px;margin-top:6px">'+
+                m.attachments.map(function(f,i){
+                  var href=resolveAttachmentLink(f);
+                  var name=escapeHtml(resolveAttachmentName(f,i));
+                  if(!href) return '';
+                  return '<div class="message" style="padding:6px"><a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer" download="'+name+'">'+(i+1)+'. '+name+'</a></div>';
+                }).join('')+'</div>';
+            }
+            var statusHtml='<span style="color:#16a34a;font-weight:700;font-size:13px">✅ 완료</span>'+(m.completedAt?'<span class="muted" style="font-size:12px">('+escapeHtml(formatTime(m.completedAt))+')</span>':'');
+            var btnHtml='';
+            if(session&&session.role==='player'){
+              btnHtml='<div style="height:10px"></div><button class="btn btn-amber mission-complete-btn" data-mission-key="'+escapeHtml(m.missionKey)+'" data-assigned-id="'+escapeHtml(m.missionId||'')+'" style="width:100%;font-size:15px;padding:10px 12px;letter-spacing:0.5px">↩ 완료 취소 (재개)</button>';
+            }
+            detailHtml='<div class="mission-detail">'+(m.feedback?'<div class="muted" style="margin-top:2px;margin-bottom:4px">💬 코치 피드백: '+escapeHtml(m.feedback)+'</div>':'')+attachHtml+'<div style="margin-top:8px;padding:8px 0 4px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600">수행 상태:</span>'+statusHtml+'</div>'+btnHtml+'</div>';
+          } else {
+            detailHtml='<div style="height:6px"></div><div class="muted" style="font-size:12px">▶ 제목을 누르면 상세 및 완료 취소 버튼이 열립니다.</div>';
           }
-          detailHtml='<div class="mission-detail">'+(m.feedback?'<div class="muted" style="margin-top:2px;margin-bottom:4px">💬 코치 피드백: '+escapeHtml(m.feedback)+'</div>':'')+attachHtml+'<div style="margin-top:8px;padding:8px 0 4px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600">수행 상태:</span>'+statusHtml+'</div>'+btnHtml+'</div>';
-        } else {
-          detailHtml='<div style="height:6px"></div><div class="muted" style="font-size:12px">▶ 제목을 누르면 상세 및 미션 종료 버튼이 열립니다.</div>';
-        }
-        return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button class="mission-title-btn mission-toggle-btn" data-mission-key="'+escapeHtml(m.missionKey)+'">'+escapeHtml(m.code)+'</button><span class="chip">'+escapeHtml(m.mode)+'</span></div><div class="muted" style="margin-top:6px">난이도: '+escapeHtml(m.level)+'</div><div class="muted">예상 소요시간: '+escapeHtml(m.time)+'</div><div class="muted">출처: '+escapeHtml(m.source)+'</div>'+detailHtml+'</div>';
-      }).join('');
-      missionCards.querySelectorAll('.mission-toggle-btn').forEach(function(btn){btn.addEventListener('click',function(){
-        var k=btn.dataset.missionKey;
-        if(expandedMissionIds.has(k)) expandedMissionIds.delete(k); else expandedMissionIds.add(k);
+          return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button class="mission-title-btn mission-toggle-btn" data-mission-key="'+escapeHtml(m.missionKey)+'">'+escapeHtml(m.code)+'</button><span class="chip">'+escapeHtml(m.mode)+'</span></div><div class="muted" style="margin-top:6px">난이도: '+escapeHtml(m.level)+'</div><div class="muted">예상 소요시간: '+escapeHtml(m.time)+'</div><div class="muted">출처: '+escapeHtml(m.source)+'</div>'+detailHtml+'</div>';
+        }).join('');
+      }
+      completedSection.style.display=showCompletedMissionSection && completedMissions.length ? 'block' : 'none';
+      toggleBtn.textContent = showCompletedMissionSection ? '완료 미션 접기' : '완료 미션 보기';
+      toggleBtn.disabled = false;
+      toggleBtn.onclick = function(){
+        showCompletedMissionSection = !showCompletedMissionSection;
         renderMissionCardsForActivePlayer();
-      });});
+      };
+      [missionCards, completedCards].forEach(function(root){
+        root.querySelectorAll('.mission-toggle-btn').forEach(function(btn){btn.addEventListener('click',function(){
+          var k=btn.dataset.missionKey;
+          if(expandedMissionIds.has(k)) expandedMissionIds.delete(k); else expandedMissionIds.add(k);
+          renderMissionCardsForActivePlayer();
+        });});
+      });
       if(!session||session.role!=='player'||!player) return;
-      missionCards.querySelectorAll('.mission-complete-btn').forEach(function(btn){btn.addEventListener('click',async function(){
-        var k=btn.dataset.missionKey;
-        var assignedId=btn.dataset.assignedId;
-        var prog=await getMissionProgressState(player.id,k);
-        var next=!(prog&&prog.completed);
-        await setMissionProgressState(player.id,k,next);
-        if(assignedId) await updateAssignedMissionCompletion(assignedId,next,next?new Date().toISOString():null);
-        await updatePlayerCompletionMetrics(player.id);
-        renderMissionCardsForActivePlayer();renderPlayerViewContext();renderCoachAthleteBoard();renderCoachCompletedMissionList();renderCoachKPIs();
-      });});
+      [missionCards, completedCards].forEach(function(root){
+        root.querySelectorAll('.mission-complete-btn').forEach(function(btn){btn.addEventListener('click',async function(){
+          var k=btn.dataset.missionKey;
+          var assignedId=btn.dataset.assignedId;
+          var prog=await getMissionProgressState(player.id,k);
+          var next=!(prog&&prog.completed);
+          await setMissionProgressState(player.id,k,next);
+          if(assignedId) await updateAssignedMissionCompletion(assignedId,next,next?new Date().toISOString():null);
+          await updatePlayerCompletionMetrics(player.id);
+          renderMissionCardsForActivePlayer();renderPlayerViewContext();renderCoachAthleteBoard();renderCoachCompletedMissionList();renderCoachKPIs();
+        });});
+      });
     }
     async function syncCoachAthleteSelectOptions(){
       const select=document.getElementById('coachAthleteSelect'); if(!select) return;
