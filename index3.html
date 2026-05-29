@@ -307,7 +307,7 @@
     }
     .inline-edit-trigger{cursor:pointer;text-decoration:underline;text-underline-offset:2px}
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.min.js"></script>
 </head>
 <body>
   <div class="auth-screen" id="authScreen">
@@ -569,6 +569,7 @@
         <button class="coach-tab-btn" data-coach-tab="completed">선수별 완료미션 현황</button>
         <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
         <button class="coach-tab-btn" data-coach-tab="analysis">경기내용 분석<span class="coach-tab-badge" id="coachAnalysisBadge" style="display:none">0</span></button>
+        <button class="coach-tab-btn" data-coach-tab="putting">Putting Training 결과<span class="coach-tab-badge" id="coachPuttingBadge" style="display:none">0</span></button>
       </div>
 
       <!-- 탭 1: 선수 현황 목록 + 승인 대기 -->
@@ -694,6 +695,15 @@
           </div>
         </div>
       </div>
+
+      <!-- 탭 7: Putting Training 결과 -->
+      <div class="coach-tab-panel" id="coachTab-putting">
+        <div class="card">
+          <h3 style="margin-top:0">🏌️ Putting Training 결과 목록</h3>
+          <p class="muted" style="margin:0 0 12px;font-size:12px">선수가 전송한 퍼팅 훈련 결과 목록입니다. 새로 도착한 결과는 배지로 표시됩니다.</p>
+          <div id="coachPuttingResultList" style="min-height:60px"></div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -723,7 +733,18 @@
       throw new Error('Supabase service role key is not allowed in the browser');
     }
 
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 인메모리 auth storage: Tracking Prevention이 localStorage를 차단해도 정상 동작
+    const _memStore = (function(){
+      var store={};
+      return {
+        getItem:function(k){return Object.prototype.hasOwnProperty.call(store,k)?store[k]:null;},
+        setItem:function(k,v){store[k]=String(v);},
+        removeItem:function(k){delete store[k];}
+      };
+    })();
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { storage: _memStore, storageKey: 'sytpt_sb_auth', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }
+    });
 
     async function openIndex1WithSession(url){
       // Supabase 현재 세션을 가져와 URL 파라미터로 전달 (Tracking Prevention 우회)
@@ -2606,7 +2627,7 @@
         renderPendingApprovals();renderCoachAthleteBoard();renderCoachCompletedMissionList();
         renderCoachMatchBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();
         renderPlayerViewContext();renderCoachInboxDynamic();renderCoachDirectiveList();renderCoachKPIs();switchCoachTab('monitoring');
-        updateCoachAnalysisBadge();updateCoachMatchBadge();
+        updateCoachAnalysisBadge();updateCoachMatchBadge();updateCoachPuttingBadge();
       }else{
         playerBtn.style.display='inline-block';coachBtn.style.display='none';
         document.getElementById('coachPortal').style.display='none';switchPortal('player');
@@ -2898,6 +2919,13 @@
         var ab=document.getElementById('coachAnalysisBadge');
         if(ab){ab.style.display='none';ab.textContent='0';}
       }
+      if(tabId==='putting'){
+        // 탭 열면 배지 초기화
+        localStorage.setItem('sytpt_coach_putting_seen',new Date().toISOString());
+        var pb=document.getElementById('coachPuttingBadge');
+        if(pb){pb.style.display='none';pb.textContent='0';}
+        renderCoachPuttingResults();
+      }
     }
     // 코치 배지 갱신 함수들
     async function updateCoachAnalysisBadge(){
@@ -2917,6 +2945,58 @@
         var el=document.getElementById('coachMatchBadge');
         if(el){if(cnt>0){el.textContent=String(cnt);el.style.display='inline';}else{el.style.display='none';}}
       }catch(e){}
+    }
+    async function updateCoachPuttingBadge(){
+      try{
+        var seenAt=localStorage.getItem('sytpt_coach_putting_seen')||'2000-01-01T00:00:00.000Z';
+        var {data}=await sb.from('app_kv_store').select('storage_key,storage_value').like('storage_key','golfworks-prod:putting_notif:%');
+        var cnt=0;
+        if(data){
+          data.forEach(function(row){
+            try{
+              var val=JSON.parse(row.storage_value||'{}');
+              if(val.sentAt&&val.sentAt>seenAt) cnt++;
+            }catch(e){}
+          });
+        }
+        var el=document.getElementById('coachPuttingBadge');
+        if(el){if(cnt>0){el.textContent=String(cnt);el.style.display='inline';}else{el.style.display='none';}}
+      }catch(e){}
+    }
+    async function renderCoachPuttingResults(){
+      var root=document.getElementById('coachPuttingResultList'); if(!root) return;
+      root.innerHTML='<p class="muted" style="margin:0">불러오는 중...</p>';
+      try{
+        var seenAt=localStorage.getItem('sytpt_coach_putting_seen')||'2000-01-01T00:00:00.000Z';
+        var ns='golfworks-prod';
+        var {data,error}=await sb.from('app_kv_store').select('storage_key,storage_value').like('storage_key',ns+':putting_notif:%');
+        if(error){
+          root.innerHTML='<p class="muted" style="margin:0;color:red">조회 오류: '+escapeHtml(String(error.message||JSON.stringify(error)))+'</p>';
+          return;
+        }
+        if(!data||!data.length){root.innerHTML='<p class="muted" style="margin:0">아직 전송된 Putting Training 결과가 없습니다.<br><small style="color:#888">선수가 연습결과 저장(M1/M2 저장 버튼)을 누르면 이곳에 표시됩니다.</small></p>';return;}
+        var items=[];
+        data.forEach(function(row){
+          try{
+            var val=JSON.parse(row.storage_value||'{}');
+            if(val.playerName&&val.sessionDate) items.push(val);
+          }catch(e){}
+        });
+        items.sort(function(a,b){return String(b.sentAt||'').localeCompare(String(a.sentAt||''));});
+        if(!items.length){root.innerHTML='<p class="muted" style="margin:0">아직 전송된 Putting Training 결과가 없습니다.</p>';return;}
+        var html=items.map(function(item){
+          var isNew=item.sentAt&&item.sentAt>seenAt;
+          var newLabel=isNew?'<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:6px">NEW</span>':'';
+          var sentTime=item.sentAt?new Date(item.sentAt).toLocaleString('ko-KR'):'';
+          return '<div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+            +'<span style="font-weight:700;font-size:14px">'+escapeHtml(item.playerName)+'</span>'
+            +'<span class="muted" style="font-size:12px">세션일: '+escapeHtml(item.sessionDate)+'</span>'
+            +'<span class="muted" style="font-size:12px">기록 수: <strong>'+escapeHtml(String(item.count||0))+'</strong>건</span>'
+            +'<span class="muted" style="font-size:12px">저장: '+escapeHtml(sentTime)+'</span>'
+            +newLabel+'</div>';
+        }).join('');
+        root.innerHTML=html;
+      }catch(e){root.innerHTML='<p class="muted" style="margin:0;color:red">불러오기 실패: '+escapeHtml(String(e))+'</p>';}
     }
     document.querySelectorAll('.coach-tab-btn').forEach(function(btn){btn.addEventListener('click',function(){switchCoachTab(btn.dataset.coachTab);});});
 
