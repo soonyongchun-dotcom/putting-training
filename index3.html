@@ -565,10 +565,10 @@
       <div class="coach-tab-bar">
         <button class="coach-tab-btn active" data-coach-tab="monitoring">전체 선수 현황 목록</button>
         <button class="coach-tab-btn" data-coach-tab="mission">오늘 미션 배정</button>
-        <button class="coach-tab-btn" data-coach-tab="match">경기 시합 준비 현황</button>
+        <button class="coach-tab-btn" data-coach-tab="match">경기 시합 준비 현황<span class="coach-tab-badge" id="coachMatchBadge" style="display:none">0</span></button>
         <button class="coach-tab-btn" data-coach-tab="completed">선수별 완료미션 현황</button>
         <button class="coach-tab-btn" data-coach-tab="comm">선수 커뮤니케이션<span class="coach-tab-badge" id="coachCommBadge" style="display:none">0</span></button>
-        <button class="coach-tab-btn" data-coach-tab="analysis">경기내용 분석</button>
+        <button class="coach-tab-btn" data-coach-tab="analysis">경기내용 분석<span class="coach-tab-badge" id="coachAnalysisBadge" style="display:none">0</span></button>
       </div>
 
       <!-- 탭 1: 선수 현황 목록 + 승인 대기 -->
@@ -2313,9 +2313,10 @@
       const users=await getUsers();
       const ap=getApprovedPlayers(users);
       if(!ap.length){root.innerHTML='<p class="muted" style="margin:0">승인된 선수가 없습니다.</p>';return;}
-      const [infos, phaseConfigs]=await Promise.all([
+      const [infos, phaseConfigs, serverSelList]=await Promise.all([
         Promise.all(ap.map(function(p){return getMatchInfoByPlayerId(p.id);})),
-        Promise.all(ap.map(function(p){return getPhaseConfig(p.id);}))
+        Promise.all(ap.map(function(p){return getPhaseConfig(p.id);})),
+        Promise.all(ap.map(function(p){return getPhaseSelectionsFromServer(p.id);}))
       ]);
       var seq=1;
       root.innerHTML=ap.map(function(player,i){
@@ -2332,7 +2333,7 @@
           {key:'in',label:'🟢 In-Match (경기 중)',color:'#16a34a'},
           {key:'post',label:'🔵 Post-Match (경기 후)',color:'#2563eb'}
         ];
-        var sel=getPhaseSelections(player.id);
+        var sel=serverSelList[i]!==null?serverSelList[i]:getPhaseSelections(player.id);
         var phaseCells=phaseDefs.map(function(ph){
           var items=cfg[ph.key]||[];
           var completedCount=0;
@@ -2594,6 +2595,7 @@
         renderPendingApprovals();renderCoachAthleteBoard();renderCoachCompletedMissionList();
         renderCoachMatchBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();
         renderPlayerViewContext();renderCoachInboxDynamic();renderCoachDirectiveList();renderCoachKPIs();switchCoachTab('monitoring');
+        updateCoachAnalysisBadge();updateCoachMatchBadge();
       }else{
         playerBtn.style.display='inline-block';coachBtn.style.display='none';
         document.getElementById('coachPortal').style.display='none';switchPortal('player');
@@ -2868,11 +2870,42 @@
       document.querySelectorAll('.coach-tab-panel').forEach(function(p){p.classList.toggle('active',p.id==='coachTab-'+tabId);});
       if(tabId==='monitoring'){renderCoachAthleteBoard();renderPendingApprovals();}
       if(tabId==='mission'){syncCoachAthleteSelectOptions();}
-      if(tabId==='match'){renderCoachMatchBoard();renderCoachPhaseEditor();}
+      if(tabId==='match'){
+        renderCoachMatchBoard();renderCoachPhaseEditor();
+        // 탭 열면 배지 초기화
+        localStorage.setItem('sytpt_coach_match_seen',new Date().toISOString());
+        var mb=document.getElementById('coachMatchBadge');
+        if(mb){mb.style.display='none';mb.textContent='0';}
+      }
       if(tabId==='completed'){renderCoachCompletedMissionList();}
       if(tabId==='comm'){
         renderCoachInboxDynamic();renderCoachDirectiveList();syncCoachDirectiveTargetOptions();
       }
+      if(tabId==='analysis'){
+        // 탭 열면 배지 초기화
+        localStorage.setItem('sytpt_coach_analysis_seen',new Date().toISOString());
+        var ab=document.getElementById('coachAnalysisBadge');
+        if(ab){ab.style.display='none';ab.textContent='0';}
+      }
+    }
+    // 코치 배지 갱신 함수들
+    async function updateCoachAnalysisBadge(){
+      try{
+        var seenAt=localStorage.getItem('sytpt_coach_analysis_seen')||'2000-01-01T00:00:00.000Z';
+        var {data}=await sb.from('sytpt_player_rounds').select('id').gt('exported_at',seenAt);
+        var cnt=(data&&data.length)||0;
+        var el=document.getElementById('coachAnalysisBadge');
+        if(el){if(cnt>0){el.textContent=String(cnt);el.style.display='inline';}else{el.style.display='none';}}
+      }catch(e){}
+    }
+    async function updateCoachMatchBadge(){
+      try{
+        var seenAt=localStorage.getItem('sytpt_coach_match_seen')||'2000-01-01T00:00:00.000Z';
+        var {data}=await sb.from('sytpt_messages').select('id').eq('message_type','phase_selections').gt('created_at',seenAt);
+        var cnt=(data&&data.length)||0;
+        var el=document.getElementById('coachMatchBadge');
+        if(el){if(cnt>0){el.textContent=String(cnt);el.style.display='inline';}else{el.style.display='none';}}
+      }catch(e){}
     }
     document.querySelectorAll('.coach-tab-btn').forEach(function(btn){btn.addEventListener('click',function(){switchCoachTab(btn.dataset.coachTab);});});
 
@@ -3122,6 +3155,21 @@
     }
     function getPhaseSelections(playerId){return JSON.parse(localStorage.getItem('sytpt_phase_sel_'+playerId)||'{}');}
     function setPhaseSelections(playerId,sel){localStorage.setItem('sytpt_phase_sel_'+playerId,JSON.stringify(sel));}
+    async function getPhaseSelectionsFromServer(playerId){
+      try{
+        const {data}=await sb.from('sytpt_messages').select('text').eq('player_id',playerId).eq('message_type','phase_selections').order('created_at',{ascending:false}).limit(1).maybeSingle();
+        if(!data) return null;
+        return JSON.parse(data.text||'{}');
+      }catch(e){return null;}
+    }
+    async function savePhaseSelectionsToServer(playerId,sel){
+      try{
+        await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_selections');
+        await sb.from('sytpt_messages').insert({player_id:playerId,author:'player',text:JSON.stringify(sel),message_type:'phase_selections',created_at:new Date().toISOString()});
+        // 코치 배지 갱신
+        updateCoachMatchBadge();
+      }catch(e){console.warn('savePhaseSelectionsToServer failed',e);}
+    }
     async function renderPhaseBoard(){
       var root=document.getElementById('phaseBoard'); if(!root) return;
       var session=getSession();
@@ -3129,7 +3177,9 @@
       var player=getActivePlayerForView(users);
       if(!player){root.innerHTML='<p class="muted">선수 정보가 없습니다.</p>';return;}
       var config=await getPhaseConfig(player.id);
-      var sel=getPhaseSelections(player.id);
+      var serverSel=await getPhaseSelectionsFromServer(player.id);
+      var sel=serverSel!==null?serverSel:getPhaseSelections(player.id);
+      if(serverSel!==null) setPhaseSelections(player.id,serverSel);
       var isCoach=session&&session.role==='coach';
       var phases=[
         {key:'pre',label:'🟡 Pre-Match (경기 전)',color:'#d97706'},
@@ -3167,6 +3217,7 @@
             var newSel=getPhaseSelections(player.id);
             newSel[key]=cb.checked;
             setPhaseSelections(player.id,newSel);
+            savePhaseSelectionsToServer(player.id,newSel);
             var span=cb.closest('label').querySelector('.phase-item-text');
             if(span){span.style.textDecoration=cb.checked?'line-through':'none';span.style.color=cb.checked?'#9ca3af':'var(--sub)';}
           });

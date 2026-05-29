@@ -2996,7 +2996,56 @@ function exportCSV(){
   downloadBlob(filename, blob);
 }
 
-if (btnExportCSV) btnExportCSV.addEventListener('click', exportCSV);
+async function saveRoundToServer(){
+  initSupabase();
+  if(!sb) return;
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
+    if(!authSession){
+      console.warn('saveRoundToServer: no auth session, skipping server save.');
+      return;
+    }
+    const roundDate = (roundDateInput && roundDateInput.value) || new Date().toISOString().slice(0,10);
+    const playerId = getRoundSyncPlayerId();
+    const roundMeta = {
+      player: (playerNameInput && playerNameInput.value) || '',
+      date: roundDate,
+      course: (courseNameInput && courseNameInput.value) || '',
+      roundPar: (document.getElementById('roundPar') && document.getElementById('roundPar').value) || '',
+      totalYard: (document.getElementById('roundYard') && document.getElementById('roundYard').value) || '',
+      weather: (document.getElementById('roundWeather') && document.getElementById('roundWeather').value) || '',
+      distanceUnit: DISTANCE_UNIT
+    };
+    const holesPayload = [];
+    for(let i=1;i<=18;i++){
+      holesPayload.push(Object.assign({},HOLES[i],{shots: (shotsByHole[i]||[]).slice()}));
+    }
+    const rowId = (playerId + '_' + roundDate).replace(/[^a-zA-Z0-9_\-]/g,'_');
+    const {error} = await sb.from('sytpt_player_rounds').upsert({
+      id: rowId,
+      player_id: playerId,
+      player_name: roundMeta.player,
+      round_date: roundDate,
+      course: roundMeta.course,
+      exported_at: new Date().toISOString(),
+      round_meta: roundMeta,
+      round_payload: {holes: holesPayload},
+      distance_unit: DISTANCE_UNIT
+    },{onConflict:'id'});
+    if(error){
+      console.warn('saveRoundToServer upsert error', error);
+      if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 저장 중 오류가 발생했습니다: '+error.message;
+    } else {
+      if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 라운드 데이터가 저장되었습니다. ('+new Date().toLocaleTimeString()+')';
+      try{ localStorage.setItem('sytpt_round_last_saved', new Date().toISOString()); }catch(e){}
+    }
+  }catch(e){
+    console.warn('saveRoundToServer failed', e);
+  }
+}
+
+if (btnExportCSV) btnExportCSV.addEventListener('click', async ()=>{ exportCSV(); await saveRoundToServer(); });
 
 // CSV Import: wire file input and import button
 const fileImportCsv = document.getElementById('fileImportCsv');
@@ -3374,7 +3423,7 @@ roundDateInput.value = new Date().toISOString().slice(0,10);
 window.addEventListener('load', ()=>{
   try{
     const a = document.getElementById('btnExportCSV');
-    if (a && typeof a.addEventListener === 'function' && !a._golf_listened){ a.addEventListener('click', exportCSV); a._golf_listened = true; }
+    if (a && typeof a.addEventListener === 'function' && !a._golf_listened){ a.addEventListener('click', async ()=>{ exportCSV(); await saveRoundToServer(); }); a._golf_listened = true; }
     const b = document.getElementById('btnShowAllData');
     if (b && typeof b.addEventListener === 'function' && !b._golf_listened){ b.addEventListener('click', showSummaryPreview); b._golf_listened = true; }
     const c = document.getElementById('btnClearAll');
