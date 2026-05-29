@@ -317,7 +317,7 @@ textarea{
   50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(31,181,122,0.6); }
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./supabase.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -647,7 +647,11 @@ let supabaseClient = null;
 function initSupabaseClient(){
   if(!window.supabase) return null;
   if(!supabaseClient){
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // persistSession/autoRefreshToken 비활성화 — URL 파라미터로 세션을 전달하므로
+    // SDK가 localStorage에 저장하려는 시도 자체를 막아 Tracking Prevention 경고 제거
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
   }
   return supabaseClient;
 }
