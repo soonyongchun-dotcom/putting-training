@@ -321,6 +321,9 @@ textarea{
 </head>
 <body>
 <div class="container">
+  <div style="margin-bottom:8px">
+    <button type="button" onclick="window.opener && !window.opener.closed ? window.close() : (window.history.length > 1 ? window.history.back() : (document.referrer ? location.href=document.referrer : window.close()));" style="background:#374151;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer;">← 메인으로 돌아가기</button>
+  </div>
   <h1>⛳ 골프 간편 기록</h1>
   <p class="subtitle">경기 중 빠른 샷 기록용</p>
 
@@ -1803,7 +1806,9 @@ btnExportCSV.addEventListener('click', async ()=>{
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
   let message = `CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`;
   if(!syncSuccess){
-    message += '\n\n서버 동기화에 실패했습니다. 콘솔을 확인하세요.';
+    message += '\n\n⚠️ 서버 동기화 실패: 포털에서 로그인 후 이 페이지를 다시 열어주세요.';
+  } else {
+    message += '\n\n✅ 서버에 저장되었습니다. 코치 포털에서 확인할 수 있습니다.';
   }
   alert(message);
 });

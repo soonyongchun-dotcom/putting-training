@@ -725,11 +725,22 @@
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function openIndex1WithSession(url){
-      // 보안: 세션 토큰을 URL 쿼리 파라미터로 전달하지 않습니다.
-      // 대상 페이지는 Supabase 자체 세션 쿠키/localStorage를 통해 인증합니다.
-      // (동일 Supabase 프로젝트를 공유하므로 별도 토큰 전달 불필요)
-      window.open(url, '_blank', 'noopener,noreferrer');
+    async function openIndex1WithSession(url){
+      // Supabase 현재 세션을 가져와 URL 파라미터로 전달 (Tracking Prevention 우회)
+      try{
+        const authRes = await sb.auth.getSession();
+        const authSession = authRes && authRes.data ? authRes.data.session : null;
+        if(authSession && authSession.access_token){
+          // base64 인코딩 후 URL 파라미터로 전달 (index1.html의 getSessionFromUrl()이 읽음)
+          const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(authSession)))));
+          const sep = url.includes('?') ? '&' : '?';
+          window.open(url + sep + 'supabase_session=' + encoded, '_blank');
+          return;
+        }
+      }catch(e){
+        console.warn('openIndex1WithSession: failed to get session', e);
+      }
+      window.open(url, '_blank');
     }
 
     // ====== 디바이스 전용 (localStorage) ======
@@ -3312,7 +3323,7 @@
       var rhythmTempoTrainingBtn = document.getElementById('rhythmTempoTrainingBtn');
       if(rhythmTempoTrainingBtn){
         rhythmTempoTrainingBtn.addEventListener('click', function(){
-          window.open('Rhythm_Tempo/index.html','_blank','noopener,noreferrer');
+          window.open('Rhythm_Tempo/index.html','_blank');
         });
       }
       // URL 파라미터에서 선수 ID 자동 채우기
