@@ -2425,19 +2425,30 @@
         detailRoot.innerHTML='<div class="meta">미션: '+escapeHtml(mission.code)+' ('+escapeHtml(mission.mode)+')</div><div class="muted" style="margin:4px 0 6px">수행 상태: '+(mission.completed?'완료':'미완료')+'</div>'+(mission.feedback?'<div style="margin-bottom:8px">'+escapeHtml(mission.feedback)+'</div>':'')+attHtml;
       });});
     }
-    async function renderPlayerMessageThread(){
+    async function renderPlayerMessageThread(silent){
       const root=document.getElementById('playerMessageList'); if(!root) return;
-      root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
+      const prevScrollTop=root.scrollTop;
+      const wasAtBottom=root.scrollHeight-root.scrollTop-root.clientHeight<60;
+      const prevMsgCount=root.querySelectorAll('.message').length;
+      if(!silent) root.innerHTML='<div class="message"><div class="meta">로딩 중...</div><div>잠시만 기다려주세요.</div></div>';
       const users=await getUsers();
       const player=getActivePlayerForView(users);
-      if(!player){root.innerHTML='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';return;}
+      if(!player){
+        const noDataHtml='<div class="message"><div class="meta">안내</div><div>표시할 선수 데이터가 없습니다.</div></div>';
+        if(root.innerHTML!==noDataHtml) root.innerHTML=noDataHtml;
+        return;
+      }
       // Fetch directives for this player directly to avoid stale cache
       const dirsRaw=await getCoachDirectives(player.id,true);
       const msgsRaw=await getMessages();
       const directives=dirsRaw.filter(function(r){return r.player_id===player.id;}).map(function(r){return {author:'코치',source:'directive',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
       const chats=msgsRaw.filter(function(r){return r.player_id===player.id&&isChatMessage(fromDbMsg(r));}).map(function(r){return {author:r.author==='선수'?'선수':'코치',source:'chat',text:r.text,createdAt:r.created_at||'',attachments:r.attachments||[]};});
       const thread=[...directives,...chats].sort(function(a,b){return String(a.createdAt).localeCompare(String(b.createdAt));});
-      if(!thread.length){root.innerHTML='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';return;}
+      if(!thread.length){
+        const emptyHtml='<div class="message"><div class="meta">'+player.name+'</div><div>아직 소통 기록이 없습니다.</div></div>';
+        if(root.innerHTML!==emptyHtml) root.innerHTML=emptyHtml;
+        return;
+      }
       var enriched=thread.map(function(m,idx){
         if(m.author!=='코치'||m.source!=='chat') return Object.assign({},m,{replyToText:''});
         var prevPlayer='';
@@ -2446,7 +2457,7 @@
         }
         return Object.assign({},m,{replyToText:prevPlayer});
       });
-      root.innerHTML=enriched.map(function(m){
+      const newHtml=enriched.map(function(m){
         var ic=m.author==='코치';
         var atts=Array.isArray(m.attachments)?m.attachments:[];
         var attHtml=atts.length?'<div style="margin-top:6px;padding:6px;background:rgba(0,0,0,0.03);border-radius:6px">📎 첨부파일: '+atts.map(function(f,i){
@@ -2458,7 +2469,15 @@
         var replyHtml=(ic&&m.replyToText)?'<div style="margin-top:6px;padding:6px 8px;border-left:3px solid #93c5fd;background:#eff6ff;border-radius:6px;font-size:12px;color:#1e3a8a">↳ 선수 질문: '+escapeHtml(m.replyToText)+'</div>':'';
         return '<div class="message '+(ic?'msg-coach':'msg-player')+'"><div class="meta"><span class="badge-role '+(ic?'badge-coach':'badge-player')+'">'+escapeHtml(m.author)+'</span><span>'+escapeHtml(formatTime(m.createdAt))+'</span></div>'+replyHtml+'<div style="margin-top:4px">'+escapeHtml(m.text)+'</div>'+attHtml+'</div>';
       }).join('');
-      root.scrollTop=root.scrollHeight;
+      if(root.innerHTML!==newHtml){
+        root.innerHTML=newHtml;
+        const newMsgCount=root.querySelectorAll('.message').length;
+        if(!silent||wasAtBottom||newMsgCount>prevMsgCount){
+          root.scrollTop=root.scrollHeight;
+        } else {
+          root.scrollTop=prevScrollTop;
+        }
+      }
     }
     async function renderReplyStatus(){
       var coachEl=document.getElementById('replyStatusCoachCount');
@@ -2637,7 +2656,7 @@
 
     // ====== 리얼타임 구독 ======
     function refreshAllViewsForRealtime(){
-      renderPlayerMessageThread();
+      renderPlayerMessageThread(true);
       renderDashboardCoachMessages();
       renderCoachInboxDynamic();
       renderCommCounts();
@@ -2658,7 +2677,7 @@
       console.warn('Realtime 연결이 불안정해 폴링 모드로 전환합니다.');
       realtimePollingTimer = setInterval(function(){
         refreshAllViewsForRealtime();
-      }, 15000);
+      }, 30000);
     }
 
     function setupRealtimeSubscriptions(){
