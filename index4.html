@@ -1003,16 +1003,16 @@
           <div class="analysis-metric" id="analysisDeltaCardF1SpineAngle"
                data-tooltip="어드레스 → 백스윙 탑 척추각도 변화&#10;◎ ≤5°: 만점 (척추축 완벽 유지)&#10;◎ 5~15°: 선형 감점&#10;◎ ≥15°: 0점 (리버스 피벗 또는 심한 축 이탈)&#10;음수: 앞으로 기울어짐 / 양수: 뒤로 기울어짐">척추각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1XFactor"
-               data-tooltip="어드레스→백스윙 탑 어깨회전각 증가량 (X-Factor)&#10;◎ ≥+50°: 만점 (충분한 상체 코일)&#10;◎ 0~+50°: 선형 가산&#10;◎ 음수: 어깨 회전 감소 = 감점&#10;오른어깨→왼어깨 라인 수평편각 증가량">X-Factor(어깨회전): -</div>
+               data-tooltip="어드레스→백스윙 탑 어깨 회전각 (X-Factor, 2D 정면 기준)&#10;산출 방식: lateral tilt(φ) 분리 보정 arccos&#10;  수평투영폭 변화 + 어깨 높이차 → 순수 회전각 θ만 추출&#10;◎ ≥50°: 만점 (충분한 상체 코일)&#10;◎ 0~50°: 선형 가산&#10;◎ 음수 불가 (0° 하한)">X-Factor(어깨회전): -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF2">
           <div class="analysis-segment-compare-title">Frame 2 — 래깅/코어이동</div>
           <div class="analysis-metric" id="analysisDeltaCardF2Score"
                data-tooltip="래깅+코어이동 점수 (0~10점)&#10;래깅각도 50% + 코어(골반)좌측이동 50%&#10;래깅: -100° 이하 = 10점 | 코어이동: 15% 이상 = 10점">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2LagAngle"
-               data-tooltip="손목 코킹(래깅)각도 변화량&#10;◎ -100° 이하: 만점(10점)&#10;◎ -10° 간격으로 1점씩 감점&#10;◎ 0° 이상: 0점 (코킹이 풀림)&#10;래깅은 임팩트 직전 클럽 속도를 결정">코킹(래깅)각도: -</div>
+               data-tooltip="래깅각 변화(어드레스→다운스윙) + 다운스윙 실제 래깅각&#10;실제 래깅각: 클럽헤드-오른손목-오른어깨 내각 (B프레임)&#10;◎ 변화량 -100° 이하: 만점(10점)&#10;◎ -10° 간격으로 1점씩 감점&#10;◎ 0° 이상: 0점 (코킹 조기 릴리즈)">코킹(래깅)각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2CoreShift"
-               data-tooltip="코어(골반) 좌측 이동량 (캔버스 너비 기준 비율)&#10;◎ -15% 이상 좌측 이동: 만점(10점)&#10;◎ 0%: 0점 (코어 이동 없음)&#10;◎ 우측 이동: 0점&#10;다운스윙 시 골반 중심이 목표 방향(왼쪽)으로 이동할수록 고점수">코어(골반) 이동: -</div>
+               data-tooltip="코어(골반) 좌측 이동량 (몸통 길이 기준 비율)&#10;기준: 어드레스→다운스윙 어깨~골반 거리 대비 변위 (zoom·키 독립)&#10;◎ +15% 이상 좌측(목표방향) 이동: 만점(10점)&#10;◎ 0~15%: 선형 가산&#10;◎ 0% 이하(우측 이동 또는 정지): 0점&#10;다운스윙 시 골반이 목표방향(왼쪽)으로 이동할수록 고점수">코어(골반) 이동: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
           <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
@@ -1619,7 +1619,8 @@
     const p3 = points.find(p => p.type === 'shoulder');
     const p4 = points.find(p => p.type === 'pelvis');
     const m = { spineAngleDeg: null, headLatOffset: null, xFactorDeg: null, laggingAngleDeg: null,
-                 kneeExtensionDeg: null, c7NormX: null, rMaxNorm: null, armShaftAngleDeg: null, lateralLeanAngle: null };
+                 kneeExtensionDeg: null, c7NormX: null, rMaxNorm: null, armShaftAngleDeg: null, lateralLeanAngle: null,
+                 shoulderVertDiff: null, shoulderTotalDist: null };
 
     if (frameId === 'frame1') {
       // p1=C7, p2=오른쪽어깨, p3=왼쪽어깨, p4=골반중심
@@ -1629,11 +1630,17 @@
         const dy = p4.y - p1.y;
         m.spineAngleDeg = Math.abs(Math.atan2(dx, Math.abs(dy)) * 180 / Math.PI);
       }
-      // X-Factor: 오른어깨(p2)→왼어깨(p3) 라인 기울기 (어깨 기울기 표시용)
-      // shoulderHorzWidth: 수평 투영 너비 → arccos로 실제 회전각 역산 (2D 보정)
+      // X-Factor: 오른어깨(p2)→왼어깨(p3) 라인 기울기 / 회전 측정
+      // xFactorDeg: 시계방향(오른어깨↓, 왼어깨↑ = 정상 백스윙) = 양수, 리버스피벗 = 음수
+      // shoulderHorzWidth: 수평 투영폭 (순수 Y축 회전에 의해 감소)
+      // shoulderVertDiff:  어깨 높이 차이 (lateral tilt 성분 분리용)
+      // shoulderTotalDist: 실제 2D 어깨 거리 (기준 어깨폭 W)
       if (p2 && p3) {
-        m.xFactorDeg = Math.abs(Math.atan2(p3.y - p2.y, p3.x - p2.x) * 180 / Math.PI);
-        m.shoulderHorzWidth = Math.abs(p2.x - p3.x); // 수평 투영 너비 (정규화 좌표)
+        // atan2(dy,dx): 화면 Y↓ 좌표계에서 정상 백스윙(오른어깨 내려감) → dy<0 → 부호 반전하면 양수
+        m.xFactorDeg = -(Math.atan2(p3.y - p2.y, p3.x - p2.x) * 180 / Math.PI);
+        m.shoulderHorzWidth = Math.abs(p2.x - p3.x);              // 수평 투영폭
+        m.shoulderVertDiff  = Math.abs(p2.y - p3.y);              // 어깨 높이 차이
+        m.shoulderTotalDist = Math.hypot(p2.x - p3.x, p2.y - p3.y); // 실제 어깨 연결 거리(W)
       }
     }
 
@@ -1651,6 +1658,9 @@
       }
       // 코어(골반) 좌측 이동: p4 x좌표 (정규화 좌표 0-1, A→B 비교용)
       if (p4) m.pelvisNormX = p4.x;
+      // 몸통 참조거리: 어깨(p3)→골반(p4) Euclidean 거리 — zoom·키 독립 정규화 기준
+      // 같은 영상 안에서 A·B 모두 동일 zoom이므로, 변위/torsoRefDist = 차원 없는 비율
+      if (p3 && p4) m.torsoRefDist = Math.hypot(p3.x - p4.x, p3.y - p4.y);
     }
 
     if (frameId === 'frame3') {
@@ -1734,8 +1744,8 @@
       // 래깅각도: -100° 이하 = 10점, 10° 간격 1점씩 선형 감점
       const lagDelta = deltaResult.fm && hasMetric(deltaResult.fm.laggingAngleDelta) ? deltaResult.fm.laggingAngleDelta : null;
       const lagScore = lagDelta != null ? clamp(-lagDelta / 100, 0, 1) : null;
-      // 코어(골반) 좌측 이동: 양수 delta = x 증가 = 목표방향(좌측) 이동 = 좋음, 15% 이상 = 만점
-      // 표시식: -pelvisLateralDelta*100 → "-15%" 이하 표시 = 만점
+      // 코어(골반) 좌측 이동: 양수 delta = 목표방향 이동 = 좋음
+      // 몸통 참조거리 정규화 기준: +0.15(몸통의 15% 이동) = 만점
       const coreDelta = deltaResult.fm && hasMetric(deltaResult.fm.pelvisLateralDelta) ? deltaResult.fm.pelvisLateralDelta : null;
       const coreScore = coreDelta != null ? clamp(coreDelta / 0.15, 0, 1) : null;
       score = combineMetricScores([
@@ -1805,17 +1815,40 @@
     const fm = {};
     if (segment === 'frame1') {
       fm.spineAngleDelta   = computeMetricDelta(fmA.spineAngleDeg, fmB.spineAngleDeg);
-      // 2D 투영 기반 어깨 회전각: arccos(백스윙탑 어깨 수평폭 / 어드레스 어깨 수평폭)
-      // 어드레스에서 정면 카메라 → 실제 어깨폭 ≈ 투영폭. 탑에서 회전으로 투영폭 감소.
-      const swA = fmA.shoulderHorzWidth;
-      const swB = fmB.shoulderHorzWidth;
-      fm.xFactorDelta = (swA != null && swB != null && swA > 0.001)
-        ? Math.acos(clamp(swB / swA, 0, 1)) * 180 / Math.PI
-        : computeMetricDelta(fmA.xFactorDeg, fmB.xFactorDeg);
+      // 2D 정면 영상 어깨 회전각 (X-Factor) — lateral tilt 보정 arccos 방식
+      // 원리: 3D에서 어깨폭 W인 선분이 Y축(척추) 회전 θ + Z축 기울기 φ를 가질 때
+      //   수평투영폭 = W * cos(θ) * cos(φ),  높이차 = W * sin(φ)
+      //   → φ = arcsin(vB / W),  θ = arccos(swB / (W * cos(φ)))
+      // 이렇게 하면 lateral tilt 성분을 분리하여 순수 회전각만 산출 가능
+      const swA = fmA.shoulderHorzWidth;   // 어드레스 수평폭
+      const swB = fmB.shoulderHorzWidth;   // 백스윙탑 수평폭
+      const W   = fmA.shoulderTotalDist != null ? fmA.shoulderTotalDist : swA; // 기준 어깨폭(W)
+      const vB  = fmB.shoulderVertDiff;    // 백스윙탑 어깨 높이 차이
+      if (swA != null && swB != null && W != null && W > 0.001) {
+        // lateral tilt φ 분리: sin(φ) = 높이차 / 실제어깨폭
+        const phi    = (vB != null) ? Math.asin(clamp(vB / W, 0, 1)) : 0;
+        const cosPhi = Math.cos(phi);
+        // tilt 성분 제거 후 순수 회전각 θ
+        fm.xFactorDelta = cosPhi > 0.01
+          ? Math.acos(clamp(swB / (W * cosPhi), 0, 1)) * 180 / Math.PI
+          : Math.acos(clamp(swB / W, 0, 1)) * 180 / Math.PI;
+      } else {
+        fm.xFactorDelta = computeMetricDelta(fmA.xFactorDeg, fmB.xFactorDeg);
+      }
     } else if (segment === 'frame2') {
       fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg, fmB.laggingAngleDeg);
-      // pelvisLateralDelta = fmB.x - fmA.x: 양수 = x 증가 = 목표방향(좌측) 이동 = 좋음
-      fm.pelvisLateralDelta = computeMetricDelta(fmA.pelvisNormX, fmB.pelvisNormX);
+      fm.laggingAngleBDeg    = fmB.laggingAngleDeg ?? null; // B프레임(다운스윙) 실제 래깅각
+      // 코어(골반) 좌측 이동 — 정면영상 기준 x축 왼쪽 변위만 산출
+      // 정면영상 좌표계: x 감소 = 왼쪽(목표방향) = 음수 → 좋음
+      // 몸통 참조거리(A프레임 어깨→골반 거리)로 나누어 zoom·키 독립 비율로 변환
+      // 결과: 음수(≤-0.15) = 몸통 15% 이상 좌측 이동 = 만점
+      const pxDeltaPelvis = fmA.pelvisNormX != null && fmB.pelvisNormX != null
+        ? fmB.pelvisNormX - fmA.pelvisNormX : null;
+      const torsoRef = (fmA.torsoRefDist != null && fmA.torsoRefDist > 0.001) ? fmA.torsoRefDist
+                     : (fmB.torsoRefDist != null && fmB.torsoRefDist > 0.001) ? fmB.torsoRefDist : null;
+      fm.pelvisLateralDelta = (pxDeltaPelvis != null && torsoRef != null)
+        ? pxDeltaPelvis / torsoRef   // 몸통 대비 비율 (zoom·키 독립)
+        : pxDeltaPelvis;             // 폴백: 정규화 좌표 차이
     } else if (segment === 'frame3') {
       fm.kneeExtDelta      = computeMetricDelta(fmA.kneeExtensionDeg, fmB.kneeExtensionDeg);
       // Sway: 각 패널 캔버스 높이로 정규화된 C7 비율 좌표 차이 → 영상 크기 독립
@@ -2035,10 +2068,12 @@
           : '어깨회전: 데이터 부족';
     } else if (segment === 'frame2') {
       if (analysisDeltaCardF2LagAngle) analysisDeltaCardF2LagAngle.textContent =
-        fm.laggingAngleDelta != null ? `래깅각 변화: ${formatDelta(fm.laggingAngleDelta)}°` : '래깅각: 데이터 부족';
+        fm.laggingAngleDelta != null
+          ? `래깅각 변화: ${formatDelta(fm.laggingAngleDelta)}°${fm.laggingAngleBDeg != null ? ` (실제: ${fm.laggingAngleBDeg.toFixed(1)}°)` : ''}`
+          : '래깅각: 데이터 부족';
       if (analysisDeltaCardF2CoreShift) analysisDeltaCardF2CoreShift.textContent =
         fm.pelvisLateralDelta != null
-          ? `코어 이동: ${formatPercent(-fm.pelvisLateralDelta * 100)}`
+          ? `코어 이동: ${formatPercent(fm.pelvisLateralDelta * 100)}`  // 양수 = 목표방향 이동
           : '코어 이동: 데이터 부족';
     } else if (segment === 'frame3') {
       if (analysisDeltaCardF3Thrust) analysisDeltaCardF3Thrust.textContent =
@@ -2125,7 +2160,7 @@
       const core  = fm.pelvisLateralDelta;
       lines.push(`${bold('F2 래깅/코어이동 — 에너지 저장')}`);
       lines.push(`래깅 각도 변화 ${deg(lag)} — ${lag != null && lag <= -100 ? hl('완전 코킹 유지 (≤-100°)', true) : lag != null && lag <= -60 ? hl('부분 코킹 (-60~-100°)', false) : hl('조기 릴리즈 경향 (>-60°)', false)}`);
-      lines.push(`코어(골반) 이동 ${core != null ? (core * 100).toFixed(1) + '%' : '—'} — ${core != null && core <= -0.15 ? hl('골반 선행 충분 (≤-15%)', true) : core != null && core <= 0 ? hl('골반 이동 부족 (0~-15%)', false) : hl('골반 반대 이동 또는 정지 ⚠', false)}`);
+      lines.push(`코어(골반) 이동 ${core != null ? (core * 100).toFixed(1) + '%' : '—'} — ${core != null && core >= 0.15 ? hl('골반 선행 충분 (≥+15%)', true) : core != null && core >= 0 ? hl('골반 이동 부족 (0~15%)', false) : hl('골반 반대 이동 또는 정지 ⚠', false)}`);
       const arcExpand = aM > 0 ? bM2 / aM : null;
       lines.push(`아크 확장: 어드레스 ${raw(aM)} → 래깅 ${raw(bM2)}${arcExpand != null ? ` (${(arcExpand * 100).toFixed(0)}%)` : ''}. ${arcExpand != null && arcExpand > 1.5 ? hl('팔 뻗음 충분', true) : hl('아크 확장 제한적', false)}`);
     }
