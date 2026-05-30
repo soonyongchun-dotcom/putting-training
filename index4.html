@@ -832,7 +832,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.5.4</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.5.5</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1003,7 +1003,7 @@
           <div class="analysis-metric" id="analysisDeltaCardF1SpineAngle"
                data-tooltip="어드레스 → 백스윙 탑 척추각도 변화&#10;◎ ≤5°: 만점 (척추축 완벽 유지)&#10;◎ 5~15°: 선형 감점&#10;◎ ≥15°: 0점 (리버스 피벗 또는 심한 축 이탈)&#10;음수: 앞으로 기울어짐 / 양수: 뒤로 기울어짐">척추각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1XFactor"
-               data-tooltip="어드레스→백스윙 탑 어깨 회전각 (X-Factor, 2D 정면 기준)&#10;산출 방식: lateral tilt(φ) 분리 보정 arccos&#10;  수평투영폭 변화 + 어깨 높이차 → 순수 회전각 θ만 추출&#10;◎ ≥50°: 만점 (충분한 상체 코일)&#10;◎ 0~50°: 선형 가산&#10;◎ 음수 불가 (0° 하한)">X-Factor(어깨회전): -</div>
+               data-tooltip="어드레스→백스윙 탑 어깨 회전각 (X-Factor, 측면 카메라 기준)&#10;산출 방식: B프레임 xFactorDeg − A프레임 xFactorDeg&#10;  회전 증가 → 오른어깨 x 증가 → 값이 음수로 커짐&#10;◎ ≤-150°: 만점 (충분한 상체 코일)&#10;◎ -150°~-60°: 선형 보간&#10;◎ ≥-60°: 0점 (회전 부족 또는 역회전)">X-Factor(어깨회전): -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF2">
           <div class="analysis-segment-compare-title">Frame 2 — 래깅/코어이동</div>
@@ -1732,9 +1732,9 @@
       // 척추각도 유지: 백스윙 탑 - 어드레스 차이가 ±5° 이내면 만점
       const spineDelta = deltaResult.fm && hasMetric(deltaResult.fm.spineAngleDelta) ? Math.abs(deltaResult.fm.spineAngleDelta) : null;
       const spineScore = spineDelta != null ? (spineDelta <= 5 ? 1 : clamp(1 - (spineDelta - 5) / 10, 0, 1)) : null;
-      // X-Factor: 어드레스→백스윙탑 어깨회전각 증가량 (≥50°: 만점)
+      // X-Factor: -60° = 0점, -150° 이하 = 만점 (선형 보간)
       const xfDelta = deltaResult.fm && hasMetric(deltaResult.fm.xFactorDelta) ? deltaResult.fm.xFactorDelta : null;
-      const xfScore = xfDelta != null ? (xfDelta >= 50 ? 1 : xfDelta >= 0 ? clamp(xfDelta / 50, 0, 1) : clamp(1 + xfDelta / 20, 0, 1)) : null;
+      const xfScore = xfDelta != null ? clamp((-xfDelta - 60) / 90, 0, 1) : null;
       score = combineMetricScores([
         { value: spineScore, weight: 0.60 },
         { value: xfScore, weight: 0.40 },
@@ -1815,25 +1815,16 @@
     const fm = {};
     if (segment === 'frame1') {
       fm.spineAngleDelta   = computeMetricDelta(fmA.spineAngleDeg, fmB.spineAngleDeg);
-      // 2D 정면 영상 어깨 회전각 (X-Factor) — lateral tilt 보정 arccos 방식
-      // 원리: 3D에서 어깨폭 W인 선분이 Y축(척추) 회전 θ + Z축 기울기 φ를 가질 때
-      //   수평투영폭 = W * cos(θ) * cos(φ),  높이차 = W * sin(φ)
-      //   → φ = arcsin(vB / W),  θ = arccos(swB / (W * cos(φ)))
-      // 이렇게 하면 lateral tilt 성분을 분리하여 순수 회전각만 산출 가능
-      const swA = fmA.shoulderHorzWidth;   // 어드레스 수평폭
-      const swB = fmB.shoulderHorzWidth;   // 백스윙탑 수평폭
-      const W   = fmA.shoulderTotalDist != null ? fmA.shoulderTotalDist : swA; // 기준 어깨폭(W)
-      const vB  = fmB.shoulderVertDiff;    // 백스윙탑 어깨 높이 차이
-      if (swA != null && swB != null && W != null && W > 0.001) {
-        // lateral tilt φ 분리: sin(φ) = 높이차 / 실제어깨폭
-        const phi    = (vB != null) ? Math.asin(clamp(vB / W, 0, 1)) : 0;
-        const cosPhi = Math.cos(phi);
-        // tilt 성분 제거 후 순수 회전각 θ
-        fm.xFactorDelta = cosPhi > 0.01
-          ? Math.acos(clamp(swB / (W * cosPhi), 0, 1)) * 180 / Math.PI
-          : Math.acos(clamp(swB / W, 0, 1)) * 180 / Math.PI;
-      } else {
-        fm.xFactorDelta = computeMetricDelta(fmA.xFactorDeg, fmB.xFactorDeg);
+      // 어깨 회전각 (X-Factor) — atan2 기반 직접 각도 차이
+      // 카메라 방향: 측면(after-on) 기준
+      //   어드레스(A): 두 어깨가 비슷한 x → 어깨선이 카메라 방향(수평폭 작음)
+      //   백스윙탑(B): 오른어깨 x 증가, 왼어깨 x 감소 → 수평폭 증가 = 회전 증가
+      // xFactorDeg = -atan2(dy, dx): 오른어깨↑·왼어깨↓ 또는 수평폭 증가 → 양수
+      // xFactorDelta = B의 각도 - A의 각도 → 회전이 많을수록 큰 양수
+      fm.xFactorDelta = computeMetricDelta(fmA.xFactorDeg, fmB.xFactorDeg);
+      if (fm.xFactorDelta != null) {
+        fm._dbgSwA = fmA.shoulderHorzWidth; fm._dbgSwB = fmB.shoulderHorzWidth;
+        fm._dbgWA = fmA.xFactorDeg; fm._dbgWB = fmB.xFactorDeg;
       }
     } else if (segment === 'frame2') {
       fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg, fmB.laggingAngleDeg);
@@ -2064,7 +2055,7 @@
           : '척추각도: 데이터 부족';
       if (analysisDeltaCardF1XFactor) analysisDeltaCardF1XFactor.textContent =
         fm.xFactorDelta != null
-          ? `어깨회전(2D): ${fm.xFactorDelta.toFixed(1)}°` // arccos(탑/어드레스 어깨폭)
+          ? `어깨회전(2D): ${fm.xFactorDelta.toFixed(1)}° [A수평폭:${(deltaResult.fm._dbgSwA||0).toFixed(3)} B수평폭:${(deltaResult.fm._dbgSwB||0).toFixed(3)} WA:${(deltaResult.fm._dbgWA||0).toFixed(3)} WB:${(deltaResult.fm._dbgWB||0).toFixed(3)}]`
           : '어깨회전: 데이터 부족';
     } else if (segment === 'frame2') {
       if (analysisDeltaCardF2LagAngle) analysisDeltaCardF2LagAngle.textContent =
