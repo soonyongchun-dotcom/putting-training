@@ -3134,6 +3134,7 @@
       var id=(document.getElementById('loginId').value||'').trim();
       var password=(document.getElementById('loginPw').value||'').trim();
       var err=document.getElementById('authError');
+      // 인증 전에 getUsers() 호출 시 RLS로 빈 배열 가능 — 일단 이메일 후보 생성용으로만 사용
       var users=await getUsers();
       var matchedUsers=findUsersForLogin(users,id);
       var authCandidates=buildAuthEmailCandidates(id,matchedUsers);
@@ -3161,6 +3162,11 @@
       }
       if(usedAuthEmail) setAuthEmailHint(id,usedAuthEmail);
       var authUser=authLogin.data&&authLogin.data.user;
+      // auth 성공 후 인증된 세션으로 재조회 (인메모리 스토리지 환경에서 RLS 우회)
+      if(!users.length){
+        users=await getUsers();
+        matchedUsers=findUsersForLogin(users,id);
+      }
       var mappedUser=findUserForAuthSession(users,authUser);
       var user=mappedUser||matchedUsers[0]||null;
       if(!user&&authUser){
