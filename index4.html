@@ -962,7 +962,7 @@
             <option value="frame1">Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]</option>
             <option value="frame2">Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]</option>
             <option value="frame3">Frame 3 — 다운스윙 후기 (외부토크/지면반력)</option>
-            <option value="frame4">Frame 4 — 임팩트/선속도</option>
+            <option value="frame4">Frame 4 — 임팩트/선속도 지수</option>
           </select>
           <span class="height-unit">프레임 선택</span>
         </div>
@@ -973,10 +973,13 @@
     <div class="analysis-section" id="analysisFrontSection">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div class="analysis-section-title" id="analysisFrontSectionTitle">A영상 분석</div>
-        <button id="swingNarrativeToggleBtn" onclick="toggleSwingNarrative()"
-          style="display:none;font-size:0.72rem;padding:2px 9px;border-radius:12px;border:1px solid rgba(255,200,60,0.5);background:rgba(255,180,30,0.12);color:#ffd86c;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-          분석 결과 보기 ▼
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <em id="analysisFrontHeightTag" style="font-size:0.72rem;color:rgba(180,210,255,0.75);white-space:nowrap;"></em>
+          <button id="swingNarrativeToggleBtn" onclick="toggleSwingNarrative()"
+            style="display:none;font-size:0.72rem;padding:2px 9px;border-radius:12px;border:1px solid rgba(255,200,60,0.5);background:rgba(255,180,30,0.12);color:#ffd86c;cursor:pointer;white-space:nowrap;">
+            분석 결과 보기 ▼
+          </button>
+        </div>
       </div>
       <div id="swingNarrativeBlock" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(0,0,0,0.28);border:1px solid rgba(255,200,60,0.18);border-radius:8px;font-size:0.78rem;line-height:1.6;color:#c8d8f0;"></div>
       <div class="analysis-metric" id="analysisFrontMoment"
@@ -1024,9 +1027,11 @@
                data-tooltip="다운스윙 중 C7(목 뒤) 수평 이동량 (키 기준 비율)&#10;◎ 0%: 만점 (회전축 완벽 고정)&#10;◎ 0~10%: 선형 감점&#10;◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)&#10;A·B 패널의 C7 x좌표 차이로 계산">축 고정 지수: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF4">
-          <div class="analysis-segment-compare-title">Frame 4 — 임팩트/선속도</div>
+          <div class="analysis-segment-compare-title">Frame 4 — 임팩트/선속도 지수</div>
           <div class="analysis-metric" id="analysisDeltaCardF4Score"
-               data-tooltip="임팩트 반경/선속도 점수 (0~10점)&#10;v = ω × r — 응축된 각속도 → 반경 확장 → 최대 선속도 전환&#10;가중치: 팔-샤프트 정렬 55%(릴리즈 직접증거) | r_max 25%(확인지표) | 측면기울기 20%&#10;점수 높을수록 임팩트 순간 클럽헤드 선속도 최대화">점수: -</div>
+            data-tooltip="임팩트 반경/선속도 지수 점수 (0~10점)&#10;v = ω × r — 임팩트 절대 선속도 지수와 F3→F4 변화량을 핵심 반영&#10;핵심 70%: 절대 선속도 지수 35%(40 이상 만점) + 변화량 35%(F4−F3가 40 이상 만점)&#10;보조 30%: 팔-샤프트 정렬 10% | r_max 10% | 측면기울기 10%">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF4Arc"
+            data-tooltip="임팩트 선속도 지수(v=ω×r)와 F3→F4 변화량&#10;◎ 선속도 지수 40 이상: 절대 선속도 지수 만점&#10;◎ 변화량(F4−F3) 40 이상: 변화량 만점&#10;두 항목은 최종 F4 점수의 핵심 70%를 5:5로 반영">선속도 지수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4RMax"
                data-tooltip="왼어깨→클럽헤드 aspect보정 거리 (영상 세로 기준 %)&#10;x방향에 영상 가로세로비 보정 적용 → 16:9 왜곡 제거&#10;◎ ≥+30%: 만점&#10;◎ 0%: 중립 (0.5점 기여, 페널티 없음)&#10;◎ 음수: 반경 수축 = 감점&#10;팔-샤프트 개선이 이미 릴리즈를 증명하므로 보조 참고용">최대회전반경(r): -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4ArmShaft"
@@ -1159,6 +1164,7 @@
   const analysisDeltaCardF3AxisSway = document.getElementById('analysisDeltaCardF3AxisSway');
   // Frame 4 card
   const analysisDeltaCardF4Score    = document.getElementById('analysisDeltaCardF4Score');
+  const analysisDeltaCardF4Arc      = document.getElementById('analysisDeltaCardF4Arc');
   const analysisDeltaCardF4RMax     = document.getElementById('analysisDeltaCardF4RMax');
   const analysisDeltaCardF4ArmShaft = document.getElementById('analysisDeltaCardF4ArmShaft');
   const analysisDeltaCardF4Lean       = document.getElementById('analysisDeltaCardF4Lean');
@@ -1306,7 +1312,7 @@
         ],
       },
       frame4: {
-        title: 'Frame 4 — 임팩트/선속도',
+        title: 'Frame 4 — 임팩트/선속도 지수',
         steps: [
           `(${viewLabel}) 1단계: C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
           `(${viewLabel}) 2단계: 왼쪽 어깨를 점으로 찍으세요.`,
@@ -1328,7 +1334,7 @@
       frame1: { front: 'A — 어드레스 (척추축/X-Factor 기준)', side: 'B — 백스윙 탑 (척추축/X-Factor 확인)' },
       frame2: { front: 'A — 어드레스 (기준)', side: 'B — 다운스윙 왼팔 수평 (래깅/코어이동)' },
       frame3: { front: 'A — 샤프트 수평 기준', side: 'B — 비교 프레임 (지면반력)' },
-      frame4: { front: 'A — 임팩트 기준', side: 'B — 비교 프레임 (선속도)' },
+      frame4: { front: 'A — 임팩트 기준', side: 'B — 비교 프레임 (선속도 지수)' },
     };
     return (labels[frameId] || labels.frame1)[view];
   }
@@ -1397,15 +1403,19 @@
     const sideResult = createAnalysisResult(sidePoints, sideLines, 'front', 'B');
     applyProjectionNormalization(sideResult, baselineFrontResult);
     updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
-    // Frame 2에서는 에너지전환효율/임팩트 파워 숨김 (Frame 3/4에만 유효)
-    const showTransferImpact = selectedSegment === 'frame3' || selectedSegment === 'frame4';
+    // Frame 2에서는 에너지전환효율/임팩트 파워 숨김 (과거 F3/4에만 유효 제한, 선속도는 전 프레임 표시)
     if (analysisFrontTransfer) analysisFrontTransfer.style.display = 'none';  // 반경 비율 항상 숨김
-    if (analysisFrontImpact)   analysisFrontImpact.style.display   = showTransferImpact ? '' : 'none';
+    if (analysisFrontImpact)   analysisFrontImpact.style.display   = '';  // 선속도 전 프레임 표시
     if (analysisSideTransfer)  analysisSideTransfer.style.display  = 'none';   // 반경 비율 항상 숨김
-    if (analysisSideImpact)    analysisSideImpact.style.display    = showTransferImpact ? '' : 'none';
+    if (analysisSideImpact)    analysisSideImpact.style.display    = '';   // 선속도 전 프레임 표시
     const deltaResult = createDeltaResult(displayedFrontResult, sideResult, selectedSegment);
     segmentScoreHistory[selectedSegment] = deltaResult.segmentScore;
     frameMetricsHistory[selectedSegment] = displayedFrontResult.frameMetrics;
+    // 선속도(각도×반경) A/B 모두 저장 — 프레임간 비교용
+    if (frameMetricsHistory[selectedSegment]) {
+      frameMetricsHistory[selectedSegment]._arcA = (displayedFrontResult.angleDeg || 0) * (displayedFrontResult.radiusProxy || 0);
+      frameMetricsHistory[selectedSegment]._arcB = deltaResult._arcBCurrent;
+    }
     updateSummary(displayedFrontResult, sideResult, deltaResult);
     updateComparisonSection(deltaResult);
     updateSegmentScoresDisplay();
@@ -1768,28 +1778,41 @@
 
     } else {
       // frame4: v = ω × r — 응축된 각속도가 반경 확장으로 최대 선속도 전환
-      // 팔-샤프트 정렬 개선: 릴리즈(반경 확장)의 직접 증거 — 1차 지표
-      //   +100° 이상 = 만점, 0° = 중립(0.5), -30° 이하 = 0점
+      // 핵심 70%: 절대 선속도 지수(35%) + F3→F4 변화량(35%)
+      const arcAbs = deltaResult._arcBCurrent != null ? deltaResult._arcBCurrent : null;
+      const arcAbsScore = arcAbs != null ? clamp(arcAbs / 40, 0, 1) : null; // 40 이상 만점
+
+      const fmF3 = frameMetricsHistory['frame3'];
+      const arcF3 = fmF3 && fmF3._arcB != null && fmF3._arcB > 0 ? fmF3._arcB : null;
+      const arcDelta = (arcF3 != null && arcAbs != null) ? (arcAbs - arcF3) : null;
+      const arcDeltaScore = arcDelta != null ? clamp(arcDelta / 40, 0, 1) : null; // 변화량 40 이상 만점
+      // 두 조건(절대 선속도 지수/변화량) 모두 만족 시에만 핵심 70%가 완전 만점이 되도록 게이트 적용
+      const arcCoreScore = (arcAbsScore != null && arcDeltaScore != null)
+        ? ((arcAbsScore >= 1 && arcDeltaScore >= 1)
+            ? 1
+            : 0.5 * arcAbsScore + 0.5 * arcDeltaScore)
+        : null;
+
+      // 1차 지표: 팔-샤프트 정렬 개선 (+100° 이상 = 만점)
       const asDelta = deltaResult.fm && hasMetric(deltaResult.fm.armShaftDelta) ? deltaResult.fm.armShaftDelta : null;
       const asScore = asDelta != null ? (asDelta >= 100 ? 1
                     : asDelta >= 0  ? 0.5 + 0.5 * (asDelta / 100)
                     : clamp(0.5 + asDelta / 30, 0, 1)) : null;
-      // r_max 확장: 릴리즈 결과 확인 — 2차 지표
-      //   +0.3 이상 증가 = 만점, 0 = 중립(0.5), 감소 = 감점
+      // 2차 지표: r_max 확장 (+0.3 이상 = 만점)
       const rDelta = deltaResult.fm && hasMetric(deltaResult.fm.rMaxNormDelta) ? deltaResult.fm.rMaxNormDelta : null;
       const rScore = rDelta != null ? (rDelta >= 0.3 ? 1
                    : rDelta >= 0    ? 0.5 + 0.5 * (rDelta / 0.3)
                    : clamp(0.5 + rDelta / 0.3, 0, 1)) : null;
-      // 측면 기울기: B가 A보다 trail-side lean이 크면 고점수
-      // +100° 이상 = 만점, 0° = 중립(0.5), -15° 이하 = 0점 (Early Extension)
+      // 3차 지표: 측면 기울기 (+100° 이상 = 만점)
       const leanDelta = deltaResult.fm && hasMetric(deltaResult.fm.lateralLeanDelta) ? deltaResult.fm.lateralLeanDelta : null;
       const leanScore = leanDelta != null ? (leanDelta >= 100 ? 1
                       : leanDelta >= 0 ? 0.5 + 0.5 * (leanDelta / 100)
                       : clamp(0.5 + leanDelta / 15, 0, 1)) : null;
       score = combineMetricScores([
-        { value: asScore, weight: 0.55 },
-        { value: rScore, weight: 0.25 },
-        { value: leanScore, weight: 0.20 },
+        { value: arcCoreScore,  weight: 0.70 },
+        { value: asScore,       weight: 0.10 },
+        { value: rScore,        weight: 0.10 },
+        { value: leanScore,     weight: 0.10 },
       ]);
     }
     return clamp(score, 0, 10);
@@ -1862,6 +1885,7 @@
       timingDelta: sideResult.angleDeg - frontResult.angleDeg,
       accelerationDelta: sideResult.accelerationScore - frontResult.accelerationScore,
       accelerationPercent,
+      _arcBCurrent: (sideResult.angleDeg || 0) * (sideResult.radiusProxy || 0),
       transferDelta: sideResult.transferScore - frontResult.transferScore,
       transferPercent,
       impactDelta: sideResult.impactScore - frontResult.impactScore,
@@ -1986,7 +2010,7 @@
   function updateAllFramesMetricBar() {
     if (!analysisFrontDetail) return;
     const frames = [
-      { id: 'frame1', label: 'F1 백스윙탑' },
+      { id: 'frame1', label: 'F1 어드레스' },
       { id: 'frame2', label: 'F2 래깅/코어' },
       { id: 'frame3', label: 'F3 지면반력' },
       { id: 'frame4', label: 'F4 임팩트'  },
@@ -1994,11 +2018,22 @@
     const html = frames.map(({ id, label }) => {
       const fm = frameMetricsHistory[id];
       const summary = fm ? buildFrameMetricSummary(fm, id) : null;
+      // 선속도 비교: F4에만 F3→F4 형태로 표시
+      let arcTxt = null;
+      if (id === 'frame4') {
+        const fmF3 = frameMetricsHistory['frame3'];
+        const arcF3 = fmF3 && fmF3._arcB != null ? fmF3._arcB.toFixed(1) : null;
+        const arcF4 = fm && fm._arcB != null ? fm._arcB.toFixed(1) : null;
+        if (arcF3 != null || arcF4 != null) {
+          arcTxt = `선속도 지수 F3:${arcF3 ?? '—'} → F4:${arcF4 ?? '—'}`;
+        }
+      }
+      const fullSummary = [summary, arcTxt].filter(Boolean).join(' | ');
       const isSelected = id === selectedSegment;
       if (isSelected) {
-        return `<div style="background:rgba(255,220,0,0.18);border:1px solid rgba(255,220,0,0.5);border-radius:5px;padding:3px 9px;margin-bottom:2px;color:#ffe96a;font-weight:600;">▶ <strong>${label}</strong>: ${summary || '—'}</div>`;
+        return `<div style="background:rgba(255,220,0,0.18);border:1px solid rgba(255,220,0,0.5);border-radius:5px;padding:3px 9px;margin-bottom:2px;color:#ffe96a;font-weight:600;">▶ <strong>${label}</strong>: ${fullSummary || '—'}</div>`;
       } else {
-        return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:5px;padding:3px 9px;margin-bottom:2px;color:#8fa0cc;"><strong>${label}</strong>: ${summary || '—'}</div>`;
+        return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:5px;padding:3px 9px;margin-bottom:2px;color:#8fa0cc;"><strong>${label}</strong>: ${fullSummary || '—'}</div>`;
       }
     }).join('');
     analysisFrontDetail.innerHTML = html;
@@ -2015,12 +2050,20 @@
     momentEl.textContent = `컴팩트 지수: ${momentProxy.toFixed(3)}`;
     radiusEl.textContent = `최대 반경: ${radiusProxy.toFixed(3)}`;
     timingEl.textContent = `주요 각도: ${angleDeg.toFixed(1)}°`;
-    // 키 보정: heightScale 기반
+    // 키 보정: heightScale 기반 — 타이틀 우측 태그 업데이트
     const hsVal = Number.isFinite(result.heightScale) ? result.heightScale : null;
-    accelEl.textContent = hsVal != null ? `키 보정: ${Math.round(hsVal * 100)}%` : '키 보정: -';
+    const heightCmVal = analysisHeightInput ? parseFloat(analysisHeightInput.value) : NaN;
+    const heightTag = document.getElementById('analysisFrontHeightTag');
+    if (heightTag) {
+      heightTag.textContent = hsVal != null
+        ? `키 보정 ${Math.round(hsVal * 100)}%${Number.isFinite(heightCmVal) && heightCmVal > 0 ? ` (${heightCmVal}cm)` : ''}`
+        : '';
+    }
+    accelEl.textContent = '';  // 키 보정 행 숨김 (타이틀 우측으로 이동)
     transferEl.textContent = '';  // 반경 비율 삭제
-    // 각도×반경: 로데이터 조합
-    impactEl.textContent = `각도·반경: ${angleDeg.toFixed(1)}° × ${radiusProxy.toFixed(3)}`;    
+    // 선속도 지수: 각도 × 반경 (프레임 간 비교용 지표)
+    const arcIndex = angleDeg * radiusProxy;
+    impactEl.textContent = `선속도 지수: ${arcIndex.toFixed(1)}`;    
     const splitIdx = result.summary.indexOf(' 키보정:');
     if (splitIdx !== -1) {
       const mainText = result.summary.slice(0, splitIdx);
@@ -2068,6 +2111,14 @@
       if (analysisDeltaCardF3AxisSway) analysisDeltaCardF3AxisSway.textContent =
         fm.c7SwayPercent != null ? `C7 Sway: ${formatPercent(fm.c7SwayPercent)}` : 'C7 Sway: 데이터 부족';
     } else if (segment === 'frame4') {
+      const arcAbs = deltaResult._arcBCurrent != null ? deltaResult._arcBCurrent : null;
+      const arcF3 = frameMetricsHistory['frame3'] && frameMetricsHistory['frame3']._arcB != null
+        ? frameMetricsHistory['frame3']._arcB : null;
+      const arcDelta = (arcF3 != null && arcAbs != null) ? (arcAbs - arcF3) : null;
+      if (analysisDeltaCardF4Arc) analysisDeltaCardF4Arc.textContent =
+        arcAbs != null
+          ? `선속도 지수: ${arcAbs.toFixed(1)}${arcDelta != null ? ` (F4−F3 ${formatDelta(arcDelta)})` : ''}`
+          : '선속도 지수: 데이터 부족';
       if (analysisDeltaCardF4RMax) analysisDeltaCardF4RMax.textContent =
         fm.rMaxNormDelta != null ? `r_max 변화: ${formatDelta(fm.rMaxNormDelta * 100)}%` : 'r_max: 데이터 부족';
       if (analysisDeltaCardF4ArmShaft) analysisDeltaCardF4ArmShaft.textContent =
@@ -2086,12 +2137,14 @@
       const sLbl = getFrameSectionLabel(segment, 'side');
       const bTag = function(txt) { return '<div class=' + String.fromCharCode(34) + 'analysis-metric' + String.fromCharCode(34) + '>' + txt + '</div>'; };
       const bLbl = '<div class=' + String.fromCharCode(34) + 'analysis-b-label' + String.fromCharCode(34) + '>' + sLbl + '</div>';
-      const bImpactTxt = `각도·반경: ${bM.angle.toFixed(1)}° × ${bM.radius.toFixed(3)}`;
+      const bArcIndex = bM.angle * bM.radius;
+      const showArc = segment === 'frame3' || segment === 'frame4';
+      const bImpactTxt = showArc ? `선속도 지수: ${bArcIndex.toFixed(1)}` : null;
       bSecEl.innerHTML = bLbl
         + bTag('컴팩트 지수: ' + bM.moment.toFixed(3))
         + bTag('최대 반경: ' + bM.radius.toFixed(3))
         + bTag('주요 각도: ' + bM.angle.toFixed(1) + '°')
-        + (segment === 'frame3' || segment === 'frame4' ? bTag(bImpactTxt) : '');
+        + (bImpactTxt ? bTag(bImpactTxt) : '');
     }
 }
 
@@ -2155,7 +2208,7 @@
       const rmax  = fm.rMaxNormDelta;
       const armS  = fm.armShaftDelta;
       const lean  = fm.lateralLeanDelta;
-      lines.push(`${bold('F4 임팩트 — 채찍 효과 & 선속도 최대화')}`);
+      lines.push(`${bold('F4 임팩트 — 채찍 효과 & 선속도 지수 최대화')}`);
       const rmPct = rmax != null ? (rmax * 100).toFixed(1) : null;
       lines.push(`r_max 변화 ${rmPct != null ? rmPct + '%' : '—'} — ${rmPct != null && parseFloat(rmPct) >= 30 ? hl('팔 완전 신장 (≥30%)', true) : rmPct != null && parseFloat(rmPct) >= 10 ? hl('부분 신장 (10~30%)', false) : hl('반경 확장 부족 (<10%)', false)}`);
       lines.push(`팔-샤프트 정렬 변화 ${deg(armS)} — ${armS != null && armS >= 100 ? hl('완전 릴리즈 (≥100°) — 채찍 효과 발생', true) : armS != null && armS >= 60 ? hl('부분 릴리즈 (60~100°)', false) : hl('릴리즈 부족 (<60°)', false)}`);
@@ -2247,11 +2300,11 @@
     document.body.appendChild(clone);
 
     try {
-      const canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/png');
+      const canvas = await html2canvas(clone, { scale: 1, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       const imgWidth = pageWidth - 80;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      doc.addImage(imgData, 'PNG', 40, 40, imgWidth, imgHeight);
+      doc.addImage(imgData, 'JPEG', 40, 40, imgWidth, imgHeight);
     } catch (error) {
       console.warn('PDF 생성 중 오류가 발생했습니다.', error);
       alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
@@ -2275,7 +2328,7 @@
     resetCard(analysisDeltaCardF1Score, analysisDeltaCardF1SpineAngle, analysisDeltaCardF1XFactor);
     resetCard(analysisDeltaCardF2Score, analysisDeltaCardF2LagAngle, analysisDeltaCardF2CoreShift);
     resetCard(analysisDeltaCardF3Score, analysisDeltaCardF3Thrust, analysisDeltaCardF3AxisSway);
-    resetCard(analysisDeltaCardF4Score, analysisDeltaCardF4RMax, analysisDeltaCardF4ArmShaft, analysisDeltaCardF4Lean);
+    resetCard(analysisDeltaCardF4Score, analysisDeltaCardF4Arc, analysisDeltaCardF4RMax, analysisDeltaCardF4ArmShaft, analysisDeltaCardF4Lean);
     [analysisDeltaCardF1BSection, analysisDeltaCardF2BSection, analysisDeltaCardF3BSection, analysisDeltaCardF4BSection]
       .forEach(function(el) { if (el) el.innerHTML = ''; });
     if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = 'F1: -';
