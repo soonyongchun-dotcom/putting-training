@@ -986,7 +986,7 @@
       <div class="analysis-metric" id="analysisFrontTiming"
            data-tooltip="어깨→손목→클럽헤드 꺾임 각도 (팔-샤프트 각)&#10;◎ 90° = 완전 코킹(래그) — 클럽이 수직으로 세워짐&#10;◎ 180° = 완전 릴리즈 — 팔+샤프트 일직선&#10;어드레스: 140~170° 일반 / 다운스윙: 90~120° 이상적">주요 각도: -</div>
       <div class="analysis-metric" id="analysisFrontAcceleration"
-           data-tooltip="집중도 (랜드마크 평균 중심거리 + 어드레스 기준 비율)&#10;• 로데이터: 모든 랜드마크의 무게중심 대비 평균 거리 (0~1)&#10;• 기준대비: 현재 프레임 / 어드레스(F1A) × 100%&#10;◎ F2 래깅: 집중도 증가 = 몸에 밀착 = 좋음&#10;◎ F3/F4: 펼쳐질수록 정상 → 비율 상승 = 아크 확장">집중도: -</div>
+           data-tooltip="키 보정 계수 (골퍼 키 기반 정규화 인수)&#10;• 영상 내 키 대비 보정 배율 (%)&#10;• 컴팩트 지수·반경 등 거리 지표의 키 독립 정규화에 사용&#10;◎ 100% = 기준값 / 높을수록 키가 크게 측정됨">키 보정: -</div>
       <div class="analysis-metric" id="analysisFrontTransfer"
            data-tooltip="반경 비율 (최대 반경 / 어드레스 기준 비율)&#10;• 어드레스(F1A) 기준 최대 반경이 얼마나 변했는지&#10;◎ F3 지면반력: 비율 증가 = 하체 신장 = 좋음&#10;◎ F4 임팩트: 비율 높을수록 레버 확장 = 클럽헤드 속도↑">반경 비율: -</div>
       <div class="analysis-metric" id="analysisFrontImpact"
@@ -1399,9 +1399,9 @@
     updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
     // Frame 2에서는 에너지전환효율/임팩트 파워 숨김 (Frame 3/4에만 유효)
     const showTransferImpact = selectedSegment === 'frame3' || selectedSegment === 'frame4';
-    if (analysisFrontTransfer) analysisFrontTransfer.style.display = showTransferImpact ? '' : 'none';
+    if (analysisFrontTransfer) analysisFrontTransfer.style.display = 'none';  // 반경 비율 항상 숨김
     if (analysisFrontImpact)   analysisFrontImpact.style.display   = showTransferImpact ? '' : 'none';
-    if (analysisSideTransfer)  analysisSideTransfer.style.display  = showTransferImpact ? '' : 'none';
+    if (analysisSideTransfer)  analysisSideTransfer.style.display  = 'none';   // 반경 비율 항상 숨김
     if (analysisSideImpact)    analysisSideImpact.style.display    = showTransferImpact ? '' : 'none';
     const deltaResult = createDeltaResult(displayedFrontResult, sideResult, selectedSegment);
     segmentScoreHistory[selectedSegment] = deltaResult.segmentScore;
@@ -2015,14 +2015,10 @@
     momentEl.textContent = `컴팩트 지수: ${momentProxy.toFixed(3)}`;
     radiusEl.textContent = `최대 반경: ${radiusProxy.toFixed(3)}`;
     timingEl.textContent = `주요 각도: ${angleDeg.toFixed(1)}°`;
-    // 집중도: 로데이터 + 어드레스 기준 비율
-    accelEl.textContent = result.momentRatioPct != null
-      ? `집중도: ${momentProxy.toFixed(3)} (기준대비 ${result.momentRatioPct.toFixed(0)}%)`
-      : `집중도: ${momentProxy.toFixed(3)}`;
-    // 반경 비율: 어드레스 기준 퍼센트
-    transferEl.textContent = result.radiusRatioPct != null
-      ? `반경 비율: 기준대비 ${result.radiusRatioPct.toFixed(0)}%`
-      : `반경: ${radiusProxy.toFixed(3)}`;
+    // 키 보정: heightScale 기반
+    const hsVal = Number.isFinite(result.heightScale) ? result.heightScale : null;
+    accelEl.textContent = hsVal != null ? `키 보정: ${Math.round(hsVal * 100)}%` : '키 보정: -';
+    transferEl.textContent = '';  // 반경 비율 삭제
     // 각도×반경: 로데이터 조합
     impactEl.textContent = `각도·반경: ${angleDeg.toFixed(1)}° × ${radiusProxy.toFixed(3)}`;    
     const splitIdx = result.summary.indexOf(' 키보정:');
@@ -2090,19 +2086,11 @@
       const sLbl = getFrameSectionLabel(segment, 'side');
       const bTag = function(txt) { return '<div class=' + String.fromCharCode(34) + 'analysis-metric' + String.fromCharCode(34) + '>' + txt + '</div>'; };
       const bLbl = '<div class=' + String.fromCharCode(34) + 'analysis-b-label' + String.fromCharCode(34) + '>' + sLbl + '</div>';
-      const bAccelTxt = bM.momentRatioPct != null
-        ? `집중도: ${bM.moment.toFixed(3)} (기준대비 ${bM.momentRatioPct.toFixed(0)}%)`
-        : `집중도: ${bM.moment.toFixed(3)}`;
-      const bTransferTxt = bM.radiusRatioPct != null
-        ? `반경 비율: 기준대비 ${bM.radiusRatioPct.toFixed(0)}%`
-        : `반경: ${bM.radius.toFixed(3)}`;
       const bImpactTxt = `각도·반경: ${bM.angle.toFixed(1)}° × ${bM.radius.toFixed(3)}`;
       bSecEl.innerHTML = bLbl
         + bTag('컴팩트 지수: ' + bM.moment.toFixed(3))
         + bTag('최대 반경: ' + bM.radius.toFixed(3))
         + bTag('주요 각도: ' + bM.angle.toFixed(1) + '°')
-        + bTag(bAccelTxt)
-        + (segment === 'frame3' || segment === 'frame4' ? bTag(bTransferTxt) : '')
         + (segment === 'frame3' || segment === 'frame4' ? bTag(bImpactTxt) : '');
     }
 }
