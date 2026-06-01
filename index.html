@@ -202,6 +202,8 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     font-weight:bold;
 }
 .distance-empty { margin-top:8px; color:#667; font-size:13px; }
+.speed-subtable { margin-bottom:18px; }
+.speed-subtable-title { font-weight:bold; font-size:13px; color:#1f4db8; margin-bottom:4px; padding-left:2px; }
 .mission-file-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
 .mission-file-btn {
     border:1px solid #bfcff1;
@@ -558,7 +560,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
                 <br><span class="small">라인은 타이트해지지만 관성 리스크 증가</span>
             </div>
         </div>
-        <div class="small" style="margin-top:8px;">
+        <div id="frameworkDrillRule" class="small" style="margin-top:8px;">
             드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요.
             속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.
         </div>
@@ -572,104 +574,71 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     <div class="form-grid">
         <div class="field">
             <label for="distance">Distance (yd)</label>
-            <input type="number" id="distance" min="1" step="1" value="3">
-        </div>
-
-        <div class="field">
-            <label for="intendedStartLine">Intended Start Line</label>
-            <select id="intendedStartLine">
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
+            <select id="distance">
+                <option value="5y이내">5y 이내</option>
+                <option value="5-7y" selected>5-7y</option>
+                <option value="7-9y">7-9y</option>
+                <option value="9-11y">9-11y</option>
+                <option value="11y이상">11y 이상</option>
             </select>
         </div>
 
         <div class="field">
-            <label for="actualMiss">Actual Miss</label>
+            <label for="actualMiss">Putt Result</label>
             <select id="actualMiss">
-            <option value="center">Holed</option>
-            <option value="left">Left Miss</option>
-            <option value="right">Right Miss</option>
+            <option value="center">홀인</option>
+            <option value="left">좌측 미스</option>
+            <option value="right">우측 미스</option>
             </select>
         </div>
 
         <div class="field">
-            <label for="lateralError">Lateral Error (cm)</label>
-            <input type="number" id="lateralError" min="0" step="1" value="0">
-        </div>
-
-        <div class="field">
-            <label for="predLowPoint">Pred Low-Point (Slope Flow)</label>
+            <label for="predLowPoint">인지한 Low-Point</label>
             <select id="predLowPoint">
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                    <option value="flat">Flat</option>
+                    <option value="left">왼쪽</option>
+                    <option value="right">오른쪽</option>
+                    <option value="flat">평지</option>
             </select>
         </div>
 
         <div class="field">
-            <label for="actualLowPoint">Actual Low-Point</label>
+            <label for="actualLowPoint">실제 Low-Point</label>
             <select id="actualLowPoint">
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                    <option value="flat">Flat</option>
-            </select>
-        </div>
-
-        <div class="field">
-            <label for="speedPlan">Speed Plan</label>
-            <select id="speedPlan">
-                    <option value="dead">Dead Weight</option>
-                    <option value="over30">30cm Over</option>
-                    <option value="over60">60cm Over</option>
-            </select>
-        </div>
-
-        <div class="field">
-            <label for="actualPace">Actual Pace</label>
-            <select id="actualPace">
-                    <option value="dead">Dead Weight</option>
-                    <option value="over30">30cm Over</option>
-                    <option value="over60">60cm Over</option>
-            </select>
-        </div>
-
-        <div class="field">
-            <label for="decisionOver7">Stroke Time Consistency (Over 7s?)</label>
-            <select id="decisionOver7">
-                    <option value="no">No (Within 7s)</option>
-                    <option value="yes">Yes (Over 7s)</option>
-            </select>
-        </div>
-
-        <div class="field">
-            <label for="highSideCommit">High-side Commit</label>
-            <select id="highSideCommit">
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-            </select>
-        </div>
-
-        <div class="field">
-            <label for="apexCommit">Apex Visualized</label>
-            <select id="apexCommit">
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
+                    <option value="left">왼쪽</option>
+                    <option value="right">오른쪽</option>
+                    <option value="flat">평지</option>
             </select>
         </div>
 
         <div class="field">
             <label for="missType">Miss Type</label>
             <select id="missType">
-                    <option value="none">No Miss (Holed)</option>
-                    <option value="direction">Direction Miss</option>
-                    <option value="speed">Speed Miss</option>
-                    <option value="both">Direction + Speed Miss</option>
+                    <option value="none">미스 없음 (홀인)</option>
+                    <option value="direction">방향 미스</option>
+                    <option value="speed">속도 미스</option>
+                    <option value="both">방향 + 속도 미스</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="decisionOver7">스트로크 시간 (5초 초과?)</label>
+            <select id="decisionOver7">
+                    <option value="no">아니오 (5초 이내)</option>
+                    <option value="yes">예 (5초 초과)</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="highSideCommit">High-side Commit</label>
+            <select id="highSideCommit">
+                    <option value="yes">예</option>
+                    <option value="no">아니오</option>
             </select>
         </div>
     </div>
     <button id="submitM1">저장 (Save)</button>
   <div class="result" id="m1Result"></div>
-    <div class="small">Directional Miss: counted when Miss Type is direction/both / Address→Putt target: within 7s</div>
+    <div class="small">방향 미스: Miss Type이 direction/both인 경우 / 5초 기준: 어드레스 후 스트로크까지 5초 이내 / High-side Commit은 루틴 품질 지표</div>
 </div>
 </div>
 
@@ -679,19 +648,23 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     <div class="form-grid">
                 <div class="field">
                         <label for="speedDistance">Distance (yd)</label>
-                        <input type="number" step="1" min="1" id="speedDistance" value="3">
+                        <select id="speedDistance">
+                            <option value="5y이내">5y 이내</option>
+                            <option value="5-7y" selected>5-7y</option>
+                            <option value="7-9y">7-9y</option>
+                            <option value="9-11y">9-11y</option>
+                            <option value="11y이상">11y 이상</option>
+                        </select>
                 </div>
 
         <div class="field">
-            <label for="predSlope">Predicted Slope %</label>
-            <select id="predSlope">
-                <option value="1">Uphill 1</option>
-                <option value="2">Uphill 2</option>
-                <option value="3">Uphill 3</option>
-                <option value="0">Flat</option>
-                <option value="-1">Downhill 1</option>
-                <option value="-2">Downhill 2</option>
-                <option value="-3">Downhill 3</option>
+            <label for="greenSpeed">그린 속도 (Green Speed)</label>
+            <select id="greenSpeed">
+                <option value="very_slow">매우 느림</option>
+                <option value="slow">느림</option>
+                <option value="medium" selected>보통</option>
+                <option value="fast">빠름</option>
+                <option value="very_fast">매우 빠름</option>
             </select>
         </div>
 
@@ -709,13 +682,23 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         </div>
 
         <div class="field">
-            <label for="predSpeedCm">Pred Finish (cm over)</label>
-            <input type="number" step="1" id="predSpeedCm" value="30">
+            <label for="puttingType">퍼팅 타입 (Putting Type)</label>
+            <select id="puttingType">
+                <option value="straight" selected>직선</option>
+                <option value="break_left">브레이크 왼쪽</option>
+                <option value="break_right">브레이크 오른쪽</option>
+            </select>
         </div>
 
         <div class="field">
-            <label for="actualSpeedCm">Actual Finish (cm over)</label>
-            <input type="number" step="1" id="actualSpeedCm" value="30">
+            <label for="actualSpeedCm">Actual Finish</label>
+            <select id="actualSpeedCm">
+                <option value="100">1m이상 오버</option>
+                <option value="30">30cm 이상 오버</option>
+                <option value="0" selected>-30~30cm 사이</option>
+                <option value="-30">30cm 이상 짧음</option>
+                <option value="-100">1m이상 짧음</option>
+            </select>
         </div>
     </div>
     <button id="submitM2">저장 (Save)</button>
@@ -911,6 +894,24 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         </div>
         <div class="result" id="registerPlayerResult" style="grid-column: 1 / -1;"></div>
         <div class="mission-upload-list" id="registeredPlayerList" style="grid-column: 1 / -1;"></div>
+    </div>
+
+    <!-- 가입 코드 설정 (지도자 전용) -->
+    <div class="players-section-title" style="margin-top:20px;" id="signupCodeSettingTitle">🔑 가입 코드 설정</div>
+    <div class="small" style="margin-bottom:8px;" id="signupCodeSettingDesc">선수 자가 가입 시 입력해야 하는 코드를 설정합니다. 지도자 전용입니다.</div>
+    <div class="form-grid" style="margin-top:8px;" id="signupCodeSettingWrap">
+        <div class="field">
+            <label for="signupCodeInput" id="signupCodeInputLabel">새 가입 코드</label>
+            <input type="password" id="signupCodeInput" placeholder="코드 입력">
+        </div>
+        <div class="field">
+            <label for="signupCodeConfirm" id="signupCodeConfirmLabel">코드 확인</label>
+            <input type="password" id="signupCodeConfirm" placeholder="동일하게 입력">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+            <button id="saveSignupCodeBtn" type="button" class="secondary-btn">가입 코드 저장</button>
+        </div>
+        <div class="result" id="signupCodeResult" style="grid-column: 1 / -1;"></div>
     </div>
 
     <!-- 선수 전송 데이터 목록 -->
@@ -1179,8 +1180,8 @@ const UI_I18N = {
         logout: "로그아웃",
         sessionInfo: "이름: {{playerName}} | 날짜: {{sessionDate}} | 역할: {{role}}",
         score: "점수",
-        passWithin7s: "통과 (7초 이내)",
-        lateOver7s: "지연 (7초 초과)",
+        passWithin7s: "통과 (5초 이내)",
+        lateOver7s: "지연 (5초 초과)",
         m1Result: "점수: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 7초 기준: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
         m2Result: "Slope Error: {{slopeError}} ({{predLabel}} vs {{actualLabel}}) | Speed Error: {{speedError}}cm | Score: {{score}} (누적평균)",
         missionDesc: "미션 설명: {{detail}}",
@@ -1338,8 +1339,8 @@ const UI_I18N = {
         logout: "Logout",
         sessionInfo: "Name: {{playerName}} | Date: {{sessionDate}} | Role: {{role}}",
         score: "Score",
-        passWithin7s: "Pass (Within 7s)",
-        lateOver7s: "Late (Over 7s)",
+        passWithin7s: "Pass (Within 5s)",
+        lateOver7s: "Late (Over 5s)",
         m1Result: "Score: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 7s Rule: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
         m2Result: "Slope Error: {{slopeError}} ({{predLabel}} vs {{actualLabel}}) | Speed Error: {{speedError}}cm | Score: {{score}} (Cumulative Avg)",
         missionDesc: "Mission Description: {{detail}}",
@@ -1555,6 +1556,8 @@ class MissionRecord {
             : normalizeSlopeLevel(payload.actualSlope);
         this.predSpeedCm = payload.predSpeedCm ?? null;
         this.actualSpeedCm = payload.actualSpeedCm ?? null;
+        this.greenSpeed = payload.greenSpeed ?? null;
+        this.puttingType = payload.puttingType ?? null;
         this.predLowPoint = payload.predLowPoint ?? "";
         this.actualLowPoint = payload.actualLowPoint ?? "";
         this.speedPlan = payload.speedPlan ?? "";
@@ -1621,68 +1624,46 @@ class MetricsService {
         return missType === "direction" || missType === "both";
     }
 
-    calculateM1Score({ intendedStartLine, actualMiss }) {
+    calculateM1Score({ missType, actualMiss }) {
         if (actualMiss === "center") return 10;
-        if (intendedStartLine === "yes") return 5;
-        return 0;
+        if (missType === "speed") return 5;   // 방향은 맞았으나 속도 미스
+        return 0;                              // direction / both → 라인 판독 실패
     }
 
-    calculateM2Score(predSlope, actualSlope, predSpeedCm, actualSpeedCm) {
-        const normalizedPredSlope = normalizeSlopeLevel(predSlope);
-        const normalizedActualSlope = normalizeSlopeLevel(actualSlope);
-        const slopeError = Math.abs(normalizedPredSlope - normalizedActualSlope);
-        const speedError = Math.abs(predSpeedCm - actualSpeedCm);
-        const slopeScore = Math.max(0, 10 - slopeError * 5);
-        const speedScore = Math.max(0, 10 - speedError * 0.4);
-        const totalScore = slopeScore * 0.6 + speedScore * 0.4;
-        return {
-            slopeError,
-            speedError,
-            slopeScore,
-            speedScore,
-            totalScore
-        };
+    calculateM2Score(actualSpeedCm) {
+        const cm = Number(actualSpeedCm) || 0;
+        const absCm = Math.abs(cm);
+        let speedScore;
+        if (absCm === 0) speedScore = 10;
+        else if (absCm <= 30) speedScore = 7;
+        else speedScore = 3;
+        return { speedScore, totalScore: speedScore };
     }
 
     calculateAutoMetrics(records) {
         const m1 = records.filter(r => MetricsService.isLieMission(r.mission));
         const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
 
-        const avgSlopeError = m2.length
-            ? m2.reduce((sum, r) => sum + Math.abs(normalizeSlopeLevel(r.predSlope ?? 0) - normalizeSlopeLevel(r.actualSlope ?? 0)), 0) / m2.length
+        const speedInRangeRate = m2.length
+            ? m2.filter(r => Number(r.actualSpeedCm ?? 0) === 0).length / m2.length
             : 0;
 
         const avgSpeedError = m2.length
-            ? m2.reduce((sum, r) => sum + Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)), 0) / m2.length
+            ? m2.reduce((sum, r) => sum + Math.abs(Number(r.actualSpeedCm) || 0), 0) / m2.length
             : 0;
 
         const directionCorrectRate = m1.length
-            ? m1.filter(r => r.intendedStartLine === "yes").length / m1.length
+            ? m1.filter(r => r.missType !== "direction" && r.missType !== "both").length / m1.length
             : 0;
 
         const totalMisses = m1.filter(r => r.actualMiss !== "center");
         const lowSideCount = totalMisses.filter(r => MetricsService.isDirectionalMiss(r.missType)).length;
         const lowSideRate = totalMisses.length ? lowSideCount / totalMisses.length : 0;
 
-        const avgDistanceNormalizedError = m1.length
-            ? m1.reduce((sum, r) => {
-                const distance = Math.max(0.5, Number(r.distance) || 0.5);
-                const lateralError = Math.abs(Number(r.lateralErrorCm) || 0);
-                const normalizedError = lateralError / (distance * 2.5);
-                return sum + normalizedError;
-            }, 0) / m1.length
-            : 0;
-
         const lowPointSamples = m1.filter(r => r.predLowPoint && r.actualLowPoint);
         const lowPointMatchCount = lowPointSamples.filter(r => r.predLowPoint === r.actualLowPoint).length;
         const lowPointAccuracy = lowPointSamples.length
             ? lowPointMatchCount / lowPointSamples.length
-            : 0;
-
-        const speedSamples = m1.filter(r => r.speedPlan && r.actualPace);
-        const speedMatchCount = speedSamples.filter(r => r.speedPlan === r.actualPace).length;
-        const speedMatchRate = speedSamples.length
-            ? speedMatchCount / speedSamples.length
             : 0;
 
         const oneLookSamples = m1.filter(r => r.decisionOver7 === "yes" || r.decisionOver7 === "no");
@@ -1691,8 +1672,8 @@ class MetricsService {
             ? oneLookCount / oneLookSamples.length
             : 0;
 
-        const confidenceSamples = m1.filter(r => r.highSideCommit && r.apexCommit);
-        const confidenceCount = confidenceSamples.filter(r => r.highSideCommit === "yes" && r.apexCommit === "yes").length;
+        const confidenceSamples = m1.filter(r => r.highSideCommit === "yes" || r.highSideCommit === "no");
+        const confidenceCount = confidenceSamples.filter(r => r.highSideCommit === "yes").length;
         const confidenceRate = confidenceSamples.length
             ? confidenceCount / confidenceSamples.length
             : 0;
@@ -1725,27 +1706,33 @@ class MetricsService {
             : 0;
 
         const practicalMissCauseScore = MetricsService.clamp((
-            ((1 - lowPointMissMismatchRate) * 0.25) +
-            ((1 - directionRelatedMissRate) * 0.25) +
-            ((1 - speedRelatedMissRate) * 0.25) +
-            (confidenceRate * 0.25)
+            ((1 - lowPointMissMismatchRate) * 0.30) +
+            ((1 - directionRelatedMissRate) * 0.35) +
+            ((1 - speedRelatedMissRate) * 0.20) +
+            (confidenceRate * 0.15)
         ) * 100, 0, 100);
 
         const gravityStageScore = MetricsService.clamp(((lowPointAccuracy * 0.60) + ((practicalMissCauseScore / 100) * 0.40)) * 100, 0, 100);
-        const slopeCalibrationScore = MetricsService.clamp(100 - avgSlopeError * 20, 0, 100);
+        const speedInRangeScore = speedInRangeRate * 100;
         const speedCalibrationScore = MetricsService.clamp(100 - avgSpeedError * 1.2, 0, 100);
-        const slopeStageScore = MetricsService.clamp(slopeCalibrationScore * 0.7 + speedCalibrationScore * 0.3, 0, 100);
-        const speedStageScore = ((speedMatchRate * 0.6) + (oneLookRate * 0.4)) * 100;
+        const slopeStageScore = MetricsService.clamp(speedInRangeScore * 0.7 + speedCalibrationScore * 0.3, 0, 100);
+        // speedStageScore: routine quality (7초 룰 + high-side commit)
+        const speedStageScore = (oneLookRate * 0.6 + confidenceRate * 0.4) * 100;
 
         const sri = slopeStageScore;
         const sii = MetricsService.clamp((
-            (directionCorrectRate * 0.40) +
+            (directionCorrectRate * 0.45) +
             ((1 - lowSideRate) * 0.25) +
-            ((practicalMissCauseScore / 100) * 0.35)
+            ((practicalMissCauseScore / 100) * 0.30)
         ) * 100, 0, 100);
-        const dcs = MetricsService.clamp((100 - avgDistanceNormalizedError * 100) * 0.5 + speedStageScore * 0.5, 0, 100);
+        // DCS: 홀인율 + 속도 미스 없는 비율 + 루틴 품질
+        const holedRate = m1.length ? m1.filter(r => r.actualMiss === "center").length / m1.length : 0;
+        const dcs = MetricsService.clamp(
+            (holedRate * 0.40) + ((1 - speedRelatedMissRate / Math.max(1, missSamples.length / Math.max(1, m1.length))) * 0.30) + (speedStageScore / 100 * 0.30),
+            0, 100
+        ) * 100;
 
-        const avgSlopeErrorScore = slopeCalibrationScore;
+        const speedInRangeScore_display = speedInRangeScore;
         const avgSpeedErrorScore = speedCalibrationScore;
         const overallMetricAverage = [
             sri,
@@ -1754,7 +1741,7 @@ class MetricsService {
             gravityStageScore,
             slopeStageScore,
             speedStageScore,
-            avgSlopeErrorScore,
+            speedInRangeScore_display,
             avgSpeedErrorScore
         ].reduce((sum, value) => sum + value, 0) / 8;
 
@@ -1762,7 +1749,7 @@ class MetricsService {
             sri,
             sii,
             dcs,
-            avgSlopeError,
+            speedInRangeRate,
             avgSpeedError,
             directionCorrectRate,
             lowSideCount,
@@ -1783,9 +1770,6 @@ class MetricsService {
             objectiveLowSideMissRate,
             objectiveLowSideCount,
             objectiveLowSideSampleCount: objectiveLowSideSamples.length,
-            speedMatchRate,
-            speedSampleCount: speedSamples.length,
-            speedMatchCount,
             oneLookRate,
             oneLookSampleCount: oneLookSamples.length,
             oneLookCount,
@@ -1796,7 +1780,7 @@ class MetricsService {
             slopeStageScore,
             speedCalibrationScore,
             speedStageScore,
-            avgSlopeErrorScore,
+            speedInRangeScore: speedInRangeScore_display,
             avgSpeedErrorScore,
             overallMetricAverage,
             directionMissCount,
@@ -1829,24 +1813,55 @@ class MetricsService {
             const count = rows.length;
             const holedCount = rows.filter(r => r.actualMiss === "center").length;
             const holedRate = holedCount / Math.max(1, count);
-            const intendedYesCount = rows.filter(r => r.intendedStartLine === "yes").length;
-            const directionAcc = intendedYesCount / Math.max(1, count);
+            // directionAcc: direction/both miss가 없는 비율 (방향 정확도)
+            const directionOkCount = rows.filter(r => r.missType !== "direction" && r.missType !== "both").length;
+            const directionAcc = directionOkCount / Math.max(1, count);
             const misses = rows.filter(r => r.actualMiss !== "center");
             const missCount = misses.length;
             const directionalMissCount = misses.filter(r => MetricsService.isDirectionalMiss(r.missType)).length;
             const lowSideRate = directionalMissCount / Math.max(1, missCount);
-            return { distance, count, holedCount, holedRate, intendedYesCount, directionAcc, missCount, directionalMissCount, lowSideRate };
+            return { distance, count, holedCount, holedRate, directionOkCount, directionAcc, missCount, directionalMissCount, lowSideRate };
         });
 
-        const speedByDistance = groupByDistance(speedRows).map(([distance, rows]) => {
+        const SPEED_DISTANCE_ORDER = ["5y이내", "5-7y", "7-9y", "9-11y", "11y이상"];
+        const groupByStr = (rows, field) => {
+            const map = new Map();
+            rows.forEach((row) => {
+                const key = String(row[field] || "unknown");
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(row);
+            });
+            return Array.from(map.entries());
+        };
+        const calcSpeedMetrics = (rows) => {
             const count = rows.length;
-            const avgSlopeError = rows.reduce((sum, r) => sum + Math.abs(normalizeSlopeLevel(r.predSlope ?? 0) - normalizeSlopeLevel(r.actualSlope ?? 0)), 0) / Math.max(1, count);
-            const avgSpeedError = rows.reduce((sum, r) => sum + Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)), 0) / Math.max(1, count);
-            const stablePaceRate = rows.filter(r => Math.abs((r.predSpeedCm ?? 0) - (r.actualSpeedCm ?? 0)) <= 10).length / Math.max(1, count);
-            return { distance, count, avgSlopeError, avgSpeedError, stablePaceRate };
-        });
+            const inRangeCount = rows.filter(r => Number(r.actualSpeedCm ?? 0) === 0).length;
+            const overCount = rows.filter(r => Number(r.actualSpeedCm ?? 0) > 0).length;
+            const shortCount = rows.filter(r => Number(r.actualSpeedCm ?? 0) < 0).length;
+            return {
+                count,
+                inRangeCount, overCount, shortCount,
+                inRangeRate: inRangeCount / Math.max(1, count),
+                overRate: overCount / Math.max(1, count),
+                shortRate: shortCount / Math.max(1, count)
+            };
+        };
 
-        return { lieByDistance, speedByDistance };
+        const speedByDistance = groupByStr(speedRows, "distance")
+            .sort((a, b) => {
+                const ai = SPEED_DISTANCE_ORDER.indexOf(a[0]);
+                const bi = SPEED_DISTANCE_ORDER.indexOf(b[0]);
+                return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
+            })
+            .map(([distance, rows]) => ({ distance, ...calcSpeedMetrics(rows) }));
+
+        const speedByGreenSpeed = groupByStr(speedRows, "greenSpeed")
+            .map(([greenSpeed, rows]) => ({ greenSpeed, ...calcSpeedMetrics(rows) }));
+
+        const speedByPuttingType = groupByStr(speedRows, "puttingType")
+            .map(([puttingType, rows]) => ({ puttingType, ...calcSpeedMetrics(rows) }));
+
+        return { lieByDistance, speedByDistance, speedByGreenSpeed, speedByPuttingType };
     }
 }
 
@@ -2024,7 +2039,7 @@ class HeatmapComponent {
 
         m2.forEach(row => {
             const distance = Number(row.distance) || 0;
-            const speedError = Math.abs((Number(row.predSpeedCm) || 0) - (Number(row.actualSpeedCm) || 0));
+            const speedError = Math.abs(Number(row.actualSpeedCm) || 0);
             const slopeBasis = normalizeSlopeLevel(row.actualSlope ?? row.predSlope ?? 0);
             const x = this.getDistanceBin(distance);
             const y = this.getSlopeBin(slopeBasis);
@@ -2105,11 +2120,11 @@ class DashboardComponent {
                 <div class="metric-label">DCS</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.dcs.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Avg Slope Error: Average difference between predicted and actual slope values. Lower is better." : "Avg Slope Error: 예측 경사와 실제 경사의 평균 오차(%). 낮을수록 좋습니다."}">
-                <div class="metric-label">Avg Slope Error</div>
-                <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSlopeErrorScore.toFixed(1)}(${metrics.avgSlopeError.toFixed(2)}%)`)}</div>
+            <div class="metric-card" title="${isEn ? "Speed In Range %: Share of Speed Training attempts where the ball finished in the target zone (±30cm). Higher is better." : "Speed In Range %: 속도 결정훈련 시도 중 목표 범위(-30~30cm)에 들어온 비율입니다. 높을수록 좋습니다."}">
+                <div class="metric-label">${isEn ? "Speed In Range %" : "적정 마무리 %"}</div>
+                <div class="metric-value">${display(hasSpeedTrials, `${metrics.speedInRangeScore.toFixed(1)}(${(metrics.speedInRangeRate * 100).toFixed(1)}%)`)}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Avg Speed Error: Average difference between predicted and actual finish distance (cm). Lower is better." : "Avg Speed Error: 예측 피니시 거리와 실제 피니시 거리의 평균 오차(cm). 낮을수록 좋습니다."}">
+            <div class="metric-card" title="${isEn ? "Avg Speed Error: Average absolute finish distance from hole (cm categories: 0/30/100). Lower is better." : "Avg Speed Error: 실제 피니시의 평균 절대 오차(0/30/100cm 범주 기준). 낮을수록 좋습니다."}">
                 <div class="metric-label">Avg Speed Error</div>
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSpeedErrorScore.toFixed(1)}(${metrics.avgSpeedError.toFixed(1)}cm)`)}</div>
             </div>
@@ -2205,7 +2220,7 @@ class DashboardComponent {
                         speedMiss: "미스 샷 중 원인이 속도 또는 방향+속도인 비율입니다.",
                         missCauseWeight: "Low-Point 불일치, 방향/속도 미스, 확신 유지를 종합한 가중 점수입니다.",
                         speedControl: "계획한 속도와 실제 속도 실행이 일치한 비율입니다.",
-                        puttWithin7s: "어드레스 후 7초 이내 스트로크 실행 비율입니다.",
+                        puttWithin7s: "어드레스 후 5초 이내 스트로크 실행 비율입니다.",
                         confidenceRetention: "High-side 커밋과 Apex 커밋을 동시에 유지한 비율입니다."
                     };
                 return tooltips[key] || "";
@@ -2220,7 +2235,7 @@ class DashboardComponent {
                     { key: "speedMiss", label: "Speed-related Miss", value: speedRelatedText, normalized: metrics.totalMisses > 0 ? metrics.speedRelatedMissRate : null, preference: "lower" },
                     { key: "missCauseWeight", label: "Miss Cause Weight", value: missCauseScoreText, normalized: metrics.missTotal > 0 ? (metrics.practicalMissCauseScore / 100) : null, preference: "higher" },
                     { key: "speedControl", label: "Speed Plan Match", value: speedMatchText, normalized: metrics.speedSampleCount > 0 ? metrics.speedMatchRate : null, preference: "higher" },
-                    { key: "puttWithin7s", label: "Address→Putt Within 7s", value: oneLookText, normalized: metrics.oneLookSampleCount > 0 ? metrics.oneLookRate : null, preference: "higher" },
+                    { key: "puttWithin7s", label: "Address→Putt Within 5s", value: oneLookText, normalized: metrics.oneLookSampleCount > 0 ? metrics.oneLookRate : null, preference: "higher" },
                     { key: "confidenceRetention", label: "Confidence Retention", value: confidenceText, normalized: metrics.confidenceSampleCount > 0 ? metrics.confidenceRate : null, preference: "higher" }
                 ]
                 : [
@@ -2232,7 +2247,7 @@ class DashboardComponent {
                     { key: "speedMiss", label: "속도 관련 미스", value: speedRelatedText, normalized: metrics.totalMisses > 0 ? metrics.speedRelatedMissRate : null, preference: "lower" },
                     { key: "missCauseWeight", label: "미스원인가중치", value: missCauseScoreText, normalized: metrics.missTotal > 0 ? (metrics.practicalMissCauseScore / 100) : null, preference: "higher" },
                     { key: "speedControl", label: "속도제어", value: speedMatchText, normalized: metrics.speedSampleCount > 0 ? metrics.speedMatchRate : null, preference: "higher" },
-                    { key: "puttWithin7s", label: "Address→Putt 7초 이내", value: oneLookText, normalized: metrics.oneLookSampleCount > 0 ? metrics.oneLookRate : null, preference: "higher" },
+                    { key: "puttWithin7s", label: "Address→Putt 5초 이내", value: oneLookText, normalized: metrics.oneLookSampleCount > 0 ? metrics.oneLookRate : null, preference: "higher" },
                     { key: "confidenceRetention", label: "확신 유지", value: confidenceText, normalized: metrics.confidenceSampleCount > 0 ? metrics.confidenceRate : null, preference: "higher" }
                 ];
 
@@ -2274,12 +2289,12 @@ class DashboardComponent {
         } else {
             const totalShots = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.count, 0);
             const totalHoledCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.holedCount, 0);
-            const totalIntendedYesCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.intendedYesCount, 0);
+            const totalDirectionOkCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.directionOkCount, 0);
             const totalMissCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.missCount, 0);
             const totalDirectionalMissCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.directionalMissCount, 0);
 
             const overallHoledRate = totalShots ? totalHoledCount / totalShots : 0;
-            const overallDirectionAcc = totalShots ? totalIntendedYesCount / totalShots : 0;
+            const overallDirectionAcc = totalShots ? totalDirectionOkCount / totalShots : 0;
             const overallDirectionalMissRate = totalMissCount ? totalDirectionalMissCount / totalMissCount : 0;
 
             this.lieDistanceTarget.innerHTML = `
@@ -2289,7 +2304,7 @@ class DashboardComponent {
                             <th>Distance (yd)</th>
                             <th>${isEn ? "Shots" : "시도"}</th>
                             <th>${isEn ? "Holed (Count, %)" : "홀인 (횟수, %)"}</th>
-                            <th title="${isEn ? "Intended Start Line %: Share of shots that kept Intended Start Line as Yes. Higher indicates better decision/execution consistency." : "Intended Start Line %: Intended Start Line을 Yes로 유지한 비율입니다. 높을수록 결정/실행 일관성이 좋습니다."}">Intended Start Line %</th>
+                            <th title="${isEn ? "Direction Accuracy %: Share of shots with no direction miss. Higher is better." : "방향 정확도 %: 방향 미스 없는 샷의 비율. 높을수록 좋습니다."}">${isEn ? "Direction Acc %" : "방향 정확도 %"}</th>
                             <th title="${isEn ? "Directional Miss %: Share of misses with Miss Type = direction or both. Lower is better." : "Directional Miss %: 미스 샷 중 Miss Type이 direction 또는 both인 비율입니다. 낮을수록 좋습니다."}">Directional Miss %</th>
                         </tr>
                     </thead>
@@ -2320,46 +2335,47 @@ class DashboardComponent {
                 ? '<div class="distance-empty">N/A (No Speed Decision Training data)</div>'
                 : '<div class="distance-empty">N/A (Speed 결정훈련 데이터 없음)</div>';
         } else {
-            const totalSpeedShots = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + row.count, 0);
-            const weightedSlopeErrorSum = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + (row.avgSlopeError * row.count), 0);
-            const weightedSpeedErrorSum = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + (row.avgSpeedError * row.count), 0);
-            const stablePaceCount = distanceBreakdown.speedByDistance.reduce((sum, row) => sum + (row.stablePaceRate * row.count), 0);
+            const allSpeedRows = distanceBreakdown.speedByDistance;
+            const totalShots = allSpeedRows.reduce((s, r) => s + r.count, 0);
+            const totalInRange = allSpeedRows.reduce((s, r) => s + r.inRangeCount, 0);
+            const totalOver   = allSpeedRows.reduce((s, r) => s + r.overCount, 0);
+            const totalShort  = allSpeedRows.reduce((s, r) => s + r.shortCount, 0);
 
-            const overallSlopeError = totalSpeedShots ? weightedSlopeErrorSum / totalSpeedShots : 0;
-            const overallSpeedError = totalSpeedShots ? weightedSpeedErrorSum / totalSpeedShots : 0;
-            const overallStablePaceRate = totalSpeedShots ? stablePaceCount / totalSpeedShots : 0;
+            const GREEN_SPEED_LABEL = { very_slow: isEn ? "Very Slow" : "매우 느림", slow: isEn ? "Slow" : "느림", medium: isEn ? "Medium" : "보통", fast: isEn ? "Fast" : "빠름", very_fast: isEn ? "Very Fast" : "매우 빠름" };
+            const PUTTING_TYPE_LABEL = { straight: isEn ? "Straight" : "직선", break_left: isEn ? "Break Left" : "브레이크 왼쪽", break_right: isEn ? "Break Right" : "브레이크 오른쪽" };
+            const pct = v => `${(v * 100).toFixed(1)}%`;
 
-            this.speedDistanceTarget.innerHTML = `
-                <table class="distance-table">
-                    <thead>
-                        <tr>
-                            <th>Distance (yd)</th>
+            const buildTable = (title, rowKey, labelMap, rows) => `
+                <div class="speed-subtable">
+                    <div class="speed-subtable-title">${title}</div>
+                    <table class="distance-table">
+                        <thead><tr>
+                            <th>${rowKey === "distance" ? (isEn ? "Distance" : "거리") : rowKey === "greenSpeed" ? (isEn ? "Green Speed" : "그린 속도") : (isEn ? "Putting Type" : "퍼팅 타입")}</th>
                             <th>${isEn ? "Shots" : "시도"}</th>
-                            <th>Avg Slope Error %</th>
-                            <th>Avg Speed Error cm</th>
-                            <th title="${isEn ? "Pace Stable % (±10cm): Share of attempts where Pred Finish and Actual Finish differ by no more than ±10cm. Higher indicates better speed execution consistency." : "Pace Stable % (±10cm): Pred Finish와 Actual Finish 차이가 ±10cm 이내인 시도의 비율입니다. 높을수록 속도 실행 일관성이 좋습니다."}">Pace Stable % (±10cm)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${distanceBreakdown.speedByDistance.map(row => `
-                            <tr>
-                                <td>${row.distance}</td>
-                                <td>${row.count}</td>
-                                <td>${row.avgSlopeError.toFixed(2)}</td>
-                                <td>${row.avgSpeedError.toFixed(1)}</td>
-                                <td>${(row.stablePaceRate * 100).toFixed(1)}</td>
-                            </tr>
-                        `).join("")}
-                        <tr class="summary-row">
-                            <td>${isEn ? "Average" : "평균"}</td>
-                            <td>${totalSpeedShots}</td>
-                            <td>${overallSlopeError.toFixed(2)}</td>
-                            <td>${overallSpeedError.toFixed(1)}</td>
-                            <td>${(overallStablePaceRate * 100).toFixed(1)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
+                            <th title="${isEn ? "In Range: Actual finish within ±30cm zone" : "적정범위: -30~30cm 사이 비율"}">${isEn ? "In Range %" : "적정범위 %"}</th>
+                            <th>${isEn ? "Over %" : "오버 %"}</th>
+                            <th>${isEn ? "Short %" : "짧음 %"}</th>
+                        </tr></thead>
+                        <tbody>
+                            ${rows.map(row => {
+                                const key = row[rowKey === "distance" ? "distance" : rowKey === "greenSpeed" ? "greenSpeed" : "puttingType"];
+                                const label = (labelMap && labelMap[key]) || key;
+                                return `<tr>
+                                    <td>${label}</td>
+                                    <td>${row.count}</td>
+                                    <td>${pct(row.inRangeRate)}</td>
+                                    <td>${pct(row.overRate)}</td>
+                                    <td>${pct(row.shortRate)}</td>
+                                </tr>`;
+                            }).join("")}
+                        </tbody>
+                    </table>
+                </div>`;
+
+            this.speedDistanceTarget.innerHTML =
+                buildTable(isEn ? "By Distance" : "거리별", "distance", null, distanceBreakdown.speedByDistance) +
+                buildTable(isEn ? "By Green Speed" : "그린 속도별", "greenSpeed", GREEN_SPEED_LABEL, distanceBreakdown.speedByGreenSpeed) +
+                buildTable(isEn ? "By Putting Type" : "퍼팅 타입별", "puttingType", PUTTING_TYPE_LABEL, distanceBreakdown.speedByPuttingType);
         }
     }
 }
@@ -2428,9 +2444,9 @@ class PuttingTrainingApp {
         this.lockoutTimerId = null;
         this.appEventsBound = false;
         this.formFieldIds = [
-            "distance", "intendedStartLine", "actualMiss", "lateralError", "predLowPoint", "actualLowPoint",
-            "speedPlan", "actualPace", "decisionOver7", "highSideCommit", "apexCommit", "missType",
-            "speedDistance", "predSlope", "actualSlope", "predSpeedCm", "actualSpeedCm"
+            "distance", "actualMiss", "predLowPoint", "actualLowPoint",
+            "decisionOver7", "highSideCommit", "missType",
+            "speedDistance", "greenSpeed", "actualSlope", "puttingType", "actualSpeedCm"
         ];
     }
 
@@ -2628,8 +2644,9 @@ class PuttingTrainingApp {
                     conceptItems[2].innerHTML = "<b>60cm Over</b><br>빠른 속도, 브레이크 최소<br><span class='small'>라인은 타이트해지지만 관성 리스크 증가</span>";
                 }
             }
-            if (smalls && smalls[2]) {
-                smalls[2].innerHTML = this.language === "en"
+            const drillRuleEl = document.getElementById("frameworkDrillRule");
+            if (drillRuleEl) {
+                drillRuleEl.innerHTML = this.language === "en"
                     ? "Drill rule: execute all three speeds from the same spot and record <b>Speed Plan</b> and <b>Actual Pace</b> on every shot. Plan-execution speed match is a key reproducibility indicator."
                     : "드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요. 속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.";
             }
@@ -2641,32 +2658,39 @@ class PuttingTrainingApp {
             if (m1h2) m1h2.textContent = this.language === "en" ? "Lie Decision Training (Slope / Direction / Commitment)" : "Lie 결정훈련 (Slope / Direction / Commitment)";
             const m1Labels = {
                 distance: this.language === "en" ? "Distance (yd)" : "거리 (yd)",
-                intendedStartLine: this.language === "en" ? "Intended Start Line" : "의도한 출발 라인",
-                actualMiss: this.language === "en" ? "Putt Result" : "퍼팅결과",
-                lateralError: this.language === "en" ? "Lateral Error (cm)" : "좌우 오차 (cm)",
+                actualMiss: this.language === "en" ? "Putt Result" : "퍼팅 결과",
                 predLowPoint: this.language === "en" ? "Pred Low-Point (Slope Flow)" : "인지한 Low-Point",
                 actualLowPoint: this.language === "en" ? "Actual Low-Point" : "실제 Low-Point",
-                speedPlan: this.language === "en" ? "Distance Target" : "거리목표",
-                actualPace: this.language === "en" ? "Actual Distance" : "실제 거리",
-                decisionOver7: this.language === "en" ? "Stroke Time Consistency (Over 7s?)" : "스트로크소요시간 일관성 (7초 초과?)",
-                highSideCommit: this.language === "en" ? "High-side Commit" : "High-side 커밋",
-                apexCommit: this.language === "en" ? "Apex Commit" : "Apex 커밋",
-                missType: this.language === "en" ? "Miss Type" : "미스 유형"
+                missType: this.language === "en" ? "Miss Type" : "미스 유형",
+                decisionOver7: this.language === "en" ? "Stroke Time (Over 5s?)" : "스트로크 시간 (5초 초과?)",
+                highSideCommit: this.language === "en" ? "High-side Commit" : "High-side Commit"
             };
             Object.entries(m1Labels).forEach(([field, text]) => setText(`label[for='${field}']`, text));
             setText("#submitM1", this.language === "en" ? "Save" : "저장 (Save)");
             const m1Small = m1Panel.querySelector(".small");
             if (m1Small) m1Small.textContent = this.language === "en"
-                ? "Directional Miss: counted when Miss Type is direction/both / Address→Putt target: within 7s / High-side Commit & Apex are routine-quality indicators (also counted on holed putts)"
-                : "Directional Miss: Miss Type이 direction/both인 경우 / Address→Putt 목표: 7초 이내 / High-side 커밋·Apex는 루틴품질 지표(홀인에도 반영)";
+                ? "Direction Miss: when Miss Type is direction/both / 5s Rule: stroke within 5s after address / High-side Commit is a routine quality indicator"
+                : "방향 미스: Miss Type이 direction/both인 경우 / 5초 기준: 어드레스 후 5초 이내 스트로크 / High-side Commit은 루틴 품질 지표";
 
             const setOption = (selector, value, text) => {
                 const option = document.querySelector(`${selector} option[value='${value}']`);
                 if (option) option.textContent = text;
             };
 
-            setOption("#intendedStartLine", "yes", this.language === "en" ? "Yes" : "예");
-            setOption("#intendedStartLine", "no", this.language === "en" ? "No" : "아니오");
+            // distance select (M2와 동일한 구간)
+            const distanceSelect = document.getElementById("distance");
+            if (distanceSelect) {
+                const distLabels = {
+                    "5y이내":  this.language === "en" ? "Within 5y"  : "5y 이내",
+                    "5-7y":   "5-7y",
+                    "7-9y":   "7-9y",
+                    "9-11y":  "9-11y",
+                    "11y이상": this.language === "en" ? "11y or more" : "11y 이상"
+                };
+                Array.from(distanceSelect.options).forEach((option) => {
+                    if (distLabels[option.value] !== undefined) option.text = distLabels[option.value];
+                });
+            }
 
             setOption("#actualMiss", "center", this.language === "en" ? "Holed" : "홀인");
             setOption("#actualMiss", "left", this.language === "en" ? "Left Miss" : "좌측 미스");
@@ -2679,19 +2703,10 @@ class PuttingTrainingApp {
             setOption("#actualLowPoint", "right", this.language === "en" ? "Right" : "오른쪽");
             setOption("#actualLowPoint", "flat", this.language === "en" ? "Flat" : "평지");
 
-            setOption("#speedPlan", "dead", this.language === "en" ? "Dead Weight" : "데드웨이트");
-            setOption("#speedPlan", "over30", this.language === "en" ? "30cm Over" : "30cm 오버");
-            setOption("#speedPlan", "over60", this.language === "en" ? "60cm Over" : "60cm 오버");
-            setOption("#actualPace", "dead", this.language === "en" ? "Dead Weight" : "데드웨이트");
-            setOption("#actualPace", "over30", this.language === "en" ? "30cm Over" : "30cm 오버");
-            setOption("#actualPace", "over60", this.language === "en" ? "60cm Over" : "60cm 오버");
-
             setOption("#highSideCommit", "yes", this.language === "en" ? "Yes" : "예");
             setOption("#highSideCommit", "no", this.language === "en" ? "No" : "아니오");
-            setOption("#apexCommit", "yes", this.language === "en" ? "Yes" : "예");
-            setOption("#apexCommit", "no", this.language === "en" ? "No" : "아니오");
 
-            setOption("#missType", "none", this.language === "en" ? "No Miss (Holed)" : "미스 없음 (성공)" );
+            setOption("#missType", "none", this.language === "en" ? "No Miss (Holed)" : "미스 없음 (홀인)" );
             setOption("#missType", "direction", this.language === "en" ? "Direction Miss" : "방향 미스");
             setOption("#missType", "speed", this.language === "en" ? "Speed Miss" : "속도 미스");
             setOption("#missType", "both", this.language === "en" ? "Direction + Speed Miss" : "방향 + 속도 미스");
@@ -2829,7 +2844,7 @@ class PuttingTrainingApp {
             });
         }
 
-        const slopeSelects = [document.getElementById("predSlope"), document.getElementById("actualSlope")];
+        const slopeSelects = [document.getElementById("actualSlope")];
         slopeSelects.forEach((selectEl) => {
             if (!selectEl) return;
             Array.from(selectEl.options).forEach((option) => {
@@ -2838,10 +2853,74 @@ class PuttingTrainingApp {
             });
         });
 
+        const isEn = this.language === "en";
+        const speedDistanceSelect = document.getElementById("speedDistance");
+        if (speedDistanceSelect) {
+            const speedDistanceLabels = {
+                "5y이내":  isEn ? "Within 5y"  : "5y 이내",
+                "5-7y":   "5-7y",
+                "7-9y":   "7-9y",
+                "9-11y":  "9-11y",
+                "11y이상": isEn ? "11y or more" : "11y 이상"
+            };
+            Array.from(speedDistanceSelect.options).forEach((option) => {
+                if (speedDistanceLabels[option.value] !== undefined) option.text = speedDistanceLabels[option.value];
+            });
+        }
+
+        const speedCmLabels = [
+            { value: "100",  en: "1m+ over",        ko: "1m이상 오버"    },
+            { value: "30",   en: "30cm+ over",       ko: "30cm 이상 오버" },
+            { value: "0",    en: "-30~30cm range",   ko: "-30~30cm 사이"  },
+            { value: "-30",  en: "30cm+ short",      ko: "30cm 이상 짧음" },
+            { value: "-100", en: "1m+ short",        ko: "1m이상 짧음"    }
+        ];
+        ["actualSpeedCm"].forEach((id) => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            Array.from(sel.options).forEach((option) => {
+                const found = speedCmLabels.find(item => item.value === option.value);
+                if (found) option.text = isEn ? found.en : found.ko;
+            });
+        });
+
+        const greenSpeedLabels = [
+            { value: "very_slow", en: "Very Slow",  ko: "매우 느림" },
+            { value: "slow",      en: "Slow",        ko: "느림"      },
+            { value: "medium",    en: "Medium",      ko: "보통"      },
+            { value: "fast",      en: "Fast",        ko: "빠름"      },
+            { value: "very_fast", en: "Very Fast",   ko: "매우 빠름" }
+        ];
+        const greenSpeedSel = document.getElementById("greenSpeed");
+        if (greenSpeedSel) {
+            Array.from(greenSpeedSel.options).forEach((option) => {
+                const found = greenSpeedLabels.find(item => item.value === option.value);
+                if (found) option.text = isEn ? found.en : found.ko;
+            });
+        }
+
+        const puttingTypeLabels = [
+            { value: "straight",    en: "Straight",     ko: "직선"            },
+            { value: "break_left",  en: "Break Left",   ko: "브레이크 왼쪽"  },
+            { value: "break_right", en: "Break Right",  ko: "브레이크 오른쪽" }
+        ];
+        const puttingTypeSel = document.getElementById("puttingType");
+        if (puttingTypeSel) {
+            Array.from(puttingTypeSel.options).forEach((option) => {
+                const found = puttingTypeLabels.find(item => item.value === option.value);
+                if (found) option.text = isEn ? found.en : found.ko;
+            });
+        }
+
+        const greenSpeedLabelEl = document.querySelector("label[for='greenSpeed']");
+        if (greenSpeedLabelEl) greenSpeedLabelEl.textContent = isEn ? "Green Speed" : "그린 속도 (Green Speed)";
+        const puttingTypeLabelEl = document.querySelector("label[for='puttingType']");
+        if (puttingTypeLabelEl) puttingTypeLabelEl.textContent = isEn ? "Putting Type" : "퍼팅 타입 (Putting Type)";
+
         const decisionOptionNo = document.querySelector('#decisionOver7 option[value="no"]');
         const decisionOptionYes = document.querySelector('#decisionOver7 option[value="yes"]');
-        if (decisionOptionNo) decisionOptionNo.textContent = this.language === "en" ? "No (Within 7s)" : "아니오 (7초 이내)";
-        if (decisionOptionYes) decisionOptionYes.textContent = this.language === "en" ? "Yes (Over 7s)" : "예 (7초 초과)";
+        if (decisionOptionNo) decisionOptionNo.textContent = this.language === "en" ? "No (Within 5s)" : "아니오 (5초 이내)";
+        if (decisionOptionYes) decisionOptionYes.textContent = this.language === "en" ? "Yes (Over 5s)" : "예 (5초 초과)";
 
         const koLangOptions = document.querySelectorAll('#loginLanguage option[value="ko"], #topLanguage option[value="ko"]');
         const enLangOptions = document.querySelectorAll('#loginLanguage option[value="en"], #topLanguage option[value="en"]');
@@ -3399,6 +3478,48 @@ class PuttingTrainingApp {
         this.saveRegisteredPlayers();
         this.renderRegisteredPlayerList();
         if (resultTarget) resultTarget.textContent = this.t("registerPlayerResetSaved", { name: playerName });
+    }
+
+    async saveSignupCodeSetting() {
+        if (!this.isCoachMode()) return;
+        const newCode     = String(document.getElementById("signupCodeInput")?.value   || "").trim();
+        const confirmCode = String(document.getElementById("signupCodeConfirm")?.value || "").trim();
+        const resultEl    = document.getElementById("signupCodeResult");
+        const isEn        = this.language === "en";
+
+        if (!newCode) {
+            if (resultEl) resultEl.textContent = isEn ? "Please enter a code." : "코드를 입력하세요.";
+            return;
+        }
+        if (newCode !== confirmCode) {
+            if (resultEl) resultEl.textContent = isEn ? "Codes do not match." : "코드가 일치하지 않습니다.";
+            return;
+        }
+
+        RUNTIME_COACH_CONFIG.signupCode = newCode;
+
+        if (CLOUD_STATE_SERVICE?.client) {
+            try {
+                const ns  = DEPLOY_CONFIG.syncNamespace || "default";
+                const key = `${ns}:auth_signup_code`;
+                await CLOUD_STATE_SERVICE.client.from("app_kv_store").upsert({
+                    storage_key:   key,
+                    storage_value: newCode,
+                    updated_at:    new Date().toISOString()
+                }, { onConflict: "storage_key" });
+                if (resultEl) resultEl.textContent = isEn ? "Signup code saved." : "가입 코드가 저장됐습니다.";
+            } catch (e) {
+                if (resultEl) resultEl.textContent = (isEn ? "Save failed: " : "저장 실패: ") + e.message;
+                return;
+            }
+        } else {
+            if (resultEl) resultEl.textContent = isEn
+                ? "No cloud connection — stored in memory only (lost on reload)."
+                : "클라우드 연결 없음 — 메모리에만 저장됩니다 (새로고침 시 초기화).";
+        }
+
+        if (document.getElementById("signupCodeInput"))   document.getElementById("signupCodeInput").value   = "";
+        if (document.getElementById("signupCodeConfirm")) document.getElementById("signupCodeConfirm").value = "";
     }
 
     registerPlayerAccount() {
@@ -4324,6 +4445,8 @@ class PuttingTrainingApp {
                     actualSlope: indexOf("ActualSlope") >= 0 ? parseSlopeLevelOrNull(row[indexOf("ActualSlope")]) : null,
                     predSpeedCm: indexOf("PredSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("PredSpeedCm")]) : null,
                     actualSpeedCm: indexOf("ActualSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSpeedCm")]) : null,
+                    greenSpeed: indexOf("GreenSpeed") >= 0 ? String(row[indexOf("GreenSpeed")] || "").trim() || null : null,
+                    puttingType: indexOf("PuttingType") >= 0 ? String(row[indexOf("PuttingType")] || "").trim() || null : null,
                     predLowPoint: indexOf("PredLowPoint") >= 0 ? (row[indexOf("PredLowPoint")] || "") : "",
                     actualLowPoint: indexOf("ActualLowPoint") >= 0 ? (row[indexOf("ActualLowPoint")] || "") : "",
                     speedPlan: indexOf("SpeedPlan") >= 0 ? (row[indexOf("SpeedPlan")] || "") : "",
@@ -4396,7 +4519,7 @@ class PuttingTrainingApp {
 
         const header = [
             "Date", "PlayerName", "SessionDate", "Mission", "Score", "Distance", "IntendedStartLine", "PredDir", "ActualMiss",
-            "LateralErrorCm", "PredSlope", "ActualSlope", "PredSpeedCm", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
+            "LateralErrorCm", "GreenSpeed", "ActualSlope", "PuttingType", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
             "SpeedPlan", "ActualPace", "DecisionOver7", "DecisionSec", "HighSideCommit", "ApexCommit", "MissType", "MissionFileName", "MissionTitle", "MissionResponse",
             "MissionActorRole", "MissionActorName", "MissionTargetPlayer", "MissionMessageType"
         ];
@@ -4414,9 +4537,9 @@ class PuttingTrainingApp {
                 r.intendedStartLine ?? "",
                 r.actualMiss ?? "",
                 r.lateralErrorCm ?? "",
-                r.predSlope ?? "",
+                r.greenSpeed ?? "",
                 r.actualSlope ?? "",
-                r.predSpeedCm ?? "",
+                r.puttingType ?? "",
                 r.actualSpeedCm ?? "",
                 r.predLowPoint ?? "",
                 r.actualLowPoint ?? "",
@@ -4460,23 +4583,18 @@ class PuttingTrainingApp {
 
     getDefaultFormState() {
         return {
-            distance: "3",
-            intendedStartLine: "yes",
+            distance: "5-7y",
             actualMiss: "center",
-            lateralError: "0",
             predLowPoint: "left",
             actualLowPoint: "left",
-            speedPlan: "dead",
-            actualPace: "dead",
             decisionOver7: "no",
             highSideCommit: "yes",
-            apexCommit: "yes",
             missType: "none",
-            speedDistance: "3",
-            predSlope: "1",
+            speedDistance: "5-7y",
+            greenSpeed: "medium",
             actualSlope: "1",
-            predSpeedCm: "30",
-            actualSpeedCm: "30"
+            puttingType: "straight",
+            actualSpeedCm: "0",
         };
     }
 
@@ -4792,8 +4910,8 @@ class PuttingTrainingApp {
     resetM1Form() {
         const defaults = this.getDefaultFormState();
         [
-            "distance", "intendedStartLine", "actualMiss", "lateralError", "predLowPoint", "actualLowPoint",
-            "speedPlan", "actualPace", "decisionOver7", "highSideCommit", "apexCommit", "missType"
+            "distance", "actualMiss", "predLowPoint", "actualLowPoint",
+            "decisionOver7", "highSideCommit", "missType"
         ].forEach((fieldId) => {
             const element = document.getElementById(fieldId);
             if (element) element.value = defaults[fieldId];
@@ -4802,7 +4920,7 @@ class PuttingTrainingApp {
 
     resetM2Form() {
         const defaults = this.getDefaultFormState();
-        ["speedDistance", "predSlope", "actualSlope", "predSpeedCm", "actualSpeedCm"].forEach((fieldId) => {
+        ["speedDistance", "greenSpeed", "actualSlope", "puttingType", "actualSpeedCm"].forEach((fieldId) => {
             const element = document.getElementById(fieldId);
             if (element) element.value = defaults[fieldId];
         });
@@ -4834,6 +4952,7 @@ class PuttingTrainingApp {
             });
             document.getElementById("missionExcelInput").addEventListener("change", (event) => this.handleMissionFileUpload(event));
             document.getElementById("registerPlayerBtn").addEventListener("click", () => this.registerPlayerAccount());
+            document.getElementById("saveSignupCodeBtn").addEventListener("click", () => this.saveSignupCodeSetting());
             document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
             document.getElementById("pendingPlayerList").addEventListener("click", (event) => this.handlePendingPlayerAction(event));
             document.getElementById("syncPlayerDataBtn").addEventListener("click", () => this.syncPlayerData());
@@ -4864,7 +4983,6 @@ class PuttingTrainingApp {
             });
             document.getElementById("actualMiss").addEventListener("change", (event) => {
                 if (event.target.value === "center") {
-                    document.getElementById("lateralError").value = "0";
                     document.getElementById("missType").value = "none";
                     this.saveDraftForCurrentPlayer();
                     return;
@@ -4887,20 +5005,15 @@ class PuttingTrainingApp {
     }
 
     onSubmitM1() {
-        const distance = Number(document.getElementById("distance").value || 0);
-        const intendedStartLine = document.getElementById("intendedStartLine").value;
+        const distance = document.getElementById("distance").value || "5-7y";
         const actualMiss = document.getElementById("actualMiss").value;
-        const lateralErrorCm = Math.abs(Number(document.getElementById("lateralError").value || 0));
         const predLowPoint = document.getElementById("predLowPoint").value;
         const actualLowPoint = document.getElementById("actualLowPoint").value;
-        const speedPlan = document.getElementById("speedPlan").value;
-        const actualPace = document.getElementById("actualPace").value;
         const decisionOver7 = document.getElementById("decisionOver7").value;
         const highSideCommit = document.getElementById("highSideCommit").value;
-        const apexCommit = document.getElementById("apexCommit").value;
         let missType = document.getElementById("missType").value;
 
-        if (actualMiss !== "center" && (missType === "none" || lateralErrorCm === 0)) {
+        if (actualMiss !== "center" && missType === "none") {
             document.getElementById("m1Result").textContent = this.t("needMissType");
             this.sectionNavigator.show("section-m1");
             return;
@@ -4910,9 +5023,10 @@ class PuttingTrainingApp {
             missType = "none";
         }
 
-        const score = this.metricsService.calculateM1Score({ intendedStartLine, actualMiss });
-        const lowSide = MetricsService.isDirectionalMiss(missType) ? "Yes" : "No";
-        const oneLookOk = decisionOver7 === "no" ? this.t("passWithin7s") : this.t("lateOver7s");
+        // intendedStartLine을 missType으로부터 파생 (backward compat 및 분석용)
+        const intendedStartLine = (missType !== "direction" && missType !== "both") ? "yes" : "no";
+
+        const score = this.metricsService.calculateM1Score({ missType, actualMiss });
 
         this.records.push(new MissionRecord({
             mission: "LIE",
@@ -4921,14 +5035,10 @@ class PuttingTrainingApp {
             distance,
             intendedStartLine,
             actualMiss,
-            lateralErrorCm: actualMiss === "center" ? 0 : lateralErrorCm,
             predLowPoint,
             actualLowPoint,
-            speedPlan,
-            actualPace,
             decisionOver7,
             highSideCommit,
-            apexCommit,
             missType,
             score
         }));
@@ -4939,16 +5049,24 @@ class PuttingTrainingApp {
             ? lieRows.reduce((sum, r) => sum + (Number(r.score) || 0), 0) / lieRows.length
             : 0;
 
+        const MISS_TYPE_LABELS = {
+            none: { ko: "미스 없음", en: "No Miss" },
+            direction: { ko: "방향 미스", en: "Direction Miss" },
+            speed: { ko: "속도 미스", en: "Speed Miss" },
+            both: { ko: "방향+속도 미스", en: "Direction+Speed Miss" }
+        };
+        const ONELOOK_LABELS = {
+            pass: { ko: "통과 (5초 이내)", en: "Pass (Within 5s)" },
+            late: { ko: "지연 (5초 초과)", en: "Late (Over 5s)" }
+        };
+        const lang = this.language === "en" ? "en" : "ko";
+        const missLabel = (MISS_TYPE_LABELS[missType] || {})[lang] || missType;
+        const oneLookLabel = decisionOver7 === "no" ? ONELOOK_LABELS.pass[lang] : ONELOOK_LABELS.late[lang];
+
         document.getElementById("m1Result").textContent =
-            this.t("m1Result", {
-                score: cumulativeAvgScore.toFixed(1),
-                intendedStartLine,
-                lowSide,
-                missType,
-                oneLookOk,
-                highSideCommit,
-                apexCommit
-            });
+            this.language === "en"
+                ? `Score: ${score} | Miss: ${missLabel} | 5s Rule: ${oneLookLabel} | High-side: ${highSideCommit} (Cumulative Avg: ${cumulativeAvgScore.toFixed(1)})`
+                : `점수: ${score} | 미스: ${missLabel} | 5초 룰: ${oneLookLabel} | High-side: ${highSideCommit} (누적평균: ${cumulativeAvgScore.toFixed(1)})`;
         this.flashSaveButton("submitM1");
         this.resetM1Form();
         this.saveDraftForCurrentPlayer();
@@ -4958,21 +5076,21 @@ class PuttingTrainingApp {
     }
 
     onSubmitM2() {
-        const speedDistance = Number(document.getElementById("speedDistance").value || 0);
-        const predSlope = normalizeSlopeLevel(document.getElementById("predSlope").value);
+        const speedDistance = document.getElementById("speedDistance").value || "5-7y";
+        const greenSpeed = document.getElementById("greenSpeed").value || "medium";
         const actualSlope = normalizeSlopeLevel(document.getElementById("actualSlope").value);
-        const predSpeedCm = Number(document.getElementById("predSpeedCm").value || 0);
+        const puttingType = document.getElementById("puttingType").value || "straight";
         const actualSpeedCm = Number(document.getElementById("actualSpeedCm").value || 0);
-        const speedPack = this.metricsService.calculateM2Score(predSlope, actualSlope, predSpeedCm, actualSpeedCm);
+        const speedPack = this.metricsService.calculateM2Score(actualSpeedCm);
 
         this.records.push(new MissionRecord({
             mission: "SPEED",
             playerName: this.session.playerName,
             sessionDate: this.session.sessionDate,
             distance: speedDistance,
-            predSlope,
+            greenSpeed,
             actualSlope,
-            predSpeedCm,
+            puttingType,
             actualSpeedCm,
             score: Number(speedPack.totalScore.toFixed(1))
         }));
@@ -4983,14 +5101,18 @@ class PuttingTrainingApp {
             ? speedRows.reduce((sum, r) => sum + (Number(r.score) || 0), 0) / speedRows.length
             : 0;
 
+        const GREEN_SPEED_LABELS = { very_slow: { ko: "매우 느림", en: "Very Slow" }, slow: { ko: "느림", en: "Slow" }, medium: { ko: "보통", en: "Medium" }, fast: { ko: "빠름", en: "Fast" }, very_fast: { ko: "매우 빠름", en: "Very Fast" } };
+        const PUTTING_TYPE_LABELS = { straight: { ko: "직선", en: "Straight" }, break_left: { ko: "브레이크 왼쪽", en: "Break Left" }, break_right: { ko: "브레이크 오른쪽", en: "Break Right" } };
+        const FINISH_LABELS = { "100": { ko: "1m이상 오버", en: "1m+ over" }, "30": { ko: "30cm이상 오버", en: "30cm+ over" }, "0": { ko: "적정범위", en: "In Range" }, "-30": { ko: "30cm이상 짧음", en: "30cm+ short" }, "-100": { ko: "1m이상 짧음", en: "1m+ short" } };
+        const lang = this.language === "en" ? "en" : "ko";
+        const gsLabel = (GREEN_SPEED_LABELS[greenSpeed] || {})[lang] || greenSpeed;
+        const ptLabel = (PUTTING_TYPE_LABELS[puttingType] || {})[lang] || puttingType;
+        const finishLabel = (FINISH_LABELS[String(actualSpeedCm)] || {})[lang] || String(actualSpeedCm);
+
         document.getElementById("m2Result").textContent =
-            this.t("m2Result", {
-                slopeError: speedPack.slopeError.toFixed(2),
-                predLabel: slopeLevelToLabel(predSlope),
-                actualLabel: slopeLevelToLabel(actualSlope),
-                speedError: speedPack.speedError.toFixed(1),
-                score: cumulativeAvgScore.toFixed(1)
-            });
+            this.language === "en"
+                ? `Green: ${gsLabel} | Type: ${ptLabel} | Finish: ${finishLabel} | Score: ${speedPack.totalScore} (Cumulative Avg: ${cumulativeAvgScore.toFixed(1)})`
+                : `그린: ${gsLabel} | 타입: ${ptLabel} | 마무리: ${finishLabel} | 점수: ${speedPack.totalScore} (누적평균: ${cumulativeAvgScore.toFixed(1)})`;
         this.flashSaveButton("submitM2");
         this.resetM2Form();
         this.saveDraftForCurrentPlayer();
@@ -5271,6 +5393,8 @@ class PuttingTrainingApp {
                     actualSlope: indexOf("ActualSlope") >= 0 ? parseSlopeLevelOrNull(row[indexOf("ActualSlope")]) : null,
                     predSpeedCm: indexOf("PredSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("PredSpeedCm")]) : null,
                     actualSpeedCm: indexOf("ActualSpeedCm") >= 0 ? this.toNumberOrNull(row[indexOf("ActualSpeedCm")]) : null,
+                    greenSpeed: indexOf("GreenSpeed") >= 0 ? String(row[indexOf("GreenSpeed")] || "").trim() || null : null,
+                    puttingType: indexOf("PuttingType") >= 0 ? String(row[indexOf("PuttingType")] || "").trim() || null : null,
                     predLowPoint: indexOf("PredLowPoint") >= 0 ? (row[indexOf("PredLowPoint")] || "") : "",
                     actualLowPoint: indexOf("ActualLowPoint") >= 0 ? (row[indexOf("ActualLowPoint")] || "") : "",
                     speedPlan: indexOf("SpeedPlan") >= 0 ? (row[indexOf("SpeedPlan")] || "") : "",
@@ -5345,7 +5469,7 @@ class PuttingTrainingApp {
 
         const header = [
             "Date", "PlayerName", "SessionDate", "Mission", "Score", "Distance", "IntendedStartLine", "PredDir", "ActualMiss",
-            "LateralErrorCm", "PredSlope", "ActualSlope", "PredSpeedCm", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
+            "LateralErrorCm", "GreenSpeed", "ActualSlope", "PuttingType", "ActualSpeedCm", "PredLowPoint", "ActualLowPoint",
             "SpeedPlan", "ActualPace", "DecisionOver7", "DecisionSec", "HighSideCommit", "ApexCommit", "MissType", "MissionFileName", "MissionTitle", "MissionResponse",
             "MissionActorRole", "MissionActorName", "MissionTargetPlayer", "MissionMessageType"
         ];
@@ -5363,9 +5487,9 @@ class PuttingTrainingApp {
                 r.intendedStartLine ?? "",
                 r.actualMiss ?? "",
                 r.lateralErrorCm ?? "",
-                r.predSlope ?? "",
+                r.greenSpeed ?? "",
                 r.actualSlope ?? "",
-                r.predSpeedCm ?? "",
+                r.puttingType ?? "",
                 r.actualSpeedCm ?? "",
                 r.predLowPoint ?? "",
                 r.actualLowPoint ?? "",
