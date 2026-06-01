@@ -322,7 +322,7 @@
       </div>
       <p class="muted" id="authSystemNotice" style="display:none;margin:6px 0 8px;color:#b45309"></p>
 
-      <form class="auth-panel active" id="loginPanel" autocomplete="off">
+      <form class="auth-panel active" id="loginPanel" autocomplete="on">
         <div class="field">
           <label>아이디 (코치이름 또는 선수ID)</label>
           <input id="loginId" placeholder="player01" autocomplete="username" />
@@ -364,7 +364,7 @@
 
   <div class="app">
     <div class="topbar">
-      <div class="topbar-left"><span style="font-size:12px;color:#e0e7ef;font-weight:400;letter-spacing:0.5px;">ver26.04.2</span></div>
+      <div class="topbar-left"><span style="font-size:12px;color:#e0e7ef;font-weight:400;letter-spacing:0.5px;">ver26.5.1</span></div>
       <div class="topbar-brand">
         <div class="topbar-brand-inner">
           <div class="topbar-logo">⛳</div>
@@ -452,6 +452,16 @@
         <div class="card">
           <h3 style="margin:0 0 8px">코치 메시지</h3>
           <div class="message-list" id="dashboardCoachMessages"></div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="card" id="playerPuttingCard">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <h3 style="margin:0">🏌️ Putting Training 최근 세션</h3>
+            <button type="button" class="btn btn-sm" id="playerPuttingRefreshBtn" onclick="renderPlayerPuttingResults()">새로고침</button>
+          </div>
+          <div id="playerPuttingResultWrap"><p class="muted" style="margin:0">로딩 중...</p></div>
         </div>
       </div>
 
@@ -700,7 +710,7 @@
       <div class="coach-tab-panel" id="coachTab-putting">
         <div class="card">
           <h3 style="margin-top:0">🏌️ Putting Training 결과 목록</h3>
-          <p class="muted" style="margin:0 0 12px;font-size:12px">선수가 전송한 퍼팅 훈련 결과 목록입니다. 새로 도착한 결과는 배지로 표시됩니다.</p>
+          <p class="muted" style="margin:0 0 12px;font-size:12px">SY-Putting Training 세션 결과 목록입니다. 선수가 연습을 종료하면 자동으로 표시됩니다.</p>
           <div id="coachPuttingResultList" style="min-height:60px"></div>
         </div>
       </div>
@@ -771,6 +781,7 @@
     const STORAGE_SIGNUP_COOLDOWN_UNTIL = "sytpt_signup_cooldown_until";
     const STORAGE_SIGNUP_RATE_LIMIT_STATE = "sytpt_signup_rate_limit_state";
     const STORAGE_AUTH_EMAIL_HINT_PREFIX = "sytpt_auth_email_hint_";
+    const STORAGE_LAST_LOGIN_ID = "sytpt_last_login_id";
     const STORAGE_COACH_KPI_LAST = "sytpt_coach_kpi_last";
     const STORAGE_READ_RECEIPT_ACTIVATED_AT = "sytpt_read_receipt_activated_at";
     const COACH_ROUND_ANALYSIS_PAGE = './golf_rounddatanput(26.2.1).html';
@@ -1864,7 +1875,60 @@
       renderSelfEvalHistory();
       renderCommCounts();
       renderPhaseBoard();
+      if(session&&session.role==='player') renderPlayerPuttingResults();
     }
+    async function renderPlayerPuttingResults(){
+      var root=document.getElementById('playerPuttingResultWrap'); if(!root) return;
+      var session=getSession();
+      if(!session||session.role!=='player'){
+        var card=document.getElementById('playerPuttingCard');
+        if(card) card.style.display='none';
+        return;
+      }
+      var card=document.getElementById('playerPuttingCard');
+      if(card) card.style.display='';
+      root.innerHTML='<p class="muted" style="margin:0">불러오는 중...</p>';
+      try{
+        var ns='golfworks-prod';
+        var recsRes=await sb.from('app_kv_store').select('storage_value').eq('storage_key',ns+':greenMissions').maybeSingle();
+        var allRecs=[];
+        if(recsRes.data&&recsRes.data.storage_value){
+          try{ allRecs=JSON.parse(recsRes.data.storage_value)||[]; }catch(e){}
+        }
+        var myRecs=allRecs.filter(function(r){ return String(r.playerName||'')===(session.name||''); });
+        if(!myRecs.length){
+          root.innerHTML='<p class="muted" style="margin:0">아직 저장된 Putting Training 세션이 없습니다.<br><small style="color:#888"><a href="https://sy-puttingtraining.web.app/" target="_blank" rel="noopener noreferrer">Putting Training</a> 버튼을 눌러 연습 후 종료하면 여기에 결과가 표시됩니다.</small></p>';
+          return;
+        }
+        var sessMap={};
+        myRecs.forEach(function(r){
+          var k=String(r.sessionDate||'unknown');
+          if(!sessMap[k]) sessMap[k]=[];
+          sessMap[k].push(r);
+        });
+        // 최근순 정렬
+        var sessKeys=Object.keys(sessMap).sort(function(a,b){return b.localeCompare(a);}).slice(0,10);
+        var html=sessKeys.map(function(dateKey,idx){
+          var recs=sessMap[dateKey];
+          var m1=recs.filter(function(r){return isPuttingLieMission(r.mission);});
+          var m2=recs.filter(function(r){return isPuttingSpeedMission(r.mission);});
+          var cardId='pts-player-'+idx;
+          var statsHtml=buildPuttingStatRows(m1,m2);
+          var header='<div onclick="togglePuttingCard(\''+cardId+'\')" style="cursor:pointer;padding:10px 0;user-select:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px">'
+            +'<span data-pts-arrow="'+cardId+'" style="font-size:13px;color:#555;margin-right:2px">▶</span>'
+            +'<span style="font-weight:700;font-size:14px">📅 '+escapeHtml(dateKey)+'</span>'
+            +'<span class="muted" style="font-size:12px">전체 '+recs.length+'회'
+            +(m1.length?' · <span style="color:#2563eb">M1·'+m1.length+'</span>':'')+(m2.length?' · <span style="color:#059669">M2·'+m2.length+'</span>':'')+'</span>'
+            +'</div>';
+          var body='<div id="'+cardId+'" style="display:none;padding-bottom:10px">'+statsHtml+'</div>';
+          return '<div style="border-bottom:1px solid var(--line)">'+header+body+'</div>';
+        }).join('');
+        root.innerHTML=html||'<p class="muted" style="margin:0">표시할 세션이 없습니다.</p>';
+      }catch(e){
+        root.innerHTML='<p class="muted" style="margin:0;color:red">불러오기 실패: '+escapeHtml(String(e))+'</p>';
+      }
+    }
+
     async function renderSelfEvalHistory(){
       const root=document.getElementById('selfEvalHistoryWrap'); if(!root) return;
       const users=await getUsers();
@@ -2982,37 +3046,115 @@
         if(el){if(cnt>0){el.textContent=String(cnt);el.style.display='inline';}else{el.style.display='none';}}
       }catch(e){}
     }
+    // Putting Training 세션 레코드 M1/M2 분류 헬퍼
+    function isPuttingLieMission(m){ var n=String(m||'').trim().toUpperCase(); return n==='LIE'||n==='M1'; }
+    function isPuttingSpeedMission(m){ var n=String(m||'').trim().toUpperCase(); return n==='SPEED'||n==='M2'; }
+    function pct(v){ return Math.round((v||0)*100)+'%'; }
+    function fmtNum(v,digits){ return (v==null||isNaN(v))?'-':Number(v).toFixed(digits||1); }
+    function togglePuttingCard(id){
+      var body=document.getElementById(id); if(!body) return;
+      var open=body.style.display==='none';
+      body.style.display=open?'block':'none';
+      var arrow=document.querySelector('[data-pts-arrow="'+id+'"]');
+      if(arrow) arrow.textContent=open?'▼':'▶';
+    }
+    function buildPuttingStatRows(m1,m2){
+      function statRow(label,val,unit){
+        if(val===null||val===undefined) return '';
+        return '<tr><td style="color:#888;padding:2px 8px 2px 0;font-size:12px">'+label+'</td><td style="font-size:12px;font-weight:600">'+val+(unit?' <span style="color:#888;font-weight:400;font-size:11px">'+unit+'</span>':'')+'</td></tr>';
+      }
+      var m1DirRate=m1.length?m1.filter(function(r){return r.intendedStartLine==='yes';}).length/m1.length:null;
+      var m1Misses=m1.filter(function(r){return r.actualMiss&&r.actualMiss!=='center';});
+      var m1MissRate=m1.length?m1Misses.length/m1.length:null;
+      var m1DirMiss=m1Misses.filter(function(r){return r.missType==='direction'||r.missType==='both';}).length;
+      var m1SpeedMiss=m1Misses.filter(function(r){return r.missType==='speed'||r.missType==='both';}).length;
+      var m1AvgLateral=m1.length?m1.reduce(function(s,r){return s+Math.abs(Number(r.lateralErrorCm)||0);},0)/m1.length:null;
+      var m1OneLookSamples=m1.filter(function(r){return r.decisionOver7==='yes'||r.decisionOver7==='no';});
+      var m1OneLookRate=m1OneLookSamples.length?m1OneLookSamples.filter(function(r){return r.decisionOver7==='no';}).length/m1OneLookSamples.length:null;
+      var m1ConfSamples=m1.filter(function(r){return r.highSideCommit&&r.apexCommit;});
+      var m1ConfRate=m1ConfSamples.length?m1ConfSamples.filter(function(r){return r.highSideCommit==='yes'&&r.apexCommit==='yes';}).length/m1ConfSamples.length:null;
+      var m1LowPtSamples=m1.filter(function(r){return r.predLowPoint&&r.actualLowPoint;});
+      var m1LowPtRate=m1LowPtSamples.length?m1LowPtSamples.filter(function(r){return r.predLowPoint===r.actualLowPoint;}).length/m1LowPtSamples.length:null;
+      var m2AvgSlopeErr=m2.length?m2.reduce(function(s,r){return s+Math.abs((Number(r.predSlope)||0)-(Number(r.actualSlope)||0));},0)/m2.length:null;
+      var m2AvgSpeedErr=m2.length?m2.reduce(function(s,r){return s+Math.abs((Number(r.predSpeedCm)||0)-(Number(r.actualSpeedCm)||0));},0)/m2.length:null;
+      var m1Html=m1.length?(
+        '<div style="margin-top:8px"><div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:3px">M1 · Lie/Direction ('+m1.length+'회)</div>'
+        +'<table style="border-collapse:collapse">'
+        +statRow('방향 일치율',m1DirRate!==null?pct(m1DirRate):null,'')
+        +statRow('미스 비율',m1MissRate!==null?pct(m1MissRate):null,'(방향'+m1DirMiss+'/속도'+m1SpeedMiss+')')
+        +statRow('평균 오차',m1AvgLateral!==null?fmtNum(m1AvgLateral,1):null,'cm')
+        +statRow('Low-Point 적중',m1LowPtRate!==null?pct(m1LowPtRate):null,'')
+        +statRow('7초 이내 결정',m1OneLookRate!==null?pct(m1OneLookRate):null,'')
+        +statRow('자신감 (High+Apex)',m1ConfRate!==null?pct(m1ConfRate):null,'')
+        +'</table></div>'
+      ):'';
+      var m2Html=m2.length?(
+        '<div style="margin-top:8px"><div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:3px">M2 · Speed/Slope ('+m2.length+'회)</div>'
+        +'<table style="border-collapse:collapse">'
+        +statRow('경사 예측 오차',m2AvgSlopeErr!==null?fmtNum(m2AvgSlopeErr,2):null,'단계')
+        +statRow('속도 예측 오차',m2AvgSpeedErr!==null?fmtNum(m2AvgSpeedErr,1):null,'cm')
+        +'</table></div>'
+      ):'';
+      return m1Html+m2Html;
+    }
+
     async function renderCoachPuttingResults(){
       var root=document.getElementById('coachPuttingResultList'); if(!root) return;
       root.innerHTML='<p class="muted" style="margin:0">불러오는 중...</p>';
       try{
         var seenAt=localStorage.getItem('sytpt_coach_putting_seen')||'2000-01-01T00:00:00.000Z';
         var ns='golfworks-prod';
-        var {data,error}=await sb.from('app_kv_store').select('storage_key,storage_value').like('storage_key',ns+':putting_notif:%');
-        if(error){
-          root.innerHTML='<p class="muted" style="margin:0;color:red">조회 오류: '+escapeHtml(String(error.message||JSON.stringify(error)))+'</p>';
+        var notifRes=await sb.from('app_kv_store').select('storage_key,storage_value').like('storage_key',ns+':putting_notif:%');
+        if(notifRes.error){
+          root.innerHTML='<p class="muted" style="margin:0;color:red">조회 오류: '+escapeHtml(String(notifRes.error.message||JSON.stringify(notifRes.error)))+'</p>';
           return;
         }
-        if(!data||!data.length){root.innerHTML='<p class="muted" style="margin:0">아직 전송된 Putting Training 결과가 없습니다.<br><small style="color:#888">선수가 연습결과 저장(M1/M2 저장 버튼)을 누르면 이곳에 표시됩니다.</small></p>';return;}
-        var items=[];
-        data.forEach(function(row){
-          try{
-            var val=JSON.parse(row.storage_value||'{}');
-            if(val.playerName&&val.sessionDate) items.push(val);
-          }catch(e){}
+        if(!notifRes.data||!notifRes.data.length){
+          root.innerHTML='<p class="muted" style="margin:0">아직 저장된 Putting Training 세션이 없습니다.<br><small style="color:#888">선수가 연습을 종료하면 이곳에 자동으로 표시됩니다.</small></p>';
+          return;
+        }
+        var notifItems=[];
+        notifRes.data.forEach(function(row){
+          try{ var v=JSON.parse(row.storage_value||'{}'); if(v.playerName&&v.sessionDate) notifItems.push(v); }catch(e){}
         });
-        items.sort(function(a,b){return String(b.sentAt||'').localeCompare(String(a.sentAt||''));});
-        if(!items.length){root.innerHTML='<p class="muted" style="margin:0">아직 전송된 Putting Training 결과가 없습니다.</p>';return;}
-        var html=items.map(function(item){
+        // 최근순 정렬 후 이름순 정렬
+        notifItems.sort(function(a,b){
+          var dateDiff=String(b.sentAt||'').localeCompare(String(a.sentAt||''));
+          if(dateDiff!==0) return dateDiff;
+          return String(a.playerName||'').localeCompare(String(b.playerName||''));
+        });
+        if(!notifItems.length){
+          root.innerHTML='<p class="muted" style="margin:0">아직 저장된 Putting Training 세션이 없습니다.</p>';
+          return;
+        }
+        var recsRes=await sb.from('app_kv_store').select('storage_value').eq('storage_key',ns+':greenMissions').maybeSingle();
+        var allRecs=[];
+        if(recsRes.data&&recsRes.data.storage_value){
+          try{ allRecs=JSON.parse(recsRes.data.storage_value)||[]; }catch(e){}
+        }
+        var html=notifItems.map(function(item,idx){
           var isNew=item.sentAt&&item.sentAt>seenAt;
-          var newLabel=isNew?'<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:6px">NEW</span>':'';
-          var sentTime=item.sentAt?new Date(item.sentAt).toLocaleString('ko-KR'):'';
-          return '<div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-            +'<span style="font-weight:700;font-size:14px">'+escapeHtml(item.playerName)+'</span>'
-            +'<span class="muted" style="font-size:12px">세션일: '+escapeHtml(item.sessionDate)+'</span>'
-            +'<span class="muted" style="font-size:12px">기록 수: <strong>'+escapeHtml(String(item.count||0))+'</strong>건</span>'
-            +'<span class="muted" style="font-size:12px">저장: '+escapeHtml(sentTime)+'</span>'
-            +newLabel+'</div>';
+          var newLabel=isNew?'<span style="background:#dc2626;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:4px">NEW</span>':'';
+          var sentTime=item.sentAt?new Date(item.sentAt).toLocaleString('ko-KR'):'-';
+          var recs=allRecs.filter(function(r){
+            return String(r.playerName||'')==String(item.playerName||'')&&String(r.sessionDate||'')==String(item.sessionDate||'');
+          });
+          var m1=recs.filter(function(r){return isPuttingLieMission(r.mission);});
+          var m2=recs.filter(function(r){return isPuttingSpeedMission(r.mission);});
+          var cardId='pts-coach-'+idx;
+          var statsHtml=buildPuttingStatRows(m1,m2);
+          var noRecMsg=!recs.length?'<p class="muted" style="font-size:12px;margin:6px 0 0">세션 레코드가 아직 동기화되지 않았습니다. (기록 수: '+escapeHtml(String(item.count||0))+'건)</p>':'';
+          var header='<div onclick="togglePuttingCard(\''+cardId+'\')" style="cursor:pointer;padding:10px 0;user-select:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px">'
+            +'<span data-pts-arrow="'+cardId+'" style="font-size:13px;color:#555;margin-right:2px">▶</span>'
+            +'<span style="font-weight:700;font-size:15px">'+escapeHtml(item.playerName)+'</span>'
+            +'<span class="muted" style="font-size:12px">세션일: <strong>'+escapeHtml(item.sessionDate)+'</strong></span>'
+            +'<span class="muted" style="font-size:12px">전체 '+recs.length+'회'
+            +(m1.length?' · <span style="color:#2563eb">M1·'+m1.length+'</span>':'')+(m2.length?' · <span style="color:#059669">M2·'+m2.length+'</span>':'')+'</span>'
+            +'<span class="muted" style="font-size:11px">저장: '+escapeHtml(sentTime)+'</span>'
+            +newLabel
+            +'</div>';
+          var body='<div id="'+cardId+'" style="display:none;padding-bottom:12px">'+statsHtml+noRecMsg+'</div>';
+          return '<div style="border-bottom:1px solid var(--line)">'+header+body+'</div>';
         }).join('');
         root.innerHTML=html;
       }catch(e){root.innerHTML='<p class="muted" style="margin:0;color:red">불러오기 실패: '+escapeHtml(String(e))+'</p>';}
@@ -3213,6 +3355,7 @@
           (user.name+' 선수는 현재 승인 대기 상태입니다. 지도자 승인 후 접속 가능합니다.');
         document.getElementById('pendingMessage').textContent=msg;setAuthPanel('pending');err.textContent='';return;
       }
+      try{ localStorage.setItem(STORAGE_LAST_LOGIN_ID, id); }catch(e){}
       setSession({id:user.id,name:user.name,role:user.role});applySessionUI();err.textContent='';
     });
 
@@ -3448,6 +3591,25 @@
         // URL 정리 (깔끔하게)
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+
+      // 마지막 로그인 ID 자동 채우기
+      try{
+        var savedLoginId=localStorage.getItem(STORAGE_LAST_LOGIN_ID)||'';
+        var loginIdEl=document.getElementById('loginId');
+        if(savedLoginId&&loginIdEl&&!loginIdEl.value){
+          loginIdEl.value=savedLoginId;
+          var loginPwEl=document.getElementById('loginPw');
+          if(loginPwEl) loginPwEl.focus();
+        }
+      }catch(e){}
+
+      // Putting Training 탭에서 돌아올 때 자동 새로고침
+      document.addEventListener('visibilitychange', function(){
+        if(document.visibilityState==='visible'){
+          var s=getSession();
+          if(s&&s.role==='player') renderPlayerPuttingResults();
+        }
+      });
 
       setupRealtimeSubscriptions();
       await syncLocalSessionWithAuth();
