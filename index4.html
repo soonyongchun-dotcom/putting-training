@@ -1,11 +1,12 @@
-<!DOCTYPE html> 
+﻿ <!DOCTYPE html> 
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SY-GSAP (Golf Swing Analysis Platform)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -81,15 +82,11 @@
     width: min(90vw, 820px);
   }
   #userLog {
-    background: rgba(255,255,255,0.92);
-    color: #111;
+    background: rgba(0,0,0,0.12); /* 배경 흰색일 때도 글자가 보이도록 회색 배경으로 변경 */
+    color: #f7f7f7;
     border-radius: 8px;
     padding: 10px;
     font-size: 0.9rem;
-    border: 1px solid rgba(0,0,0,0.08);
-  }
-  #userLog .log-row span:last-child {
-    color: rgba(0,0,0,0.55);
   }
   #userLog .log-row {
     display: flex;
@@ -198,18 +195,11 @@
       width: 90px;
     }
     .playback-controls {
-      display: none; /* Hide global speed control on small screens */
+      padding: 4px 6px;
     }
     .playback-controls input[type=number] {
       width: 70px;
       padding: 3px 5px;
-    }
-  }
-
-  /* Hide global speed control on touch devices (phones/tablets) */
-  @media (hover: none) and (pointer: coarse) {
-    .playback-controls {
-      display: none !important;
     }
   }
   .video-wrapper.hidden {
@@ -368,10 +358,26 @@
       padding: 7px 0;
     }
 
-    /* Keep controls row layout; only shrink Global speed container */
-    .controls .zoom-controls.playback-controls {
-      max-width: 220px;
-      flex: 0 0 auto;
+    /* mobile: stack controls vertically to prevent overlap */
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .controls .zoom-controls.playback-controls,
+    .controls .speed-controls {
+      width: 100%;
+      max-width: 100%;
+      justify-content: space-between;
+    }
+    .controls .zoom-controls.playback-controls label,
+    .controls .speed-controls label {
+      flex: 1;
+      min-width: 0;
+    }
+    .controls .zoom-controls.playback-controls input,
+    .controls .speed-controls input {
+      max-width: 80px;
     }
   }
   .speed-controls {
@@ -455,6 +461,337 @@
     font-size: 1.1rem;
     padding: 6px 10px;
   }
+  .analysis-btn {
+    background: #ff8c00;
+    color: #fff;
+    border: 1px solid rgba(255, 140, 0, 0.9);
+    font-size: 0.9rem;
+    padding: 5px 10px;
+  }
+  .analysis-btn:hover {
+    background: #ff9f2b;
+  }
+  .analysis-panel {
+    margin: 0 auto 18px;
+    width: min(95vw, 990px);
+    max-width: 990px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    overflow: hidden;
+    color: #f7f7f7;
+    transition: max-height 0.26s ease, padding 0.26s ease;
+  }
+  .analysis-panel.collapsed {
+    max-height: 54px;
+    padding: 0 12px 6px;
+  }
+  .analysis-panel:not(.collapsed) {
+    max-height: none;
+    padding: 12px;
+  }
+  .analysis-panel-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0;
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .analysis-panel-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+  }
+  .analysis-title {
+    flex: 1;
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    color: #ffffff;
+  }
+  .analysis-panel-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  .analysis-guide-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    max-width: calc(100% - 130px);
+  }
+  .analysis-panel-controls .analysis-height-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+  .analysis-height-field select {
+    width: 50px;
+    padding: 4px 4px;
+    font-size: 0.88rem;
+  }
+  .analysis-height-field .height-unit {
+    color: #eee;
+    font-size: 0.88rem;
+    margin-left: 4px;
+  }
+  .analysis-height-field select {
+    width: 50px;
+    padding: 4px 4px;
+    font-size: 0.88rem;
+  }
+  .analysis-panel-header button {
+    background: #005fa3;
+    padding: 5px 12px;
+    font-size: 0.9rem;
+  }
+  .analysis-panel-body {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .analysis-panel.collapsed .analysis-panel-body {
+    display: none;
+  }
+  .analysis-height-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .analysis-height-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+  .analysis-height-field select {
+    width: 76px;
+    padding: 4px 6px;
+  }
+  .analysis-section {
+    display: grid;
+    gap: 6px;
+    background: rgba(0,0,0,0.22);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: left;
+  }
+  .analysis-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffd86c;
+  }
+  .analysis-score {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #ace7ff;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(0, 95, 179, 0.12);
+    border-radius: 10px;
+  }
+  .analysis-score-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+  }
+  .analysis-score-items {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .analysis-segment-compare-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .analysis-segment-compare-card {
+    flex: 1 1 200px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 180px;
+  }
+  .analysis-segment-compare-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffd86c;
+    margin-bottom: 8px;
+  }
+  .analysis-segment-compare-card .analysis-metric {
+    margin-bottom: 4px;
+  }
+  .analysis-b-section {
+    margin-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 5px;
+  }
+  .analysis-b-label {
+    font-size: 0.78rem;
+    color: #99b0cc;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+  .analysis-b-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .analysis-b-row-item {
+    flex: 1 1 200px;
+    min-width: 180px;
+    background: rgba(255,200,100,0.05);
+    border: 1px solid rgba(255,200,100,0.18);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .analysis-b-row-item .analysis-b-section {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+  .analysis-score-item {
+    font-size: 0.95rem;
+    color: #d0d8ff;
+    font-weight: 700;
+  }
+  .analysis-score-average {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffcb4c;
+    background: rgba(255, 203, 76, 0.12);
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  .analysis-metric {
+    font-size: 0.92rem;
+    color: #ddd;
+  }
+  /* 지표 툴팁 */
+  .analysis-metric[data-tooltip] {
+    position: relative;
+    cursor: help;
+  }
+  .analysis-metric[data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(12, 14, 36, 0.97);
+    color: #e8eeff;
+    padding: 9px 13px;
+    border-radius: 8px;
+    font-size: 0.81rem;
+    white-space: pre-wrap;
+    width: max-content;
+    max-width: 270px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s;
+    z-index: 9999;
+    border: 1px solid rgba(100, 150, 255, 0.28);
+    line-height: 1.6;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.55);
+    text-align: left;
+  }
+  .analysis-metric[data-tooltip]:hover::before {
+    opacity: 1;
+  }
+  .analysis-detail {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #cfd8ff;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .analysis-detail em {
+    font-style: italic;
+    color: #8fa0cc;
+    font-size: 0.82rem;
+  }
+  .analysis-summary {
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    color: #eef;
+    font-size: 0.92rem;
+  }
+  .analysis-summary .red-score {
+    color: #ff4d4f;
+    font-weight: 700;
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  }
+  .analysis-guide {
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(0, 95, 179, 0.12);
+    color: #fff;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .analysis-guide-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .analysis-guide-step {
+    color: #cfd8ff;
+    font-size: 0.88rem;
+  }
+  .analysis-height-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #fff;
+  }
+  .analysis-height-control label {
+    font-size: 0.9rem;
+    min-width: 110px;
+    text-align: left;
+  }
+  .analysis-height-control select {
+    width: 100%;
+    max-width: 120px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.12);
+    color: #000;
+  }
+  .analysis-note {
+    font-size: 0.82rem;
+    color: #aaa;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+  }
 </style>
 </head>
 <body class="login-page">
@@ -483,7 +820,7 @@
       </div>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-      <input id="addUserEmail" type="text" placeholder="ID" style="flex:1; min-width:180px;" />
+      <input id="addUserEmail" type="email" placeholder="User ID" style="flex:1; min-width:180px;" />
       <input id="addUserPassword" type="password" placeholder="Password" style="flex:1; min-width:180px;" />
     </div>
     <div style="display:flex; gap:8px;">
@@ -495,7 +832,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.3.1</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.5.5</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -503,7 +840,8 @@
 <div class="container">
   <div class="video-wrapper" id="frontWrapper">
     <div class="video-header">
-      <span class="title">Image A</span>
+      <span class="title">정면 A</span>
+      <button type="button" id="frontAnalysisBtn" class="analysis-btn" title="비거리 모션 분석">🏌️</button>
       <button type="button" id="frontFileBtn" title="Select video">📁</button>
       <button type="button" id="frontCameraBtn" title="Record video">🎥</button>
       <span id="frontFileName" style="color:#0077cc; font-weight:600;"></span>
@@ -533,7 +871,8 @@
   </div>
   <div class="video-wrapper" id="sideWrapper">
     <div class="video-header">
-      <span class="title">Image B</span>
+      <span class="title">정면 B</span>
+      <button type="button" id="sideAnalysisBtn" class="analysis-btn" title="비거리 모션 분석">🏌️</button>
       <button type="button" id="sideFileBtn" title="Select video">📁</button>
       <button type="button" id="sideCameraBtn" title="Record video">🎥</button>
       <span id="sideFileName" style="color:#0077cc; font-weight:600;"></span>
@@ -563,6 +902,164 @@
   </div>
 </div>
 
+<div class="analysis-panel collapsed" id="analysisPanel">
+  <div class="analysis-panel-header">
+    <div class="analysis-panel-header-top">
+      <span class="analysis-title">Motion Analysis</span>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
+        <button type="button" id="downloadPdfBtn">PDF 다운로드</button>
+        <button type="button" id="analysisToggleBtn">펼치기</button>
+      </div>
+    </div>
+    <div class="analysis-panel-controls">
+      <div class="analysis-guide-row">
+        <div class="analysis-guide" id="analysisGuide">분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.</div>
+        <div class="analysis-guide-actions">
+          <button type="button" id="analysisGuideNextBtn">다음</button>
+          <span class="analysis-guide-step" id="analysisGuideStep"></span>
+        </div>
+      </div>
+      <div class="analysis-height-control">
+        <div class="analysis-height-field">
+          <select id="analysisHeightInput">
+            <option value="160">160</option>
+            <option value="161">161</option>
+            <option value="162">162</option>
+            <option value="163">163</option>
+            <option value="164">164</option>
+            <option value="165">165</option>
+            <option value="166">166</option>
+            <option value="167">167</option>
+            <option value="168">168</option>
+            <option value="169">169</option>
+            <option value="170" selected>170</option>
+            <option value="171">171</option>
+            <option value="172">172</option>
+            <option value="173">173</option>
+            <option value="174">174</option>
+            <option value="175">175</option>
+            <option value="176">176</option>
+            <option value="177">177</option>
+            <option value="178">178</option>
+            <option value="179">179</option>
+            <option value="180">180</option>
+            <option value="181">181</option>
+            <option value="182">182</option>
+            <option value="183">183</option>
+            <option value="184">184</option>
+            <option value="185">185</option>
+            <option value="186">186</option>
+            <option value="187">187</option>
+            <option value="188">188</option>
+            <option value="189">189</option>
+            <option value="190">190</option>
+          </select>
+          <span class="height-unit">cm</span>
+        </div>
+        <div class="analysis-height-field">
+          <select id="analysisSegmentSelect">
+            <option value="frame1">Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]</option>
+            <option value="frame2">Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]</option>
+            <option value="frame3">Frame 3 — 다운스윙 후기 (외부토크/지면반력)</option>
+            <option value="frame4">Frame 4 — 임팩트/선속도 지수</option>
+          </select>
+          <span class="height-unit">프레임 선택</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="analysis-panel-body" id="analysisPanelBody">
+    <div class="analysis-section" id="analysisFrontSection">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div class="analysis-section-title" id="analysisFrontSectionTitle">A영상 분석</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <em id="analysisFrontHeightTag" style="font-size:0.72rem;color:rgba(180,210,255,0.75);white-space:nowrap;"></em>
+          <button id="swingNarrativeToggleBtn" onclick="toggleSwingNarrative()"
+            style="display:none;font-size:0.72rem;padding:2px 9px;border-radius:12px;border:1px solid rgba(255,200,60,0.5);background:rgba(255,180,30,0.12);color:#ffd86c;cursor:pointer;white-space:nowrap;">
+            분석 결과 보기 ▼
+          </button>
+        </div>
+      </div>
+      <div id="swingNarrativeBlock" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(0,0,0,0.28);border:1px solid rgba(255,200,60,0.18);border-radius:8px;font-size:0.78rem;line-height:1.6;color:#c8d8f0;"></div>
+      <div class="analysis-metric" id="analysisFrontMoment"
+           data-tooltip="컴팩트 지수 (랜드마크 평균 중심거리 — 로데이터)&#10;모든 랜드마크의 무게중심으로부터 평균 거리 (0~1, 캔버스 정규화)&#10;◎ F2 래깅: 작을수록 팔꿈치가 몸에 밀착 = 좋음&#10;◎ F3/F4: 커질수록 아크가 펼쳐짐 = 정상&#10;※ projectionScale 보정 포함 (어드레스 기준 스케일 맞춤)">컴팩트 지수: -</div>
+      <div class="analysis-metric" id="analysisFrontRadius"
+           data-tooltip="최대 반경 (가장 먼 두 랜드마크 사이 거리 — 로데이터)&#10;클릭된 모든 랜드마크 쌍 중 최대 거리 (0~1, 캔버스 정규화)&#10;◎ F2 래깅: 크면 팔이 멀리 뻗힘 = 스윙 아크 충분&#10;◎ F3/F4: 커질수록 레버 길이 확장 = 클럽헤드 속도↑&#10;※ projectionScale 보정 포함 (어드레스 기준 스케일 맞춤)">최대 반경: -</div>
+      <div class="analysis-metric" id="analysisFrontTiming"
+           data-tooltip="어깨→손목→클럽헤드 꺾임 각도 (팔-샤프트 각)&#10;◎ 90° = 완전 코킹(래그) — 클럽이 수직으로 세워짐&#10;◎ 180° = 완전 릴리즈 — 팔+샤프트 일직선&#10;어드레스: 140~170° 일반 / 다운스윙: 90~120° 이상적">주요 각도: -</div>
+      <div class="analysis-metric" id="analysisFrontAcceleration"
+           data-tooltip="키 보정 계수 (골퍼 키 기반 정규화 인수)&#10;• 영상 내 키 대비 보정 배율 (%)&#10;• 컴팩트 지수·반경 등 거리 지표의 키 독립 정규화에 사용&#10;◎ 100% = 기준값 / 높을수록 키가 크게 측정됨">키 보정: -</div>
+      <div class="analysis-metric" id="analysisFrontTransfer"
+           data-tooltip="반경 비율 (최대 반경 / 어드레스 기준 비율)&#10;• 어드레스(F1A) 기준 최대 반경이 얼마나 변했는지&#10;◎ F3 지면반력: 비율 증가 = 하체 신장 = 좋음&#10;◎ F4 임팩트: 비율 높을수록 레버 확장 = 클럽헤드 속도↑">반경 비율: -</div>
+      <div class="analysis-metric" id="analysisFrontImpact"
+           data-tooltip="각도 × 반경 (로데이터 조합)&#10;• 주요각도(팔-샤프트 꺾임)와 최대반경을 함께 표시&#10;• 각도가 크고 반경이 클수록 아크가 넓고 릴리즈가 충분&#10;◎ 임팩트(F4): 150~180° × 큰 반경 = 이상적">각도·반경: -</div>
+      <div class="analysis-detail" id="analysisFrontDetail"></div>
+    </div>
+    <div class="analysis-section" id="analysisSegmentCompareSection">
+      <div class="analysis-section-title">프레임별 비교 분석</div>
+      <div class="analysis-segment-compare-row" id="analysisSegmentCompareRow">
+        <div class="analysis-segment-compare-card" id="analysisDeltaCardF1">
+          <div class="analysis-segment-compare-title">Frame 1 — 백스윙탑/축고정과 꼬임</div>
+          <div class="analysis-metric" id="analysisDeltaCardF1Score"
+               data-tooltip="척추축/X-Factor 점수 (0~10점)&#10;가중치: 척추각도 60% | X-Factor 40%&#10;점수가 높을수록 척추를 유지하며 어깨를 충분히 회전">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF1SpineAngle"
+               data-tooltip="어드레스 → 백스윙 탑 척추각도 변화&#10;◎ ≤5°: 만점 (척추축 완벽 유지)&#10;◎ 5~15°: 선형 감점&#10;◎ ≥15°: 0점 (리버스 피벗 또는 심한 축 이탈)&#10;음수: 앞으로 기울어짐 / 양수: 뒤로 기울어짐">척추각도: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF1XFactor"
+               data-tooltip="어드레스→백스윙 탑 어깨 회전각 (X-Factor, 측면 카메라 기준)&#10;산출 방식: B프레임 xFactorDeg − A프레임 xFactorDeg&#10;  회전 증가 → 오른어깨 x 증가 → 값이 음수로 커짐&#10;◎ ≤-150°: 만점 (충분한 상체 코일)&#10;◎ -150°~-60°: 선형 보간&#10;◎ ≥-60°: 0점 (회전 부족 또는 역회전)">X-Factor(어깨회전): -</div>
+        </div>
+        <div class="analysis-segment-compare-card" id="analysisDeltaCardF2">
+          <div class="analysis-segment-compare-title">Frame 2 — 래깅/코어이동</div>
+          <div class="analysis-metric" id="analysisDeltaCardF2Score"
+               data-tooltip="래깅+코어이동 점수 (0~10점)&#10;래깅각도 50% + 코어(골반)좌측이동 50%&#10;래깅: -100° 이하 = 10점 | 코어이동: 35% 이상 = 10점">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF2LagAngle"
+               data-tooltip="래깅각 변화(어드레스→다운스윙) + 다운스윙 실제 래깅각&#10;실제 래깅각: 클럽헤드-오른손목-오른어깨 내각 (B프레임)&#10;◎ 변화량 -100° 이하: 만점(10점)&#10;◎ -10° 간격으로 1점씩 감점&#10;◎ 0° 이상: 0점 (코킹 조기 릴리즈)">코킹(래깅)각도: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF2CoreShift"
+               data-tooltip="코어(골반) 좌측 이동량 (몸통 길이 기준 비율)&#10;기준: 어드레스→다운스윙 어깨~골반 거리 대비 변위 (zoom·키 독립)&#10;◎ +15% 이상 좌측(목표방향) 이동: 만점(10점)&#10;◎ 0~15%: 선형 가산&#10;◎ 0% 이하(우측 이동 또는 정지): 0점&#10;다운스윙 시 골반이 목표방향(왼쪽)으로 이동할수록 고점수">코어(골반) 이동: -</div>
+        </div>
+        <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
+          <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
+          <div class="analysis-metric" id="analysisDeltaCardF3Score"
+               data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 수직신장 60% | 축 Sway 40%&#10;점수 높을수록 왼다리를 강하게 펴 지면반력 활용">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF3Thrust"
+               data-tooltip="고관절-무릎-발목 수직신장 각도 변화&#10;◎ ≥160°: 만점 (강한 지면반력 활용)&#10;◎ 0~160°: 선형 가산&#10;◎ 음수: 다리가 오히려 굴어짐 = 감점&#10;180°에 가까울수록 완전 신전 (타율 높임)">수직신장 각도: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF3AxisSway"
+               data-tooltip="다운스윙 중 C7(목 뒤) 수평 이동량 (키 기준 비율)&#10;◎ 0%: 만점 (회전축 완벽 고정)&#10;◎ 0~10%: 선형 감점&#10;◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)&#10;A·B 패널의 C7 x좌표 차이로 계산">축 고정 지수: -</div>
+        </div>
+        <div class="analysis-segment-compare-card" id="analysisDeltaCardF4">
+          <div class="analysis-segment-compare-title">Frame 4 — 임팩트/선속도 지수</div>
+          <div class="analysis-metric" id="analysisDeltaCardF4Score"
+            data-tooltip="임팩트 반경/선속도 지수 점수 (0~10점)&#10;v = ω × r — 임팩트 절대 선속도 지수와 F3→F4 변화량을 핵심 반영&#10;핵심 70%: 절대 선속도 지수 35%(40 이상 만점) + 변화량 35%(F4−F3가 40 이상 만점)&#10;보조 30%: 팔-샤프트 정렬 10% | r_max 10% | 측면기울기 10%">점수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF4Arc"
+            data-tooltip="임팩트 선속도 지수(v=ω×r)와 F3→F4 변화량&#10;◎ 선속도 지수 40 이상: 절대 선속도 지수 만점&#10;◎ 변화량(F4−F3) 40 이상: 변화량 만점&#10;두 항목은 최종 F4 점수의 핵심 70%를 5:5로 반영">선속도 지수: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF4RMax"
+               data-tooltip="왼어깨→클럽헤드 aspect보정 거리 (영상 세로 기준 %)&#10;x방향에 영상 가로세로비 보정 적용 → 16:9 왜곡 제거&#10;◎ ≥+30%: 만점&#10;◎ 0%: 중립 (0.5점 기여, 페널티 없음)&#10;◎ 음수: 반경 수축 = 감점&#10;팔-샤프트 개선이 이미 릴리즈를 증명하므로 보조 참고용">최대회전반경(r): -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF4ArmShaft"
+               data-tooltip="팔-샤프트 정렬 개선량 (릴리즈 직접 지표)&#10;◎ +100° 이상: 만점 (완전 릴리즈)&#10;◎ 0°: 중립 (0.5점 기여)&#10;◎ 음수: 팔꿈치 유지 = 30° 당 감점&#10;양수 값 = 임팩트에서 팔-샤프트가 더 일직선에 접근 = r 확장 = v 증가">팔-샤프트 정렬: -</div>
+          <div class="analysis-metric" id="analysisDeltaCardF4Lean"
+               data-tooltip="임팩트 측면 기울기 변화 (C7&#8594;왼어깨 수직편각)&#10;&#9679; +100&#176; 이상: 만점 (B 스윙이 더 trail-side lean)&#10;&#9679; 0&#176;: 중립 (0.5점 기여)&#10;&#9679; 음수: B에서 상체가 더 서있음 (Early Extension 의심)&#10;정면 촬영 전용 지표 &#8212; 임팩트 C-shape 유지 여부">측면기울기: -</div>
+        </div>
+      </div>
+      <div class="analysis-b-row" id="analysisBRow">
+        <div class="analysis-b-row-item"><div class="analysis-b-section" id="analysisDeltaCardF1BSection"></div></div>
+        <div class="analysis-b-row-item"><div class="analysis-b-section" id="analysisDeltaCardF2BSection"></div></div>
+        <div class="analysis-b-row-item"><div class="analysis-b-section" id="analysisDeltaCardF3BSection"></div></div>
+        <div class="analysis-b-row-item"><div class="analysis-b-section" id="analysisDeltaCardF4BSection"></div></div>
+      </div>
+    </div>
+    <div class="analysis-summary" id="analysisSummary"></div>
+    <div class="analysis-score-block" id="analysisSegmentScores">
+      <div class="analysis-score-items">
+        <span class="analysis-score-item" id="analysisSegmentScoreF1">F1: -</span>
+        <span class="analysis-score-item" id="analysisSegmentScoreF2">F2: -</span>
+        <span class="analysis-score-item" id="analysisSegmentScoreF3">F3: -</span>
+        <span class="analysis-score-item" id="analysisSegmentScoreF4">F4: -</span>
+      </div>
+      <span class="analysis-score-average" id="analysisSegmentAverage">평균: -</span>
+    </div>
+  </div>
+</div>
+
 <div class="controls" style="margin-top:15px;">
   <div class="zoom-controls playback-controls">
     <label for="playbackRateInput">Global speed</label>
@@ -578,10 +1075,6 @@
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
   const loginOverlay = document.getElementById('loginOverlay');
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
@@ -632,6 +1125,1262 @@
   const saveFrameBtn = document.getElementById('saveFrameBtn');
   const clearPointsBtn = document.getElementById('clearPointsBtn');
   const statusSpan = document.getElementById('status');
+  const analysisHeightInput = document.getElementById('analysisHeightInput');
+  const analysisSegmentSelect = document.getElementById('analysisSegmentSelect');
+  const analysisGuide = document.getElementById('analysisGuide');
+  const analysisGuideNextBtn = document.getElementById('analysisGuideNextBtn');
+  const analysisGuideStep = document.getElementById('analysisGuideStep');
+  const frontAnalysisBtn = document.getElementById('frontAnalysisBtn');
+  const sideAnalysisBtn = document.getElementById('sideAnalysisBtn');
+  const analysisPanel = document.getElementById('analysisPanel');
+  const analysisToggleBtn = document.getElementById('analysisToggleBtn');
+  const analysisFrontMoment = document.getElementById('analysisFrontMoment');
+  const analysisFrontRadius = document.getElementById('analysisFrontRadius');
+  const analysisFrontTiming = document.getElementById('analysisFrontTiming');
+  const analysisFrontAcceleration = document.getElementById('analysisFrontAcceleration');
+  const analysisFrontTransfer = document.getElementById('analysisFrontTransfer');
+  const analysisFrontImpact = document.getElementById('analysisFrontImpact');
+  const analysisFrontDetail = document.getElementById('analysisFrontDetail');
+  const analysisFrontSectionTitle = document.getElementById('analysisFrontSectionTitle');
+  // Side section elements (hidden in UI, kept for internal computation)
+  const analysisSideMoment = document.getElementById('analysisSideMoment');
+  const analysisSideRadius = document.getElementById('analysisSideRadius');
+  const analysisSideTiming = document.getElementById('analysisSideTiming');
+  const analysisSideAcceleration = document.getElementById('analysisSideAcceleration');
+  const analysisSideTransfer = document.getElementById('analysisSideTransfer');
+  const analysisSideImpact = document.getElementById('analysisSideImpact');
+  const analysisSideDetail = document.getElementById('analysisSideDetail');
+  // Frame 1 card
+  const analysisDeltaCardF1Score    = document.getElementById('analysisDeltaCardF1Score');
+  const analysisDeltaCardF1SpineAngle = document.getElementById('analysisDeltaCardF1SpineAngle');
+  const analysisDeltaCardF1XFactor  = document.getElementById('analysisDeltaCardF1XFactor');
+  // Frame 2 card
+  const analysisDeltaCardF2Score     = document.getElementById('analysisDeltaCardF2Score');
+  const analysisDeltaCardF2LagAngle  = document.getElementById('analysisDeltaCardF2LagAngle');
+  const analysisDeltaCardF2CoreShift = document.getElementById('analysisDeltaCardF2CoreShift');
+  // Frame 3 card
+  const analysisDeltaCardF3Score    = document.getElementById('analysisDeltaCardF3Score');
+  const analysisDeltaCardF3Thrust   = document.getElementById('analysisDeltaCardF3Thrust');
+  const analysisDeltaCardF3AxisSway = document.getElementById('analysisDeltaCardF3AxisSway');
+  // Frame 4 card
+  const analysisDeltaCardF4Score    = document.getElementById('analysisDeltaCardF4Score');
+  const analysisDeltaCardF4Arc      = document.getElementById('analysisDeltaCardF4Arc');
+  const analysisDeltaCardF4RMax     = document.getElementById('analysisDeltaCardF4RMax');
+  const analysisDeltaCardF4ArmShaft = document.getElementById('analysisDeltaCardF4ArmShaft');
+  const analysisDeltaCardF4Lean       = document.getElementById('analysisDeltaCardF4Lean');
+  // B-frame 기본지표 섹션
+  const analysisDeltaCardF1BSection = document.getElementById('analysisDeltaCardF1BSection');
+  const analysisDeltaCardF2BSection = document.getElementById('analysisDeltaCardF2BSection');
+  const analysisDeltaCardF3BSection = document.getElementById('analysisDeltaCardF3BSection');
+  const analysisDeltaCardF4BSection = document.getElementById('analysisDeltaCardF4BSection');
+  const analysisSummary = document.getElementById('analysisSummary');
+  const analysisSegmentScoreF1 = document.getElementById('analysisSegmentScoreF1');
+  const analysisSegmentScoreF2 = document.getElementById('analysisSegmentScoreF2');
+  const analysisSegmentScoreF3 = document.getElementById('analysisSegmentScoreF3');
+  const analysisSegmentScoreF4 = document.getElementById('analysisSegmentScoreF4');
+  const analysisFinalScore = document.getElementById('analysisFinalScore');
+  const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  let guideView = null;
+  let guideStep = 0;
+  let selectedSegment = 'frame1';
+  // 프레임별 마지막 분석 상태 저장 (A/B 패널 포인트, 라인, 비디오 시점)
+  let frameStateHistory = { front: {}, side: {} };
+  let frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
+  let baselineFrontResult = null;
+  let segmentScoreHistory = {
+    frame1: null,
+    frame2: null,
+    frame3: null,
+    frame4: null,
+  };
+  let segmentDeltaHistory = {
+    frame1: null,
+    frame2: null,
+    frame3: null,
+    frame4: null,
+  };
+
+  // Frame-specific landmark type assignment
+  // Frame 1: p1=C7, p2=정수리(Head), p3=골반중심(MidHip)
+  // Frame 2: p1=오른손목, p2=클럽헤드, p3=오른어깨, p4=골반중심
+  // Frame 3: p1=왼고관절, p2=왼무릎, p3=왼발목, p4=C7
+  // Frame 4: p1=C7, p2=왼어깨, p3=왼손목, p4=클럽헤드
+  const FRAME_POINT_TYPES = {
+    frame1: ['wrist', 'club', 'shoulder', 'pelvis'],   // C7, RightShoulder, LeftShoulder, MidHip
+    frame2: ['wrist', 'club', 'shoulder', 'pelvis'],   // RightWrist, ClubHead, RightShoulder, MidHip
+    frame3: ['wrist', 'club', 'shoulder', 'pelvis'],   // LeftHip, LeftKnee, LeftAnkle, C7
+    frame4: ['wrist', 'club', 'shoulder', 'pelvis'],   // C7, LeftShoulder, LeftWrist, ClubHead
+  };
+  function getAutoPointType(points) {
+    const types = FRAME_POINT_TYPES[selectedSegment] || FRAME_POINT_TYPES.frame1;
+    if (points.length < types.length) return types[points.length];
+    return null;
+  }
+
+  function getFramePointLabel(frameId, idx) {
+    const labels = {
+      frame1: ['C7 투영점(정면: 목 중심부)', '오른쪽 어깨(Right Shoulder)', '왼쪽 어깨(Left Shoulder)', '골반 중심(Mid-Hip)'],
+      frame2: ['오른쪽 손목', '클럽 헤드', '오른쪽 어깨(Right Shoulder)', '골반 중심(Mid-Hip)'],
+      frame3: ['왼쪽 고관절', '왼쪽 무릎', '왼쪽 발목', 'C7 투영점(정면: 목 중심부)'],
+      frame4: ['C7 투영점(정면: 목 중심부)', '왼쪽 어깨', '왼쪽 손목', '클럽 헤드'],
+    };
+    return (labels[frameId] || [])[idx] || `포인트 ${idx + 1}`;
+  }
+
+  function getFrameMaxPoints(frameId) {
+    return (FRAME_POINT_TYPES[frameId] || []).length;
+  }
+
+  function getHeightScale() {
+    if (!analysisHeightInput) return 1;
+    const heightCm = parseFloat(analysisHeightInput.value);
+    if (!Number.isFinite(heightCm) || heightCm <= 0) return 1;
+    return clamp(heightCm / 170, 0.7, 1.4);
+  }
+
+  function computeExpectedSpan(heightScale) {
+    return 0.55 * heightScale;
+  }
+
+  function applyProjectionNormalization(result, baselineResult) {
+    if (!baselineResult || !baselineResult.rawRadiusProxy) return;
+    const heightScale = getHeightScale();
+    const expectedSpan = computeExpectedSpan(heightScale);
+    const scale = baselineResult.rawRadiusProxy ? expectedSpan / baselineResult.rawRadiusProxy : 1;
+    result.projectionScale = scale;
+    result.radiusProxy = result.rawRadiusProxy * scale;
+    result.momentProxy = result.rawMomentProxy * scale;
+    result.accelerationScore = computeArcCompactScore(result.momentProxy, heightScale);
+    result.transferScore = computeTransferScore(result.radiusProxy, result.angleDeg, heightScale);
+    result.impactScore = computeImpactScore(result.radiusProxy, result.angleDeg, heightScale);
+    result.motionScore = (result.accelerationScore + result.transferScore + result.impactScore) / 3;
+    // 어드레스(baselineFrontResult) 대비 집중도·반경 비율 — 로데이터 표시용
+    result.momentRatioPct = baselineResult.rawMomentProxy > 0
+      ? (result.rawMomentProxy / baselineResult.rawMomentProxy * 100) : null;
+    result.radiusRatioPct = baselineResult.rawRadiusProxy > 0
+      ? (result.rawRadiusProxy / baselineResult.rawRadiusProxy * 100) : null;
+    // pelvisNormX, c7NormX, rMaxNorm 은 이미 0-1 정규화 좌표 기반값이므로
+    // projectionScale 적용 불필요 (적용 시 1 초과 → 133% 등 이상값 발생)
+    result.summary += ` 보정계수: ${scale.toFixed(3)} (기준 프레임 기반, 키 보정 ${Math.round(heightScale * 100)}%).`;
+  }
+
+  function getGuideMessage() {
+    const viewLabel = guideView === 'front' ? 'A(기준)' : 'B(비교)';
+    const maxPts = getFrameMaxPoints(selectedSegment);
+    const frameGuides = {
+      frame1: {
+        title: 'Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]',
+        steps: guideView === 'front'
+          ? [
+            `(A — 어드레스) 1단계: 어드레스 자세에서 C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
+            `(A — 어드레스) 2단계: 오른쪽 어깨를 찍으세요.`,
+            `(A — 어드레스) 3단계: 왼쪽 어깨를 찍으세요. 어드레스 어깨회전각 기준값을 산출합니다.`,
+            `(A — 어드레스) 4단계: 골반 중심(Mid-Hip)을 찍으세요. C7→골반 척추각도 기준값을 설정합니다.`,
+            `포인트 선택 완료. 분석을 실행합니다.`,
+          ]
+          : [
+            `(B — 백스윙 탑) 1단계: 백스윙 최정점에서 C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턱 아래)를 클릭하세요.`,
+            `(B — 백스윙 탑) 2단계: 오른쪽 어깨를 찍으세요.`,
+            `(B — 백스윙 탑) 3단계: 왼쪽 어깨를 찍으세요. X-Factor(어깨회전각) 산출에 사용됩니다.`,
+            `(B — 백스윙 탑) 4단계: 골반 중심(Mid-Hip)을 찍으세요. 척추각도 유지 여부를 산출합니다.`,
+            `포인트 선택 완료. 분석을 실행합니다.`,
+          ],
+      },
+      frame2: {
+        title: 'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙 왼팔 수평]',
+        steps: [
+          `(${viewLabel}) 1단계: 오른쪽 손목을 점으로 찍으세요.`,
+          `(${viewLabel}) 2단계: 클럽 헤드를 점으로 찍으세요. 손목→클럽헤드 벡터로 래깅각도를 산출합니다.`,
+          `(${viewLabel}) 3단계: 오른쪽 어깨를 찍으세요. 손목→어깨 방향으로 래깅각도를 최종 산출합니다.`,
+          `(${viewLabel}) 4단계: 골반 중심(Mid-Hip)을 찍으세요. 어드레스 대비 코어(골반) 좌측 이동량을 산출합니다.`,
+          `포인트 선택 완료. 분석을 실행합니다.`,
+        ],
+      },
+      frame3: {
+        title: 'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점',
+        steps: [
+          `(${viewLabel}) 1단계: 왼쪽 고관절을 점으로 찍으세요.`,
+          `(${viewLabel}) 2단계: 왼쪽 무릎을 점으로 찍으세요.`,
+          `(${viewLabel}) 3단계: 왼쪽 발목을 점으로 찍으세요. 고관절-무릎-발목으로 수직신장각도를 산출합니다.`,
+          `(${viewLabel}) 4단계: C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요. 축 고정 지수(Sway 여부) 산출에 사용됩니다.`,
+          `포인트 선택 완료. 분석을 실행합니다.`,
+        ],
+      },
+      frame4: {
+        title: 'Frame 4 — 임팩트/선속도 지수',
+        steps: [
+          `(${viewLabel}) 1단계: C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
+          `(${viewLabel}) 2단계: 왼쪽 어깨를 점으로 찍으세요.`,
+          `(${viewLabel}) 3단계: 왼쪽 손목을 점으로 찍으세요. 팔-샤프트 정렬 각도 산출에 사용됩니다.`,
+          `(${viewLabel}) 4단계: 클럽 헤드를 찍으세요. 왼어깨→클럽헤드 최대회전반경(r_max)을 산출합니다.`,
+          `포인트 선택 완료. 분석을 실행합니다.`,
+        ],
+      },
+    };
+    const guide = frameGuides[selectedSegment] || frameGuides.frame1;
+    if (guideStep === 0) {
+      return `분석 버튼(🏌️)을 눌러 프레임별 랜드마크 선택을 시작하세요. 현재 선택: ${guide.title}`;
+    }
+    return guide.steps[guideStep - 1] || guide.steps[guide.steps.length - 1];
+  }
+
+  function getFrameSectionLabel(frameId, view) {
+    const labels = {
+      frame1: { front: 'A — 어드레스 (척추축/X-Factor 기준)', side: 'B — 백스윙 탑 (척추축/X-Factor 확인)' },
+      frame2: { front: 'A — 어드레스 (기준)', side: 'B — 다운스윙 왼팔 수평 (래깅/코어이동)' },
+      frame3: { front: 'A — 샤프트 수평 기준', side: 'B — 비교 프레임 (지면반력)' },
+      frame4: { front: 'A — 임팩트 기준', side: 'B — 비교 프레임 (선속도 지수)' },
+    };
+    return (labels[frameId] || labels.frame1)[view];
+  }
+
+  function showGuide() {
+    if (!analysisGuide || !analysisGuideStep || !analysisGuideNextBtn) return;
+    analysisGuide.textContent = getGuideMessage();
+    const maxSteps = getFrameMaxPoints(selectedSegment) + 1;
+    analysisGuideStep.textContent = guideStep > 0 ? `STEP ${guideStep} / ${maxSteps}` : '';
+    analysisGuideNextBtn.textContent = guideStep >= maxSteps ? '분석 실행' : '다음';
+    // Update A section title based on current frame (always shows A-panel label)
+    if (analysisFrontSectionTitle) {
+      analysisFrontSectionTitle.textContent = getFrameSectionLabel(selectedSegment, 'front');
+    }
+  }
+
+  function hasGuideSelectionCompleted() {
+    const points = guideView === 'front' ? frontPoints : sidePoints;
+    const maxPts = getFrameMaxPoints(selectedSegment);
+    return points.length >= maxPts;
+  }
+
+  function resetViewAnalysis(view) {
+    if (view === 'front') {
+      frontPoints = [];
+      frontLines = [];
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      const emptyResult = {
+        accelerationScore: 0,
+        transferScore: 0,
+        impactScore: 0,
+        motionScore: 0,
+        momentProxy: 0,
+        radiusProxy: 0,
+        angleDeg: 0,
+        summary: 'A 영상 분석이 초기화되었습니다. 선택된 프레임에 맞는 랜드마크를 다시 입력하세요.'
+      };
+      updateAnalysisSection(emptyResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontAcceleration, analysisFrontTransfer, analysisFrontImpact, analysisFrontDetail);
+    } else {
+      sidePoints = [];
+      sideLines = [];
+      drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+      const emptyResult = {
+        accelerationScore: 0,
+        transferScore: 0,
+        impactScore: 0,
+        motionScore: 0,
+        momentProxy: 0,
+        radiusProxy: 0,
+        angleDeg: 0,
+        summary: 'B 영상 분석이 초기화되었습니다. 선택된 프레임에 맞는 랜드마크를 다시 입력하세요.'
+      };
+      updateAnalysisSection(emptyResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
+    }
+  }
+
+  function performAnalysis() {
+    const currentFrontResult = createAnalysisResult(frontPoints, frontLines, 'front', 'A');
+    if (!baselineFrontResult) {
+      baselineFrontResult = JSON.parse(JSON.stringify(currentFrontResult));
+      applyProjectionNormalization(baselineFrontResult, baselineFrontResult);
+    }
+    const displayedFrontResult = JSON.parse(JSON.stringify(currentFrontResult));
+    applyProjectionNormalization(displayedFrontResult, baselineFrontResult);
+    updateAnalysisSection(displayedFrontResult, analysisFrontMoment, analysisFrontRadius, analysisFrontTiming, analysisFrontAcceleration, analysisFrontTransfer, analysisFrontImpact, analysisFrontDetail);
+    const sideResult = createAnalysisResult(sidePoints, sideLines, 'front', 'B');
+    applyProjectionNormalization(sideResult, baselineFrontResult);
+    updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
+    // Frame 2에서는 에너지전환효율/임팩트 파워 숨김 (과거 F3/4에만 유효 제한, 선속도는 전 프레임 표시)
+    if (analysisFrontTransfer) analysisFrontTransfer.style.display = 'none';  // 반경 비율 항상 숨김
+    if (analysisFrontImpact)   analysisFrontImpact.style.display   = '';  // 선속도 전 프레임 표시
+    if (analysisSideTransfer)  analysisSideTransfer.style.display  = 'none';   // 반경 비율 항상 숨김
+    if (analysisSideImpact)    analysisSideImpact.style.display    = '';   // 선속도 전 프레임 표시
+    const deltaResult = createDeltaResult(displayedFrontResult, sideResult, selectedSegment);
+    segmentScoreHistory[selectedSegment] = deltaResult.segmentScore;
+    frameMetricsHistory[selectedSegment] = displayedFrontResult.frameMetrics;
+    // 선속도(각도×반경) A/B 모두 저장 — 프레임간 비교용
+    if (frameMetricsHistory[selectedSegment]) {
+      frameMetricsHistory[selectedSegment]._arcA = (displayedFrontResult.angleDeg || 0) * (displayedFrontResult.radiusProxy || 0);
+      frameMetricsHistory[selectedSegment]._arcB = deltaResult._arcBCurrent;
+    }
+    updateSummary(displayedFrontResult, sideResult, deltaResult);
+    updateComparisonSection(deltaResult);
+    updateSegmentScoresDisplay();
+    updateAllFramesMetricBar();
+    updateSwingNarrative(displayedFrontResult, sideResult, deltaResult, selectedSegment);
+    // 현재 프레임의 A/B 패널 상태 저장
+    frameStateHistory.front[selectedSegment] = {
+      points: JSON.parse(JSON.stringify(frontPoints)),
+      lines:  JSON.parse(JSON.stringify(frontLines)),
+      videoTime: isFinite(frontVideo.currentTime) ? frontVideo.currentTime : 0
+    };
+    frameStateHistory.side[selectedSegment] = {
+      points: JSON.parse(JSON.stringify(sidePoints)),
+      lines:  JSON.parse(JSON.stringify(sideLines)),
+      videoTime: isFinite(sideVideo.currentTime) ? sideVideo.currentTime : 0
+    };
+  }
+
+  function setGuideState(view) {
+    guideView = view;
+    resetViewAnalysis(view);
+    guideStep = 1;
+    showGuide();
+    analysisPanel.classList.remove('collapsed');
+    if (analysisToggleBtn) analysisToggleBtn.textContent = '접기';
+    const maxSteps = getFrameMaxPoints(selectedSegment) + 1;
+    if (hasGuideSelectionCompleted()) {
+      guideStep = maxSteps;
+      showGuide();
+      performAnalysis();
+    }
+  }
+
+  function advanceGuideStep() {
+    if (!guideView) return;
+    const maxSteps = getFrameMaxPoints(selectedSegment) + 1;
+    if (guideStep < maxSteps) {
+      guideStep += 1;
+      showGuide();
+    }
+    if (guideStep >= maxSteps) {
+      performAnalysis();
+    }
+  }
+
+  function normalizePointsAndLines(points, lines) {
+    const result = points.slice();
+    lines.forEach(line => {
+      result.push(line.start, line.end);
+    });
+    return result;
+  }
+
+  function computePairwiseMaxDistance(items) {
+    let maxDist = 0;
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const dx = items[i].x - items[j].x;
+        const dy = items[i].y - items[j].y;
+        const d = Math.hypot(dx, dy);
+        if (d > maxDist) maxDist = d;
+      }
+    }
+    return maxDist;
+  }
+
+  function computeAngleAlignment(lines) {
+    if (lines.length < 2) return 0;
+    const angles = lines.map(line => Math.atan2(line.end.y - line.start.y, line.end.x - line.start.x));
+    let total = 0;
+    let count = 0;
+    for (let i = 0; i < angles.length; i++) {
+      for (let j = i + 1; j < angles.length; j++) {
+        let diff = Math.abs(angles[i] - angles[j]);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        total += diff;
+        count += 1;
+      }
+    }
+    if (!count) return 0;
+    return (total / count) / Math.PI; // normalized 0..1, smaller means more aligned
+  }
+
+  function computeLandmarkAngle(points, lines) {
+    if (!points || points.length === 0) return null;
+    const shoulder = points.find(p => p.type === 'shoulder');
+    const wristPoint = points.find(p => p.type === 'wrist');
+    const clubPoint = points.find(p => p.type === 'club');
+    if (!shoulder) return null;
+
+    let wrist = wristPoint || null;
+    let club = clubPoint || null;
+
+    if (lines && lines.length > 0) {
+      const shaft = lines[0];
+      const start = shaft.start;
+      const end = shaft.end;
+      const startDist = Math.hypot(start.x - shoulder.x, start.y - shoulder.y);
+      const endDist = Math.hypot(end.x - shoulder.x, end.y - shoulder.y);
+      const nearer = startDist < endDist ? start : end;
+      const farther = startDist < endDist ? end : start;
+      if (!wrist) wrist = nearer;
+      if (!club) club = farther;
+      if (wrist && !club) club = (wrist === start ? end : start);
+      if (club && !wrist) wrist = nearer;
+    }
+
+    if (!wrist || !club) return null;
+    const v1x = shoulder.x - wrist.x;
+    const v1y = shoulder.y - wrist.y;
+    const v2x = club.x - wrist.x;
+    const v2y = club.y - wrist.y;
+    const len1 = Math.hypot(v1x, v1y);
+    const len2 = Math.hypot(v2x, v2y);
+    if (len1 === 0 || len2 === 0) return null;
+    const cos = clamp((v1x * v2x + v1y * v2y) / (len1 * len2), -1, 1);
+    return Math.acos(cos) * (180 / Math.PI);
+  }
+
+  function normalizeLineAngleDeg(line) {
+    const angle = Math.atan2(line.end.y - line.start.y, line.end.x - line.start.x) * (180 / Math.PI);
+    const normalized = angle > 90 ? angle - 180 : angle < -90 ? angle + 180 : angle;
+    return Math.abs(normalized);
+  }
+
+  function computeAverageAngleDifference(lines) {
+    if (lines.length === 0) return 0;
+    if (lines.length === 1) return normalizeLineAngleDeg(lines[0]);
+    const angles = lines.map(line => Math.atan2(line.end.y - line.start.y, line.end.x - line.start.x));
+    let total = 0;
+    let count = 0;
+    for (let i = 0; i < angles.length; i++) {
+      for (let j = i + 1; j < angles.length; j++) {
+        let diff = Math.abs(angles[i] - angles[j]);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        total += diff;
+        count += 1;
+      }
+    }
+    if (!count) return 0;
+    return (total / count) * (180 / Math.PI);
+  }
+
+  function formatScore(value) {
+    return `${value.toFixed(1)} / 10`;
+  }
+
+  function hasMetric(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+  }
+
+  function snapNearZero(value, epsilon = 1e-6) {
+    return hasMetric(value) && Math.abs(value) < epsilon ? 0 : value;
+  }
+
+  function formatDelta(value) {
+    const normalized = snapNearZero(value);
+    const sign = normalized > 0 ? '+' : '';
+    const absValue = Math.abs(normalized);
+    const digits = absValue > 0 && absValue < 0.1 ? 3 : 1;
+    return `${sign}${normalized.toFixed(digits)}`;
+  }
+
+  function formatPercent(value) {
+    const normalized = snapNearZero(value);
+    const sign = normalized > 0 ? '+' : '';
+    const absValue = Math.abs(normalized);
+    const digits = absValue > 0 && absValue < 0.1 ? 3 : 1;
+    return `${sign}${normalized.toFixed(digits)}%`;
+  }
+
+  function computeMetricDelta(aValue, bValue) {
+    return hasMetric(aValue) && hasMetric(bValue) ? bValue - aValue : null;
+  }
+
+  function combineMetricScores(parts) {
+    const validParts = parts.filter(part => hasMetric(part.value) && part.weight > 0);
+    if (!validParts.length) return 0;
+    const totalWeight = validParts.reduce((sum, part) => sum + part.weight, 0);
+    const weightedScore = validParts.reduce((sum, part) => sum + part.value * part.weight, 0);
+    return 10 * (weightedScore / totalWeight);
+  }
+
+  // 아크 집중도: 랜드마크가 중심에 밀집할수록 고점수 (= 스윙 컴팩트성)
+  function computeArcCompactScore(avgDistFromCenter, heightScale) {
+    return clamp((1 - avgDistFromCenter / (0.45 * heightScale)) * 10, 0, 10);
+  }
+
+  function computeTransferScore(maxSpan, angleDeg, heightScale) {
+    const radiusFactor = clamp(maxSpan / (0.55 * heightScale), 0, 1);
+    const timingFactor = clamp((angleDeg - 45) / 45, 0, 1);
+    return clamp((radiusFactor * 0.6 + timingFactor * 0.4) * 10, 0, 10);
+  }
+
+  function computeImpactScore(maxSpan, angleDeg, heightScale) {
+    const radiusFactor = clamp(maxSpan / (0.55 * heightScale), 0, 1);
+    const timingFactor = clamp((angleDeg - 35) / 55, 0, 1);
+    return clamp((radiusFactor * 0.7 + timingFactor * 0.3) * 10, 0, 10);
+  }
+
+  /**
+   * 4-Frame 생체역학 지표 계산
+   * 모든 각도는 픽셀 좌표 기반이며 heightScale 보정 포함.
+   * p1~p4: 프레임별 지정 포인트 (getAutoPointType 순서대로)
+   */
+  function computeFrameMetrics(points, lines, frameId, heightScale, canvasHeight, videoAspect) {
+    const ch = canvasHeight > 0 ? canvasHeight : 480;
+    const ar = (videoAspect && videoAspect > 0) ? videoAspect : 16 / 9; // 가로/세로 비율 보정용
+    const p1 = points.find(p => p.type === 'wrist');
+    const p2 = points.find(p => p.type === 'club');
+    const p3 = points.find(p => p.type === 'shoulder');
+    const p4 = points.find(p => p.type === 'pelvis');
+    const m = { spineAngleDeg: null, headLatOffset: null, xFactorDeg: null, laggingAngleDeg: null,
+                 kneeExtensionDeg: null, c7NormX: null, rMaxNorm: null, armShaftAngleDeg: null, lateralLeanAngle: null,
+                 shoulderVertDiff: null, shoulderTotalDist: null };
+
+    if (frameId === 'frame1') {
+      // p1=C7, p2=오른쪽어깨, p3=왼쪽어깨, p4=골반중심
+      // 척추각도: C7→골반 벡터가 수직(아래 방향)으로부터 기울어진 각도
+      if (p1 && p4) {
+        const dx = p4.x - p1.x;
+        const dy = p4.y - p1.y;
+        m.spineAngleDeg = Math.abs(Math.atan2(dx, Math.abs(dy)) * 180 / Math.PI);
+      }
+      // X-Factor: 오른어깨(p2)→왼어깨(p3) 라인 기울기 / 회전 측정
+      // xFactorDeg: 시계방향(오른어깨↓, 왼어깨↑ = 정상 백스윙) = 양수, 리버스피벗 = 음수
+      // shoulderHorzWidth: 수평 투영폭 (순수 Y축 회전에 의해 감소)
+      // shoulderVertDiff:  어깨 높이 차이 (lateral tilt 성분 분리용)
+      // shoulderTotalDist: 실제 2D 어깨 거리 (기준 어깨폭 W)
+      if (p2 && p3) {
+        // atan2(dy,dx): 화면 Y↓ 좌표계에서 정상 백스윙(오른어깨 내려감) → dy<0 → 부호 반전하면 양수
+        m.xFactorDeg = -(Math.atan2(p3.y - p2.y, p3.x - p2.x) * 180 / Math.PI);
+        m.shoulderHorzWidth = Math.abs(p2.x - p3.x);              // 수평 투영폭
+        m.shoulderVertDiff  = Math.abs(p2.y - p3.y);              // 어깨 높이 차이
+        m.shoulderTotalDist = Math.hypot(p2.x - p3.x, p2.y - p3.y); // 실제 어깨 연결 거리(W)
+      }
+    }
+
+    if (frameId === 'frame2') {
+      // p1=오른손목, p2=클럽헤드, p3=오른쪽어깨, p4=골반중심
+      // 래깅각도: 어깨→손목 벡터 vs 손목→클럽헤드 벡터 간 각도
+      if (p1 && p2 && p3) {
+        const v1 = { x: p3.x - p1.x, y: p3.y - p1.y };
+        const v2 = { x: p2.x - p1.x, y: p2.y - p1.y };
+        const len1 = Math.hypot(v1.x, v1.y);
+        const len2 = Math.hypot(v2.x, v2.y);
+        if (len1 > 0 && len2 > 0) {
+          m.laggingAngleDeg = Math.acos(clamp((v1.x*v2.x + v1.y*v2.y) / (len1*len2), -1, 1)) * 180 / Math.PI;
+        }
+      }
+      // 코어(골반) 좌측 이동: p4 x좌표 (정규화 좌표 0-1, A→B 비교용)
+      if (p4) m.pelvisNormX = p4.x;
+      // 몸통 참조거리: 어깨(p3)→골반(p4) Euclidean 거리 — zoom·키 독립 정규화 기준
+      // 같은 영상 안에서 A·B 모두 동일 zoom이므로, 변위/torsoRefDist = 차원 없는 비율
+      if (p3 && p4) m.torsoRefDist = Math.hypot(p3.x - p4.x, p3.y - p4.y);
+    }
+
+    if (frameId === 'frame3') {
+      // p1=왼고관절, p2=왼무릎, p3=왼발목, p4=C7
+      // 수직신장각: 고관절-무릎-발목이 이루는 각도 (180°에 가까울수록 완전 신전)
+      if (p1 && p2 && p3) {
+        const v1 = { x: p1.x - p2.x, y: p1.y - p2.y }; // 무릎→고관절
+        const v2 = { x: p3.x - p2.x, y: p3.y - p2.y }; // 무릎→발목
+        const len1 = Math.hypot(v1.x, v1.y);
+        const len2 = Math.hypot(v2.x, v2.y);
+        if (len1 > 0 && len2 > 0) {
+          m.kneeExtensionDeg = Math.acos(clamp((v1.x*v2.x + v1.y*v2.y) / (len1*len2), -1, 1)) * 180 / Math.PI;
+        }
+      }
+      // C7의 수평 위치 (정규화 좌표 0-1, Sway 비교용)
+      if (p4) m.c7NormX = p4.x;
+    }
+
+    if (frameId === 'frame4') {
+      // p1=C7, p2=왼어깨, p3=왼손목, p4=클럽헤드
+      // 최대회전반경: 왼어깨→클럽헤드 거리 (팔+샤프트 레버)
+      // x좌표에 ar(가로/세로 비율) 보정 → 정규화 좌표계의 비등방성 제거
+      if (p2 && p4) {
+        m.rMaxNorm = Math.hypot((p4.x - p2.x) * ar, p4.y - p2.y);
+      }
+      // 팔-샤프트 정렬: 왼어깨→왼손목 벡터와 왼손목→클럽헤드 벡터 간 각도 (180°에 가까울수록 완전 신전)
+      if (p2 && p3 && p4) {
+        const v1 = { x: p2.x - p3.x, y: p2.y - p3.y };
+        const v2 = { x: p4.x - p3.x, y: p4.y - p3.y };
+        const len1 = Math.hypot(v1.x, v1.y);
+        const len2 = Math.hypot(v2.x, v2.y);
+        if (len1 > 0 && len2 > 0) {
+          m.armShaftAngleDeg = Math.acos(clamp((v1.x*v2.x + v1.y*v2.y) / (len1*len2), -1, 1)) * 180 / Math.PI;
+        }
+      }
+      // 임팩트 측면 기울기: C7(p1)→왼어깨(p2) 벡터의 수직 편각 (정면 전용)
+      // trail-side lean 클수록 양수 → 좋은 임팩트 C-shape
+      if (p1 && p2) {
+        m.lateralLeanAngle = Math.atan2(p2.x - p1.x, Math.abs(p2.y - p1.y)) * 180 / Math.PI;
+      }
+    }
+    return m;
+  }
+
+  /**
+   * 4-Frame 구간 점수 산정
+   * 모든 퍼센트 변화는 raw proxy 기준 (score 기준 아님).
+   *
+   * Frame 1 — 척추축 유지 (A:어드레스 → B:백스윙 탑)
+   *   spineAngleDelta: B(백스윙 탑) - A(어드레스) 척추각도 차이 → ±5° 이내 만점, ±15° 이상 → 0점
+   *   headLatDelta: 백스윙 탑 머리편차 증가량 → 증가할수록 감점 (머리 드리프트)
+   *
+   * Frame 2 — 래깅/코어이동 (A:어드레스 → B:다운스윙 왼팔 수평)
+   *   xFactorDelta: X-Factor 증가 여부 → 더 벌어질수록 고점수 (타겟 +15°~+30°)
+   *   laggingDelta: 래깅각도 감소 여부(예리해짐) → 더 작아질수록(음의 변화) 고점수
+   *
+   * Frame 3 — 외부 토크 & 지면반력
+   *   kneeExtDelta: 무릎 신전각도 증가 여부 → 더 펴질수록 고점수 (타겟 +20°~+40°)
+   *   c7SwayPercent: C7 수평 이동 비율 → 작을수록 고점수 (허용 ±10%)
+   *
+   * Frame 4 — 임팩트 반경 & 선속도 전환
+   *   rMaxNormDelta: 최대회전반경 증가 여부 → 클수록 고점수
+   *   armShaftDelta: 팔-샤프트 정렬각 → 180°에 가까워질수록 고점수
+   */
+  function computeSegmentScore(deltaResult, segment) {
+    let score = 0;
+
+    if (segment === 'frame1') {
+      // 척추각도 유지: 백스윙 탑 - 어드레스 차이가 ±5° 이내면 만점
+      const spineDelta = deltaResult.fm && hasMetric(deltaResult.fm.spineAngleDelta) ? Math.abs(deltaResult.fm.spineAngleDelta) : null;
+      const spineScore = spineDelta != null ? (spineDelta <= 5 ? 1 : clamp(1 - (spineDelta - 5) / 10, 0, 1)) : null;
+      // X-Factor: -60° = 0점, -150° 이하 = 만점 (선형 보간)
+      const xfDelta = deltaResult.fm && hasMetric(deltaResult.fm.xFactorDelta) ? deltaResult.fm.xFactorDelta : null;
+      const xfScore = xfDelta != null ? clamp((-xfDelta - 60) / 90, 0, 1) : null;
+      score = combineMetricScores([
+        { value: spineScore, weight: 0.60 },
+        { value: xfScore, weight: 0.40 },
+      ]);
+
+    } else if (segment === 'frame2') {
+      // 래깅각도: -100° 이하 = 10점, 10° 간격 1점씩 선형 감점
+      const lagDelta = deltaResult.fm && hasMetric(deltaResult.fm.laggingAngleDelta) ? deltaResult.fm.laggingAngleDelta : null;
+      const lagScore = lagDelta != null ? clamp(-lagDelta / 100, 0, 1) : null;
+      // 코어(골반) 좌측 이동: 양수 delta = 목표방향 이동 = 좋음
+      // 몸통 참조거리 정규화 기준: +0.35(몸통의 35% 이동) = 만점
+      const coreDelta = deltaResult.fm && hasMetric(deltaResult.fm.pelvisLateralDelta) ? deltaResult.fm.pelvisLateralDelta : null;
+      const coreScore = coreDelta != null ? clamp(coreDelta / 0.35, 0, 1) : null;
+      score = combineMetricScores([
+        { value: lagScore, weight: 0.50 },
+        { value: coreScore, weight: 0.50 },
+      ]);
+
+    } else if (segment === 'frame3') {
+      // 수직신장각: 증가할수록 고점수 (타겟: ≥160° 만점)
+      const keDelta = deltaResult.fm && hasMetric(deltaResult.fm.kneeExtDelta) ? deltaResult.fm.kneeExtDelta : null;
+      const keScore = keDelta != null ? (keDelta >= 160 ? 1 : keDelta >= 0 ? clamp(keDelta / 160, 0, 1)
+                                                        : clamp(1 + keDelta / 20, 0, 1)) : null;
+      // 축 고정: C7 수평 이동 비율이 작을수록 고점수 (허용 ±10%)
+      const swayPct = deltaResult.fm && hasMetric(deltaResult.fm.c7SwayPercent) ? Math.abs(deltaResult.fm.c7SwayPercent) : null;
+      const swayScore = swayPct != null ? clamp(1 - swayPct / 10, 0, 1) : null;
+      score = combineMetricScores([
+        { value: keScore, weight: 0.60 },
+        { value: swayScore, weight: 0.40 },
+      ]);
+
+    } else {
+      // frame4: v = ω × r — 응축된 각속도가 반경 확장으로 최대 선속도 전환
+      // 핵심 70%: 절대 선속도 지수(35%) + F3→F4 변화량(35%)
+      const arcAbs = deltaResult._arcBCurrent != null ? deltaResult._arcBCurrent : null;
+      const arcAbsScore = arcAbs != null ? clamp(arcAbs / 40, 0, 1) : null; // 40 이상 만점
+
+      const fmF3 = frameMetricsHistory['frame3'];
+      const arcF3 = fmF3 && fmF3._arcB != null && fmF3._arcB > 0 ? fmF3._arcB : null;
+      const arcDelta = (arcF3 != null && arcAbs != null) ? (arcAbs - arcF3) : null;
+      const arcDeltaScore = arcDelta != null ? clamp(arcDelta / 40, 0, 1) : null; // 변화량 40 이상 만점
+      // 두 조건(절대 선속도 지수/변화량) 모두 만족 시에만 핵심 70%가 완전 만점이 되도록 게이트 적용
+      const arcCoreScore = (arcAbsScore != null && arcDeltaScore != null)
+        ? ((arcAbsScore >= 1 && arcDeltaScore >= 1)
+            ? 1
+            : 0.5 * arcAbsScore + 0.5 * arcDeltaScore)
+        : null;
+
+      // 1차 지표: 팔-샤프트 정렬 개선 (+100° 이상 = 만점)
+      const asDelta = deltaResult.fm && hasMetric(deltaResult.fm.armShaftDelta) ? deltaResult.fm.armShaftDelta : null;
+      const asScore = asDelta != null ? (asDelta >= 100 ? 1
+                    : asDelta >= 0  ? 0.5 + 0.5 * (asDelta / 100)
+                    : clamp(0.5 + asDelta / 30, 0, 1)) : null;
+      // 2차 지표: r_max 확장 (+0.3 이상 = 만점)
+      const rDelta = deltaResult.fm && hasMetric(deltaResult.fm.rMaxNormDelta) ? deltaResult.fm.rMaxNormDelta : null;
+      const rScore = rDelta != null ? (rDelta >= 0.3 ? 1
+                   : rDelta >= 0    ? 0.5 + 0.5 * (rDelta / 0.3)
+                   : clamp(0.5 + rDelta / 0.3, 0, 1)) : null;
+      // 3차 지표: 측면 기울기 (+100° 이상 = 만점)
+      const leanDelta = deltaResult.fm && hasMetric(deltaResult.fm.lateralLeanDelta) ? deltaResult.fm.lateralLeanDelta : null;
+      const leanScore = leanDelta != null ? (leanDelta >= 100 ? 1
+                      : leanDelta >= 0 ? 0.5 + 0.5 * (leanDelta / 100)
+                      : clamp(0.5 + leanDelta / 15, 0, 1)) : null;
+      score = combineMetricScores([
+        { value: arcCoreScore,  weight: 0.70 },
+        { value: asScore,       weight: 0.10 },
+        { value: rScore,        weight: 0.10 },
+        { value: leanScore,     weight: 0.10 },
+      ]);
+    }
+    return clamp(score, 0, 10);
+  }
+
+  function createDeltaResult(frontResult, sideResult, segment = 'frame1') {
+    // Raw proxy 기반 퍼센트 변화 (score 기준 아님 → 비선형 왜곡 방지)
+    const momentChange = frontResult.rawMomentProxy
+      ? (sideResult.rawMomentProxy - frontResult.rawMomentProxy) / frontResult.rawMomentProxy * 100 : 0;
+    const radiusChange = frontResult.rawRadiusProxy
+      ? (sideResult.rawRadiusProxy - frontResult.rawRadiusProxy) / frontResult.rawRadiusProxy * 100 : 0;
+    // 스코어 기반 변화도 유지 (UI 표시용)
+    const accelerationPercent = frontResult.accelerationScore
+      ? (sideResult.accelerationScore - frontResult.accelerationScore) / frontResult.accelerationScore * 100 : 0;
+    const transferPercent = frontResult.transferScore
+      ? (sideResult.transferScore - frontResult.transferScore) / frontResult.transferScore * 100 : 0;
+    const impactPercent = frontResult.impactScore
+      ? (sideResult.impactScore - frontResult.impactScore) / frontResult.impactScore * 100 : 0;
+
+    // 4-Frame 생체역학 지표 델타 계산
+    const fmA = frontResult.frameMetrics || {};
+    const fmB = sideResult.frameMetrics || {};
+    const fm = {};
+    if (segment === 'frame1') {
+      fm.spineAngleDelta   = computeMetricDelta(fmA.spineAngleDeg, fmB.spineAngleDeg);
+      // 어깨 회전각 (X-Factor) — atan2 기반 직접 각도 차이
+      // 카메라 방향: 측면(after-on) 기준
+      //   어드레스(A): 두 어깨가 비슷한 x → 어깨선이 카메라 방향(수평폭 작음)
+      //   백스윙탑(B): 오른어깨 x 증가, 왼어깨 x 감소 → 수평폭 증가 = 회전 증가
+      // xFactorDeg = -atan2(dy, dx): 오른어깨↑·왼어깨↓ 또는 수평폭 증가 → 양수
+      // xFactorDelta = B의 각도 - A의 각도 → 회전이 많을수록 큰 양수
+      fm.xFactorDelta = computeMetricDelta(fmA.xFactorDeg, fmB.xFactorDeg);
+      if (fm.xFactorDelta != null) {
+        fm._dbgSwA = fmA.shoulderHorzWidth; fm._dbgSwB = fmB.shoulderHorzWidth;
+        fm._dbgWA = fmA.xFactorDeg; fm._dbgWB = fmB.xFactorDeg;
+      }
+    } else if (segment === 'frame2') {
+      fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg, fmB.laggingAngleDeg);
+      fm.laggingAngleBDeg    = fmB.laggingAngleDeg ?? null; // B프레임(다운스윙) 실제 래깅각
+      // 코어(골반) 좌측 이동 — 정면영상 기준 x축 왼쪽 변위만 산출
+      // 정면영상 좌표계: x 감소 = 왼쪽(목표방향) = 음수 → 좋음
+      // 몸통 참조거리(A프레임 어깨→골반 거리)로 나누어 zoom·키 독립 비율로 변환
+      // 결과: 음수(≤-0.15) = 몸통 15% 이상 좌측 이동 = 만점
+      const pxDeltaPelvis = fmA.pelvisNormX != null && fmB.pelvisNormX != null
+        ? fmB.pelvisNormX - fmA.pelvisNormX : null;
+      const torsoRef = (fmA.torsoRefDist != null && fmA.torsoRefDist > 0.001) ? fmA.torsoRefDist
+                     : (fmB.torsoRefDist != null && fmB.torsoRefDist > 0.001) ? fmB.torsoRefDist : null;
+      fm.pelvisLateralDelta = (pxDeltaPelvis != null && torsoRef != null)
+        ? pxDeltaPelvis / torsoRef   // 몸통 대비 비율 (zoom·키 독립)
+        : pxDeltaPelvis;             // 폴백: 정규화 좌표 차이
+    } else if (segment === 'frame3') {
+      fm.kneeExtDelta      = computeMetricDelta(fmA.kneeExtensionDeg, fmB.kneeExtensionDeg);
+      // Sway: 각 패널 캔버스 높이로 정규화된 C7 비율 좌표 차이 → 영상 크기 독립
+      fm.c7SwayPercent     = fmA.c7NormX != null && fmB.c7NormX != null
+        ? Math.abs(fmB.c7NormX - fmA.c7NormX) * 100 : null;
+    } else if (segment === 'frame4') {
+      fm.rMaxNormDelta     = computeMetricDelta(fmA.rMaxNorm, fmB.rMaxNorm);
+      // armShaftDelta: B - A (임팩트각 - 어드레스각) → 양수 = 각도 증가 = 팔-샤프트 직선화(릴리즈) = 좋음
+      fm.armShaftDelta     = fmA.armShaftAngleDeg != null && fmB.armShaftAngleDeg != null
+        ? fmB.armShaftAngleDeg - fmA.armShaftAngleDeg : null;
+      fm.lateralLeanDelta  = computeMetricDelta(fmA.lateralLeanAngle, fmB.lateralLeanAngle);
+    }
+
+    const deltaResult = {
+      momentDelta: sideResult.momentProxy - frontResult.momentProxy,
+      momentPercent: momentChange,
+      radiusDelta: sideResult.radiusProxy - frontResult.radiusProxy,
+      radiusPercent: radiusChange,
+      radiusRawPercent: radiusChange,  // raw 기반 — 스코어링에 사용
+      timingDelta: sideResult.angleDeg - frontResult.angleDeg,
+      accelerationDelta: sideResult.accelerationScore - frontResult.accelerationScore,
+      accelerationPercent,
+      _arcBCurrent: (sideResult.angleDeg || 0) * (sideResult.radiusProxy || 0),
+      transferDelta: sideResult.transferScore - frontResult.transferScore,
+      transferPercent,
+      impactDelta: sideResult.impactScore - frontResult.impactScore,
+      impactPercent,
+      motionScoreDelta: sideResult.motionScore - frontResult.motionScore,
+      fm,
+    };
+    deltaResult.segmentScore = computeSegmentScore(deltaResult, segment);
+    deltaResult.segmentScores = {
+      frame1: computeSegmentScore({ ...deltaResult, fm: segment === 'frame1' ? fm : {} }, 'frame1'),
+      frame2: computeSegmentScore({ ...deltaResult, fm: segment === 'frame2' ? fm : {} }, 'frame2'),
+      frame3: computeSegmentScore({ ...deltaResult, fm: segment === 'frame3' ? fm : {} }, 'frame3'),
+      frame4: computeSegmentScore({ ...deltaResult, fm: segment === 'frame4' ? fm : {} }, 'frame4'),
+    };
+    deltaResult.segmentName = segment;
+    deltaResult.summary = '';
+    deltaResult.bMetrics = {
+      moment:         sideResult.momentProxy       ?? 0,
+      radius:         sideResult.radiusProxy       ?? 0,
+      angle:          sideResult.angleDeg          ?? 0,
+      accel:          sideResult.accelerationScore ?? 0,
+      transfer:       sideResult.transferScore     ?? 0,
+      impact:         sideResult.impactScore       ?? 0,
+      momentRatioPct: sideResult.momentRatioPct    ?? null,
+      radiusRatioPct: sideResult.radiusRatioPct    ?? null,
+    };
+    return deltaResult;
+  }
+
+  function createAnalysisResult(points, lines, view, viewLabel) {
+    const result = {
+      view: viewLabel,
+      accelerationScore: 0,
+      transferScore: 0,
+      impactScore: 0,
+      motionScore: 0,
+      summary: '',
+      detail: '',
+      momentProxy: 0,
+      radiusProxy: 0,
+      angleDeg: 0,
+    };
+
+    const items = normalizePointsAndLines(points, lines);
+    if (items.length < 3) {
+      result.summary = '랜드마크와 라인을 3개 이상 입력하면 물리적 분석이 가능합니다. 어깨, 손목, 클럽 헤드를 중심으로 찍어주세요.';
+      return result;
+    }
+
+    const center = items.reduce((acc, point) => {
+      acc.x += point.x;
+      acc.y += point.y;
+      return acc;
+    }, { x: 0, y: 0 });
+    center.x /= items.length;
+    center.y /= items.length;
+
+    const avgDistFromCenter = items.reduce((sum, point) => {
+      const dx = point.x - center.x;
+      const dy = point.y - center.y;
+      return sum + Math.hypot(dx, dy);
+    }, 0) / items.length;
+
+    const maxSpan = computePairwiseMaxDistance(items);
+    const avgAngleDeg = computeAverageAngleDifference(lines);
+    const landmarkAngle = computeLandmarkAngle(points, lines);
+    const angleDeg = landmarkAngle !== null ? landmarkAngle : avgAngleDeg;
+    const heightScale = getHeightScale();
+
+    result.rawMomentProxy = avgDistFromCenter;
+    result.rawRadiusProxy = maxSpan;
+    result.projectionScale = 1;
+    result.momentProxy = avgDistFromCenter;
+    result.radiusProxy = maxSpan;
+    result.angleDeg = angleDeg;
+    result.heightScale = heightScale;
+    const canvasHeight = (viewLabel === 'A' ? frontCanvas : sideCanvas).height || 480;
+    const activeVideo = viewLabel === 'A' ? frontVideo : sideVideo;
+    const videoAspect = (activeVideo.videoWidth && activeVideo.videoHeight)
+      ? activeVideo.videoWidth / activeVideo.videoHeight : 16 / 9;
+    result.canvasHeight = canvasHeight;
+    result.frameMetrics = computeFrameMetrics(points, lines, selectedSegment, heightScale, canvasHeight, videoAspect);
+
+    result.accelerationScore = computeArcCompactScore(avgDistFromCenter, heightScale);
+    result.transferScore = computeTransferScore(maxSpan, angleDeg, heightScale);
+    result.impactScore = computeImpactScore(maxSpan, angleDeg, heightScale);
+    result.motionScore = (result.accelerationScore + result.transferScore + result.impactScore) / 3;
+
+    const frameName = { frame1: 'Frame1(척추축)', frame2: 'Frame2(래깅)', frame3: 'Frame3(지면반력)', frame4: 'Frame4(임팩트)' }[selectedSegment] || '';
+    const fmSummary = buildFrameMetricSummary(result.frameMetrics, selectedSegment);
+    result.summary = `[${frameName}] ${fmSummary} 키보정: ${Math.round(heightScale * 100)}%`;
+    result.detail = `컴팩트 지수raw: ${avgDistFromCenter.toFixed(3)}, 최대반경: ${maxSpan.toFixed(3)}, 주각도: ${angleDeg.toFixed(1)}°`;
+    return result;
+  }
+
+  function buildFrameMetricSummary(fm, frameId) {
+    if (!fm) return '';
+    if (frameId === 'frame1') {
+      const spine = fm.spineAngleDeg    != null ? `척추각도 ${fm.spineAngleDeg.toFixed(1)}°` : '';
+      const xf   = fm.shoulderHorzWidth != null ? `어깨투영폭 ${(fm.shoulderHorzWidth * 100).toFixed(1)}%` :
+                   fm.xFactorDeg       != null ? `어깨기울기 ${fm.xFactorDeg.toFixed(1)}°` : '';
+      return [spine, xf].filter(Boolean).join(' | ');
+    }
+    if (frameId === 'frame2') {
+      const lag  = fm.laggingAngleDeg != null ? `래깅각 ${fm.laggingAngleDeg.toFixed(1)}°` : '';
+      const pelv = fm.pelvisNormX     != null ? `코어위치 ${(fm.pelvisNormX * 100).toFixed(1)}%` : '';
+      return [lag, pelv].filter(Boolean).join(' | ');
+    }
+    if (frameId === 'frame3') {
+      const ke = fm.kneeExtensionDeg != null ? `신전각 ${fm.kneeExtensionDeg.toFixed(1)}°` : '';
+      const c7 = fm.c7NormX           != null ? `C7위치 ${(fm.c7NormX * 100).toFixed(1)}%` : '';
+      return [ke, c7].filter(Boolean).join(' | ');
+    }
+    if (frameId === 'frame4') {
+      const rm = fm.rMaxNorm          != null ? `r_max ${(fm.rMaxNorm * 100).toFixed(1)}%` : '';
+      const as = fm.armShaftAngleDeg  != null ? `팔샤프트각 ${fm.armShaftAngleDeg.toFixed(1)}°` : '';
+      return [rm, as].filter(Boolean).join(' | ');
+    }
+    return '';
+  }
+
+  function updateAllFramesMetricBar() {
+    if (!analysisFrontDetail) return;
+    const frames = [
+      { id: 'frame1', label: 'F1 어드레스' },
+      { id: 'frame2', label: 'F2 래깅/코어' },
+      { id: 'frame3', label: 'F3 지면반력' },
+      { id: 'frame4', label: 'F4 임팩트'  },
+    ];
+    const html = frames.map(({ id, label }) => {
+      const fm = frameMetricsHistory[id];
+      const summary = fm ? buildFrameMetricSummary(fm, id) : null;
+      // 선속도 비교: F4에만 F3→F4 형태로 표시
+      let arcTxt = null;
+      if (id === 'frame4') {
+        const fmF3 = frameMetricsHistory['frame3'];
+        const arcF3 = fmF3 && fmF3._arcB != null ? fmF3._arcB.toFixed(1) : null;
+        const arcF4 = fm && fm._arcB != null ? fm._arcB.toFixed(1) : null;
+        if (arcF3 != null || arcF4 != null) {
+          arcTxt = `선속도 지수 F3:${arcF3 ?? '—'} → F4:${arcF4 ?? '—'}`;
+        }
+      }
+      const fullSummary = [summary, arcTxt].filter(Boolean).join(' | ');
+      const isSelected = id === selectedSegment;
+      if (isSelected) {
+        return `<div style="background:rgba(255,220,0,0.18);border:1px solid rgba(255,220,0,0.5);border-radius:5px;padding:3px 9px;margin-bottom:2px;color:#ffe96a;font-weight:600;">▶ <strong>${label}</strong>: ${fullSummary || '—'}</div>`;
+      } else {
+        return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:5px;padding:3px 9px;margin-bottom:2px;color:#8fa0cc;"><strong>${label}</strong>: ${fullSummary || '—'}</div>`;
+      }
+    }).join('');
+    analysisFrontDetail.innerHTML = html;
+  }
+
+  function updateAnalysisSection(result, momentEl, radiusEl, timingEl, accelEl, transferEl, impactEl, detailEl) {
+    if (!momentEl || !radiusEl || !timingEl || !accelEl || !transferEl || !impactEl || !detailEl) return;
+    const momentProxy = Number.isFinite(result.momentProxy) ? result.momentProxy : 0;
+    const radiusProxy = Number.isFinite(result.radiusProxy) ? result.radiusProxy : 0;
+    const angleDeg = Number.isFinite(result.angleDeg) ? result.angleDeg : 0;
+    const accelScore = Number.isFinite(result.accelerationScore) ? result.accelerationScore : 0;
+    const transferScore = Number.isFinite(result.transferScore) ? result.transferScore : 0;
+    const impactScore = Number.isFinite(result.impactScore) ? result.impactScore : 0;
+    momentEl.textContent = `컴팩트 지수: ${momentProxy.toFixed(3)}`;
+    radiusEl.textContent = `최대 반경: ${radiusProxy.toFixed(3)}`;
+    timingEl.textContent = `주요 각도: ${angleDeg.toFixed(1)}°`;
+    // 키 보정: heightScale 기반 — 타이틀 우측 태그 업데이트
+    const hsVal = Number.isFinite(result.heightScale) ? result.heightScale : null;
+    const heightCmVal = analysisHeightInput ? parseFloat(analysisHeightInput.value) : NaN;
+    const heightTag = document.getElementById('analysisFrontHeightTag');
+    if (heightTag) {
+      heightTag.textContent = hsVal != null
+        ? `키 보정 ${Math.round(hsVal * 100)}%${Number.isFinite(heightCmVal) && heightCmVal > 0 ? ` (${heightCmVal}cm)` : ''}`
+        : '';
+    }
+    accelEl.textContent = '';  // 키 보정 행 숨김 (타이틀 우측으로 이동)
+    transferEl.textContent = '';  // 반경 비율 삭제
+    // 선속도 지수: 각도 × 반경 (프레임 간 비교용 지표)
+    const arcIndex = angleDeg * radiusProxy;
+    impactEl.textContent = `선속도 지수: ${arcIndex.toFixed(1)}`;    
+    const splitIdx = result.summary.indexOf(' 키보정:');
+    if (splitIdx !== -1) {
+      const mainText = result.summary.slice(0, splitIdx);
+      const corrText = result.summary.slice(splitIdx + 1);
+      detailEl.innerHTML = '<strong style="color:#d8e8ff">' + mainText + '</strong><br><em>' + corrText + '</em>';
+    } else {
+      detailEl.textContent = result.summary;
+    }
+  }
+
+  function updateComparisonSection(deltaResult) {
+    segmentDeltaHistory[selectedSegment] = deltaResult;
+    updateSegmentComparisonCard(selectedSegment, deltaResult);
+    updateSegmentScoresDisplay();
+  }
+
+  function updateSegmentComparisonCard(segment, deltaResult) {
+    const fm = deltaResult.fm || {};
+    const scoreEls = { frame1: analysisDeltaCardF1Score, frame2: analysisDeltaCardF2Score,
+                       frame3: analysisDeltaCardF3Score, frame4: analysisDeltaCardF4Score };
+    const scoreEl = scoreEls[segment];
+    if (scoreEl) scoreEl.textContent = `점수: ${deltaResult.segmentScore.toFixed(1)}`;
+
+    if (segment === 'frame1') {
+      if (analysisDeltaCardF1SpineAngle) analysisDeltaCardF1SpineAngle.textContent =
+        fm.spineAngleDelta != null
+          ? `척추각도 유지(어드→탑): ${formatDelta(fm.spineAngleDelta)}° (≤5°)`
+          : '척추각도: 데이터 부족';
+      if (analysisDeltaCardF1XFactor) analysisDeltaCardF1XFactor.textContent =
+        fm.xFactorDelta != null
+          ? `어깨회전(2D): ${fm.xFactorDelta.toFixed(1)}° [A수평폭:${(deltaResult.fm._dbgSwA||0).toFixed(3)} B수평폭:${(deltaResult.fm._dbgSwB||0).toFixed(3)} WA:${(deltaResult.fm._dbgWA||0).toFixed(3)} WB:${(deltaResult.fm._dbgWB||0).toFixed(3)}]`
+          : '어깨회전: 데이터 부족';
+    } else if (segment === 'frame2') {
+      if (analysisDeltaCardF2LagAngle) analysisDeltaCardF2LagAngle.textContent =
+        fm.laggingAngleDelta != null
+          ? `래깅각 변화: ${formatDelta(fm.laggingAngleDelta)}°${fm.laggingAngleBDeg != null ? ` (실제: ${fm.laggingAngleBDeg.toFixed(1)}°)` : ''}`
+          : '래깅각: 데이터 부족';
+      if (analysisDeltaCardF2CoreShift) analysisDeltaCardF2CoreShift.textContent =
+        fm.pelvisLateralDelta != null
+          ? `코어 이동: ${formatPercent(fm.pelvisLateralDelta * 100)}`  // 양수 = 목표방향 이동
+          : '코어 이동: 데이터 부족';
+    } else if (segment === 'frame3') {
+      if (analysisDeltaCardF3Thrust) analysisDeltaCardF3Thrust.textContent =
+        fm.kneeExtDelta != null ? `수직신장 변화: ${formatDelta(fm.kneeExtDelta)}°` : '수직신장: 데이터 부족';
+      if (analysisDeltaCardF3AxisSway) analysisDeltaCardF3AxisSway.textContent =
+        fm.c7SwayPercent != null ? `C7 Sway: ${formatPercent(fm.c7SwayPercent)}` : 'C7 Sway: 데이터 부족';
+    } else if (segment === 'frame4') {
+      const arcAbs = deltaResult._arcBCurrent != null ? deltaResult._arcBCurrent : null;
+      const arcF3 = frameMetricsHistory['frame3'] && frameMetricsHistory['frame3']._arcB != null
+        ? frameMetricsHistory['frame3']._arcB : null;
+      const arcDelta = (arcF3 != null && arcAbs != null) ? (arcAbs - arcF3) : null;
+      if (analysisDeltaCardF4Arc) analysisDeltaCardF4Arc.textContent =
+        arcAbs != null
+          ? `선속도 지수: ${arcAbs.toFixed(1)}${arcDelta != null ? ` (F4−F3 ${formatDelta(arcDelta)})` : ''}`
+          : '선속도 지수: 데이터 부족';
+      if (analysisDeltaCardF4RMax) analysisDeltaCardF4RMax.textContent =
+        fm.rMaxNormDelta != null ? `r_max 변화: ${formatDelta(fm.rMaxNormDelta * 100)}%` : 'r_max: 데이터 부족';
+      if (analysisDeltaCardF4ArmShaft) analysisDeltaCardF4ArmShaft.textContent =
+        fm.armShaftDelta != null ? `팔-샤프트 정렬 변화: ${formatDelta(fm.armShaftDelta)}°` : '팔-샤프트: 데이터 부족';
+      if (analysisDeltaCardF4Lean) analysisDeltaCardF4Lean.textContent =
+        fm.lateralLeanDelta != null ? `측면기울기 변화: ${formatDelta(fm.lateralLeanDelta)}°` : '측면기울기: 데이터 부족';
+    }
+      // B-frame 기본 지표 표시
+    const bSecMap = {
+      frame1: analysisDeltaCardF1BSection, frame2: analysisDeltaCardF2BSection,
+      frame3: analysisDeltaCardF3BSection, frame4: analysisDeltaCardF4BSection,
+    };
+    const bSecEl = bSecMap[segment];
+    if (bSecEl && deltaResult.bMetrics) {
+      const bM = deltaResult.bMetrics;
+      const sLbl = getFrameSectionLabel(segment, 'side');
+      const bTag = function(txt) { return '<div class=' + String.fromCharCode(34) + 'analysis-metric' + String.fromCharCode(34) + '>' + txt + '</div>'; };
+      const bLbl = '<div class=' + String.fromCharCode(34) + 'analysis-b-label' + String.fromCharCode(34) + '>' + sLbl + '</div>';
+      const bArcIndex = bM.angle * bM.radius;
+      const showArc = segment === 'frame3' || segment === 'frame4';
+      const bImpactTxt = showArc ? `선속도 지수: ${bArcIndex.toFixed(1)}` : null;
+      bSecEl.innerHTML = bLbl
+        + bTag('컴팩트 지수: ' + bM.moment.toFixed(3))
+        + bTag('최대 반경: ' + bM.radius.toFixed(3))
+        + bTag('주요 각도: ' + bM.angle.toFixed(1) + '°')
+        + (bImpactTxt ? bTag(bImpactTxt) : '');
+    }
+}
+
+  // ── 스윙 서술 narrative ──────────────────────────────────────────────
+  let _lastNarrativeHtml = '';
+
+  function toggleSwingNarrative() {
+    const block = document.getElementById('swingNarrativeBlock');
+    const btn   = document.getElementById('swingNarrativeToggleBtn');
+    if (!block || !btn) return;
+    const open = block.style.display === 'none';
+    block.style.display = open ? 'block' : 'none';
+    btn.textContent = open ? '분석 결과 접기 ▲' : '분석 결과 보기 ▼';
+  }
+
+  function buildSwingNarrative(frontResult, sideResult, deltaResult, segment) {
+    const fmA = frontResult.frameMetrics  || {};
+    const fmB = sideResult.frameMetrics   || {};
+    const fm  = deltaResult.fm            || {};
+    const aR  = frontResult.radiusProxy   ?? 0;
+    const bR  = sideResult.radiusProxy    ?? 0;
+    const aM  = frontResult.momentProxy   ?? 0;
+    const bM2 = sideResult.momentProxy    ?? 0;
+    const aAng = frontResult.angleDeg     ?? 0;
+    const bAng = sideResult.angleDeg      ?? 0;
+
+    const pct = v => v != null ? `${(v * 100).toFixed(1)}%` : '—';
+    const deg = v => v != null ? `${v.toFixed(1)}°`         : '—';
+    const raw = v => v != null ? v.toFixed(3)               : '—';
+    const hl  = (txt, good) => `<span style="color:${good ? '#7effa8' : '#ff9090'};font-weight:600">${txt}</span>`;
+    const bold = txt => `<strong style="color:#ffd86c">${txt}</strong>`;
+
+    let lines = [];
+
+    if (segment === 'frame1') {
+      const spd = fm.spineAngleDelta;
+      const xf  = fm.xFactorDelta;
+      lines.push(`${bold('F1 백스윙탑 — 축 고정과 꼬임')}`);
+      lines.push(`척추각도 변화 ${deg(spd)} — ${spd != null && Math.abs(spd) <= 5 ? hl('축 유지 우수 (≤5°)', true) : spd != null && Math.abs(spd) <= 15 ? hl('축 이탈 경미 (≤15°)', false) : hl('축 이탈 심각 (>15°)', false)}`);
+      lines.push(`X-Factor(어깨회전) ${deg(xf)} — ${xf != null && xf >= 50 ? hl('충분한 코일 (≥50°)', true) : xf != null && xf >= 30 ? hl('보통 (30~50°)', false) : hl('코일 부족 (<30°)', false)}`);
+      lines.push(`어드레스 레버: ${raw(aR)} → 백스윙탑 레버: ${raw(bR)}. ${bR < aR ? hl('탑에서 팔이 접혀 각속도 증폭 준비', true) : hl('탑에서 레버 유지', false)}`);
+    }
+    else if (segment === 'frame2') {
+      const lag   = fm.laggingAngleDelta;
+      const core  = fm.pelvisLateralDelta;
+      lines.push(`${bold('F2 래깅/코어이동 — 에너지 저장')}`);
+      lines.push(`래깅 각도 변화 ${deg(lag)} — ${lag != null && lag <= -100 ? hl('완전 코킹 유지 (≤-100°)', true) : lag != null && lag <= -60 ? hl('부분 코킹 (-60~-100°)', false) : hl('조기 릴리즈 경향 (>-60°)', false)}`);
+      lines.push(`코어(골반) 이동 ${core != null ? (core * 100).toFixed(1) + '%' : '—'} — ${core != null && core >= 0.15 ? hl('골반 선행 충분 (≥+15%)', true) : core != null && core >= 0 ? hl('골반 이동 부족 (0~15%)', false) : hl('골반 반대 이동 또는 정지 ⚠', false)}`);
+      const arcExpand = aM > 0 ? bM2 / aM : null;
+      lines.push(`아크 확장: 어드레스 ${raw(aM)} → 래깅 ${raw(bM2)}${arcExpand != null ? ` (${(arcExpand * 100).toFixed(0)}%)` : ''}. ${arcExpand != null && arcExpand > 1.5 ? hl('팔 뻗음 충분', true) : hl('아크 확장 제한적', false)}`);
+    }
+    else if (segment === 'frame3') {
+      const kext  = fm.kneeExtDelta;
+      const sway  = fm.c7SwayPercent;
+      lines.push(`${bold('F3 지면반력 — 하체 에너지 전달')}`);
+      lines.push(`수직신장 각도 변화 ${deg(kext)} — ${kext != null && kext >= 160 ? hl('강한 지면반력 (≥160°)', true) : kext != null && kext >= 100 ? hl('보통 수준 (100~160°)', false) : hl('신장 부족 (<100°)', false)}`);
+      lines.push(`C7 Sway ${sway != null ? sway.toFixed(1) + '%' : '—'} — ${sway != null && sway <= 3 ? hl('축 고정 우수 (≤3%)', true) : sway != null && sway <= 10 ? hl('허용 범위 (3~10%)', false) : hl('축 이탈 과다 (>10%) ⚠', false)}`);
+      lines.push(`반경 변화: 어드레스 ${raw(aR)} → 지면반력 ${raw(bR)}. ${bR > aR * 1.5 ? hl('하체 신장으로 레버 확장 확인', true) : hl('레버 확장 제한적', false)}`);
+    }
+    else if (segment === 'frame4') {
+      const rmax  = fm.rMaxNormDelta;
+      const armS  = fm.armShaftDelta;
+      const lean  = fm.lateralLeanDelta;
+      lines.push(`${bold('F4 임팩트 — 채찍 효과 & 선속도 지수 최대화')}`);
+      const rmPct = rmax != null ? (rmax * 100).toFixed(1) : null;
+      lines.push(`r_max 변화 ${rmPct != null ? rmPct + '%' : '—'} — ${rmPct != null && parseFloat(rmPct) >= 30 ? hl('팔 완전 신장 (≥30%)', true) : rmPct != null && parseFloat(rmPct) >= 10 ? hl('부분 신장 (10~30%)', false) : hl('반경 확장 부족 (<10%)', false)}`);
+      lines.push(`팔-샤프트 정렬 변화 ${deg(armS)} — ${armS != null && armS >= 100 ? hl('완전 릴리즈 (≥100°) — 채찍 효과 발생', true) : armS != null && armS >= 60 ? hl('부분 릴리즈 (60~100°)', false) : hl('릴리즈 부족 (<60°)', false)}`);
+      lines.push(`측면기울기 변화 ${deg(lean)} — ${lean != null && lean >= 100 ? hl('C-shape 형성 우수 (≥100°)', true) : lean != null && lean >= 50 ? hl('기울기 보통 (50~100°)', false) : hl('C-shape 미형성 (<50°)', false)}`);
+      if (armS != null) {
+        const baseAng = fmA.armShaftAngleDeg;
+        const impAng  = fmB.armShaftAngleDeg;
+        if (baseAng != null && impAng != null) {
+          lines.push(`팔-샤프트각: 어드레스 ${deg(baseAng)} → 임팩트 ${deg(impAng)} — 힌지 ${deg(armS)} 방출 = v=ω×r 극대화`);
+        }
+      }
+    }
+
+    // 공통 — 레버 시퀀스 요약 (F4에서만)
+    if (segment === 'frame4') {
+      const hist = frameMetricsHistory;
+      const seqParts = [];
+      if (hist.frame1) seqParts.push(`F1 ${raw(frontResult.radiusProxy)}`);
+      if (hist.frame2) seqParts.push(`F2 —`);
+      if (hist.frame3) seqParts.push(`F3 —`);
+      seqParts.push(`F4(A) ${raw(aR)}`);
+      if (seqParts.length > 1) lines.push(`레버 시퀀스: ${seqParts.join(' → ')}`);
+    }
+
+    return lines.map(l => `<div style="margin-bottom:4px">${l}</div>`).join('');
+  }
+
+  function updateSwingNarrative(frontResult, sideResult, deltaResult, segment) {
+    const btn   = document.getElementById('swingNarrativeToggleBtn');
+    const block = document.getElementById('swingNarrativeBlock');
+    if (!btn || !block) return;
+    const html = buildSwingNarrative(frontResult, sideResult, deltaResult, segment);
+    _lastNarrativeHtml = html;
+    block.innerHTML = html;
+    btn.style.display = '';
+    // 이미 열려있으면 내용만 갱신
+    if (block.style.display !== 'none') block.style.display = 'block';
+  }
+
+  function updateSegmentScoresDisplay() {
+    if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = `F1: ${segmentScoreHistory.frame1 !== null ? segmentScoreHistory.frame1.toFixed(1) : '-'}`;
+    if (analysisSegmentScoreF2) analysisSegmentScoreF2.textContent = `F2: ${segmentScoreHistory.frame2 !== null ? segmentScoreHistory.frame2.toFixed(1) : '-'}`;
+    if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = `F3: ${segmentScoreHistory.frame3 !== null ? segmentScoreHistory.frame3.toFixed(1) : '-'}`;
+    if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = `F4: ${segmentScoreHistory.frame4 !== null ? segmentScoreHistory.frame4.toFixed(1) : '-'}`;
+    if (analysisSegmentAverage) {
+      const scores = Object.values(segmentScoreHistory).filter(v => v !== null);
+      const avg = scores.length ? scores.reduce((sum, v) => sum + v, 0) / scores.length : 0;
+      analysisSegmentAverage.textContent = scores.length ? `평균: ${avg.toFixed(1)}` : '평균: -';
+    }
+  }
+
+  function updateSummary(frontResult, sideResult, deltaResult) {
+    if (!analysisSummary) return;
+    if (!deltaResult) {
+      analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 선택 프레임에 맞는 랜드마크를 찍으면 지표가 업데이트됩니다.';
+      if (analysisSegmentAverage) analysisSegmentAverage.textContent = '평균: -';
+      return;
+    }
+    analysisSummary.textContent = '';
+  }
+
+  async function downloadAnalysisPDF() {
+    if (!window.jspdf || !window.html2canvas) {
+      alert('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.');
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const clone = analysisPanel.cloneNode(true);
+    clone.classList.remove('collapsed');
+    clone.style.position = 'fixed';
+    clone.style.top = '-9999px';
+    clone.style.left = '-9999px';
+    clone.style.width = '800px';
+    clone.style.background = '#ffffff';
+    clone.style.color = '#000000';
+    clone.style.padding = '16px';
+    clone.style.border = '1px solid #cccccc';
+    clone.style.boxShadow = 'none';
+    clone.querySelectorAll('button').forEach(btn => btn.remove());
+    clone.querySelectorAll('*').forEach(el => {
+      el.style.color = '#000000';
+      el.style.background = '#ffffff';
+      el.style.borderColor = '#cccccc';
+      el.style.boxShadow = 'none';
+    });
+    document.body.appendChild(clone);
+
+    try {
+      const canvas = await html2canvas(clone, { scale: 1, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const imgWidth = pageWidth - 80;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      doc.addImage(imgData, 'JPEG', 40, 40, imgWidth, imgHeight);
+    } catch (error) {
+      console.warn('PDF 생성 중 오류가 발생했습니다.', error);
+      alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      clone.remove();
+    }
+
+    const frontFileNameText = frontFileInput && frontFileInput.files && frontFileInput.files[0]
+      ? frontFileInput.files[0].name
+      : document.getElementById('frontFileName') ? document.getElementById('frontFileName').textContent : '';
+    let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : 'MotionAnalysis';
+    baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || 'MotionAnalysis';
+    doc.save(`${baseFileName}_${new Date().toISOString().slice(0,10)}.pdf`);
+  }
+
+  function clearAnalysisResults() {
+    const resetCard = (scoreEl, ...metricEls) => {
+      if (scoreEl) scoreEl.textContent = '점수: -';
+      metricEls.forEach(el => { if (el) el.textContent = '-'; });
+    };
+    resetCard(analysisDeltaCardF1Score, analysisDeltaCardF1SpineAngle, analysisDeltaCardF1XFactor);
+    resetCard(analysisDeltaCardF2Score, analysisDeltaCardF2LagAngle, analysisDeltaCardF2CoreShift);
+    resetCard(analysisDeltaCardF3Score, analysisDeltaCardF3Thrust, analysisDeltaCardF3AxisSway);
+    resetCard(analysisDeltaCardF4Score, analysisDeltaCardF4Arc, analysisDeltaCardF4RMax, analysisDeltaCardF4ArmShaft, analysisDeltaCardF4Lean);
+    [analysisDeltaCardF1BSection, analysisDeltaCardF2BSection, analysisDeltaCardF3BSection, analysisDeltaCardF4BSection]
+      .forEach(function(el) { if (el) el.innerHTML = ''; });
+    if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = 'F1: -';
+    if (analysisSegmentScoreF2) analysisSegmentScoreF2.textContent = 'F2: -';
+    if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = 'F3: -';
+    if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = 'F4: -';
+    if (analysisSegmentAverage) analysisSegmentAverage.textContent = '평균: -';
+    if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
+    frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
+    if (analysisFrontDetail) analysisFrontDetail.innerHTML = '';
+    const nb = document.getElementById('swingNarrativeBlock');
+    const nb2 = document.getElementById('swingNarrativeToggleBtn');
+    if (nb)  { nb.style.display = 'none'; nb.innerHTML = ''; }
+    if (nb2) nb2.style.display = 'none';
+  }
+
+  function runMotionAnalysis(view) {
+    if (view === 'front') {
+      baselineFrontResult = null;
+      segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
+      clearAnalysisResults();
+    }
+    setGuideState(view);
+  }
+
+  function toggleAnalysisPanel() {
+    if (!analysisPanel || !analysisToggleBtn) return;
+    analysisPanel.classList.toggle('collapsed');
+    analysisToggleBtn.textContent = analysisPanel.classList.contains('collapsed') ? '펼치기' : '접기';
+  }
+
+  function resetAll() {
+    if (!confirm('모든 분석 데이터(영상 포인트, 점수, 기록)를 초기화합니다. 계속하시겠습니까?')) return;
+    // 포인트/라인 초기화
+    frontPoints = []; frontLines = [];
+    sidePoints  = []; sideLines  = [];
+    // 히스토리 초기화
+    baselineFrontResult = null;
+    frameStateHistory = { front: {}, side: {} };
+    frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
+    segmentScoreHistory  = { frame1: null, frame2: null, frame3: null, frame4: null };
+    segmentDeltaHistory  = { frame1: null, frame2: null, frame3: null, frame4: null };
+    // 가이드 상태 초기화
+    guideView = null;
+    guideStep = 0;
+    showGuide();
+    // 분석 패널 초기화
+    clearAnalysisResults();
+    // 오버레이 다시 그리기
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
+  }
 
 
   let frontPoints = [];
@@ -665,9 +2414,8 @@
 
   let currentUser = null;
   let isAdmin = false;
-  let selectedUserEmail = null; // still used as key for logs and selection
+  let selectedUserEmail = null;
 
-  // Local storage helpers (fallback when Supabase is unavailable)
   function loadUsers(){
     const raw = localStorage.getItem('gsap_users');
     if(!raw) return [];
@@ -680,60 +2428,6 @@
 
   function saveUsers(users){
     localStorage.setItem('gsap_users', JSON.stringify(users));
-  }
-
-  async function getUsers(){
-    // Prefer Supabase if available so different devices share the same user list
-    const supa = await supabaseLoadUsers();
-    if(Array.isArray(supa) && supa.length > 0){
-      saveUsers(supa);
-      return supa;
-    }
-    return loadUsers();
-  }
-
-  // Supabase helpers for cross-device sync
-  async function supabaseLoadUsers(){
-    try {
-      const { data, error } = await sb.from('gsap_users').select('id, hash');
-      if(error) {
-        // console.warn('Supabase load users failed', error);
-        return null;
-      }
-      return (data || []).map(u => ({ id: u.id, hash: u.hash }));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function supabaseSaveUser(id, hash){
-    try {
-      await sb.from('gsap_users').upsert({ id, hash });
-    } catch {}
-  }
-
-  async function supabaseDeleteUser(id){
-    try {
-      await sb.from('gsap_users').delete().eq('id', id);
-    } catch {}
-  }
-
-  async function supabaseLoadLogs(id){
-    try {
-      const { data, error } = await sb.from('gsap_user_logs').select('when, action').eq('id', id).order('when', { ascending: false }).limit(50);
-      if(error) {
-        return null;
-      }
-      return (data || []).map(r => ({ when: r.when, action: r.action }));
-    } catch {
-      return null;
-    }
-  }
-
-  async function supabaseAddLog(id, action){
-    try {
-      await sb.from('gsap_user_logs').insert({ id, action });
-    } catch {}
   }
 
   function loadUserLogs(){
@@ -750,57 +2444,28 @@
     localStorage.setItem('gsap_user_logs', JSON.stringify(logs));
   }
 
-  async function addUserLog(id, action){
-    if(!id) return;
+  function addUserLog(email, action){
+    if(!email) return;
+    const logs = loadUserLogs();
     const now = new Date().toISOString();
     const entry = { when: now, action };
-
-    // Try to save to Supabase (cross-device)
-    await supabaseAddLog(id, action);
-
-    // Always keep local copy as well (store under both id and any matching email)
-    const logs = loadUserLogs();
-    logs[id] = logs[id] || [];
-    logs[id].unshift(entry);
-
-    const users = loadUsers();
-    const user = users.find(u => u.id === id || u.email === id);
-    if(user && user.email && user.email !== id){
-      logs[user.email] = logs[user.email] || [];
-      logs[user.email].unshift(entry);
-    }
-
+    logs[email] = logs[email] || [];
+    logs[email].unshift(entry);
+    if(logs[email].length > 50) logs[email] = logs[email].slice(0, 50); // 로그 엔트리 최대 50개 유지
     saveUserLogs(logs);
   }
 
-  async function getUserLogs(idOrEmail){
-    // Try Supabase first (id-based)
-    const supaLogs = await supabaseLoadLogs(idOrEmail);
-    if(Array.isArray(supaLogs) && supaLogs.length > 0){
-      return supaLogs;
-    }
-
-    // Fallback to local logs (try both id and email keys)
+  function getUserLogs(email){
     const logs = loadUserLogs();
-    const found = logs[idOrEmail] || [];
-    if(found.length) return found;
-
-    // If idOrEmail looks like an id, try to find matching email in users
-    const users = loadUsers();
-    const user = users.find(u => u.id === idOrEmail);
-    if(user && user.email){
-      return logs[user.email] || [];
-    }
-
-    return [];
+    return logs[email] || [];
   }
 
-  async function showUserLogs(id){
-    selectedUserEmail = id;
+  function showUserLogs(email){
+    selectedUserEmail = email;
     const logEl = document.getElementById('userLog');
     if(!logEl) return;
     logEl.innerHTML = '';
-    const logs = await getUserLogs(id);
+    const logs = getUserLogs(email);
     if(logs.length === 0){
       const empty = document.createElement('div');
       empty.style.color = '#999';
@@ -814,8 +2479,13 @@
       row.style.justifyContent = 'space-between';
       row.style.fontSize = '0.85rem';
       row.style.padding = '2px 0';
-      row.style.color = '#fff';
-      row.innerHTML = `<span>${entry.action}</span><span style="color:rgba(255,255,255,0.75);">${new Date(entry.when).toLocaleString()}</span>`;
+      const actionSpan = document.createElement('span');
+      actionSpan.textContent = entry.action;
+      const timeSpan = document.createElement('span');
+      timeSpan.style.color = 'rgba(255,255,255,0.65)';
+      timeSpan.textContent = new Date(entry.when).toLocaleString();
+      row.appendChild(actionSpan);
+      row.appendChild(timeSpan);
       logEl.appendChild(row);
     });
   }
@@ -869,44 +2539,31 @@
     }
 
     loginBtn.addEventListener('click', async () => {
-      const rawId = loginEmail.value.trim();
-      const id = rawId.toLowerCase();
-      const password = loginPassword.value.trim();
-      if(!id || !password){
-        if(loginStatus) loginStatus.textContent = 'Please enter ID and password.';
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value;
+      if(!email || !password){
+        if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
         return;
       }
 
-      // Admin credential shortcut (for local/dev access)
-      // - ID: admin
-      // - Password: admin
-      if(id === 'admin' && password === 'admin'){
-        currentUser = { id, isAdmin: true };
-        setAdminMode(true);
-        setLoggedIn(true);
-        addUserLog(id, 'admin login');
-        if(loginStatus) loginStatus.textContent = 'Admin login successful.';
-        return;
-      }
-
-      const hash = await sha256(`${id}:${password}`);
+      const hash = await sha256(`${email}:${password}`);
       if(hash === ADMIN_HASH){
-        currentUser = { id, isAdmin: true };
+        currentUser = { email, isAdmin: true };
         setAdminMode(true);
         setLoggedIn(true);
-        addUserLog(id, 'admin login');
+        addUserLog(email, 'admin login');
         if(loginStatus) loginStatus.textContent = 'Admin login successful.';
         return;
       }
 
-      const users = await getUsers();
-      const match = users.find(u => u.hash === hash && (u.id === id || u.email === id));
+      const users = loadUsers();
+      const match = users.find(u => u.hash === hash && u.email === email);
       if(match){
-        currentUser = { id, isAdmin: false };
+        currentUser = { email, isAdmin: false };
         setAdminMode(false);
         setLoggedIn(true);
-        selectedUserEmail = id;
-        addUserLog(id, 'login');
+        selectedUserEmail = email;
+        addUserLog(email, 'login');
         if(loginStatus) loginStatus.textContent = 'User login successful.';
         return;
       }
@@ -919,16 +2576,9 @@
     });
   }
 
-  async function openUserMgmt(){
+  function openUserMgmt(){
     const overlay = document.getElementById('userMgmtOverlay');
     if(!overlay) return;
-
-    // Attempt to sync users from Supabase each time admin opens the panel
-    const supaUsers = await supabaseLoadUsers();
-    if(supaUsers && supaUsers.length){
-      saveUsers(supaUsers);
-    }
-
     overlay.style.display = 'flex';
     renderUserMgmt();
     if(selectedUserEmail) showUserLogs(selectedUserEmail);
@@ -964,11 +2614,10 @@
         row.style.padding = '6px 8px';
         row.style.borderRadius = '6px';
         row.style.cursor = 'pointer';
-        const userId = user.id || user.email;
-        row.style.background = selectedUserEmail === userId ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
+        row.style.background = selectedUserEmail === user.email ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
 
         const label = document.createElement('span');
-        label.textContent = userId;
+        label.textContent = user.email;
         row.appendChild(label);
 
         const buttonGroup = document.createElement('span');
@@ -982,7 +2631,7 @@
         selectBtn.className = 'user-action-btn';
         selectBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          showUserLogs(user.id || user.email);
+          showUserLogs(user.email);
           renderUserMgmt();
         });
         buttonGroup.appendChild(selectBtn);
@@ -992,14 +2641,13 @@
       del.innerHTML = '🗑️';
       del.title = '삭제';
       del.className = 'user-action-btn';
-      del.addEventListener('click', async (e) => {
+      del.addEventListener('click', (e) => {
         e.stopPropagation();
-        const confirmed = confirm(`${user.id || user.email} 사용자 계정을 삭제하시겠습니까?`);
+        const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
         if(!confirmed) return;
-        const remaining = loadUsers().filter(u => u.id !== user.id);
+        const remaining = loadUsers().filter(u => u.email !== user.email);
         saveUsers(remaining);
-        await supabaseDeleteUser(user.id);
-        if(selectedUserEmail === user.id){
+        if(selectedUserEmail === user.email){
           selectedUserEmail = null;
           const userLog = document.getElementById('userLog');
           if(userLog) userLog.innerHTML = '';
@@ -1015,42 +2663,30 @@
     const addBtn = document.getElementById('addUserBtn');
     if(addBtn){
       addBtn.onclick = async () => {
-        const idInput = addEmail.value.trim();
+        const email = addEmail.value.trim();
         const password = addPass.value.trim();
-        if(!idInput || !password){
-          if(loginStatus) loginStatus.textContent = 'ID와 비밀번호를 모두 입력하세요.';
+        if(!email || !password){
+          if(loginStatus) loginStatus.textContent = 'Email과 비밀번호를 모두 입력하세요.';
           return;
         }
-        const id = idInput.toLowerCase();
-        const hash = await sha256(`${id}:${password}`);
+        const hash = await sha256(`${email}:${password}`);
         const users = loadUsers();
-        if(users.find(u => u.id === id || u.email === id)){
+        if(users.find(u => u.email === email)){
           if(loginStatus) loginStatus.textContent = '이미 등록된 사용자입니다.';
           return;
         }
-        users.push({ id, hash });
+        users.push({ email, hash });
         saveUsers(users);
-        await supabaseSaveUser(id, hash);
         addEmail.value = '';
         addPass.value = '';
         if(loginStatus) loginStatus.textContent = '사용자가 추가되었습니다.';
         renderUserMgmt();
-        showUserLogs(id);
+        showUserLogs(email);
       };
     }
   }
 
   initLogin();
-
-  function hideMobileGlobalSpeedControl(){
-    const isMobile = window.matchMedia('(max-width: 600px), (hover: none) and (pointer: coarse)').matches;
-    const playback = document.querySelector('.playback-controls');
-    if(playback){
-      playback.style.display = isMobile ? 'none' : '';
-    }
-  }
-  hideMobileGlobalSpeedControl();
-  window.addEventListener('resize', hideMobileGlobalSpeedControl);
 
   function applyVideoZoom(videoElem, zoom){
     const baseTransform = `translate(-50%, -50%) scale(${zoom})`;
@@ -1231,8 +2867,38 @@
     const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
     const rect = canvas.getBoundingClientRect();
     const scale = rect.width > 0 ? canvas.width / rect.width : 1;
-    const radius = 6 * scale;
+    const radius = 3 * scale;
     const lineWidth = 2 * scale;
+
+    // ── 분석 스켈레톤 라인 (점 찍은 즉시 표시, 선 위에 점 그려짐) ───────────
+    const cx = nx => metrics.offsetX + nx * metrics.drawWidth;
+    const cy = ny => metrics.offsetY + ny * metrics.drawHeight;
+    const pt = type => { const p = points.find(q => q.type === type); return p ? { x: cx(p.x), y: cy(p.y) } : null; };
+    const skelLine = (a, b, color, dash) => {
+      if (!a || !b) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lineWidth * 1.2; ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore();
+    };
+    {
+      const p1 = pt('wrist'), p2 = pt('club'), p3 = pt('shoulder'), p4 = pt('pelvis');
+      if (selectedSegment === 'frame1') {
+        skelLine(p1, p4, 'rgba(255,255,255,0.82)');       // 척추선
+        skelLine(p2, p3, '#4cff80');                        // 어깨선
+        if (p2 && p3) {                                     // 어깨 수평 투영 (arccos 근거)
+          const my = (p2.y + p3.y) / 2;
+          skelLine({ x: Math.min(p2.x, p3.x), y: my }, { x: Math.max(p2.x, p3.x), y: my }, '#ffdd00', [Math.round(6*scale), Math.round(4*scale)]);
+        }
+      } else if (selectedSegment === 'frame2') {
+        skelLine(p3, p1, '#ff9800'); skelLine(p1, p2, '#ff9800'); // 래깅 체인
+      } else if (selectedSegment === 'frame3') {
+        skelLine(p1, p2, '#00cfff'); skelLine(p2, p3, '#00cfff'); // 무릎 신전 체인
+        if (p4) skelLine({ x: p4.x, y: metrics.offsetY }, { x: p4.x, y: metrics.offsetY + metrics.drawHeight }, 'rgba(255,200,0,0.5)', [Math.round(4*scale), Math.round(6*scale)]); // C7 수직 기준선
+      } else if (selectedSegment === 'frame4') {
+        skelLine(p1, p2, 'rgba(255,255,255,0.82)');        // 측면 기울기
+        skelLine(p2, p3, '#2196f3'); skelLine(p3, p4, '#2196f3'); // 팔-샤프트 체인
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     ctx.fillStyle = 'yellow';
     ctx.strokeStyle = 'red';
@@ -1276,16 +2942,59 @@
 
   function drawPointsOnFrame(ctx, points, width, height){
     ctx.save();
-    ctx.fillStyle = 'yellow';
-    ctx.strokeStyle = 'red';
+
+    // ── 분석 스켈레톤 라인 (측정 근거 시각화) ──────────────────────────────
+    const pt = type => { const p = points.find(q => q.type === type); return p ? { x: p.x * width, y: p.y * height } : null; };
+    const segLine = (a, b, color, dash) => {
+      if (!a || !b) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore();
+    };
+    const p1 = pt('wrist'), p2 = pt('club'), p3 = pt('shoulder'), p4 = pt('pelvis');
+    if (selectedSegment === 'frame1') {
+      // 척추선: C7(p1)→골반(p4) — 흰색
+      segLine(p1, p4, 'rgba(255,255,255,0.82)');
+      // 어깨선: 오른어깨(p2)↔왼어깨(p3) — 초록
+      segLine(p2, p3, '#4cff80');
+      // 어깨 수평 투영선 — 노란 점선 (arccos 2D 회전 측정 근거)
+      if (p2 && p3) {
+        const cy = (p2.y + p3.y) / 2;
+        segLine({ x: Math.min(p2.x, p3.x), y: cy }, { x: Math.max(p2.x, p3.x), y: cy }, '#ffdd00', [6, 4]);
+      }
+    } else if (selectedSegment === 'frame2') {
+      // 래깅 체인: 어깨(p3)→손목(p1)→클럽(p2) — 오렌지
+      segLine(p3, p1, '#ff9800'); segLine(p1, p2, '#ff9800');
+    } else if (selectedSegment === 'frame3') {
+      // 무릎 신전 체인: 고관절(p1)→무릎(p2)→발목(p3) — 하늘색
+      segLine(p1, p2, '#00cfff'); segLine(p2, p3, '#00cfff');
+      // C7 수직 기준선 — 황색 점선 (Sway 시각화)
+      if (p4) segLine({ x: p4.x, y: 0 }, { x: p4.x, y: height }, 'rgba(255,200,0,0.5)', [4, 6]);
+    } else if (selectedSegment === 'frame4') {
+      // 측면 기울기: C7(p1)→왼어깨(p2) — 흰색
+      segLine(p1, p2, 'rgba(255,255,255,0.82)');
+      // 팔-샤프트 체인: 왼어깨(p2)→왼손목(p3)→클럽(p4) — 파랑
+      segLine(p2, p3, '#2196f3'); segLine(p3, p4, '#2196f3');
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     ctx.lineWidth = 2;
-
     points.forEach(p => {
+      const color = p.type === 'shoulder' ? '#4caf50' : p.type === 'wrist' ? '#ff9800' : p.type === 'club' ? '#2196f3' : p.type === 'pelvis' ? '#9c27b0' : 'yellow';
+      const label = p.type === 'shoulder' ? 'S' : p.type === 'wrist' ? 'W' : p.type === 'club' ? 'C' : p.type === 'pelvis' ? 'P' : '?';
+      const x = p.x * width;
+      const y = p.y * height;
       ctx.beginPath();
-      ctx.arc(p.x * width, p.y * height, 6, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#000';
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, y);
     });
-
     ctx.restore();
   }
 
@@ -1369,6 +3078,7 @@
       if(dist2 < threshold*threshold){
         lines.splice(i, 1);
         drawOverlay(ctx, points, lines, canvas, video, zoom);
+        if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
         return true;
       }
     }
@@ -1387,8 +3097,11 @@
   }
 
   function addPoint(points, lines, pos, ctx, canvas, video, zoom){
-    points.push(pos); // add without count limit
+    const type = getAutoPointType(points);
+    if (!type) return;
+    points.push({ x: pos.x, y: pos.y, type });
     drawOverlay(ctx, points, lines, canvas, video, zoom);
+    if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
   }
 
   function onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter){
@@ -1396,7 +3109,13 @@
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
-    if(deletePoint(points, lines, pos, ctx, canvas, video, zoom)) return;
+    // 아직 추가해야 할 점 타입이 남아 있으면 삭제 시도 없이 바로 추가
+    // (순서대로 점을 찍을 때 인근 기존 점이 실수로 삭제되는 문제 방지)
+    const nextType = getAutoPointType(points);
+    if (!nextType) {
+      // 모든 점이 다 찍힌 상태: 가까운 점/라인 클릭 시 삭제
+      if(deletePoint(points, lines, pos, ctx, canvas, video, zoom)) return;
+    }
     addPoint(points, lines, pos, ctx, canvas, video, zoom);
   }
 
@@ -1447,6 +3166,7 @@
     if(pointerIsDragging && dist > 0.01){
       lines.push({ start: startPos, end: endPos });
       drawOverlay(ctx, points, lines, canvas, video, zoom);
+      if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
     } else if(wasDoubleTap){
       setSelectedView(view);
       lastTapTime = 0;
@@ -1492,6 +3212,8 @@
     sideZoomRange.disabled = selectionActive || !sideVideo.src;
     frontSpeedRange.disabled = !frontVideo.src;
     sideSpeedRange.disabled = !sideVideo.src;
+    if(frontAnalysisBtn) frontAnalysisBtn.disabled = !frontVideo.src;
+    if(sideAnalysisBtn) sideAnalysisBtn.disabled = !sideVideo.src;
     if(playPauseBothBtn.disabled){
       updateDualPlayButtonLabel(false);
     }
@@ -1499,6 +3221,9 @@
   }
 
   function loadVideo(videoElem, file){
+    if(videoElem.src && videoElem.src.startsWith('blob:')){
+      URL.revokeObjectURL(videoElem.src); // 기존 blob URL 메모리 해제
+    }
     videoElem.src = URL.createObjectURL(file);
     applyPlaybackRates();
   }
@@ -1510,6 +3235,14 @@
   async function handleFrontVideoFile(file){
     setFileName('frontFileName', file);
     if(!file) return;
+    if(!file.type.startsWith('video/')){
+      if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
+      return;
+    }
+    clearAnalysisResults();
+    baselineFrontResult = null;
+    segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
+    frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
     loadVideo(frontVideo, file);
     frontPoints = [];
     frontLines = [];
@@ -1532,6 +3265,13 @@
   async function handleSideVideoFile(file){
     setFileName('sideFileName', file);
     if(!file) return;
+    if(!file.type.startsWith('video/')){
+      if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
+      return;
+    }
+    clearAnalysisResults();
+    segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
+    frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null };
     loadVideo(sideVideo, file);
     sidePoints = [];
     sideLines = [];
@@ -1834,6 +3574,53 @@
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
     drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
   });
+
+  if (frontAnalysisBtn) {
+    frontAnalysisBtn.addEventListener('click', () => runMotionAnalysis('front'));
+  }
+  if (sideAnalysisBtn) {
+    sideAnalysisBtn.addEventListener('click', () => runMotionAnalysis('side'));
+  }
+  if (analysisGuideNextBtn) {
+    analysisGuideNextBtn.addEventListener('click', advanceGuideStep);
+  }
+  if (analysisHeightInput) {
+    analysisHeightInput.addEventListener('change', () => performAnalysis());
+  }
+  if (analysisSegmentSelect) {
+    analysisSegmentSelect.addEventListener('change', (e) => {
+      selectedSegment = e.target.value;
+      // 해당 프레임의 저장된 A 패널 상태 복원
+      const savedFront = frameStateHistory.front[selectedSegment];
+      if (savedFront) {
+        frontPoints = JSON.parse(JSON.stringify(savedFront.points));
+        frontLines  = JSON.parse(JSON.stringify(savedFront.lines));
+        if (isFinite(savedFront.videoTime)) frontVideo.currentTime = savedFront.videoTime;
+      }
+      // 해당 프레임의 저장된 B 패널 상태 복원
+      const savedSide = frameStateHistory.side[selectedSegment];
+      if (savedSide) {
+        sidePoints = JSON.parse(JSON.stringify(savedSide.points));
+        sideLines  = JSON.parse(JSON.stringify(savedSide.lines));
+        if (isFinite(savedSide.videoTime)) sideVideo.currentTime = savedSide.videoTime;
+      } else {
+        sidePoints = []; sideLines = [];
+      }
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
+      performAnalysis();
+    });
+  }
+  if (analysisToggleBtn) {
+    analysisToggleBtn.addEventListener('click', toggleAnalysisPanel);
+  }
+  if (downloadPdfBtn) {
+    downloadPdfBtn.addEventListener('click', downloadAnalysisPDF);
+  }
+  const resetAllBtn = document.getElementById('resetAllBtn');
+  if (resetAllBtn) {
+    resetAllBtn.addEventListener('click', resetAll);
+  }
 
   saveFrameBtn.addEventListener('click', () => {
     if(!frontVideo.paused || !sideVideo.paused){

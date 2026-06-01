@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SY Golf Swing Rhythm / Tempo Trainer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div style="margin-bottom:10px">
+        <button type="button" onclick="window.close();" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">← 메인으로 돌아가기</button>
+      </div>
+      <h1>SY Golf Swing Rhythm / Tempo Trainer <small>ver 26.4.1</small></h1>
+      <p>Generate playable rhythm and tempo for driver, iron, short game, and putting.</p>
+    </header>
+
+    <section class="card">
+      <label for="shotType">Shot Type</label>
+      <select id="shotType">
+        <option value="driver">Driver</option>
+        <option value="iron">Iron</option>
+        <option value="shortGame">Short Game</option>
+        <option value="putting">Putting</option>
+      </select>
+
+      <div class="profile-row">
+        <div class="select-group">
+          <label for="profile">Athlete Profile</label>
+          <select id="profile">
+            <option value="standard">Standard Tempo</option>
+            <option value="power">Power Driver</option>
+            <option value="smooth">Smooth Rhythm</option>
+            <option value="precision">Precision Control</option>
+          </select>
+        </div>
+        <div class="select-group beat-pattern-group">
+          <label>Beat Pattern</label>
+          <div class="beat-grid">
+            <div>
+              <label for="beat1">Beat 1</label>
+              <select id="beat1">
+                <option value="0.25">0.25</option>
+                <option value="0.5">0.5</option>
+                <option value="0.75">0.75</option>
+                <option value="1">1</option>
+                <option value="1.25">1.25</option>
+                <option value="1.5">1.5</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+            <div>
+              <label for="beat2">Beat 2</label>
+              <select id="beat2">
+                <option value="0.25">0.25</option>
+                <option value="0.5">0.5</option>
+                <option value="0.75">0.75</option>
+                <option value="1">1</option>
+                <option value="1.25">1.25</option>
+                <option value="1.5">1.5</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+            <div>
+              <label for="beat3">Beat 3</label>
+              <select id="beat3">
+                <option value="0.25">0.25</option>
+                <option value="0.5">0.5</option>
+                <option value="0.75">0.75</option>
+                <option value="1">1</option>
+                <option value="1.25">1.25</option>
+                <option value="1.5">1.5</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+            <div>
+              <label for="beat4">Beat 4</label>
+              <select id="beat4">
+                <option value="0.25">0.25</option>
+                <option value="0.5">0.5</option>
+                <option value="0.75">0.75</option>
+                <option value="1">1</option>
+                <option value="1.25">1.25</option>
+                <option value="1.5">1.5</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="select-row">
+        <div class="select-group">
+          <label for="focusSound">Focus Sound</label>
+          <select id="focusSound">
+            <option value="none">None</option>
+            <option value="pulse">Rhythm Pulse</option>
+            <option value="binaural">Binaural Focus</option>
+            <option value="ambient">Ambient Support</option>
+          </select>
+        </div>
+        <div class="select-group">
+          <label for="backgroundMusic">Background Audio</label>
+          <select id="backgroundMusic">
+            <option value="none">None</option>
+            <option value="customFile">Upload Audio</option>
+            <option value="soundSelection">Sound Selection</option>
+          </select>
+          <div id="backgroundFileRow" class="sample-load-row hidden">
+            <input id="backgroundFileInput" type="file" accept="audio/*" />
+            <button id="loadBackgroundSampleButton" class="secondary">Load Audio</button>
+          </div>
+          <div id="soundSelectionRow" class="sample-load-row hidden">
+            <label for="soundSelect">Available Sounds</label>
+            <select id="soundSelect">
+              <option value="piano">Piano</option>
+              <option value="violin">Violin</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <label for="tempo">Tempo (BPM)</label>
+      <div class="slider-row">
+        <input type="range" id="tempo" min="40" max="180" value="100" />
+        <span id="tempoValue">100</span>
+      </div>
+
+      <label for="swingSpeed">Swing Speed</label>
+      <div class="slider-row">
+        <input type="range" id="swingSpeed" min="80" max="120" value="100" />
+        <span id="speedValue">100%</span>
+      </div>
+
+      <div class="button-row">
+        <button id="playButton">Play</button>
+        <button id="stopButton" class="secondary">Stop</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Saved Club Settings</h2>
+      <p>Save your preferred settings and load them anytime for practice.</p>
+      <div class="preset-save-row">
+        <input id="presetName" type="text" placeholder="e.g. Driver Focus" />
+        <button id="savePresetButton" class="secondary">Save Setting</button>
+      </div>
+      <div id="presetList" class="preset-list"></div>
+    </section>
+
+    <section class="card info-card">
+      <h2>Rhythm Composition</h2>
+      <p id="patternDescription">Select a shot type to display the rhythm pattern.</p>
+      <p id="focusDescription" class="focus-description"></p>
+      <p id="backgroundDescription" class="focus-description"></p>
+      <ul id="patternList"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

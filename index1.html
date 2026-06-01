@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>골프 라운드 간편 기록</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛳</text></svg>">
 <style>
 :root{
   --bg:#071018;
@@ -317,9 +318,13 @@ textarea{
   50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(31,181,122,0.6); }
 }
 </style>
+<script src="./supabase.min.js"></script>
 </head>
 <body>
 <div class="container">
+  <div style="margin-bottom:8px">
+    <button type="button" onclick="window.opener && !window.opener.closed ? window.close() : (window.history.length > 1 ? window.history.back() : (document.referrer ? location.href=document.referrer : window.close()));" style="background:#374151;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer;">← 메인으로 돌아가기</button>
+  </div>
   <h1>⛳ 골프 간편 기록</h1>
   <p class="subtitle">경기 중 빠른 샷 기록용</p>
 
@@ -632,7 +637,357 @@ const completedHolesEl = document.getElementById('completedHoles');
 roundDateInput.value = new Date().toISOString().slice(0,10);
 
 // 로컬 저장소 키
-const STORAGE_KEY = 'golf_quick_record_data';
+const STORAGE_KEY_BASE = 'golf_quick_record_data';
+const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+let restoredAuthSession = null;
+let loggedInUserId = null;
+let loggedInUserEmail = null;
+let supabaseClient = null;
+
+function initSupabaseClient(){
+  if(!window.supabase) return null;
+  if(!supabaseClient){
+    // persistSession/autoRefreshToken 비활성화 — URL 파라미터로 세션을 전달하므로
+    // SDK가 localStorage에 저장하려는 시도 자체를 막아 Tracking Prevention 경고 제거
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
+  }
+  return supabaseClient;
+}
+
+async function restoreSessionFromLocalAuth(){
+  const sb = initSupabaseClient();
+  if(!sb) return null;
+  try{
+    const authRes = await sb.auth.getSession();
+    const session = authRes?.data?.session || authRes?.session || null;
+    if(session && session.user && session.access_token){
+      return session;
+    }
+  }catch(e){
+    console.warn('Failed to restore Supabase session from local auth storage', e);
+  }
+  return null;
+}
+
+function normalizeLoginId(value){
+  if(!value) return null;
+  let trimmed = String(value).trim();
+  if(trimmed === '') return null;
+  if (/^".*"$/s.test(trimmed)) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  if(trimmed === '') return null;
+
+  const lower = trimmed.toLowerCase();
+  const loginId = lower.includes('@') ? lower.split('@')[0] : lower;
+  if(loginId === '') return null;
+
+  if(/^[a-z0-9._-]+$/.test(loginId)){
+    return loginId;
+  }
+  return 'id' + Array.from(new TextEncoder().encode(loginId)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,48);
+}
+
+function getPlayerIdFromAuthSession(authSession){
+  const authUser = authSession?.user || {};
+  const tokenPayload = parseJwtPayload(authSession?.access_token || '');
+  const loginId = normalizeLoginId(authUser.user_metadata?.login_id || tokenPayload?.user_metadata?.login_id || '');
+  if(loginId) return loginId;
+  const email = String(authUser.email || tokenPayload?.email || '').trim().toLowerCase();
+  const emailLocal = email.includes('@') ? email.split('@')[0] : '';
+  return normalizeLoginId(emailLocal || '');
+}
+
+function parseJwtPayload(token){
+  if(!token) return null;
+  try{
+    const parts = token.split('.');
+    if(parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    const json = atob(padded);
+    return JSON.parse(json);
+  }catch(e){
+    console.warn('Failed to parse JWT payload', e);
+    return null;
+  }
+}
+
+function getAuthPlayerId(session){
+  const authUser = session?.user || {};
+  const tokenPayload = parseJwtPayload(session?.access_token || '');
+  const loginId = normalizeLoginId(authUser.user_metadata?.login_id || tokenPayload?.user_metadata?.login_id || '');
+  if(loginId) return loginId;
+  const email = String(authUser.email || tokenPayload?.email || '').trim().toLowerCase();
+  const emailLocal = email.includes('@') ? email.split('@')[0] : '';
+  return normalizeLoginId(emailLocal || '');
+}
+
+function computeRoundStats(data){
+  const holes = Array.isArray(data?.holes) ? data.holes : [];
+  let score = 0;
+  let putts = 0;
+  let fairwaysHit = 0;
+  let greensInRegulation = 0;
+
+  holes.forEach(h => {
+    if(!h || !Array.isArray(h.shots)) return;
+    h.shots.filter(shot => shot && (shot.club || shot.shotType)).forEach(shot => {
+      score += 1;
+      if(shot.club === 'Putter'){
+        putts += 1;
+      } else if(typeof shot.putts === 'number' && shot.putts > 0){
+        putts += shot.putts;
+      }
+      if(String(shot.result || '').trim().toLowerCase() === 'fairway') fairwaysHit += 1;
+      if(String(shot.result || '').trim().toLowerCase() === 'green') greensInRegulation += 1;
+    });
+  });
+
+  return { score, putts, fairwaysHit, greensInRegulation };
+}
+
+function makeStorageKey(userId, date){
+  if(userId && date){
+    return `${STORAGE_KEY_BASE}_${userId}_${date}`;
+  }
+  return STORAGE_KEY_BASE;
+}
+
+function getCurrentStorageKey(){
+  const date = roundData && roundData.date ? roundData.date : roundDateInput.value;
+  return makeStorageKey(loggedInUserId, date);
+}
+
+function base64DecodeUnicode(str){
+  const decoded = atob(str);
+  const percentEncoded = Array.from(decoded).map(ch => '%'+ch.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  return decodeURIComponent(percentEncoded);
+}
+
+function getSessionFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('supabase_session');
+  if(!encoded) return null;
+  const decodedString = decodeURIComponent(encoded);
+  try{
+    return JSON.parse(base64DecodeUnicode(decodedString));
+  }catch(e){
+    console.warn('Invalid supabase_session param after base64DecodeUnicode', e);
+    return null;
+  }
+}
+
+function normalizeSupabaseSession(session){
+  if(!session || typeof session !== 'object') return null;
+  if(session.data && typeof session.data === 'object'){
+    const data = session.data;
+    if(data.session && typeof data.session === 'object'){
+      session = data.session;
+    } else if(data.user && data.access_token){
+      session = data;
+    }
+  }
+  if(session.session && typeof session.session === 'object'){
+    session = session.session;
+  }
+  if(session.user && session.access_token) return session;
+  return null;
+}
+
+async function restoreSessionFromUrl(){
+  let rawSession = getSessionFromUrl();
+  if(rawSession){
+    const normalizedSession = normalizeSupabaseSession(rawSession);
+    console.log('restoreSessionFromUrl raw session shape', {
+      source: 'url',
+      rawKeys: rawSession && typeof rawSession === 'object' ? Object.keys(rawSession) : null,
+      hasData: rawSession && typeof rawSession === 'object' ? Boolean(rawSession.data) : false,
+      hasSession: rawSession && typeof rawSession === 'object' ? Boolean(rawSession.session) : false,
+      normalizedSessionKeys: normalizedSession && typeof normalizedSession === 'object' ? Object.keys(normalizedSession) : null
+    });
+    if(normalizedSession){
+      restoredAuthSession = normalizedSession;
+      const aliasId = getAuthPlayerId(normalizedSession);
+      loggedInUserId = aliasId || null;
+      loggedInUserEmail = normalizedSession.user?.email || null;
+      console.log('Supabase session restored from URL', {
+        loggedInUserId,
+        loggedInUserEmail,
+        sessionFromUrl: normalizedSession,
+        authUserMetadata: normalizedSession.user?.user_metadata
+      });
+      if(!normalizedSession.user){
+        console.warn('Supabase session restored but user object is missing from session');
+      }
+      return;
+    }
+    console.warn('Supabase session parsed from URL but did not normalize to a valid auth session', {
+      rawSession
+    });
+  }
+
+  const localSession = await restoreSessionFromLocalAuth();
+  if(localSession){
+    restoredAuthSession = localSession;
+    const aliasId = getAuthPlayerId(localSession);
+    loggedInUserId = aliasId || null;
+    loggedInUserEmail = localSession.user?.email || null;
+    console.log('Supabase session restored from local storage auth', {
+      loggedInUserId,
+      loggedInUserEmail,
+      userMetadata: localSession.user?.user_metadata
+    });
+  }
+}
+
+async function saveRoundToSupabase(){
+  try{
+    const resolvedAuthSession = restoredAuthSession;
+    if(!resolvedAuthSession || !resolvedAuthSession.user){
+      console.warn('Supabase auth session missing; cannot sync without login.');
+      return false;
+    }
+    if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      console.warn('Offline detected; skipping Supabase sync.');
+      return false;
+    }
+    const authPlayerId = getPlayerIdFromAuthSession(resolvedAuthSession);
+    const userEmail = String(resolvedAuthSession.user.email || loggedInUserEmail || '').trim().toLowerCase();
+    const tokenPayload = parseJwtPayload(resolvedAuthSession.access_token || '');
+    const tokenMetaLoginId = normalizeLoginId(tokenPayload?.user_metadata?.login_id || '');
+    let serverAuthLoginId = null;
+    try {
+      const rpcUrl = `${SUPABASE_URL}/rest/v1/rpc/app_auth_login_id`;
+      const rpcResponse = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${resolvedAuthSession.access_token}`
+        },
+        body: JSON.stringify({})
+      });
+      if(rpcResponse.ok){
+        serverAuthLoginId = await rpcResponse.text();
+        serverAuthLoginId = String(serverAuthLoginId || '').trim();
+        if (/^".*"$/s.test(serverAuthLoginId)) {
+          serverAuthLoginId = serverAuthLoginId.slice(1, -1);
+        }
+      } else {
+        const rpcBody = await rpcResponse.text();
+        console.warn('saveRoundToSupabase app_auth_login_id rpc failed', {
+          status: rpcResponse.status,
+          statusText: rpcResponse.statusText,
+          body: rpcBody
+        });
+      }
+    } catch(rpcError) {
+      console.warn('saveRoundToSupabase app_auth_login_id rpc exception', rpcError);
+    }
+    const normalizedServerAuthLoginId = normalizeLoginId(serverAuthLoginId || '');
+    const normalizedAuthPlayerId = normalizeLoginId(authPlayerId || '');
+    const normalizedTokenMetaLoginId = normalizeLoginId(tokenMetaLoginId || '');
+    const normalizedUserEmail = normalizeLoginId(userEmail || '');
+    const playerId = normalizedServerAuthLoginId || normalizedAuthPlayerId || normalizedTokenMetaLoginId || normalizedUserEmail;
+
+    if(normalizedServerAuthLoginId && normalizedServerAuthLoginId !== normalizedAuthPlayerId){
+      console.warn('Supabase server auth alias differs from client auth alias', {
+        normalizedServerAuthLoginId,
+        normalizedAuthPlayerId,
+        tokenMetaLoginId,
+        userEmail
+      });
+    }
+
+    if(!playerId){
+      console.error('Unable to derive a valid Supabase player_id from auth session; aborting sync.', {
+        authPlayerId,
+        normalizedServerAuthLoginId,
+        normalizedAuthPlayerId,
+        normalizedTokenMetaLoginId,
+        normalizedUserEmail,
+        authSessionUser: resolvedAuthSession.user
+      });
+      return false;
+    }
+
+    const stats = computeRoundStats(roundData);
+    roundData.score = stats.score;
+    roundData.putts = stats.putts;
+    roundData.fairwaysHit = stats.fairwaysHit;
+    roundData.greensInRegulation = stats.greensInRegulation;
+
+    const rowData = {
+      player_id: playerId,
+      round_date: roundData.date || roundDateInput.value,
+      course: roundData.course || courseNameInput.value.trim(),
+      score: stats.score,
+      putts: stats.putts,
+      fairways_hit: stats.fairwaysHit,
+      greens_in_regulation: stats.greensInRegulation,
+      notes: roundData.notes || ''
+    };
+    console.warn('saveRoundToSupabase auth state', {
+      authSessionUser: resolvedAuthSession.user,
+      authUserMetadata: resolvedAuthSession.user?.user_metadata,
+      authPlayerId,
+      serverAuthLoginId,
+      tokenMetaLoginId,
+      userEmail,
+      playerId,
+      accessTokenPresent: Boolean(resolvedAuthSession.access_token),
+      refreshTokenPresent: Boolean(resolvedAuthSession.refresh_token),
+      roundDate: rowData.round_date,
+      course: rowData.course,
+      rowData
+    });
+    const row = {
+      player_id: playerId,
+      player_name: roundData.player || playerNameInput.value.trim() || '',
+      round_date: roundData.date || roundDateInput.value || new Date().toISOString().slice(0,10),
+      course: roundData.course || courseNameInput.value.trim() || '',
+      distance_unit: roundData.distanceUnit || distanceUnitSel.value || 'yd',
+      round_meta: {
+        player: roundData.player || playerNameInput.value.trim() || '',
+        date: roundData.date || roundDateInput.value || '',
+        course: roundData.course || courseNameInput.value.trim() || '',
+        distanceUnit: roundData.distanceUnit || distanceUnitSel.value || 'yd'
+      },
+      round_payload: { holes: roundData.holes || [] },
+      source: 'index1_quick_record'
+    };
+    const url = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?on_conflict=player_id,round_date,course`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
+        'Prefer': 'resolution=merge-duplicates, return=minimal'
+      },
+      body: JSON.stringify([row])
+    });
+    const errorBody = await response.text();
+    if(!response.ok){
+      console.warn('Supabase round sync failed', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+        row
+      });
+      return false;
+    }
+    console.log('Round synced to Supabase', { row, response: response.status });
+    return true;
+  }catch(e){
+    console.error('saveRoundToSupabase exception', e);
+    return false;
+  }
+}
 
 // 라운드 시작
 if(btnStartRound){
@@ -1348,7 +1703,7 @@ btnEditHole.addEventListener('click', ()=>{
 });
 
 // CSV 내보내기 (원본 분석 파일과 호환되는 형식)
-btnExportCSV.addEventListener('click', ()=>{
+btnExportCSV.addEventListener('click', async ()=>{
   const lines = [];
   
   // 헤더
@@ -1446,15 +1801,27 @@ btnExportCSV.addEventListener('click', ()=>{
     a.remove();
   }, 100);
   
+  // 서버 동기화 시도
+  const syncSuccess = await saveRoundToSupabase();
+  if(!syncSuccess){
+    console.warn('서버 동기화가 실패했습니다. 코치 포털에 데이터가 반영되지 않을 수 있습니다.');
+  }
+  
   // 저장 성공 메시지와 함께 통계 정보 표시
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
-  alert(`CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`);
+  let message = `CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`;
+  if(!syncSuccess){
+    message += '\n\n⚠️ 서버 동기화 실패: 포털에서 로그인 후 이 페이지를 다시 열어주세요.';
+  } else {
+    message += '\n\n✅ 서버에 저장되었습니다. 코치 포털에서 확인할 수 있습니다.';
+  }
+  alert(message);
 });
 
 // 새 라운드
 btnReset.addEventListener('click', ()=>{
   if(confirm('현재 기록을 모두 삭제하고 새 라운드를 시작하시겠습니까?')){
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(getCurrentStorageKey());
     location.reload();
   }
 });
@@ -1464,7 +1831,8 @@ function saveData(){
   try{
     // recordSection이 보이면 라운드가 시작된 것으로 판단
     const isStarted = recordSection && !recordSection.classList.contains('hidden');
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const storageKey = getCurrentStorageKey();
+    localStorage.setItem(storageKey, JSON.stringify({
       roundData: roundData,
       currentHole: currentHole,
       started: isStarted
@@ -1477,7 +1845,12 @@ function saveData(){
 // 데이터 복구
 function restoreData(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const storageKey = getCurrentStorageKey();
+    let raw = localStorage.getItem(storageKey);
+    if(!raw && storageKey !== STORAGE_KEY_BASE){
+      // 로그인 사용자 기반 키가 없으면 공통 키도 확인
+      raw = localStorage.getItem(STORAGE_KEY_BASE);
+    }
     if(!raw) return;
     
     const saved = JSON.parse(raw);
@@ -1529,7 +1902,11 @@ clubIronWedgeSel.addEventListener('change', ()=>{
 // 페이지 로드 시 이전 데이터 확인
 function checkAndRestorePreviousData(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const storageKey = getCurrentStorageKey();
+    let raw = localStorage.getItem(storageKey);
+    if(!raw && storageKey !== STORAGE_KEY_BASE){
+      raw = localStorage.getItem(STORAGE_KEY_BASE);
+    }
     console.log('저장된 데이터:', raw); // 디버깅용
     if(raw){
       const saved = JSON.parse(raw);
@@ -1546,7 +1923,7 @@ function checkAndRestorePreviousData(){
           restoreData();
         } else {
           // 사용자가 거부하면 저장된 데이터 삭제
-          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(getCurrentStorageKey());
         }
       }
     }
@@ -1555,12 +1932,16 @@ function checkAndRestorePreviousData(){
   }
 }
 
-// DOM이 준비되면 이전 데이터 확인
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', checkAndRestorePreviousData);
-} else {
-  // 이미 로드된 경우 즉시 실행
+// DOM이 준비되면 이전 데이터 및 URL 세션 복원
+async function initPage(){
+  await restoreSessionFromUrl();
   checkAndRestorePreviousData();
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initPage);
+} else {
+  initPage();
 }
 
 // 자동 저장 (5초마다)

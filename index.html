@@ -3660,7 +3660,7 @@ class PuttingTrainingApp {
         return `${player}_${date}.csv`;
     }
 
-    sendTrainingDataToCoach() {
+    async sendTrainingDataToCoach() {
         if (this.isCoachMode()) return;
 
         const resultTarget = document.getElementById("trainingTransferResult");
@@ -3704,6 +3704,29 @@ class PuttingTrainingApp {
             });
         }
         this.selectedMissionResultFile = fileName;
+
+        // 코치 포탈에 알림: app_kv_store에 퍼팅 훈련 결과 전송 기록 저장
+        try {
+            if (sb) {
+                const ns = DEPLOY_CONFIG.syncNamespace || "golfworks-prod";
+                const safePlayer = String(this.session.playerName || "").replace(/[^a-zA-Z0-9가-힣_-]/g, "_");
+                const safeDate = String(this.session.sessionDate || "").replace(/[^a-zA-Z0-9-]/g, "_");
+                const notifKey = `${ns}:putting_notif:${safePlayer}:${safeDate}`;
+                const sentAt = new Date().toISOString();
+                await sb.from("app_kv_store").upsert({
+                    storage_key: notifKey,
+                    storage_value: JSON.stringify({
+                        playerName: this.session.playerName,
+                        sessionDate: this.session.sessionDate,
+                        count: transferRecords.length,
+                        sentAt
+                    }),
+                    updated_at: sentAt
+                }, { onConflict: "storage_key" });
+            }
+        } catch (e) {
+            console.warn("Putting 훈련 알림 저장 실패:", e);
+        }
     }
 
     saveMissionResultUploads() {
@@ -5049,6 +5072,7 @@ class PuttingTrainingApp {
         this.saveDraftForCurrentPlayer();
         this.refreshDashboard();
         this.sectionNavigator.show("section-m1");
+        this.writePuttingNotif();
     }
 
     onSubmitM2() {
@@ -5094,6 +5118,45 @@ class PuttingTrainingApp {
         this.saveDraftForCurrentPlayer();
         this.refreshDashboard();
         this.sectionNavigator.show("section-m2");
+        this.writePuttingNotif();
+    }
+
+    // 퍼팅 훈련 결과 저장 시 코치 포탈 알림용 app_kv_store 기록
+    async writePuttingNotif() {
+        if (!sb || !this.session.playerName || !this.session.sessionDate) return;
+        try {
+            const ns = DEPLOY_CONFIG.syncNamespace || "golfworks-prod";
+            const safePlayer = String(this.session.playerName).replace(/[^a-zA-Z0-9가-힣_-]/g, "_");
+            const safeDate = String(this.session.sessionDate).replace(/[^a-zA-Z0-9-]/g, "_");
+            const notifKey = `${ns}:putting_notif:${safePlayer}:${safeDate}`;
+            const sessionRecs = this.records.filter(r =>
+                (r.playerName || "") === this.session.playerName &&
+                (r.sessionDate || "") === this.session.sessionDate &&
+                (MetricsService.isLieMission(r.mission) || MetricsService.isSpeedMission(r.mission))
+            );
+            const sentAt = new Date().toISOString();
+            const payload = {
+                storage_key: notifKey,
+                storage_value: JSON.stringify({
+                    playerName: this.session.playerName,
+                    sessionDate: this.session.sessionDate,
+                    count: sessionRecs.length,
+                    sentAt
+                }),
+                updated_at: sentAt
+            };
+            let result = await sb.from("app_kv_store").upsert(payload, { onConflict: "storage_key" });
+            if (result.error && /column|updated_at/i.test(String(result.error.message || ""))) {
+                // updated_at 컬럼이 없는 경우 재시도
+                const { updated_at: _, ...payloadNoDate } = payload;
+                result = await sb.from("app_kv_store").upsert(payloadNoDate, { onConflict: "storage_key" });
+            }
+            if (result.error) {
+                console.warn("Putting 훈련 알림 저장 실패:", result.error);
+            }
+        } catch (e) {
+            console.warn("Putting 훈련 알림 저장 실패:", e);
+        }
     }
 
     getCurrentSessionRecords() {
