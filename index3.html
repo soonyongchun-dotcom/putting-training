@@ -422,6 +422,7 @@
         <button data-screen="comm">Coach Communication <span id="commUnreadBadge" style="display:none;background:#dc2626;color:#fff;border-radius:999px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">0</span></button>
         <button type="button" data-external-url="https://soonyongchun-dotcom.github.io/Mission-project/">Mission Dashboard</button>
         <button type="button" data-external-url="https://sy-puttingtraining.web.app/">Putting Training</button>
+        <button type="button" onclick="window.open('https://soonyongchun-dotcom.github.io/putting-training/','_blank','noopener,noreferrer')" style="background:#16a34a;color:#fff;font-weight:700;">Putting Evaluation</button>
         <button type="button" id="rhythmTempoTrainingBtn" style="background:#fde68a;color:#222;font-weight:700;">Rhythm_Tempo Training</button>
 
       </div>
@@ -456,13 +457,6 @@
 
         <div style="height:12px"></div>
 
-        <div class="card" id="playerPuttingCard">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <h3 style="margin:0">🏌️ Putting Training 최근 세션</h3>
-            <button type="button" class="btn btn-sm" id="playerPuttingRefreshBtn" onclick="renderPlayerPuttingResults()">새로고침</button>
-          </div>
-          <div id="playerPuttingResultWrap"><p class="muted" style="margin:0">로딩 중...</p></div>
-        </div>
       </div>
 
 
@@ -1875,60 +1869,7 @@
       renderSelfEvalHistory();
       renderCommCounts();
       renderPhaseBoard();
-      if(session&&session.role==='player') renderPlayerPuttingResults();
     }
-    async function renderPlayerPuttingResults(){
-      var root=document.getElementById('playerPuttingResultWrap'); if(!root) return;
-      var session=getSession();
-      if(!session||session.role!=='player'){
-        var card=document.getElementById('playerPuttingCard');
-        if(card) card.style.display='none';
-        return;
-      }
-      var card=document.getElementById('playerPuttingCard');
-      if(card) card.style.display='';
-      root.innerHTML='<p class="muted" style="margin:0">불러오는 중...</p>';
-      try{
-        var ns='golfworks-prod';
-        var recsRes=await sb.from('app_kv_store').select('storage_value').eq('storage_key',ns+':greenMissions').maybeSingle();
-        var allRecs=[];
-        if(recsRes.data&&recsRes.data.storage_value){
-          try{ allRecs=JSON.parse(recsRes.data.storage_value)||[]; }catch(e){}
-        }
-        var myRecs=allRecs.filter(function(r){ return String(r.playerName||'')===(session.name||''); });
-        if(!myRecs.length){
-          root.innerHTML='<p class="muted" style="margin:0">아직 저장된 Putting Training 세션이 없습니다.<br><small style="color:#888"><a href="https://sy-puttingtraining.web.app/" target="_blank" rel="noopener noreferrer">Putting Training</a> 버튼을 눌러 연습 후 종료하면 여기에 결과가 표시됩니다.</small></p>';
-          return;
-        }
-        var sessMap={};
-        myRecs.forEach(function(r){
-          var k=String(r.sessionDate||'unknown');
-          if(!sessMap[k]) sessMap[k]=[];
-          sessMap[k].push(r);
-        });
-        // 최근순 정렬
-        var sessKeys=Object.keys(sessMap).sort(function(a,b){return b.localeCompare(a);}).slice(0,10);
-        var html=sessKeys.map(function(dateKey,idx){
-          var recs=sessMap[dateKey];
-          var m1=recs.filter(function(r){return isPuttingLieMission(r.mission);});
-          var m2=recs.filter(function(r){return isPuttingSpeedMission(r.mission);});
-          var cardId='pts-player-'+idx;
-          var statsHtml=buildPuttingStatRows(m1,m2);
-          var header='<div onclick="togglePuttingCard(\''+cardId+'\')" style="cursor:pointer;padding:10px 0;user-select:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px">'
-            +'<span data-pts-arrow="'+cardId+'" style="font-size:13px;color:#555;margin-right:2px">▶</span>'
-            +'<span style="font-weight:700;font-size:14px">📅 '+escapeHtml(dateKey)+'</span>'
-            +'<span class="muted" style="font-size:12px">전체 '+recs.length+'회'
-            +(m1.length?' · <span style="color:#2563eb">M1·'+m1.length+'</span>':'')+(m2.length?' · <span style="color:#059669">M2·'+m2.length+'</span>':'')+'</span>'
-            +'</div>';
-          var body='<div id="'+cardId+'" style="display:none;padding-bottom:10px">'+statsHtml+'</div>';
-          return '<div style="border-bottom:1px solid var(--line)">'+header+body+'</div>';
-        }).join('');
-        root.innerHTML=html||'<p class="muted" style="margin:0">표시할 세션이 없습니다.</p>';
-      }catch(e){
-        root.innerHTML='<p class="muted" style="margin:0;color:red">불러오기 실패: '+escapeHtml(String(e))+'</p>';
-      }
-    }
-
     async function renderSelfEvalHistory(){
       const root=document.getElementById('selfEvalHistoryWrap'); if(!root) return;
       const users=await getUsers();
@@ -3602,14 +3543,6 @@
           if(loginPwEl) loginPwEl.focus();
         }
       }catch(e){}
-
-      // Putting Training 탭에서 돌아올 때 자동 새로고침
-      document.addEventListener('visibilitychange', function(){
-        if(document.visibilityState==='visible'){
-          var s=getSession();
-          if(s&&s.role==='player') renderPlayerPuttingResults();
-        }
-      });
 
       setupRealtimeSubscriptions();
       await syncLocalSessionWithAuth();
