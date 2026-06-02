@@ -758,7 +758,16 @@
         const authRes = await sb.auth.getSession();
         const authSession = authRes && authRes.data ? authRes.data.session : null;
         if(authSession && authSession.access_token){
-          const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(authSession)))));
+          // TextEncoder 기반 UTF-8 안전 base64 인코딩 (btoa/unescape 방식 대체)
+          const json = JSON.stringify({
+            access_token: authSession.access_token,
+            refresh_token: authSession.refresh_token,
+            user: authSession.user
+          });
+          let binary = '';
+          const bytes = new TextEncoder().encode(json);
+          for(let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          const encoded = encodeURIComponent(btoa(binary));
           const sep = url.includes('?') ? '&' : '?';
           if(newWin){ newWin.location.href = url + sep + 'supabase_session=' + encoded; }
           else { window.open(url + sep + 'supabase_session=' + encoded, '_blank'); }

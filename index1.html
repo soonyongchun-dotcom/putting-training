@@ -858,6 +858,19 @@ async function restoreSessionFromUrl(){
 
 async function saveRoundToSupabase(){
   try{
+    // SDK에서 최신 세션을 먼저 가져옴 (access_token 만료 시 자동 갱신)
+    const sbClient = initSupabaseClient();
+    if(sbClient){
+      try{
+        const freshRes = await sbClient.auth.getSession();
+        const freshSession = freshRes?.data?.session || freshRes?.session || null;
+        if(freshSession && freshSession.user && freshSession.access_token){
+          restoredAuthSession = freshSession;
+        }
+      }catch(e){
+        console.warn('saveRoundToSupabase: SDK getSession failed, using cached session', e);
+      }
+    }
     const resolvedAuthSession = restoredAuthSession;
     if(!resolvedAuthSession || !resolvedAuthSession.user){
       console.warn('Supabase auth session missing; cannot sync without login.');
@@ -973,28 +986,72 @@ async function saveRoundToSupabase(){
       exported_at: new Date().toISOString(),
       source: 'index1_quick_record'
     };
-    const url = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?on_conflict=player_id,round_date,course`;
-    const response = await fetch(url, {
-      method: 'POST',
+
+    // 기존 row 조회 (player_id + round_date + course 기준)
+    // on_conflict 방식 대신 select→patch/post 방식으로 중복 생성 방지
+    const selectUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds`
+      + `?player_id=eq.${encodeURIComponent(row.player_id)}`
+      + `&round_date=eq.${encodeURIComponent(row.round_date)}`
+      + `&course=eq.${encodeURIComponent(row.course)}`
+      + `&select=id`
+      + `&limit=1`;
+    const selectRes = await fetch(selectUrl, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
-        'Prefer': 'resolution=merge-duplicates, return=minimal'
-      },
-      body: JSON.stringify([row])
+        'Accept': 'application/json'
+      }
     });
+    let existingId = null;
+    if(selectRes.ok){
+      try{
+        const rows = await selectRes.json();
+        if(Array.isArray(rows) && rows.length > 0) existingId = rows[0].id;
+      }catch(_){}
+    }
+
+    let response;
+    if(existingId){
+      // 기존 row 업데이트 (PATCH)
+      const patchUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?id=eq.${encodeURIComponent(existingId)}`;
+      response = await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(row)
+      });
+    } else {
+      // 신규 row 삽입 (POST)
+      const insertUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds`;
+      response = await fetch(insertUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify([row])
+      });
+    }
+
     const errorBody = await response.text();
     if(!response.ok){
       console.warn('Supabase round sync failed', {
         status: response.status,
         statusText: response.statusText,
         body: errorBody,
+        existingId,
         row
       });
       return false;
     }
-    console.log('Round synced to Supabase', { row, response: response.status });
+    console.log('Round synced to Supabase', { row, existingId, method: existingId ? 'PATCH' : 'POST' });
     return true;
   }catch(e){
     console.error('saveRoundToSupabase exception', e);
