@@ -751,21 +751,24 @@
     });
 
     async function openIndex1WithSession(url){
-      // Supabase 현재 세션을 가져와 URL 파라미터로 전달 (Tracking Prevention 우회)
+      // iOS Safari는 async/await 이후 window.open()을 팝업 차단함.
+      // 사용자 제스처 컨텍스트 내에서 즉시 창을 열고, 이후 URL을 설정하는 방식으로 우회.
+      const newWin = window.open('', '_blank');
       try{
         const authRes = await sb.auth.getSession();
         const authSession = authRes && authRes.data ? authRes.data.session : null;
         if(authSession && authSession.access_token){
-          // base64 인코딩 후 URL 파라미터로 전달 (index1.html의 getSessionFromUrl()이 읽음)
           const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(authSession)))));
           const sep = url.includes('?') ? '&' : '?';
-          window.open(url + sep + 'supabase_session=' + encoded, '_blank');
+          if(newWin){ newWin.location.href = url + sep + 'supabase_session=' + encoded; }
+          else { window.open(url + sep + 'supabase_session=' + encoded, '_blank'); }
           return;
         }
       }catch(e){
         console.warn('openIndex1WithSession: failed to get session', e);
       }
-      window.open(url, '_blank');
+      if(newWin){ newWin.location.href = url; }
+      else { window.open(url, '_blank'); }
     }
 
     // ====== 디바이스 전용 (localStorage) ======
