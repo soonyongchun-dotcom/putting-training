@@ -286,6 +286,7 @@
     <div class="right-actions mt8">
       <button class="btn" id="btnStartRound" aria-label="Start round">라운드 시작 (Start Round)</button>
       <button class="btn ghost" id="btnLoadSyncedRound" aria-label="Load synced round" style="min-width:160px;">서버에서 라운드 불러오기</button>
+      <button class="btn warn" id="btnDeleteSyncedRound" aria-label="Delete synced round" style="min-width:120px;">선택 삭제</button>
     </div>
     </div>
   </section>
@@ -592,6 +593,43 @@ async function fetchSyncedRounds(){
     console.error('fetchSyncedRounds exception', e);
     if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 라운드 목록 조회 중 오류가 발생했습니다.';
     return [];
+  }
+}
+
+async function deleteSelectedSyncedRound(){
+  if(!syncedRoundSelect || !syncedRoundSelect.value){
+    alert('삭제할 서버 라운드를 선택하세요.');
+    return;
+  }
+  const selected = syncedRoundsCache.find(r => r.id === syncedRoundSelect.value);
+  if(!selected){
+    alert('선택한 라운드를 찾을 수 없습니다. 목록을 다시 불러옵니다.');
+    await populateSyncedRoundSelect();
+    return;
+  }
+  const label = `${selected.player_name || selected.player_id} · ${selected.round_date || ''} · ${selected.course || ''}`;
+  if(!confirm(`아래 라운드를 서버에서 삭제하시겠습니까?\n\n${label}\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+  initSupabase();
+  if(!sb){ alert('Supabase 클라이언트 초기화 실패.'); return; }
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
+    if(!authSession){
+      alert('로그인 세션이 없습니다. 코치 포털에서 로그인 후 다시 시도하세요.');
+      return;
+    }
+    const { error } = await sb.from('sytpt_player_rounds').delete().eq('id', selected.id);
+    if(error){
+      alert('삭제 중 오류가 발생했습니다: ' + error.message);
+      console.warn('deleteSelectedSyncedRound error', error);
+      return;
+    }
+    if(syncedRoundStatus) syncedRoundStatus.textContent = `삭제 완료: ${label}`;
+    await populateSyncedRoundSelect();
+  }catch(e){
+    console.error('deleteSelectedSyncedRound exception', e);
+    alert('삭제 중 예외가 발생했습니다. 콘솔을 확인하세요.');
   }
 }
 
@@ -1031,6 +1069,8 @@ if (btnLoadSyncedRound) btnLoadSyncedRound.addEventListener('click', async ()=>{
   restoreRoundFromRemote(selected);
 });
 if (syncedRoundSelect) populateSyncedRoundSelect();
+const btnDeleteSyncedRound = document.getElementById('btnDeleteSyncedRound');
+if(btnDeleteSyncedRound) btnDeleteSyncedRound.addEventListener('click', deleteSelectedSyncedRound);
 
 // navigation controls
 if (btnToggleAll) btnToggleAll.addEventListener('click', ()=>{
@@ -3021,9 +3061,7 @@ async function saveRoundToServer(){
     for(let i=1;i<=18;i++){
       holesPayload.push(Object.assign({},HOLES[i],{shots: (shotsByHole[i]||[]).slice()}));
     }
-    const rowId = (playerId + '_' + roundDate).replace(/[^a-zA-Z0-9_\-]/g,'_');
     const {error} = await sb.from('sytpt_player_rounds').upsert({
-      id: rowId,
       player_id: playerId,
       player_name: roundMeta.player,
       round_date: roundDate,
@@ -3032,7 +3070,7 @@ async function saveRoundToServer(){
       round_meta: roundMeta,
       round_payload: {holes: holesPayload},
       distance_unit: DISTANCE_UNIT
-    },{onConflict:'id'});
+    },{onConflict:'player_id,round_date,course'});
     if(error){
       console.warn('saveRoundToServer upsert error', error);
       if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 저장 중 오류가 발생했습니다: '+error.message;

@@ -814,6 +814,18 @@ async function restoreSessionFromUrl(){
       const aliasId = getAuthPlayerId(normalizedSession);
       loggedInUserId = aliasId || null;
       loggedInUserEmail = normalizedSession.user?.email || null;
+      // SDK에 세션 등록 → 토큰 자동 갱신 활성화
+      try{
+        const sbClient = initSupabaseClient();
+        if(sbClient && normalizedSession.access_token && normalizedSession.refresh_token){
+          await sbClient.auth.setSession({
+            access_token: normalizedSession.access_token,
+            refresh_token: normalizedSession.refresh_token
+          });
+        }
+      }catch(setSessionErr){
+        console.warn('setSession from URL failed', setSessionErr);
+      }
       console.log('Supabase session restored from URL', {
         loggedInUserId,
         loggedInUserEmail,
@@ -958,6 +970,7 @@ async function saveRoundToSupabase(){
         distanceUnit: roundData.distanceUnit || distanceUnitSel.value || 'yd'
       },
       round_payload: { holes: roundData.holes || [] },
+      exported_at: new Date().toISOString(),
       source: 'index1_quick_record'
     };
     const url = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?on_conflict=player_id,round_date,course`;
