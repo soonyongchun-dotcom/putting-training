@@ -523,7 +523,7 @@ textarea{
         <label class="form-label">메모</label>
         <textarea id="teeNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
       </div>
-      <button type="button" class="btn" id="btnSaveTee">저장</button>
+      <button type="button" class="btn" id="btnSaveTee">저장/수정</button>
     </div>
 
     <!-- 패널 2: 세컨/서드샷 -->
@@ -575,7 +575,7 @@ textarea{
         <label class="form-label">메모</label>
         <textarea id="approachNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
       </div>
-      <button type="button" class="btn" id="btnSaveApproach">저장</button>
+      <button type="button" class="btn" id="btnSaveApproach">저장/수정</button>
     </div>
 
     <!-- 패널 3: 홀주변 어프로치 -->
@@ -613,7 +613,7 @@ textarea{
         <label class="form-label">메모</label>
         <textarea id="aroundNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
       </div>
-      <button type="button" class="btn" id="btnSaveAround">저장</button>
+      <button type="button" class="btn" id="btnSaveAround">저장/수정</button>
     </div>
 
     <!-- 패널 4: 퍼팅 -->
@@ -645,7 +645,7 @@ textarea{
         <textarea id="shotNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
       </div>
       <div class="putter-btn-container" style="padding:0;background:none;border:none;margin:0;">
-        <button type="button" class="putter-btn" id="btnPutter">⛳ 퍼터 추가</button>
+        <button type="button" class="putter-btn" id="btnPutter">⛳ 퍼터 저장/수정</button>
         <div class="putter-count">퍼팅: <span id="putterCount">0</span>타</div>
       </div>
     </div>
@@ -682,7 +682,7 @@ textarea{
         <label class="form-label">메모</label>
         <textarea id="layupNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
       </div>
-      <button type="button" class="btn" id="btnSaveLayup" style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);color:var(--text);">↩️ 레이업 저장 (통계 제외)</button>
+      <button type="button" class="btn" id="btnSaveLayup" style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);color:var(--text);">↩️ 레이업 저장/수정 (통계 제외)</button>
     </div>
 
     <!-- 기록된 샷 리스트 -->
@@ -690,7 +690,6 @@ textarea{
 
     <div style="display:flex;gap:8px;margin-top:16px;">
       <button type="button" class="btn btn-secondary" id="btnCompleteHole" style="flex:1;margin:0;">홀 완료</button>
-      <button type="button" class="btn" id="btnEditHole" style="flex:1;margin:0;background:var(--accent-dark);">수정</button>
     </div>
   </div>
 
@@ -733,7 +732,6 @@ const btnStartRound = document.getElementById('btnStartRound');
 const btnPrevHole = document.getElementById('btnPrevHole');
 const btnNextHole = document.getElementById('btnNextHole');
 const btnCompleteHole = document.getElementById('btnCompleteHole');
-const btnEditHole = document.getElementById('btnEditHole');
 const btnExportCSV = document.getElementById('btnExportCSV');
 const btnReset = document.getElementById('btnReset');
 
@@ -1777,14 +1775,6 @@ btnNextHole.addEventListener('click', ()=>{
 });
 
 // 수정 버튼 (현재 홀 수정)
-btnEditHole.addEventListener('click', ()=>{
-  // 샷 리스트로 스크롤하여 수정하기 쉽게 함
-  const shotListEl = document.getElementById('shotList');
-  if(shotListEl){
-    shotListEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-});
-
 // CSV 내보내기 (원본 분석 파일과 호환되는 형식)
 btnExportCSV.addEventListener('click', async ()=>{
   const lines = [];
@@ -2041,7 +2031,7 @@ const RESULT_CONFIGS = {
     {value:'LeftRough', label:'좌 러프'},
     {value:'RightRough', label:'우 러프'},
     {value:'Bunker_Greenside', label:'그린사이드'},
-    {value:'Bunker_Fairway', label:'페어웨이 본커'},
+    {value:'Bunker_Fairway', label:'페어웨이 벙커'},
     {value:'Water', label:'워터'},
     {value:'Out', label:'OB'}
   ],
@@ -2049,7 +2039,7 @@ const RESULT_CONFIGS = {
     {value:'Green', label:'그린'},
     {value:'AroundGreen', label:'그린 주변'},
     {value:'InHole', label:'홀인 🎉'},
-    {value:'Bunker_Greenside', label:'본커'},
+    {value:'Bunker_Greenside', label:'벙커'},
     {value:'Water', label:'워터'},
     {value:'Out', label:'OB'}
   ]
