@@ -544,6 +544,7 @@ textarea{
         <label class="form-label">클럽</label>
         <select id="approachClub">
           <option value="">선택</option>
+          <option value="3Wood">3W</option>
           <option value="5Wood">5W</option>
           <option value="Utility1">UT1</option>
           <option value="Utility2">UT2</option>
@@ -2211,7 +2212,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const result = document.getElementById('approachResult').value || 'Fairway';
     const penalty = Number(document.getElementById('approachPenalty').value) || 0;
     const note = document.getElementById('approachNote').value.trim();
+    const wasEditing = editingIndex >= 0;
     saveShotToHole({ club, result, distanceToHole, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'approach', timestamp: new Date().toISOString() });
+    if(!wasEditing) switchShotMode('putt');
   });
 
   // 어프로치 저장
@@ -2225,7 +2228,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const penalty = Number(document.getElementById('aroundPenalty').value) || 0;
     const note = document.getElementById('aroundNote').value.trim();
     if(result === 'InHole'){ putterCount = 0; if(putterCountEl) putterCountEl.textContent = putterCount; }
+    const wasEditing = editingIndex >= 0;
     saveShotToHole({ club, result, distanceToHole, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'around', timestamp: new Date().toISOString() });
+    if(!wasEditing) switchShotMode('putt');
   });
 
   // 레이업 저장
