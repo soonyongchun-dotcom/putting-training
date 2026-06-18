@@ -317,6 +317,68 @@ textarea{
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(31,181,122,0.6); }
 }
+
+/* ===== 샷 타입 탭 UI ===== */
+.shot-tab{
+  padding:8px 2px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px;
+  color:var(--muted);
+  font-size:12px;
+  cursor:pointer;
+  text-align:center;
+  font-weight:600;
+  transition:all 0.2s;
+  line-height:1.5;
+}
+.shot-tab.active{
+  background:var(--accent);
+  color:#04221a;
+  border-color:var(--accent);
+}
+.shot-tab:active{ transform:scale(0.96); }
+.shot-panel.hidden{ display:none; }
+.result-btn-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin-bottom:6px;
+}
+.result-btn{
+  padding:10px 4px;
+  background:rgba(255,255,255,0.05);
+  border:2px solid rgba(255,255,255,0.1);
+  border-radius:6px;
+  color:var(--text);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.result-btn.active{
+  background:rgba(31,181,122,0.25);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.result-btn:active{ transform:scale(0.96); }
+.club-quick-btn{
+  padding:8px 12px;
+  background:rgba(255,255,255,0.05);
+  border:2px solid rgba(255,255,255,0.15);
+  border-radius:6px;
+  color:var(--text);
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.club-quick-btn.active{
+  background:rgba(31,181,122,0.25);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.club-quick-btn:active{ transform:scale(0.96); }
 </style>
 <script src="./supabase.min.js"></script>
 </head>
@@ -406,46 +468,85 @@ textarea{
       <button type="button" class="btn btn-secondary" id="btnNextHole">다음 ▶</button>
     </div>
 
-    <!-- 샷 입력 폼 -->
+    <!-- 샷 기록 탭 UI -->
     <div class="section-title">샷 기록</div>
-    
-    <!-- 단계 1: 거리 입력 (2타 이후) -->
-    <div id="distanceInputSection" class="hidden" style="margin-bottom:16px;">
+
+    <!-- 편집 배너 -->
+    <div id="editingBanner" class="hidden" style="background:rgba(31,181,122,0.2);border:1px solid var(--accent);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--accent);font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+      <span id="editingBannerText">✏️ 샷 수정 중</span>
+      <button type="button" onclick="cancelEdit()" style="background:rgba(255,255,255,0.15);border:none;border-radius:4px;padding:4px 10px;color:var(--text);font-size:12px;cursor:pointer;">취소</button>
+    </div>
+
+    <!-- 샷 타입 탭 -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:12px;">
+      <button type="button" class="shot-tab" data-mode="tee" onclick="switchShotMode('tee')">🏌️<br><span style="font-size:10px;">티샷</span></button>
+      <button type="button" class="shot-tab" data-mode="approach" onclick="switchShotMode('approach')">🎯<br><span style="font-size:10px;">세컨/서드</span></button>
+      <button type="button" class="shot-tab" data-mode="around" onclick="switchShotMode('around')">🌿<br><span style="font-size:10px;">어프로치</span></button>
+      <button type="button" class="shot-tab" data-mode="putt" onclick="switchShotMode('putt')">⛳<br><span style="font-size:10px;">퍼팅</span></button>
+      <button type="button" class="shot-tab" data-mode="layup" onclick="switchShotMode('layup')">↩️<br><span style="font-size:10px;">레이업</span></button>
+    </div>
+
+    <!-- 패널 1: 티샷 -->
+    <div id="panel-tee" class="shot-panel">
       <div class="form-group">
-        <label class="form-label" style="color:var(--accent); font-size:15px; font-weight:700;">홀까지 남은 거리 입력</label>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input type="number" id="distanceToHole" placeholder="예: 120 또는 -10" style="flex:1;">
-          <span id="shotDistanceUnitLabel" style="font-weight:600;">yd</span>
+        <label class="form-label">클럽</label>
+        <div class="club-select-group">
+          <select id="teeClubWood" onchange="if(this.value)document.getElementById('teeClubIron').value=''">
+            <option value="">우드/유틸</option>
+            <option value="Driver">드라이버</option>
+            <option value="3Wood">3W</option>
+            <option value="5Wood">5W</option>
+            <option value="Utility1">UT1</option>
+            <option value="Utility2">UT2</option>
+          </select>
+          <select id="teeClubIron" onchange="if(this.value)document.getElementById('teeClubWood').value=''">
+            <option value="">아이언</option>
+            <option value="4Iron">4I</option>
+            <option value="5Iron">5I</option>
+            <option value="6Iron">6I</option>
+            <option value="7Iron">7I</option>
+            <option value="8Iron">8I</option>
+            <option value="9Iron">9I</option>
+          </select>
         </div>
-        <div style="font-size:11px; color:var(--muted); margin-top:4px;">※ 홀을 지나친 경우 음수(-)로 입력</div>
       </div>
-      <button type="button" class="btn" id="btnConfirmDistance">확인</button>
-    </div>
-    
-    <!-- 단계 2: 추천 클럽 (거리 입력 후) -->
-    <div id="clubRecommendSection" class="hidden" style="margin-bottom:16px;">
-      <div style="padding:12px; background:rgba(31,181,122,0.15); border:1px solid rgba(31,181,122,0.3); border-radius:6px;">
-        <div style="font-size:14px; color:var(--accent); font-weight:700; margin-bottom:8px; text-align:center;">추천 클럽</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:8px; text-align:center;">남은 거리: <span id="displayDistance" style="color:var(--accent); font-weight:700;"></span></div>
-        <div id="clubRecommendButtons" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center;"></div>
-        <button type="button" id="btnManualClubSelect" style="width:100%; margin-top:12px; padding:10px; background:rgba(255,255,255,0.1); color:var(--text); border:1px solid rgba(255,255,255,0.3); border-radius:6px; cursor:pointer; font-size:14px; font-weight:600;">📋 직접 선택</button>
+      <div class="form-group">
+        <label class="form-label">결과</label>
+        <div class="result-btn-grid" id="teeResultBtns"></div>
+        <input type="hidden" id="teeResult" value="Fairway">
       </div>
+      <div class="form-group">
+        <label class="form-label">페널티</label>
+        <input type="number" id="teePenalty" value="0" min="0" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea id="teeNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
+      </div>
+      <button type="button" class="btn" id="btnSaveTee">저장</button>
     </div>
-    
-    <!-- 단계 3: 클럽 선택 -->
-    <div id="clubSelectSection" class="form-group">
-      <label class="form-label">클럽</label>
-      <div class="club-select-group">
-        <select id="clubWood">
-          <option value="">티샷</option>
-          <option value="Driver">드라이버</option>
-          <option value="3Wood">3W</option>
+
+    <!-- 패널 2: 세컨/서드샷 -->
+    <div id="panel-approach" class="shot-panel hidden">
+      <div class="form-group">
+        <label class="form-label" style="color:var(--accent);font-weight:700;">홀까지 남은 거리</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="approachDistance" placeholder="예: 120" style="flex:1;" inputmode="decimal">
+          <span id="approachDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">※ 홀을 지나친 경우 음수(-)로 입력</div>
+      </div>
+      <div class="form-group" id="approachRecommendSection" style="display:none;">
+        <label class="form-label">추천 클럽</label>
+        <div id="approachRecommendBtns" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">클럽</label>
+        <select id="approachClub">
+          <option value="">선택</option>
           <option value="5Wood">5W</option>
           <option value="Utility1">UT1</option>
           <option value="Utility2">UT2</option>
-        </select>
-        <select id="clubIronWedge">
-          <option value="">세컨/써드샷</option>
           <option value="4Iron">4I</option>
           <option value="5Iron">5I</option>
           <option value="6Iron">6I</option>
@@ -460,42 +561,63 @@ textarea{
           <option value="AW">AW</option>
         </select>
       </div>
-    </div>
-    
-    <!-- 단계 4: 결과 입력 -->
-    <div id="resultInputSection">
       <div class="form-group">
         <label class="form-label">결과</label>
-        <select id="shotResult">
-          <option value="Fairway">페어웨이</option>
-          <option value="LeftRough">좌측 러프</option>
-          <option value="RightRough">우측 러프</option>
-          <option value="Green">그린</option>
-          <option value="AroundGreen">그린 주변</option>
-          <option value="InHole">홀인</option>
-          <option value="Bunker_Fairway">페어웨이 벙커</option>
-          <option value="Bunker_Greenside">그린사이드 벙커</option>
-          <option value="Water">워터</option>
-          <option value="Out">OB</option>
-        </select>
+        <div class="result-btn-grid" id="approachResultBtns"></div>
+        <input type="hidden" id="approachResult" value="Fairway">
       </div>
-
       <div class="form-group">
         <label class="form-label">페널티</label>
-        <input type="number" id="penalty" value="0" min="0" inputmode="decimal">
+        <input type="number" id="approachPenalty" value="0" min="0" inputmode="decimal">
       </div>
-
       <div class="form-group">
         <label class="form-label">메모</label>
-        <textarea id="shotNote" placeholder="선택 사항"></textarea>
+        <textarea id="approachNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
       </div>
-
-      <button type="button" class="btn" id="btnAddShot">저장</button>
+      <button type="button" class="btn" id="btnSaveApproach">저장</button>
     </div>
-    
-    <div class="form-group" style="margin-top:16px;">
-      <label class="form-label">퍼팅 정보</label>
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
+
+    <!-- 패널 3: 홀주변 어프로치 -->
+    <div id="panel-around" class="shot-panel hidden">
+      <div class="form-group">
+        <label class="form-label" style="color:var(--accent);font-weight:700;">홀까지 남은 거리</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="aroundDistance" placeholder="예: 15" style="flex:1;" inputmode="decimal">
+          <span id="aroundDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">클럽</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="aroundClubBtns">
+          <button type="button" class="club-quick-btn" data-club="SW">SW</button>
+          <button type="button" class="club-quick-btn" data-club="AW">AW</button>
+          <button type="button" class="club-quick-btn" data-club="Wedge3">웨지3</button>
+          <button type="button" class="club-quick-btn" data-club="Wedge2">웨지2</button>
+          <button type="button" class="club-quick-btn" data-club="Wedge1">웨지1</button>
+          <button type="button" class="club-quick-btn" data-club="PW">PW</button>
+          <button type="button" class="club-quick-btn" data-club="9Iron">9I</button>
+        </div>
+        <input type="hidden" id="aroundClub" value="">
+      </div>
+      <div class="form-group">
+        <label class="form-label">결과</label>
+        <div class="result-btn-grid" id="aroundResultBtns"></div>
+        <input type="hidden" id="aroundResult" value="Green">
+      </div>
+      <div class="form-group">
+        <label class="form-label">페널티</label>
+        <input type="number" id="aroundPenalty" value="0" min="0" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea id="aroundNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
+      </div>
+      <button type="button" class="btn" id="btnSaveAround">저장</button>
+    </div>
+
+    <!-- 패널 4: 퍼팅 -->
+    <div id="panel-putt" class="shot-panel hidden">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
         <select id="puttLie" style="flex:1;">
           <option value="OnGreen">그린</option>
           <option value="Fringe">프린지</option>
@@ -509,20 +631,57 @@ textarea{
           <option value="Downhill">내리막</option>
           <option value="Sidehill">사이드힐</option>
         </select>
-        <input type="number" id="puttDistance" placeholder="거리" min="0" style="flex:1;" inputmode="numeric">
-        <span id="puttDistanceUnitLabel" style="font-size:12px; color:var(--muted); align-self:center;">yd</span>
       </div>
-    </div>
-    
-    <div style="display:flex; gap:8px; margin-top:16px; margin-bottom:16px;">
-      <div class="putter-btn-container" style="flex:1; margin:0;">
-        <button type="button" class="putter-btn" id="btnPutter">⛳ 퍼터</button>
+      <div class="form-group">
+        <label class="form-label">퍼팅 거리</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="puttDistance" placeholder="거리" min="0" style="flex:1;" inputmode="numeric">
+          <span id="puttDistanceUnitLabel" style="font-weight:600;color:var(--muted);">yd</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea id="shotNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
+      </div>
+      <div class="putter-btn-container" style="padding:0;background:none;border:none;margin:0;">
+        <button type="button" class="putter-btn" id="btnPutter">⛳ 퍼터 추가</button>
         <div class="putter-count">퍼팅: <span id="putterCount">0</span>타</div>
       </div>
-      <div class="putter-btn-container" style="flex:1; margin:0;">
-        <button type="button" class="putter-btn" id="btnLayup" style="background:rgba(255,193,7,0.2); border-color:rgba(255,193,7,0.4);">🎯 레이업</button>
-        <div class="putter-count" style="font-size:11px; color:var(--muted);">통계 제외</div>
+    </div>
+
+    <!-- 패널 5: 레이업 -->
+    <div id="panel-layup" class="shot-panel hidden">
+      <div class="form-group">
+        <label class="form-label">클럽 (선택)</label>
+        <div class="club-select-group">
+          <select id="layupClubWood" onchange="if(this.value)document.getElementById('layupClubIron').value=''">
+            <option value="">우드/유틸</option>
+            <option value="Driver">드라이버</option>
+            <option value="3Wood">3W</option>
+            <option value="5Wood">5W</option>
+            <option value="Utility1">UT1</option>
+            <option value="Utility2">UT2</option>
+          </select>
+          <select id="layupClubIron" onchange="if(this.value)document.getElementById('layupClubWood').value=''">
+            <option value="">아이언/웨지</option>
+            <option value="4Iron">4I</option>
+            <option value="5Iron">5I</option>
+            <option value="6Iron">6I</option>
+            <option value="7Iron">7I</option>
+            <option value="8Iron">8I</option>
+            <option value="9Iron">9I</option>
+            <option value="PW">PW</option>
+            <option value="Wedge1">웨지1</option>
+            <option value="Wedge2">웨지2</option>
+            <option value="Wedge3">웨지3</option>
+          </select>
+        </div>
       </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea id="layupNote" placeholder="선택 사항" style="min-height:44px;"></textarea>
+      </div>
+      <button type="button" class="btn" id="btnSaveLayup" style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);color:var(--text);">↩️ 레이업 저장 (통계 제외)</button>
     </div>
 
     <!-- 기록된 샷 리스트 -->
@@ -572,40 +731,23 @@ const exportSection = document.getElementById('exportSection');
 const btnStartRound = document.getElementById('btnStartRound');
 const btnPrevHole = document.getElementById('btnPrevHole');
 const btnNextHole = document.getElementById('btnNextHole');
-const btnAddShot = document.getElementById('btnAddShot');
 const btnCompleteHole = document.getElementById('btnCompleteHole');
 const btnEditHole = document.getElementById('btnEditHole');
 const btnExportCSV = document.getElementById('btnExportCSV');
 const btnReset = document.getElementById('btnReset');
-const btnConfirmDistance = document.getElementById('btnConfirmDistance');
-const btnManualClubSelect = document.getElementById('btnManualClubSelect');
-
-const distanceInputSection = document.getElementById('distanceInputSection');
-const clubRecommendSection = document.getElementById('clubRecommendSection');
-const clubSelectSection = document.getElementById('clubSelectSection');
-const resultInputSection = document.getElementById('resultInputSection');
-const clubRecommendButtons = document.getElementById('clubRecommendButtons');
-const displayDistance = document.getElementById('displayDistance');
 
 const playerNameInput = document.getElementById('playerName');
 const roundDateInput = document.getElementById('roundDate');
 const courseNameInput = document.getElementById('courseName');
 const distanceUnitSel = document.getElementById('distanceUnit');
 const holeDistanceUnitLabel = document.getElementById('holeDistanceUnitLabel');
-const shotDistanceUnitLabel = document.getElementById('shotDistanceUnitLabel');
 
-const clubWoodSel = document.getElementById('clubWood');
-const clubIronWedgeSel = document.getElementById('clubIronWedge');
 const btnPutter = document.getElementById('btnPutter');
-const btnLayup = document.getElementById('btnLayup');
 const putterCountEl = document.getElementById('putterCount');
 const puttLieEl = document.getElementById('puttLie');
 const puttSlopeEl = document.getElementById('puttSlope');
 const puttDistanceEl = document.getElementById('puttDistance');
 const puttDistanceUnitLabel = document.getElementById('puttDistanceUnitLabel');
-const shotResultSel = document.getElementById('shotResult');
-const distanceInput = document.getElementById('distanceToHole');
-const penaltyInput = document.getElementById('penalty');
 const shotNoteInput = document.getElementById('shotNote');
 
 // 퍼터 카운터 변수
@@ -1092,9 +1234,11 @@ if(btnStartRound){
 function updateDistanceUnitLabels(){
   const unit = roundData.distanceUnit || 'yd';
   holeDistanceUnitLabel.textContent = unit;
-  shotDistanceUnitLabel.textContent = unit;
   puttDistanceUnitLabel.textContent = unit;
-  // 입력 단위 기본값을 라운드 단위로 설정
+  // 탭 패널 내 단위 표시 업데이트
+  ['approachDistanceUnit','aroundDistanceUnit'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = unit;
+  });
   holeInputUnitEl.value = unit;
   updateConvertedDistance();
 }
@@ -1146,99 +1290,47 @@ btnConvertDistance.addEventListener('click', ()=>{
 holeYardInput.addEventListener('input', updateConvertedDistance);
 holeInputUnitEl.addEventListener('change', updateConvertedDistance);
 
-// 레이업 버튼 클릭 - 샷수만 증가, 거리 통계 제외
-btnLayup.addEventListener('click', ()=>{
-  const hole = roundData.holes[currentHole];
-  
-  // 레이업 샷 자동 추가 - distanceToHole은 나중에 업데이트
-  const shot = {
-    club: 'LayUp',
-    result: 'Layup',
-    distanceToHole: null, // 나중에 거리 입력 후 업데이트 (통계에서 제외하려면 null 유지)
-    putts: 0,
-    penalty: 0,
-    note: '레이업 (통계 제외)',
-    lie: '',
-    slope: '',
-    puttStartDistance: null,
-    isLayup: true,
-    timestamp: new Date().toISOString()
-  };
-  
-  hole.shots.push(shot);
-  lastShotIndex = hole.shots.length - 1;
-  
-  // 입력 필드 초기화
-  clubWoodSel.value = '';
-  clubIronWedgeSel.value = '';
-  
-  // 화면 업데이트
-  holeNumberEl.textContent = hole.shots.length;
-  updateStatusBar();
-  renderShots();
-  saveData();
-  
-  // 거리 입력 단계로 (레이업은 통계 제외이지만 거리는 입력 가능)
-  proceedToDistanceInput();
-});
+// [레이업 버튼은 panel-layup 의 btnSaveLayup 으로 이전됨]
 
-// 퍼터 버튼 클릭 - 자동으로 샷 추가
+// 퍼터 버튼 클릭 - 퍼팅 패널에서 샷 추가
 btnPutter.addEventListener('click', ()=>{
   const hole = roundData.holes[currentHole];
   
-  // 퍼터 샷 자동 추가
   const shot = {
     club: 'Putter',
-    result: shotResultSel.value || 'Green',
-    distanceToHole: null, // 나중에 거리 입력 후 업데이트
+    result: 'Green',
+    distanceToHole: null,
     putts: 1,
-    penalty: penaltyInput.value ? Number(penaltyInput.value) : 0,
-    note: shotNoteInput.value.trim(),
-    lie: puttLieEl.value || 'OnGreen',
-    slope: puttSlopeEl.value || 'Flat',
-    puttStartDistance: (puttDistanceEl.value !== '' && puttDistanceEl.value !== null && puttDistanceEl.value !== undefined) ? Number(puttDistanceEl.value) : null,
+    penalty: 0,
+    note: shotNoteInput ? shotNoteInput.value.trim() : '',
+    lie: puttLieEl ? puttLieEl.value : 'OnGreen',
+    slope: puttSlopeEl ? puttSlopeEl.value : 'Flat',
+    puttStartDistance: (puttDistanceEl && puttDistanceEl.value !== '') ? Number(puttDistanceEl.value) : null,
+    shotMode: 'putt',
     timestamp: new Date().toISOString()
   };
   
-  if(shot.club){
+  if(editingIndex >= 0){
+    hole.shots[editingIndex] = shot;
+    editingIndex = -1;
+    const banner = document.getElementById('editingBanner');
+    if(banner) banner.classList.add('hidden');
+  } else {
     hole.shots.push(shot);
-    lastShotIndex = hole.shots.length - 1;
     putterCount++;
-    putterCountEl.textContent = putterCount;
+    if(putterCountEl) putterCountEl.textContent = putterCount;
   }
   
-  // 입력 필드 초기화
-  clubWoodSel.value = '';
-  clubIronWedgeSel.value = '';
-  penaltyInput.value = '0';
-  shotNoteInput.value = '';
-  puttDistanceEl.value = '';
+  if(puttDistanceEl) puttDistanceEl.value = '';
+  if(shotNoteInput) shotNoteInput.value = '';
   
-  // 화면 업데이트
   holeNumberEl.textContent = hole.shots.length;
   updateStatusBar();
   renderShots();
   saveData();
-  
-  // 홀인이 아니면 거리 입력 단계로
-  if(shotResultSel.value === 'InHole'){
-    // 홀인이면 distanceToHole를 0으로 설정하고 폼 초기화
-    hole.shots[lastShotIndex].distanceToHole = 0;
-    saveData();
-    clearShotForm();
-  } else {
-    proceedToDistanceInput();
-  }
 });
 
-// 결과 선택 시 홀인이면 퍼터 카운트 초기화
-shotResultSel.addEventListener('change', ()=>{
-  if(shotResultSel.value === 'InHole'){
-    // 홀인 선택 시 퍼터 카운트 초기화
-    putterCount = 0;
-    putterCountEl.textContent = putterCount;
-  }
-});
+// [shotResultSel → 탭 패널의 hidden input으로 이전됨]
 
 // 홀 표시 업데이트
 function updateHoleDisplay(){
@@ -1368,139 +1460,68 @@ function loadShotForEdit(idx){
   const hole = roundData.holes[currentHole];
   const shot = hole.shots[idx];
   
-  // 퍼터 샷은 편집 불가 (별도 버튼으로 관리)
-  if(shot.club === 'Putter'){
-    alert('퍼터 샷은 퍼터 버튼으로만 추가/삭제할 수 있습니다.');
-    return;
-  }
-  
-  // 레이업 샷은 편집 불가 (별도 버튼으로 관리)
-  if(shot.club === 'LayUp' || shot.isLayup){
-    alert('레이업 샷은 레이업 버튼으로만 추가/삭제할 수 있습니다.');
-    return;
-  }
-  
-  // 모든 섹션 표시
-  distanceInputSection.classList.add('hidden');
-  clubRecommendSection.classList.add('hidden');
-  clubSelectSection.classList.remove('hidden');
-  resultInputSection.classList.remove('hidden');
-  
-  // 폼에 데이터 로드
-  if(['Driver', '3Wood', '5Wood', 'Utility1', 'Utility2'].includes(shot.club)){
-    clubWoodSel.value = shot.club;
-    clubIronWedgeSel.value = '';
-  } else {
-    clubWoodSel.value = '';
-    clubIronWedgeSel.value = shot.club;
-  }
-  
-  shotResultSel.value = shot.result || 'Fairway';
-  penaltyInput.value = shot.penalty || 0;
-  shotNoteInput.value = shot.note || '';
-  
-  // 편집 모드 설정
   editingIndex = idx;
-  lastShotIndex = idx; // 편집 시에도 lastShotIndex 설정
-  isSaveMode = true;
-  btnAddShot.textContent = '수정 저장';
+  showEditingBanner(idx);
   
-  // 샷 리스트 재렌더링하여 선택 표시
+  // shotMode 또는 club/isLayup으로 패널 판단
+  const mode = shot.shotMode || (
+    shot.club === 'Putter' ? 'putt' :
+    (shot.isLayup || shot.club === 'LayUp') ? 'layup' :
+    idx === 0 ? 'tee' : 'approach'
+  );
+  
+  switchShotMode(mode);
+  
+  if(mode === 'tee'){
+    const woodSel = document.getElementById('teeClubWood');
+    const ironSel = document.getElementById('teeClubIron');
+    if(['Driver','3Wood','5Wood','Utility1','Utility2'].includes(shot.club)){
+      if(woodSel) woodSel.value = shot.club;
+      if(ironSel) ironSel.value = '';
+    } else {
+      if(woodSel) woodSel.value = '';
+      if(ironSel) ironSel.value = shot.club || '';
+    }
+    selectResultBtn('tee', shot.result || 'Fairway');
+    const pen = document.getElementById('teePenalty'); if(pen) pen.value = shot.penalty || 0;
+    const note = document.getElementById('teeNote'); if(note) note.value = shot.note || '';
+  } else if(mode === 'approach'){
+    const clubSel = document.getElementById('approachClub'); if(clubSel) clubSel.value = shot.club || '';
+    if(shot.distanceToHole != null){ const d = document.getElementById('approachDistance'); if(d) d.value = shot.distanceToHole; }
+    selectResultBtn('approach', shot.result || 'Fairway');
+    const pen = document.getElementById('approachPenalty'); if(pen) pen.value = shot.penalty || 0;
+    const note = document.getElementById('approachNote'); if(note) note.value = shot.note || '';
+  } else if(mode === 'around'){
+    const aroundClubEl = document.getElementById('aroundClub'); if(aroundClubEl) aroundClubEl.value = shot.club || '';
+    document.getElementById('aroundClubBtns')?.querySelectorAll('.club-quick-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.club === shot.club);
+    });
+    if(shot.distanceToHole != null){ const d = document.getElementById('aroundDistance'); if(d) d.value = shot.distanceToHole; }
+    selectResultBtn('around', shot.result || 'Green');
+    const pen = document.getElementById('aroundPenalty'); if(pen) pen.value = shot.penalty || 0;
+    const note = document.getElementById('aroundNote'); if(note) note.value = shot.note || '';
+  } else if(mode === 'putt'){
+    if(puttLieEl) puttLieEl.value = shot.lie || 'OnGreen';
+    if(puttSlopeEl) puttSlopeEl.value = shot.slope || 'Flat';
+    if(puttDistanceEl) puttDistanceEl.value = shot.puttStartDistance || '';
+    if(shotNoteInput) shotNoteInput.value = shot.note || '';
+  } else if(mode === 'layup'){
+    const wood = document.getElementById('layupClubWood');
+    const iron = document.getElementById('layupClubIron');
+    if(['Driver','3Wood','5Wood','Utility1','Utility2'].includes(shot.club)){
+      if(wood) wood.value = shot.club; if(iron) iron.value = '';
+    } else {
+      if(wood) wood.value = ''; if(iron) iron.value = (shot.club !== 'LayUp' ? shot.club : '') || '';
+    }
+    const note = document.getElementById('layupNote'); if(note) note.value = shot.note || '';
+  }
+  
   renderShots();
 }
 
-// 거리 확인 버튼 클릭
-btnConfirmDistance.addEventListener('click', ()=>{
-  const distance = Number(distanceInput.value);
-  // 0이 아니고 유효한 숫자인지만 체크 (음수 허용)
-  if(distanceInput.value === '' || isNaN(distance)){
-    alert('거리를 입력해주세요');
-    return;
-  }
-  
-  // 방금 저장한 샷의 distanceToHole 업데이트
-  const hole = roundData.holes[currentHole];
-  if(lastShotIndex >= 0 && lastShotIndex < hole.shots.length){
-    hole.shots[lastShotIndex].distanceToHole = distance;
-    saveData();
-  }
-  
-  // 거리 입력 섹션 숨기고 클럽 추천 섹션 표시
-  distanceInputSection.classList.add('hidden');
-  showClubRecommendation(distance);
-});
+// [btnConfirmDistance, btnManualClubSelect → 탭 패널 UI로 이전됨]
 
-// 직접 선택 버튼 클릭
-btnManualClubSelect.addEventListener('click', ()=>{
-  // 추천 클럽 섹션 숨기고 클럽 선택 및 결과 입력 섹션 표시
-  clubRecommendSection.classList.add('hidden');
-  clubSelectSection.classList.remove('hidden');
-  resultInputSection.classList.remove('hidden');
-});
-
-// 샷 추가 (우드, 아이언/웨지 전용)
-btnAddShot.addEventListener('click', ()=>{
-  const club = clubWoodSel.value || clubIronWedgeSel.value;
-  
-  if(!club){
-    alert('클럽을 선택해주세요');
-    return;
-  }
-  
-  const hole = roundData.holes[currentHole];
-  
-  // 편집 모드인 경우 기존 distanceToHole 유지
-  const existingDistance = (editingIndex >= 0 && hole.shots[editingIndex]) 
-    ? hole.shots[editingIndex].distanceToHole 
-    : null;
-  
-  const shot = {
-    club: club,
-    result: shotResultSel.value || 'Fairway',
-    distanceToHole: existingDistance, // 편집 시 기존 값, 새 샷은 null (나중에 업데이트)
-    putts: 0,
-    penalty: penaltyInput.value ? Number(penaltyInput.value) : 0,
-    note: shotNoteInput.value.trim(),
-    lie: '',
-    slope: '',
-    puttStartDistance: null,
-    timestamp: new Date().toISOString()
-  };
-  
-  if(editingIndex >= 0){
-    hole.shots[editingIndex] = shot;
-    lastShotIndex = editingIndex;
-    editingIndex = -1;
-    
-    // 편집 완료 후 폼 초기화
-    updateHoleDisplay();
-    saveData();
-    clearShotForm();
-    return;
-  } else {
-    hole.shots.push(shot);
-    lastShotIndex = hole.shots.length - 1;
-  }
-  
-  if(shotResultSel.value === 'InHole'){
-    putterCount = 0;
-    putterCountEl.textContent = putterCount;
-  }
-  
-  updateHoleDisplay();
-  saveData();
-  
-  // 홀인이 아니면 거리 입력 단계로
-  if(shotResultSel.value === 'InHole'){
-    // 홀인이면 distanceToHole를 0으로 설정하고 폼 초기화
-    hole.shots[lastShotIndex].distanceToHole = 0;
-    saveData();
-    clearShotForm();
-  } else {
-    // 거리 입력 단계로
-    proceedToDistanceInput();
-  }
-});
+// [btnAddShot → 각 패널의 btnSaveTee/btnSaveApproach/btnSaveAround 으로 이전됨]
 
 // 샷 삭제
 function deleteShot(idx){
@@ -1511,24 +1532,10 @@ function deleteShot(idx){
   }
 }
 
-// 거리 입력 단계로 진행
+// 거리 입력 단계로 진행 [이전 단계식 UI 유물 함수 - 미사용]
 function proceedToDistanceInput(){
-  // 모든 입력 섹션 숨기기
-  clubRecommendSection.classList.add('hidden');
-  clubSelectSection.classList.add('hidden');
-  resultInputSection.classList.add('hidden');
-  
-  // 거리 입력 섹션 표시
-  distanceInputSection.classList.remove('hidden');
-  distanceInput.value = '';
-  distanceInput.focus();
-  
-  // 폼 초기화 (거리 제외)
-  clubWoodSel.value = '';
-  clubIronWedgeSel.value = '';
-  shotResultSel.value = 'Fairway';
-  penaltyInput.value = '0';
-  shotNoteInput.value = '';
+  // 새 탭 UI에서는 approach 탭으로 이동
+  switchShotMode('approach');
 }
 
 // 클럽 추천 표시
@@ -1614,45 +1621,50 @@ function selectRecommendedClub(clubCode){
 // 샷 입력 폼 초기화
 function clearShotForm(){
   const hole = roundData.holes[currentHole];
-  const isFirstShot = hole.shots.length === 0;
-  
-  // 모든 섹션 초기화
-  distanceInputSection.classList.add('hidden');
-  clubRecommendSection.classList.add('hidden');
-  
-  // 첫 번째 샷일 때
-  if(isFirstShot){
-    // 클럽 선택과 결과 입력 섹션 표시
-    clubSelectSection.classList.remove('hidden');
-    resultInputSection.classList.remove('hidden');
-    
-    // Par에 따라 디폴트 클럽 선택
-    if(hole.par === 3){
-      clubWoodSel.value = '';
-      clubIronWedgeSel.value = '7Iron';
-    } else if(hole.par === 4 || hole.par === 5){
-      clubWoodSel.value = 'Driver';
-      clubIronWedgeSel.value = '';
-    } else {
-      clubWoodSel.value = '';
-      clubIronWedgeSel.value = '';
-    }
-  } else {
-    // 첫 번째 샷이 아닌 경우: 거리 입력부터 시작
-    clubSelectSection.classList.add('hidden');
-    resultInputSection.classList.add('hidden');
-    proceedToDistanceInput();
-  }
-  
-  shotResultSel.value = 'Fairway';
-  distanceInput.value = '';
-  penaltyInput.value = '0';
-  shotNoteInput.value = '';
-  
-  isSaveMode = true;
   editingIndex = -1;
-  btnAddShot.textContent = '저장';
   
+  // 편집 배너 숨기기
+  const banner = document.getElementById('editingBanner');
+  if(banner) banner.classList.add('hidden');
+  
+  // 티샷 패널
+  const teeWood = document.getElementById('teeClubWood');
+  const teeIron = document.getElementById('teeClubIron');
+  if(teeWood && teeIron){
+    if(hole.par === 3){ teeWood.value = ''; teeIron.value = '7Iron'; }
+    else { teeWood.value = 'Driver'; teeIron.value = ''; }
+  }
+  selectResultBtn('tee', 'Fairway');
+  const tP = document.getElementById('teePenalty'); if(tP) tP.value = '0';
+  const tN = document.getElementById('teeNote'); if(tN) tN.value = '';
+  
+  // 세컨/서드 패널
+  const aClub = document.getElementById('approachClub'); if(aClub) aClub.value = '';
+  const aDist = document.getElementById('approachDistance'); if(aDist) aDist.value = '';
+  const aRec = document.getElementById('approachRecommendSection'); if(aRec) aRec.style.display = 'none';
+  selectResultBtn('approach', 'Fairway');
+  const aP = document.getElementById('approachPenalty'); if(aP) aP.value = '0';
+  const aN = document.getElementById('approachNote'); if(aN) aN.value = '';
+  
+  // 어프로치 패널
+  const acClub = document.getElementById('aroundClub'); if(acClub) acClub.value = '';
+  document.getElementById('aroundClubBtns')?.querySelectorAll('.club-quick-btn').forEach(b => b.classList.remove('active'));
+  const acDist = document.getElementById('aroundDistance'); if(acDist) acDist.value = '';
+  selectResultBtn('around', 'Green');
+  const acP = document.getElementById('aroundPenalty'); if(acP) acP.value = '0';
+  const acN = document.getElementById('aroundNote'); if(acN) acN.value = '';
+  
+  // 퍼팅 패널
+  if(puttDistanceEl) puttDistanceEl.value = '';
+  if(shotNoteInput) shotNoteInput.value = '';
+  
+  // 레이업 패널
+  const lW = document.getElementById('layupClubWood'); if(lW) lW.value = '';
+  const lI = document.getElementById('layupClubIron'); if(lI) lI.value = '';
+  const lN = document.getElementById('layupNote'); if(lN) lN.value = '';
+  
+  // 기본 탭 전환
+  switchShotMode(hole.shots.length === 0 ? 'tee' : 'approach');
   renderShots();
 }
 
@@ -1947,27 +1959,7 @@ function restoreData(){
 }
 
 
-// 클럽 선택 시 다른 선택 해제 및 결과 입력 섹션 표시
-clubWoodSel.addEventListener('change', ()=>{
-  if(clubWoodSel.value){
-    clubIronWedgeSel.value = '';
-    // 첫 샷이 아니고, 클럽 추천에서 선택한 경우 결과 입력 자동 표시
-    if(clubRecommendSection && !clubRecommendSection.classList.contains('hidden')){
-      clubRecommendSection.classList.add('hidden');
-      resultInputSection.classList.remove('hidden');
-    }
-  }
-});
-clubIronWedgeSel.addEventListener('change', ()=>{
-  if(clubIronWedgeSel.value){
-    clubWoodSel.value = '';
-    // 첫 샷이 아니고, 클럽 추천에서 선택한 경우 결과 입력 자동 표시
-    if(clubRecommendSection && !clubRecommendSection.classList.contains('hidden')){
-      clubRecommendSection.classList.add('hidden');
-      resultInputSection.classList.remove('hidden');
-    }
-  }
-});
+// [클럽 선택 이벤트 → 탭 패널 onchange로 이전됨]
 
 // 페이지 로드 시 이전 데이터 확인
 function checkAndRestorePreviousData(){
@@ -2005,6 +1997,7 @@ function checkAndRestorePreviousData(){
 // DOM이 준비되면 이전 데이터 및 URL 세션 복원
 async function initPage(){
   await restoreSessionFromUrl();
+  initShotPanels();
   checkAndRestorePreviousData();
 }
 
@@ -2016,6 +2009,243 @@ if(document.readyState === 'loading'){
 
 // 자동 저장 (5초마다)
 setInterval(saveData, 5000);
+
+// ===== 새 탭 패널 로직 =====
+let currentShotMode = 'tee';
+
+// 결과 버튼 정의
+const RESULT_CONFIGS = {
+  tee: [
+    {value:'Fairway', label:'페어웨이'},
+    {value:'LeftRough', label:'좌 러프'},
+    {value:'RightRough', label:'우 러프'},
+    {value:'Bunker_Fairway', label:'벙커'},
+    {value:'Water', label:'워터'},
+    {value:'Out', label:'OB'}
+  ],
+  tee_par3: [
+    {value:'Green', label:'그린 🎯'},
+    {value:'AroundGreen', label:'그린 주변'},
+    {value:'InHole', label:'홀인 🎉'},
+    {value:'LeftRough', label:'좌 러프'},
+    {value:'RightRough', label:'우 러프'},
+    {value:'Bunker_Greenside', label:'그린사이드 벙커'},
+    {value:'Water', label:'워터'},
+    {value:'Out', label:'OB'}
+  ],
+  approach: [
+    {value:'Green', label:'그린'},
+    {value:'AroundGreen', label:'그린 주변'},
+    {value:'Fairway', label:'페어웨이'},
+    {value:'LeftRough', label:'좌 러프'},
+    {value:'RightRough', label:'우 러프'},
+    {value:'Bunker_Greenside', label:'그린사이드'},
+    {value:'Bunker_Fairway', label:'페어웨이 본커'},
+    {value:'Water', label:'워터'},
+    {value:'Out', label:'OB'}
+  ],
+  around: [
+    {value:'Green', label:'그린'},
+    {value:'AroundGreen', label:'그린 주변'},
+    {value:'InHole', label:'홀인 🎉'},
+    {value:'Bunker_Greenside', label:'본커'},
+    {value:'Water', label:'워터'},
+    {value:'Out', label:'OB'}
+  ]
+};
+
+function initResultBtns(mode){
+  // 티샷은 Par3 여부에 따라 다른 결과 목록 사용
+  const configKey = (mode === 'tee' && roundData.holes[currentHole]?.par === 3) ? 'tee_par3' : mode;
+  const config = RESULT_CONFIGS[configKey];
+  if(!config) return;
+  const grid = document.getElementById(mode + 'ResultBtns');
+  if(!grid) return;
+  grid.innerHTML = config.map(item =>
+    `<button type="button" class="result-btn" data-value="${item.value}" onclick="selectResultBtn('${mode}','${item.value}')">${item.label}</button>`
+  ).join('');
+  // 기본값 표시
+  const hiddenEl = document.getElementById(mode + 'Result');
+  selectResultBtn(mode, hiddenEl ? hiddenEl.value : config[0].value);
+}
+
+function selectResultBtn(mode, value){
+  const grid = document.getElementById(mode + 'ResultBtns');
+  const hiddenEl = document.getElementById(mode + 'Result');
+  if(!grid || !hiddenEl) return;
+  hiddenEl.value = value;
+  grid.querySelectorAll('.result-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.value === value);
+  });
+}
+
+function switchShotMode(mode){
+  currentShotMode = mode;
+  document.querySelectorAll('.shot-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.mode === mode);
+  });
+  ['tee','approach','around','putt','layup'].forEach(m => {
+    const panel = document.getElementById('panel-' + m);
+    if(panel) panel.classList.toggle('hidden', m !== mode);
+  });
+  // 티샷 탭 전환 시 par에 맞게 결과 버튼 재초기화
+  if(mode === 'tee') initResultBtns('tee');
+}
+
+function showEditingBanner(idx){
+  const banner = document.getElementById('editingBanner');
+  const text = document.getElementById('editingBannerText');
+  if(banner) banner.classList.remove('hidden');
+  if(text) text.textContent = `✏️ ${idx+1}번 샷 수정 중`;
+}
+
+function cancelEdit(){
+  editingIndex = -1;
+  const banner = document.getElementById('editingBanner');
+  if(banner) banner.classList.add('hidden');
+  clearShotForm();
+}
+
+// 세컨/서드 패널: 거리 입력 시 클럽 자동 추천
+document.addEventListener('DOMContentLoaded', function(){
+  const approachDistEl = document.getElementById('approachDistance');
+  if(approachDistEl){
+    approachDistEl.addEventListener('input', function(){
+      const distance = Number(this.value);
+      const section = document.getElementById('approachRecommendSection');
+      if(!isNaN(distance) && this.value !== '' && section){
+        updateApproachClubRecommend(distance);
+      } else if(section){
+        section.style.display = 'none';
+      }
+    });
+  }
+  // 어프로치 패널 클럽 빠른 버튼 초기화
+  const aroundBtns = document.getElementById('aroundClubBtns');
+  if(aroundBtns){
+    aroundBtns.querySelectorAll('.club-quick-btn').forEach(btn => {
+      btn.addEventListener('click', function(){
+        document.getElementById('aroundClub').value = this.dataset.club;
+        aroundBtns.querySelectorAll('.club-quick-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  }
+});
+
+function updateApproachClubRecommend(distance){
+  const absDistance = Math.abs(distance);
+  let clubs = [];
+  if(absDistance <= 10) clubs = [{label:'퍼렉', code:'Putter'}];
+  else if(absDistance <= 50) clubs = [{label:'SW',code:'SW'},{label:'AW',code:'AW'},{label:'웨지3',code:'Wedge3'}];
+  else if(absDistance <= 70) clubs = [{label:'AW',code:'AW'},{label:'웨지1',code:'Wedge1'},{label:'웨지2',code:'Wedge2'},{label:'웨지3',code:'Wedge3'}];
+  else if(absDistance <= 90) clubs = [{label:'웨지1',code:'Wedge1'},{label:'웨지2',code:'Wedge2'},{label:'PW',code:'PW'},{label:'9I',code:'9Iron'}];
+  else if(absDistance <= 110) clubs = [{label:'PW',code:'PW'},{label:'9I',code:'9Iron'},{label:'8I',code:'8Iron'}];
+  else if(absDistance <= 130) clubs = [{label:'9I',code:'9Iron'},{label:'8I',code:'8Iron'},{label:'7I',code:'7Iron'}];
+  else if(absDistance <= 150) clubs = [{label:'8I',code:'8Iron'},{label:'7I',code:'7Iron'},{label:'6I',code:'6Iron'}];
+  else if(absDistance <= 170) clubs = [{label:'7I',code:'7Iron'},{label:'6I',code:'6Iron'},{label:'5I',code:'5Iron'}];
+  else if(absDistance <= 190) clubs = [{label:'6I',code:'6Iron'},{label:'5I',code:'5Iron'},{label:'UT2',code:'Utility2'}];
+  else if(absDistance <= 210) clubs = [{label:'5I',code:'5Iron'},{label:'UT1',code:'Utility1'},{label:'UT2',code:'Utility2'}];
+  else if(absDistance <= 230) clubs = [{label:'UT1',code:'Utility1'},{label:'5W',code:'5Wood'},{label:'3W',code:'3Wood'}];
+  else clubs = [{label:'5W',code:'5Wood'},{label:'3W',code:'3Wood'},{label:'UT1',code:'Utility1'}];
+
+  const section = document.getElementById('approachRecommendSection');
+  const btns = document.getElementById('approachRecommendBtns');
+  if(!section || !btns) return;
+  if(clubs[0].code === 'Putter'){
+    section.style.display = 'none';
+    return;
+  }
+  btns.innerHTML = clubs.map(c =>
+    `<button type="button" onclick="setApproachClub('${c.code}')" style="padding:8px 14px;background:var(--accent);color:#04221a;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;transition:all 0.2s;">${c.label}</button>`
+  ).join('');
+  section.style.display = 'block';
+}
+
+function setApproachClub(code){
+  const sel = document.getElementById('approachClub');
+  if(sel) sel.value = code;
+  const section = document.getElementById('approachRecommendSection');
+  if(section) section.style.display = 'none';
+}
+
+// 각 패널 저장 함수
+function saveShotToHole(shot){
+  const hole = roundData.holes[currentHole];
+  if(editingIndex >= 0){
+    hole.shots[editingIndex] = shot;
+    editingIndex = -1;
+    const banner = document.getElementById('editingBanner');
+    if(banner) banner.classList.add('hidden');
+  } else {
+    hole.shots.push(shot);
+  }
+  holeNumberEl.textContent = hole.shots.length;
+  updateStatusBar();
+  renderShots();
+  saveData();
+  clearShotForm();
+}
+
+// 티샷 저장
+document.addEventListener('DOMContentLoaded', function(){
+  const btnSaveTee = document.getElementById('btnSaveTee');
+  if(btnSaveTee) btnSaveTee.addEventListener('click', ()=>{
+    const club = document.getElementById('teeClubWood').value || document.getElementById('teeClubIron').value;
+    if(!club){ alert('클럽을 선택해주세요'); return; }
+    const result = document.getElementById('teeResult').value || 'Fairway';
+    const penalty = Number(document.getElementById('teePenalty').value) || 0;
+    const note = document.getElementById('teeNote').value.trim();
+    const hole = roundData.holes[currentHole];
+    const existingDistance = (editingIndex >= 0 && hole.shots[editingIndex]) ? hole.shots[editingIndex].distanceToHole : null;
+    saveShotToHole({ club, result, distanceToHole: existingDistance, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'tee', timestamp: new Date().toISOString() });
+  });
+
+  // 세컨/서드 저장
+  const btnSaveApproach = document.getElementById('btnSaveApproach');
+  if(btnSaveApproach) btnSaveApproach.addEventListener('click', ()=>{
+    const club = document.getElementById('approachClub').value;
+    if(!club){ alert('클럽을 선택해주세요'); return; }
+    const distVal = document.getElementById('approachDistance').value;
+    const distanceToHole = distVal !== '' ? Number(distVal) : null;
+    const result = document.getElementById('approachResult').value || 'Fairway';
+    const penalty = Number(document.getElementById('approachPenalty').value) || 0;
+    const note = document.getElementById('approachNote').value.trim();
+    saveShotToHole({ club, result, distanceToHole, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'approach', timestamp: new Date().toISOString() });
+  });
+
+  // 어프로치 저장
+  const btnSaveAround = document.getElementById('btnSaveAround');
+  if(btnSaveAround) btnSaveAround.addEventListener('click', ()=>{
+    const club = document.getElementById('aroundClub').value;
+    if(!club){ alert('클럽을 선택해주세요'); return; }
+    const distVal = document.getElementById('aroundDistance').value;
+    const distanceToHole = distVal !== '' ? Number(distVal) : null;
+    const result = document.getElementById('aroundResult').value || 'Green';
+    const penalty = Number(document.getElementById('aroundPenalty').value) || 0;
+    const note = document.getElementById('aroundNote').value.trim();
+    if(result === 'InHole'){ putterCount = 0; if(putterCountEl) putterCountEl.textContent = putterCount; }
+    saveShotToHole({ club, result, distanceToHole, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'around', timestamp: new Date().toISOString() });
+  });
+
+  // 레이업 저장
+  const btnSaveLayup = document.getElementById('btnSaveLayup');
+  if(btnSaveLayup) btnSaveLayup.addEventListener('click', ()=>{
+    const club = document.getElementById('layupClubWood').value || document.getElementById('layupClubIron').value || 'LayUp';
+    const note = document.getElementById('layupNote').value.trim() || '레이업 (통계 제외)';
+    const hole = roundData.holes[currentHole];
+    const existingDistance = (editingIndex >= 0 && hole.shots[editingIndex]) ? hole.shots[editingIndex].distanceToHole : null;
+    saveShotToHole({ club, result:'Layup', distanceToHole: existingDistance, putts:0, penalty:0, note, lie:'', slope:'', puttStartDistance:null, isLayup:true, shotMode:'layup', timestamp: new Date().toISOString() });
+  });
+});
+
+// 탭 패널 초기화
+function initShotPanels(){
+  initResultBtns('tee');
+  initResultBtns('approach');
+  initResultBtns('around');
+  switchShotMode('tee');
+}
 </script>
 </body>
 </html>
