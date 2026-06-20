@@ -500,13 +500,19 @@ textarea{
             <option value="Utility2">UT2</option>
           </select>
           <select id="teeClubIron" onchange="if(this.value)document.getElementById('teeClubWood').value=''">
-            <option value="">아이언</option>
+            <option value="">아이언/웨지</option>
             <option value="4Iron">4I</option>
             <option value="5Iron">5I</option>
             <option value="6Iron">6I</option>
             <option value="7Iron">7I</option>
             <option value="8Iron">8I</option>
             <option value="9Iron">9I</option>
+            <option value="PW">PW</option>
+            <option value="Wedge1">웨지1</option>
+            <option value="Wedge2">웨지2</option>
+            <option value="Wedge3">웨지3</option>
+            <option value="SW">SW</option>
+            <option value="AW">AW</option>
           </select>
         </div>
       </div>
@@ -514,6 +520,13 @@ textarea{
         <label class="form-label">결과</label>
         <div class="result-btn-grid" id="teeResultBtns"></div>
         <input type="hidden" id="teeResult" value="Fairway">
+      </div>
+      <div class="form-group">
+        <label class="form-label">티샷 후 남은 거리 <span style="font-size:11px;color:var(--muted);font-weight:400;">(드라이브 거리 계산용)</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="teeDistance" placeholder="예: 150" style="flex:1;" inputmode="decimal">
+          <span id="teeDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">페널티</label>
@@ -528,14 +541,6 @@ textarea{
 
     <!-- 패널 2: 세컨/서드샷 -->
     <div id="panel-approach" class="shot-panel hidden">
-      <div class="form-group">
-        <label class="form-label" style="color:var(--accent);font-weight:700;">홀까지 남은 거리</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="number" id="approachDistance" placeholder="예: 120" style="flex:1;" inputmode="decimal">
-          <span id="approachDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">※ 홀을 지나친 경우 음수(-)로 입력</div>
-      </div>
       <div class="form-group" id="approachRecommendSection" style="display:none;">
         <label class="form-label">추천 클럽</label>
         <div id="approachRecommendBtns" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
@@ -568,6 +573,13 @@ textarea{
         <input type="hidden" id="approachResult" value="Fairway">
       </div>
       <div class="form-group">
+        <label class="form-label" style="color:var(--accent);font-weight:700;">샷 후 핀까지 거리 <span style="font-size:11px;font-weight:400;">(근접도)</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="approachDistance" placeholder="예: 5" style="flex:1;" inputmode="decimal">
+          <span id="approachDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">페널티</label>
         <input type="number" id="approachPenalty" value="0" min="0" inputmode="decimal">
       </div>
@@ -580,13 +592,6 @@ textarea{
 
     <!-- 패널 3: 홀주변 어프로치 -->
     <div id="panel-around" class="shot-panel hidden">
-      <div class="form-group">
-        <label class="form-label" style="color:var(--accent);font-weight:700;">홀까지 남은 거리</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="number" id="aroundDistance" placeholder="예: 15" style="flex:1;" inputmode="decimal">
-          <span id="aroundDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
-        </div>
-      </div>
       <div class="form-group">
         <label class="form-label">클럽</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="aroundClubBtns">
@@ -604,6 +609,13 @@ textarea{
         <label class="form-label">결과</label>
         <div class="result-btn-grid" id="aroundResultBtns"></div>
         <input type="hidden" id="aroundResult" value="Green">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:var(--accent);font-weight:700;">샷 후 핀까지 거리 <span style="font-size:11px;font-weight:400;">(근접도)</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="aroundDistance" placeholder="예: 3" style="flex:1;" inputmode="decimal">
+          <span id="aroundDistanceUnit" style="font-weight:600;color:var(--muted);">yd</span>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">페널티</label>
@@ -1235,7 +1247,7 @@ function updateDistanceUnitLabels(){
   holeDistanceUnitLabel.textContent = unit;
   puttDistanceUnitLabel.textContent = unit;
   // 탭 패널 내 단위 표시 업데이트
-  ['approachDistanceUnit','aroundDistanceUnit'].forEach(id => {
+  ['teeDistanceUnit','approachDistanceUnit','aroundDistanceUnit'].forEach(id => {
     const el = document.getElementById(id); if(el) el.textContent = unit;
   });
   holeInputUnitEl.value = unit;
@@ -1482,12 +1494,13 @@ function loadShotForEdit(idx){
       if(ironSel) ironSel.value = shot.club || '';
     }
     selectResultBtn('tee', shot.result || 'Fairway');
+    const dist = document.getElementById('teeDistance'); if(dist) dist.value = shot.distanceToHole ?? '';
     const pen = document.getElementById('teePenalty'); if(pen) pen.value = shot.penalty || 0;
     const note = document.getElementById('teeNote'); if(note) note.value = shot.note || '';
   } else if(mode === 'approach'){
     const clubSel = document.getElementById('approachClub'); if(clubSel) clubSel.value = shot.club || '';
     if(shot.distanceToHole != null){ const d = document.getElementById('approachDistance'); if(d) d.value = shot.distanceToHole; }
-    selectResultBtn('approach', shot.result || 'Fairway');
+    selectResultBtn('approach', shot.result || 'Green');
     const pen = document.getElementById('approachPenalty'); if(pen) pen.value = shot.penalty || 0;
     const note = document.getElementById('approachNote'); if(note) note.value = shot.note || '';
   } else if(mode === 'around'){
@@ -1641,7 +1654,7 @@ function clearShotForm(){
   const aClub = document.getElementById('approachClub'); if(aClub) aClub.value = '';
   const aDist = document.getElementById('approachDistance'); if(aDist) aDist.value = '';
   const aRec = document.getElementById('approachRecommendSection'); if(aRec) aRec.style.display = 'none';
-  selectResultBtn('approach', 'Fairway');
+  initResultBtns('approach'); // 현재 홀 par에 맞게 결과 버튼 재생성
   const aP = document.getElementById('approachPenalty'); if(aP) aP.value = '0';
   const aN = document.getElementById('approachNote'); if(aN) aN.value = '';
   
@@ -2025,13 +2038,24 @@ const RESULT_CONFIGS = {
     {value:'Out', label:'OB'}
   ],
   approach: [
-    {value:'Green', label:'그린'},
-    {value:'AroundGreen', label:'그린 주변'},
+    {value:'Green', label:'그린 🎯'},
+    {value:'AroundGreen', label:'그린주변'},
+    {value:'AroundGreen_Rough', label:'그린주변 러프'},
+    {value:'Bunker_Greenside', label:'그린주변 벙커'},
+    {value:'InHole', label:'홀인 🎉'},
+    {value:'Water', label:'워터'},
+    {value:'Out', label:'OB'}
+  ],
+  approach_par5: [
+    {value:'Green', label:'그린 🎯'},
+    {value:'AroundGreen', label:'그린주변'},
+    {value:'AroundGreen_Rough', label:'그린주변 러프'},
+    {value:'Bunker_Greenside', label:'그린주변 벙커'},
     {value:'Fairway', label:'페어웨이'},
+    {value:'Bunker_Fairway', label:'페어웨이 벙커'},
     {value:'LeftRough', label:'좌 러프'},
     {value:'RightRough', label:'우 러프'},
-    {value:'Bunker_Greenside', label:'그린사이드'},
-    {value:'Bunker_Fairway', label:'페어웨이 벙커'},
+    {value:'InHole', label:'홀인 🎉'},
     {value:'Water', label:'워터'},
     {value:'Out', label:'OB'}
   ],
@@ -2047,7 +2071,8 @@ const RESULT_CONFIGS = {
 
 function initResultBtns(mode){
   // 티샷은 Par3 여부에 따라 다른 결과 목록 사용
-  const configKey = (mode === 'tee' && roundData.holes[currentHole]?.par === 3) ? 'tee_par3' : mode;
+  const configKey = (mode === 'tee' && roundData.holes[currentHole]?.par === 3) ? 'tee_par3' :
+                    (mode === 'approach' && roundData.holes[currentHole]?.par === 5) ? 'approach_par5' : mode;
   const config = RESULT_CONFIGS[configKey];
   if(!config) return;
   const grid = document.getElementById(mode + 'ResultBtns');
@@ -2079,8 +2104,9 @@ function switchShotMode(mode){
     const panel = document.getElementById('panel-' + m);
     if(panel) panel.classList.toggle('hidden', m !== mode);
   });
-  // 티샷 탭 전환 시 par에 맞게 결과 버튼 재초기화
+  // 탭 전환 시 par에 맞게 결과 버튼 재초기화
   if(mode === 'tee') initResultBtns('tee');
+  if(mode === 'approach') initResultBtns('approach');
 }
 
 function showEditingBanner(idx){
@@ -2187,9 +2213,10 @@ document.addEventListener('DOMContentLoaded', function(){
     const result = document.getElementById('teeResult').value || 'Fairway';
     const penalty = Number(document.getElementById('teePenalty').value) || 0;
     const note = document.getElementById('teeNote').value.trim();
-    const hole = roundData.holes[currentHole];
-    const existingDistance = (editingIndex >= 0 && hole.shots[editingIndex]) ? hole.shots[editingIndex].distanceToHole : null;
-    saveShotToHole({ club, result, distanceToHole: existingDistance, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'tee', timestamp: new Date().toISOString() });
+    const distVal = document.getElementById('teeDistance')?.value;
+    const distanceToHole = (distVal !== '' && distVal != null) ? Number(distVal) : null;
+    saveShotToHole({ club, result, distanceToHole, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'tee', timestamp: new Date().toISOString() });
+    const teeDist = document.getElementById('teeDistance'); if(teeDist) teeDist.value = '';
   });
 
   // 세컨/서드 저장
@@ -2204,7 +2231,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const note = document.getElementById('approachNote').value.trim();
     const wasEditing = editingIndex >= 0;
     saveShotToHole({ club, result, distanceToHole, putts:0, penalty, note, lie:'', slope:'', puttStartDistance:null, shotMode:'approach', timestamp: new Date().toISOString() });
-    if(!wasEditing) switchShotMode('putt');
+    if(!wasEditing) switchShotMode(result === 'Green' ? 'putt' : 'around');
   });
 
   // 어프로치 저장
