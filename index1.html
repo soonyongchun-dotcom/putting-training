@@ -879,6 +879,26 @@ function getAuthPlayerId(session){
   return normalizeLoginId(emailLocal || '');
 }
 
+function normalizeRoundDateValue(value){
+  const raw = String(value || '').trim();
+  if(!raw) return new Date().toISOString().slice(0,10);
+  return raw;
+}
+
+function normalizeRoundCourseValue(value){
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildRoundIdentity(playerId, roundDate, course){
+  return [
+    normalizeLoginId(playerId || '') || '',
+    normalizeRoundDateValue(roundDate),
+    normalizeRoundCourseValue(course).toLowerCase()
+  ].join('||');
+}
+
 function computeRoundStats(data){
   const holes = Array.isArray(data?.holes) ? data.holes : [];
   let score = 0;
@@ -1024,6 +1044,9 @@ async function saveRoundToSupabase(){
         console.warn('saveRoundToSupabase: SDK getSession failed, using cached session', e);
       }
     }
+    if((!restoredAuthSession || !restoredAuthSession.user) && getSessionFromUrl()){
+      await restoreSessionFromUrl();
+    }
     const resolvedAuthSession = restoredAuthSession;
     if(!resolvedAuthSession || !resolvedAuthSession.user){
       console.warn('Supabase auth session missing; cannot sync without login.');
@@ -1099,10 +1122,14 @@ async function saveRoundToSupabase(){
     roundData.fairwaysHit = stats.fairwaysHit;
     roundData.greensInRegulation = stats.greensInRegulation;
 
+    const canonicalRoundDate = normalizeRoundDateValue(roundData.date || roundDateInput.value);
+    const canonicalCourse = normalizeRoundCourseValue(roundData.course || courseNameInput.value.trim());
+    const canonicalPlayerName = String(roundData.player || playerNameInput.value.trim() || '').trim();
+
     const rowData = {
       player_id: playerId,
-      round_date: roundData.date || roundDateInput.value,
-      course: roundData.course || courseNameInput.value.trim(),
+      round_date: canonicalRoundDate,
+      course: canonicalCourse,
       score: stats.score,
       putts: stats.putts,
       fairways_hit: stats.fairwaysHit,
@@ -1125,14 +1152,14 @@ async function saveRoundToSupabase(){
     });
     const row = {
       player_id: playerId,
-      player_name: roundData.player || playerNameInput.value.trim() || '',
-      round_date: roundData.date || roundDateInput.value || new Date().toISOString().slice(0,10),
-      course: roundData.course || courseNameInput.value.trim() || '',
+      player_name: canonicalPlayerName,
+      round_date: canonicalRoundDate,
+      course: canonicalCourse,
       distance_unit: roundData.distanceUnit || distanceUnitSel.value || 'yd',
       round_meta: {
-        player: roundData.player || playerNameInput.value.trim() || '',
-        date: roundData.date || roundDateInput.value || '',
-        course: roundData.course || courseNameInput.value.trim() || '',
+        player: canonicalPlayerName,
+        date: canonicalRoundDate,
+        course: canonicalCourse,
         distanceUnit: roundData.distanceUnit || distanceUnitSel.value || 'yd'
       },
       round_payload: { holes: roundData.holes || [] },
@@ -1146,8 +1173,8 @@ async function saveRoundToSupabase(){
       + `?player_id=eq.${encodeURIComponent(row.player_id)}`
       + `&round_date=eq.${encodeURIComponent(row.round_date)}`
       + `&course=eq.${encodeURIComponent(row.course)}`
-      + `&select=id`
-      + `&limit=1`;
+      + `&select=id,exported_at`
+      + `&order=exported_at.desc`;
     const selectRes = await fetch(selectUrl, {
       method: 'GET',
       headers: {
@@ -1157,10 +1184,19 @@ async function saveRoundToSupabase(){
       }
     });
     let existingId = null;
+    let duplicateIds = [];
     if(selectRes.ok){
       try{
         const rows = await selectRes.json();
-        if(Array.isArray(rows) && rows.length > 0) existingId = rows[0].id;
+        if(Array.isArray(rows) && rows.length > 0){
+          const matchedRows = rows.filter(function(existingRow){
+            return buildRoundIdentity(existingRow && existingRow.player_id, existingRow && existingRow.round_date, existingRow && existingRow.course) === buildRoundIdentity(row.player_id, row.round_date, row.course);
+          });
+          if(matchedRows.length > 0){
+            existingId = matchedRows[0].id;
+            duplicateIds = matchedRows.slice(1).map(function(existingRow){ return existingRow && existingRow.id; }).filter(Boolean);
+          }
+        }
       }catch(_){}
     }
 
@@ -1178,6 +1214,26 @@ async function saveRoundToSupabase(){
         },
         body: JSON.stringify(row)
       });
+
+      if(response.ok && duplicateIds.length){
+        const deleteFilter = duplicateIds.map(function(id){ return 'id.eq.' + id; }).join(',');
+        const deleteUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?or=(${deleteFilter})`;
+        const deleteRes = await fetch(deleteUrl, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
+            'Prefer': 'return=minimal'
+          }
+        });
+        if(!deleteRes.ok){
+          console.warn('Duplicate round cleanup failed', {
+            status: deleteRes.status,
+            statusText: deleteRes.statusText,
+            duplicateIds
+          });
+        }
+      }
     } else {
       // 신규 row 삽입 (POST)
       const insertUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds`;
