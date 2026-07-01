@@ -234,6 +234,9 @@
     </div>
   </header>
 
+  <!-- 서버 저장 인증 상태 배너 -->
+  <div id="authStatusBanner" style="display:none; padding:10px 14px; border-radius:8px; margin-bottom:8px; font-size:14px; font-weight:600;"></div>
+
   <section class="card" id="roundInfoCard">
     <div class="small">Round Info</div>
     <div class="form-row">
@@ -3145,11 +3148,22 @@ function exportCSV(){
 async function saveRoundToServer(){
   initSupabase();
   if(!sb) return;
+  function showSaveBanner(msg, ok){
+    const el = document.getElementById('authStatusBanner');
+    if(!el) return;
+    el.innerHTML = msg;
+    el.style.display = 'block';
+    el.style.background = ok ? 'rgba(31,181,122,0.15)' : 'rgba(255,80,80,0.15)';
+    el.style.border = ok ? '1px solid rgba(31,181,122,0.4)' : '1px solid rgba(255,80,80,0.4)';
+    el.style.color = ok ? '#7adf9a' : '#ff9999';
+  }
   try{
     const authRes = await sb.auth.getSession();
     const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
     if(!authSession){
       console.warn('saveRoundToServer: no auth session, skipping server save.');
+      if(syncedRoundStatus) syncedRoundStatus.textContent = '로그인 세션이 없습니다. 코치 포탈에서 로그인 후 다시 시도하세요.';
+      showSaveBanner('⚠️ 서버 저장 실패: 로그인 세션이 없습니다. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">코치 포탈에서 로그인 후 돌아오세요</a>', false);
       return;
     }
     const roundDate = (roundDateInput && roundDateInput.value) || new Date().toISOString().slice(0,10);
@@ -3180,8 +3194,10 @@ async function saveRoundToServer(){
     if(error){
       console.warn('saveRoundToServer upsert error', error);
       if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 저장 중 오류가 발생했습니다: '+error.message;
+      showSaveBanner('❌ 서버 저장 실패: ' + error.message, false);
     } else {
       if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 라운드 데이터가 저장되었습니다. ('+new Date().toLocaleTimeString()+')';
+      showSaveBanner('✅ 서버에 저장 완료! (' + new Date().toLocaleTimeString() + ')', true);
       try{ localStorage.setItem('sytpt_round_last_saved', new Date().toISOString()); }catch(e){}
     }
   }catch(e){
@@ -3189,7 +3205,35 @@ async function saveRoundToServer(){
   }
 }
 
-if (btnExportCSV) btnExportCSV.addEventListener('click', async ()=>{ exportCSV(); await saveRoundToServer(); });
+// 페이지 로드 시 인증 상태 자동 확인
+async function checkAuthOnLoad(){
+  initSupabase();
+  if(!sb) return;
+  try{
+    const authRes = await sb.auth.getSession();
+    const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
+    const banner = document.getElementById('authStatusBanner');
+    if(!banner) return;
+    if(!authSession){
+      const storedSess = getStoredSession();
+      const nameHint = storedSess && storedSess.name ? `(${storedSess.name})` : '';
+      banner.innerHTML = `⚠️ 서버 저장에 필요한 로그인 세션이 없습니다 ${nameHint}. CSV 저장 시 서버 동기화가 되지 않습니다. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">코치 포탈에서 로그인 후 돌아오세요</a>`;
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(255,160,0,0.12)';
+      banner.style.border = '1px solid rgba(255,160,0,0.35)';
+      banner.style.color = '#ffcc66';
+    } else {
+      const user = authSession.user;
+      const name = (user && user.user_metadata && user.user_metadata.name) || (user && user.email) || '';
+      banner.textContent = `✅ 서버 연동 중 ${name ? '(' + name + ')' : ''} — CSV 저장 시 서버에 자동 동기화됩니다.`;
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(31,181,122,0.10)';
+      banner.style.border = '1px solid rgba(31,181,122,0.3)';
+      banner.style.color = '#7adf9a';
+    }
+  }catch(e){ console.warn('checkAuthOnLoad failed', e); }
+}
+window.addEventListener('load', checkAuthOnLoad);
 
 // CSV Import: wire file input and import button
 const fileImportCsv = document.getElementById('fileImportCsv');
