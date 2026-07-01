@@ -253,7 +253,7 @@
         Round Par<br>
         <input id="roundPar" type="number" min="9" max="90" value="72" class="input--short" inputmode="numeric" pattern="[0-9]*" aria-label="Round par">
       </label>
-      <label>
+      <label class="hidden">
         Distance Unit (거리 단위)<br>
         <select id="distanceUnit" aria-label="Distance unit">
           <option value="yd" selected>야드 (yd)</option>
@@ -261,7 +261,7 @@
         </select>
       </label>
       <label>
-        Total Yard (yd)<br>
+        <span id="roundYardLabel">Total Yard (yd)</span><br>
         <input id="roundYard" type="number" min="0" value="6500" class="input--yard" inputmode="numeric" pattern="[0-9]*" aria-label="Total yard">
         
       </label>
@@ -390,8 +390,8 @@
       </label>
 
       <label>
-        Distance to hole<br>
-        <input id="distanceToHole" type="number" min="0" placeholder="e.g. 120" inputmode="numeric" pattern="[0-9]*" aria-label="Distance to hole">
+        Distance to hole (yd)<br>
+        <input id="distanceToHole" type="number" min="0" placeholder="e.g. 120 yd" inputmode="numeric" pattern="[0-9]*" aria-label="Distance to hole (yd)">
       </label>
 
       <!-- Putts now selected via Putter picker buttons; keep hidden input for existing logic -->
@@ -485,6 +485,8 @@
       <div class="stat">Birdies/Bogeys/Doubles+: <strong id="statBBD">0 / 0 / 0</strong></div>
       <div class="stat" style="white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green): <strong id="statProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
+      <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after chip shots (result: Around the Green)">Avg Chip Proximity: <strong id="statChipProximity">-</strong></div>
+      <div class="stat" style="white-space:nowrap;" title="Bunker save rate: hole out in ≤2 shots after greenside bunker (saves/attempts)">Bunker Save%: <strong id="statBunkerSavePct">-</strong></div>
       <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       <div style="margin-top:6px;">
         <button class="btn ghost" id="btnToggleClubData">클럽데이터 (Club Data)</button>
@@ -498,6 +500,10 @@
       <div class="export-row">
         <button class="btn" id="btnExportCSV">CSV로 저장 (Export CSV)</button>
         <input id="fileImportCsv" type="file" accept=".csv,text/csv" style="display:none" />
+        <select id="csvImportUnit" title="CSV의 저장 단위 선택 (Unit 필드 없는 구 CSV용)" style="font-size:13px; padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text);">
+          <option value="yd">야드 CSV</option>
+          <option value="m">미터 CSV</option>
+        </select>
         <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
         <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
         <button class="btn ghost" id="btnShowAllData">경기력요약 (Performance Summary)</button>
@@ -682,6 +688,8 @@ function restoreRoundFromRemote(row){
   const meta = row.round_meta || {};
   const payload = row.round_payload || {};
   const holes = Array.isArray(payload.holes) ? payload.holes : [];
+  // 서버 데이터의 저장 단위 감지 → 야드로 통일 변환
+  const remoteSavedUnit = meta.distanceUnit || row.distance_unit || 'yd';
 
   for(let i=1;i<=18;i++){
     const holeData = holes[i-1] || {};
@@ -693,13 +701,13 @@ function restoreRoundFromRemote(row){
         shotNumber: idx + 1,
         shotType: input.shotType || input.club || '',
         result: input.result || '',
-        distanceToHole: input.distanceToHole != null ? input.distanceToHole : null,
+        distanceToHole: input.distanceToHole != null ? convertToYd(input.distanceToHole, remoteSavedUnit) : null,
         putts: Number(input.putts || 0),
         penalty: Number(input.penalty || 0),
         note: input.note || '',
         lie: input.lie || '',
         slope: input.slope || '',
-        puttStartDistance: input.puttStartDistance != null ? input.puttStartDistance : null,
+        puttStartDistance: input.puttStartDistance != null ? convertToYd(input.puttStartDistance, remoteSavedUnit) : null,
         timestamp: input.timestamp || ''
       };
     });
@@ -707,7 +715,7 @@ function restoreRoundFromRemote(row){
     HOLES[i] = {
       hole: i,
       par: holeData.par != null ? holeData.par : 4,
-      yard: holeData.yard != null ? holeData.yard : '',
+      yard: holeData.yard != null ? convertToYd(holeData.yard, remoteSavedUnit) : '',
       score: holeData.score != null ? holeData.score : null,
       computedStrokes: holeData.computedStrokes != null ? holeData.computedStrokes : 0,
       manualScore: holeData.manualScore || false,
@@ -728,11 +736,11 @@ function restoreRoundFromRemote(row){
   if(roundDateEl) roundDateEl.value = meta.date || row.round_date || new Date().toISOString().slice(0,10);
   if(courseNameEl) courseNameEl.value = meta.course || row.course || '';
   if(roundParEl) roundParEl.value = meta.roundPar || 72;
-  if(roundYardEl) roundYardEl.value = meta.totalYard || '';
+  if(roundYardEl) roundYardEl.value = convertToYd(meta.totalYard, remoteSavedUnit) || '';
   if(roundWeatherEl) roundWeatherEl.value = meta.weather || '';
   if(distanceUnitEl){
-    distanceUnitEl.value = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
-    DISTANCE_UNIT = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
+    distanceUnitEl.value = 'yd'; // 표시는 항상 야드
+    // DISTANCE_UNIT은 'yd' 고정 — 변경하지 않음
   }
 
   renderHoles();
@@ -750,6 +758,11 @@ function convertDistance(yards, toUnit) {
   }
   return y; // already in yards
 }
+// 미터→야드 변환 헬퍼 (CSV/서버 불러오기 시 사용)
+function convertToYd(val, fromUnit) {
+  if (val == null || val === '' || isNaN(Number(val)) || fromUnit === 'yd' || !fromUnit) return val;
+  return Math.round(Number(val) * 1.09361); // m → yd
+}
 
 function formatDistance(yards, includeUnit = true) {
   const converted = convertDistance(yards, DISTANCE_UNIT);
@@ -762,9 +775,8 @@ function getUnitLabel() {
 }
 
 function updateUnitLabels() {
-  // This will be called after unit change to update any visible unit labels
-  // For now, the hole yard inputs will keep 'Yard:' label but use the selected unit
-  // The actual conversion happens in display, not in input
+  const lbl = document.getElementById('roundYardLabel');
+  if (lbl) lbl.textContent = DISTANCE_UNIT === 'm' ? 'Total Distance (m)' : 'Total Yard (yd)';
 }
 const playerNameInput = document.getElementById('playerName');
 const roundDateInput = document.getElementById('roundDate');
@@ -913,6 +925,8 @@ const statDrive250Plus = document.getElementById('statDrive250Plus');
 const statBBD = document.getElementById('statBBD');
 const statProximity = document.getElementById('statProximity');
 const statClubProximity = document.getElementById('statClubProximity');
+const statChipProximity = document.getElementById('statChipProximity');
+const statBunkerSavePct = document.getElementById('statBunkerSavePct');
 const statDriverFairPct = document.getElementById('statDriverFairPct');
 const clubStatsEl = document.getElementById('clubStats');
 const btnToggleClubData = document.getElementById('btnToggleClubData');
@@ -933,6 +947,7 @@ const syncedRoundStatus = document.getElementById('syncedRoundStatus');
 const roundInfoCard = document.getElementById('roundInfoCard');
 const analysisCard = document.getElementById('analysisCard');
 const distanceUnitSelect = document.getElementById('distanceUnit');
+// distanceUnit 셀렉터는 CSV 저장 단위 참조용으로만 유지 (표시는 항상 야드 고정)
 
 function updateCourseYard(){
   let total = 0;
@@ -1054,11 +1069,7 @@ renderHoles();
 
 // Start round handler: validate minimal fields then show holes
 function startRound(){
-  // Save selected unit
-  if (distanceUnitSelect) {
-    DISTANCE_UNIT = distanceUnitSelect.value;
-  }
-  
+  // DISTANCE_UNIT은 'yd' 고정 — 변경하지 않음
   let date = roundDateInput.value;
   // If no date provided, auto-fill today's date so the round can start
   if (!date){
@@ -1727,6 +1738,10 @@ function recomputeRound(){
   let onGreenPuttsTotal = 0;
   let driverAttempts = 0;
   let driverFairways = 0;
+  const chipProximityDistances = [];
+  let chipTotal = 0;
+  let bunkerAttempts = 0;
+  let bunkerSaves = 0;
 
   const clubDistances = {};
   const perHoleDriveDistances = []; // one drive distance per hole (first Driver shot)
@@ -1858,6 +1873,32 @@ function recomputeRound(){
     }
     
 
+    // 칩샷 핀 근접도: AroundGreen 결과 샷 다음에 오는 비퍼터 샷(칩샷)의 distanceToHole
+    // 벙커 세이브율: Bunker_Greenside(그린사이드) 진입 후 2타 이내 완료 여부
+    const orderedAll = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    for (let si = 0; si < orderedAll.length; si++) {
+      const sh = orderedAll[si];
+      if (!sh) continue;
+      const rKey = normResultKey(sh.result || '');
+      if (rKey === 'aroundgreen') {
+        chipTotal++;
+        // 다음 비퍼터 샷이 칩샷 — 그 distanceToHole이 핀 근접도
+        for (let ni = si + 1; ni < orderedAll.length; ni++) {
+          const nsh = orderedAll[ni];
+          if (!nsh || nsh.shotType === 'Putter') break;
+          if (nsh.distanceToHole != null && !isNaN(Number(nsh.distanceToHole))) {
+            chipProximityDistances.push(Math.abs(Number(nsh.distanceToHole)));
+          }
+          break;
+        }
+      }
+      if (rKey === 'bunkergreenside') {
+        const remaining = orderedAll.length - si - 1;
+        bunkerAttempts++;
+        if (remaining <= 2) bunkerSaves++;
+      }
+    }
+
     // accumulate penalties (putts already added above for on-green holes only)
     penalties += sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
 
@@ -1930,6 +1971,18 @@ function recomputeRound(){
   statBBD.textContent = `${birdiesCount} / ${bogeysCount} / ${doublesCount}`;
   statProximity.textContent = proxAvg != null ? formatDistance(proxAvg) : '-';
   statClubProximity.textContent = clubProxAvg != null ? formatDistance(clubProxAvg) : '-';
+  const chipProxAvg = chipProximityDistances.length ? Math.round(chipProximityDistances.reduce((s,n)=>s+n,0)/chipProximityDistances.length) : null;
+  const chipWithin1 = chipProximityDistances.filter(d => d <= 1).length;
+  const chipWithin1Pct = chipTotal ? Math.round((chipWithin1 / chipTotal) * 1000) / 10 : 0;
+  const bunkerSavePctVal = bunkerAttempts ? Math.round((bunkerSaves / bunkerAttempts) * 1000) / 10 : null;
+  if (statChipProximity) {
+    if (chipTotal === 0) { statChipProximity.textContent = '-'; }
+    else {
+      const avgPart = chipProxAvg != null ? formatDistance(chipProxAvg) : '-';
+      statChipProximity.textContent = `${avgPart}  (within 1yd: ${chipWithin1Pct}%)`;
+    }
+  }
+  if (statBunkerSavePct) statBunkerSavePct.textContent = bunkerAttempts > 0 ? (bunkerSavePctVal + '% (' + bunkerSaves + '/' + bunkerAttempts + ')') : '-';
   statDriverFairPct.textContent = (driverFairPct !== null) ? (driverFairPct + '%') : '-';
   // club averages display (non-driver details are in clubDataPanel)
   if (clubStatsEl){
@@ -2210,6 +2263,31 @@ function buildSummaryElement(forPdf){
   }
   const proxAvgLocal = _proximityDistances.length ? Math.round(_proximityDistances.reduce((s,n)=>s+n,0)/_proximityDistances.length) : null;
     const clubProxAvgLocal = _clubOnlyProximityDistances.length ? Math.round(_clubOnlyProximityDistances.reduce((s,n)=>s+n,0)/_clubOnlyProximityDistances.length) : null;
+  // 칩샷 핀 근접도 및 벙커 세이브율 계산 (buildSummaryElement 내 독립 계산)
+  let _chipProxDists = []; let _chipTotal = 0; let _bAttempts = 0; let _bSaves = 0;
+  for (let i=1;i<=18;i++){
+    const _arr = shotsByHole[i] || [];
+    const _ord = _arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    for (let si=0; si<_ord.length; si++){
+      const _sh = _ord[si]; if (!_sh) continue;
+      const _rk = normResultKey(_sh.result || '');
+      if (_rk === 'aroundgreen'){
+        _chipTotal++;
+        for (let _ni = si + 1; _ni < _ord.length; _ni++){
+          const _nsh = _ord[_ni]; if (!_nsh || _nsh.shotType === 'Putter') break;
+          if (_nsh.distanceToHole != null && !isNaN(Number(_nsh.distanceToHole))) _chipProxDists.push(Math.abs(Number(_nsh.distanceToHole)));
+          break;
+        }
+      }
+      if (_rk === 'bunkergreenside'){ _bAttempts++; if (_ord.length - si - 1 <= 2) _bSaves++; }
+    }
+  }
+  const chipProxAvgLocal = _chipProxDists.length ? Math.round(_chipProxDists.reduce((s,n)=>s+n,0)/_chipProxDists.length) : null;
+  const chipWithin1Local = _chipProxDists.filter(d => d <= 1).length;
+  const chipWithin1PctLocal = _chipTotal ? Math.round((chipWithin1Local / _chipTotal) * 1000) / 10 : 0;
+  const chipLabelLocal = _chipTotal === 0 ? '-' : ((chipProxAvgLocal != null ? formatDistance(chipProxAvgLocal) : '-') + '  (within 1yd: ' + chipWithin1PctLocal + '%)');
+  const bunkerSavePctLocal = _bAttempts ? Math.round((_bSaves / _bAttempts) * 1000) / 10 : null;
+  const bunkerSaveLabelLocal = _bAttempts > 0 ? (bunkerSavePctLocal + '% (' + _bSaves + '/' + _bAttempts + ')') : '-';
   const container = document.createElement('div');
   container.style.padding = '16px';
   container.style.fontFamily = 'Arial, Helvetica, sans-serif';
@@ -2257,6 +2335,8 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Birdies/Bogeys/Doubles+</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statBBD ? statBBD.textContent : '0 / 0 / 0'}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green)</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${proxAvgLocal != null ? formatDistance(proxAvgLocal) : '-'}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${clubProxAvgLocal != null ? formatDistance(clubProxAvgLocal) : '-'}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${chipLabelLocal}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Bunker save rate: hole out in ≤2 shots after greenside bunker">Bunker Save%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${bunkerSaveLabelLocal}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Longest Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statLongestDrive.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Avg Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statAvgDrive.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">250yd over</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statDrive250Plus ? statDrive250Plus.textContent : '0'}</td></tr>
@@ -2947,7 +3027,7 @@ function exportCSV(){
   const meta = { player: playerNameInput.value || '', date: roundDateInput.value || '', course: courseNameInput.value || '' };
   const lines = [];
   // header
-  lines.push(['Player', meta.player, '', 'Date', meta.date, '', 'Course', meta.course].join(','));
+  lines.push(['Player', meta.player, '', 'Date', meta.date, '', 'Course', meta.course, '', 'Unit', DISTANCE_UNIT].join(','));
   lines.push('');
   // summary metrics (Birdies/Bogeys/Doubles+)
   try{ lines.push(['Birdies/Bogeys/Doubles+', (statBBD ? statBBD.textContent : '0 / 0 / 0')].join(',')); lines.push(''); }catch(e){}
@@ -3150,16 +3230,37 @@ function parseCSV(text){
 function processImportedCSV(rows){
   if (!rows || rows.length===0) return alert('CSV에 데이터가 없습니다.');
   
-  // Extract saved distance unit from first row (format: Player,name,,Date,date,,Course,course,,Unit,yd)
+  // Extract saved metadata from first row (format: Player,name,,Date,date,,Course,course,,Unit,yd)
   let savedUnit = 'yd'; // default
   if (rows.length > 0 && rows[0]) {
     const firstRow = rows[0].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
+    const playerIdx = firstRow.indexOf('Player');
+    const dateIdx   = firstRow.indexOf('Date');
+    const courseIdx = firstRow.indexOf('Course');
     const unitIndex = firstRow.indexOf('Unit');
+    // 플레이어명, 날짜, 골프장명을 폼 필드에 반영
+    if (playerIdx >= 0 && playerIdx < firstRow.length - 1) {
+      const playerEl = document.getElementById('playerName');
+      if (playerEl) playerEl.value = firstRow[playerIdx + 1];
+    }
+    if (dateIdx >= 0 && dateIdx < firstRow.length - 1) {
+      const dateEl = document.getElementById('roundDate');
+      if (dateEl && firstRow[dateIdx + 1]) dateEl.value = firstRow[dateIdx + 1];
+    }
+    if (courseIdx >= 0 && courseIdx < firstRow.length - 1) {
+      const courseEl = document.getElementById('courseName');
+      if (courseEl) courseEl.value = firstRow[courseIdx + 1];
+    }
+    // 저장된 단위 감지 (변환에만 사용, 표시는 항상 야드 고정)
     if (unitIndex >= 0 && unitIndex < firstRow.length - 1) {
       const unitValue = firstRow[unitIndex + 1].trim();
       if (unitValue === 'm' || unitValue === 'yd') {
-        savedUnit = unitValue;
+        savedUnit = unitValue; // 야드 변환 기준으로만 사용
       }
+    } else {
+      // Unit 필드 없는 구 CSV → 불러오기 단위 선택자 값으로 대체
+      const csvImportUnitEl = document.getElementById('csvImportUnit');
+      if (csvImportUnitEl && csvImportUnitEl.value) savedUnit = csvImportUnitEl.value;
     }
   }
   
