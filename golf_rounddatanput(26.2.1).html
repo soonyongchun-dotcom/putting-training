@@ -500,11 +500,13 @@
       <div class="export-row">
         <button class="btn" id="btnExportCSV">CSV로 저장 (Export CSV)</button>
         <input id="fileImportCsv" type="file" accept=".csv,text/csv" style="display:none" />
-        <select id="csvImportUnit" title="CSV의 저장 단위 선택 (Unit 필드 없는 구 CSV용)" style="font-size:13px; padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text);">
-          <option value="yd">야드 CSV</option>
-          <option value="m">미터 CSV</option>
-        </select>
-        <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
+        <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
+          <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
+          <select id="csvImportUnit" title="구버전 CSV(Unit 헤더 없음)의 저장 단위를 지정합니다. 야드로 저장된 CSV면 그대로 두세요." style="font-size:12px; padding:4px 6px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--muted); max-width:90px;">
+            <option value="yd">yd 단위</option>
+            <option value="m">m 단위</option>
+          </select>
+        </span>
         <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
         <button class="btn ghost" id="btnShowAllData">경기력요약 (Performance Summary)</button>
         <!-- PDF preview (balanced preset) -->
