@@ -761,14 +761,21 @@ function convertToYd(val, fromUnit) {
 
 function formatDistance(yards, includeUnit = true) {
   const converted = convertDistance(yards, DISTANCE_UNIT);
-  if (converted == null) return '-';
+  if (converted == null || converted === '' || isNaN(Number(converted))) return '-';
+  const value = Number(converted);
+  const unit = includeUnit ? (DISTANCE_UNIT === 'm' ? ' m' : ' yd') : '';
+  return `${value}${unit}`;
 }
 
 function getUnitLabel() {
+  return DISTANCE_UNIT === 'm' ? 'm' : 'yd';
 }
 
 function updateUnitLabels() {
   const lbl = document.getElementById('roundYardLabel');
+  if (lbl) {
+    lbl.textContent = DISTANCE_UNIT === 'm' ? 'Total Distance (m)' : 'Total Distance (yd)';
+  }
 }
 const playerNameInput = document.getElementById('playerName');
 const roundDateInput = document.getElementById('roundDate');
@@ -1471,8 +1478,11 @@ function renderCurrentHoleShots(){
   if (!arr || !arr.length) { currentHoleShotsEl.textContent = '샷 없음'; return; }
   arr.forEach((s, idx)=>{
     const shotNumber = s.shotNumber != null ? s.shotNumber : idx + 1;
-    const shotType = s.shotType || s.club || 'Shot';
-    const shotResult = s.result || '';
+    const shotType = normalizeShotType(s.shotType || s.club || 'Shot');
+    const shotResult = (s.result || '').toString().trim() || 'Unknown';
+    const shotLie = (s.lie || '').toString().trim();
+    const shotDistance = (s.distanceToHole != null && s.distanceToHole !== '' && !isNaN(Number(s.distanceToHole))) ? formatDistance(Number(s.distanceToHole)) : '';
+    const shotPutt = (s.putts != null && s.putts !== '' && !isNaN(Number(s.putts)) && Number(s.putts) > 0) ? `· P:${s.putts}` : '';
 
     const div = document.createElement('div'); div.className = 'shot-item';
     // fixed-width shot number column
@@ -1480,17 +1490,17 @@ function renderCurrentHoleShots(){
     // main content: club/result and small meta row
     const content = document.createElement('div'); content.className = 'shot-content';
     const line = document.createElement('div'); line.className = 'shot-line';
-    const title = document.createElement('div'); title.innerHTML = `${shotType} · ${shotResult} ${s.penalty?'<span class="danger">· Penalty</span>':''}`;
+    const title = document.createElement('div'); title.innerHTML = `${shotType} · ${shotResult}${s.penalty?'<span class="danger">· Penalty</span>':''}`;
     line.appendChild(title);
     
-    // 퍼팅 샷의 경우 퍼팅 거리 표시 추가
     let metaText = '';
-    if (normalizeShotType(s.shotType) === 'Putter') {
+    if (normalizeShotType(s.shotType || s.club) === 'Putter') {
       const puttDist = (s.puttStartDistance != null && s.puttStartDistance !== '') ? formatDistance(s.puttStartDistance) : '';
-      const remaining = (s.distanceToHole != null) ? formatDistance(s.distanceToHole) : '';
-      metaText = `${puttDist ? (puttDist + ' 퍼팅') : ''}${remaining ? (' → ' + remaining) : ''}${s.putts ? (' · P:' + s.putts) : ''}`;
+      const remaining = (s.distanceToHole != null && s.distanceToHole !== '' && !isNaN(Number(s.distanceToHole))) ? formatDistance(Number(s.distanceToHole)) : '';
+      metaText = `${puttDist ? (puttDist + ' 퍼팅') : ''}${remaining ? (' → ' + remaining) : ''}${shotPutt}`;
     } else {
-      metaText = `${s.distanceToHole!=null? formatDistance(s.distanceToHole):''} ${s.putts?('· P:'+s.putts):''}`;
+      const lieText = shotLie ? ` · ${shotLie}` : '';
+      metaText = `${shotDistance}${lieText}${shotPutt}`.trim();
     }
     
     const meta = document.createElement('div'); meta.className = 'shot-meta'; meta.textContent = metaText;
