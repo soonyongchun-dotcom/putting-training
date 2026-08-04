@@ -1,9 +1,10 @@
-
+﻿
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛳</text></svg>">
 <title>SY-Golf Round Logger</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/1.1.0/modern-normalize.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/variable/pretendardvariable.css">
@@ -179,7 +180,6 @@
     .shot-form textarea{min-height:140px;}
     .hole-number{width:56px;height:56px;font-size:20px;}
     .stat{font-size:18px; min-width:160px; padding:14px 16px;}
-    /* 상세(세부) 텍스트를 더 키워 가독성 개선 */
     label{font-size:20px;}
     .hole-meta{font-size:18px;}
     .shot-item{font-size:20px; padding:12px 14px;}
@@ -230,11 +230,10 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.2.1</div>
+      <div class="tiny muted">버전 26.8.1</div>
     </div>
   </header>
 
-  <!-- 서버 저장 인증 상태 배너 -->
   <div id="authStatusBanner" style="display:none; padding:10px 14px; border-radius:8px; margin-bottom:8px; font-size:14px; font-weight:600;"></div>
 
   <section class="card" id="roundInfoCard">
@@ -404,13 +403,12 @@
       <div id="puttPanel" style="display:none; width:100%; margin-top:8px;">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <label style="flex:1 1 160px; min-width:120px;">
-            라이 (Lie)<br>
             <select id="puttLie">
               <option value="OnGreen">그린</option>
               <option value="Fringe">프린지</option>
               <option value="Bare">맨땅</option>
               <option value="Rough">러프</option>
-              <option value="Other">기타</option>
+            <option value="Other">레이업</option>
             </select>
           </label>
           <label style="flex:1 1 160px; min-width:120px;">
@@ -423,7 +421,6 @@
             </select>
           </label>
           <label style="flex:1 1 120px; min-width:100px;">
-            시작거리 (yd)<br>
             <input id="puttStartDist" type="number" min="0" placeholder="예: 6" inputmode="numeric" pattern="[0-9]*">
           </label>
           <div style="display:flex; gap:6px; align-items:center;">
@@ -440,7 +437,6 @@
       </div>
 
       <label>
-        Penalty?<br>
         <select id="penaltyFlag">
           <option value="0">0</option>
           <option value="1">1</option>
@@ -489,7 +485,6 @@
       <div class="stat" style="white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green): <strong id="statProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after chip shots (result: Around the Green)">Avg Chip Proximity: <strong id="statChipProximity">-</strong></div>
-      <div class="stat" style="white-space:nowrap;" title="Bunker save rate: hole out in ≤2 shots after greenside bunker (saves/attempts)">Bunker Save%: <strong id="statBunkerSavePct">-</strong></div>
       <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       <div style="margin-top:6px;">
         <button class="btn ghost" id="btnToggleClubData">클럽데이터 (Club Data)</button>
@@ -504,10 +499,9 @@
         <button class="btn" id="btnExportCSV">CSV로 저장 (Export CSV)</button>
         <input id="fileImportCsv" type="file" accept=".csv,text/csv" style="display:none" />
         <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
-          <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
-          <select id="csvImportUnit" title="구버전 CSV(Unit 헤더 없음)의 저장 단위를 지정합니다. 야드로 저장된 CSV면 그대로 두세요." style="font-size:12px; padding:4px 6px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--muted); max-width:90px;">
-            <option value="yd">yd 단위</option>
-            <option value="m">m 단위</option>
+        <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
+          <option value="yd" selected>야드 (yd)</option>
+          <option value="m">미터 (m)</option>
           </select>
         </span>
         <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
@@ -519,7 +513,6 @@
     </div>
 
     <div id="puttStatsPanel" class="mt8">
-      <!-- 거리별/경사별 퍼팅 통계가 여기에 표시됩니다 -->
     </div>
 
     <div id="rawDataPreview" class="mt8 hidden">
@@ -692,9 +685,8 @@ function restoreRoundFromRemote(row){
   if(!row || !row.id) return;
   const meta = row.round_meta || {};
   const payload = row.round_payload || {};
-  const holes = Array.isArray(payload.holes) ? payload.holes : [];
-  // 서버 데이터의 저장 단위 감지 → 야드로 통일 변환
   const remoteSavedUnit = meta.distanceUnit || row.distance_unit || 'yd';
+  const holes = Array.isArray(payload.holes) ? payload.holes : [];
 
   for(let i=1;i<=18;i++){
     const holeData = holes[i-1] || {};
@@ -706,13 +698,13 @@ function restoreRoundFromRemote(row){
         shotNumber: idx + 1,
         shotType: input.shotType || input.club || '',
         result: input.result || '',
-        distanceToHole: input.distanceToHole != null ? convertToYd(input.distanceToHole, remoteSavedUnit) : null,
+        distanceToHole: input.distanceToHole != null ? input.distanceToHole : null,
         putts: Number(input.putts || 0),
         penalty: Number(input.penalty || 0),
         note: input.note || '',
         lie: input.lie || '',
         slope: input.slope || '',
-        puttStartDistance: input.puttStartDistance != null ? convertToYd(input.puttStartDistance, remoteSavedUnit) : null,
+        puttStartDistance: input.puttStartDistance != null ? input.puttStartDistance : null,
         timestamp: input.timestamp || ''
       };
     });
@@ -720,7 +712,7 @@ function restoreRoundFromRemote(row){
     HOLES[i] = {
       hole: i,
       par: holeData.par != null ? holeData.par : 4,
-      yard: holeData.yard != null ? convertToYd(holeData.yard, remoteSavedUnit) : '',
+      yard: holeData.yard != null ? holeData.yard : '',
       score: holeData.score != null ? holeData.score : null,
       computedStrokes: holeData.computedStrokes != null ? holeData.computedStrokes : 0,
       manualScore: holeData.manualScore || false,
@@ -744,8 +736,8 @@ function restoreRoundFromRemote(row){
   if(roundYardEl) roundYardEl.value = convertToYd(meta.totalYard, remoteSavedUnit) || '';
   if(roundWeatherEl) roundWeatherEl.value = meta.weather || '';
   if(distanceUnitEl){
-    distanceUnitEl.value = 'yd'; // 표시는 항상 야드
-    // DISTANCE_UNIT은 'yd' 고정 — 변경하지 않음
+    distanceUnitEl.value = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
+    DISTANCE_UNIT = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
   }
 
   renderHoles();
@@ -763,25 +755,20 @@ function convertDistance(yards, toUnit) {
   }
   return y; // already in yards
 }
-// 미터→야드 변환 헬퍼 (CSV/서버 불러오기 시 사용)
 function convertToYd(val, fromUnit) {
   if (val == null || val === '' || isNaN(Number(val)) || fromUnit === 'yd' || !fromUnit) return val;
-  return Math.round(Number(val) * 1.09361); // m → yd
 }
 
 function formatDistance(yards, includeUnit = true) {
   const converted = convertDistance(yards, DISTANCE_UNIT);
   if (converted == null) return '-';
-  return includeUnit ? (converted + ' ' + DISTANCE_UNIT) : converted.toString();
 }
 
 function getUnitLabel() {
-  return DISTANCE_UNIT === 'm' ? '미터 (m)' : '야드 (yd)';
 }
 
 function updateUnitLabels() {
   const lbl = document.getElementById('roundYardLabel');
-  if (lbl) lbl.textContent = DISTANCE_UNIT === 'm' ? 'Total Distance (m)' : 'Total Yard (yd)';
 }
 const playerNameInput = document.getElementById('playerName');
 const roundDateInput = document.getElementById('roundDate');
@@ -811,7 +798,6 @@ function clubOrderIndex(name){
   // Direct match
   const idx = CLUB_ORDER.indexOf(n);
   if (idx >= 0) return idx;
-  // try some relaxed matching (e.g. '4번 아이언' unlikely but safe)
   const simple = n.replace(/[^A-Za-z0-9]/g,'');
   for (let i=0;i<CLUB_ORDER.length;i++){
     if (CLUB_ORDER[i].replace(/[^A-Za-z0-9]/g,'') === simple) return i;
@@ -832,6 +818,21 @@ function clubCompareByOrder(aName, bName){
 function normResultKey(r){
   return String(r || '').toLowerCase().replace(/[^a-z0-9]/g,'');
 }
+function normalizeShotType(value){
+  const raw = String(value == null ? '' : value).trim();
+  if (!raw) return '';
+  const lower = raw.toLowerCase();
+  if (lower === 'putter' || lower === 'putts' || lower.includes('putt')) return 'Putter';
+  if (lower === 'driver' || lower === 'drive' || lower === 'tee') return 'Driver';
+  if (lower === '3wood' || lower === '3-wood') return '3Wood';
+  if (lower === '5wood' || lower === '5-wood') return '5Wood';
+  if (lower === 'utility1' || lower === 'utility 1') return 'Utility1';
+  if (lower === 'utility2' || lower === 'utility 2') return 'Utility2';
+  if (lower === 'pw') return 'PW';
+  if (lower === 'sw') return 'SW';
+  if (lower === 'aw') return 'AW';
+  return raw;
+}
 function isGreenResult(r){
   const k = normResultKey(r);
   if (!k) return false;
@@ -845,7 +846,7 @@ function isGreenResult(r){
 function getFirstOnGreenPuttDistance(shots){
   if (!shots || !shots.length) return null;
   const firstOnGreenPutt = shots.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)).find(sh=>{
-    if (!sh || sh.shotType !== 'Putter') return false;
+    if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
     const lie = (sh.lie || '').toString().trim().toLowerCase();
     return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
   });
@@ -867,8 +868,35 @@ function getOnGreenProximityDistance(approach, shots){
 }
 
 function getApproachOnlyProximityDistance(approach){
-  if (!approach || approach.distanceToHole == null || isNaN(Number(approach.distanceToHole))) return null;
+  if (!approach || approach.distanceToHole == null || approach.distanceToHole === '' || isNaN(Number(approach.distanceToHole)) || Number(approach.distanceToHole) <= 0) return null;
   return Math.abs(Number(approach.distanceToHole));
+}
+
+// Returns club proximity for a single shot:
+// - Green result: that shot's distanceToHole (> 0)
+// - Around the Green: next non-putter shot's distanceToHole when it lands on green (chip result)
+// orderedShots must be sorted by shotNumber ascending and belong to the same hole
+function getClubProximityForShot(sh, orderedShots){
+  const normalizedType = normalizeShotType(sh && sh.shotType);
+  if (!sh || normalizedType === 'Putter' || (sh.putts && Number(sh.putts) > 0)) return null;
+  const res = (sh.result || '').toString();
+  if (isGreenResult(res)){
+    if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0)
+      return Math.abs(Number(sh.distanceToHole));
+    return null;
+  }
+  if (normResultKey(res) === 'aroundgreen'){
+    const idx = orderedShots.indexOf(sh);
+    if (idx < 0) return null;
+    for (let k = idx + 1; k < orderedShots.length; k++){
+      const nsh = orderedShots[k];
+      if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
+      if (isGreenResult(nsh.result) && nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0)
+        return Math.abs(Number(nsh.distanceToHole));
+      break;
+    }
+  }
+  return null;
 }
 
 /* UI Elements */
@@ -952,7 +980,6 @@ const syncedRoundStatus = document.getElementById('syncedRoundStatus');
 const roundInfoCard = document.getElementById('roundInfoCard');
 const analysisCard = document.getElementById('analysisCard');
 const distanceUnitSelect = document.getElementById('distanceUnit');
-// distanceUnit 셀렉터는 CSV 저장 단위 참조용으로만 유지 (표시는 항상 야드 고정)
 
 function updateCourseYard(){
   let total = 0;
@@ -1001,10 +1028,9 @@ function renderHoles(){
       openBtn.addEventListener('click', (e)=>{ e.stopPropagation(); startHole(i); });
       hActions.appendChild(openBtn);
       const resetBtn = document.createElement('button');
-      resetBtn.className = 'btn ghost'; resetBtn.style.marginLeft = '6px'; resetBtn.textContent = '홀초기화';
+      resetBtn.className = 'btn ghost'; resetBtn.style.marginLeft = '6px'; resetBtn.textContent = '초기화';
       resetBtn.addEventListener('click', (e)=>{
         e.stopPropagation();
-        if (!confirm(`Hole ${i}의 입력을 초기화하시겠습니까?`)) return;
         // reset hole data and shots for this hole
         HOLES[i] = { hole:i, yard: '', par: 4, score: null, computedStrokes: 0, manualScore: false };
         shotsByHole[i] = [];
@@ -1050,11 +1076,9 @@ function renderHoles(){
       const idx = Number(e.target.dataset.hole);
       const v = e.target.value;
       if (v === '' || v === null) {
-        // 비어있으면 자동 계산 모드로 전환
         HOLES[idx].score = null;
         HOLES[idx].manualScore = false;
       } else {
-        // 수동 입력된 값 저장
         HOLES[idx].score = Number(v);
         HOLES[idx].manualScore = true;
       }
@@ -1064,7 +1088,6 @@ function renderHoles(){
   });
 
   // update controls state
-  if (btnToggleAll) btnToggleAll.textContent = showAllHoles ? '전체 접기' : '전체 펼치기';
   if (btnPrevHole) btnPrevHole.disabled = (singleHoleIndex <= 1);
   if (btnNextHole) btnNextHole.disabled = (singleHoleIndex >= 18);
   // update course total yard display
@@ -1074,7 +1097,6 @@ renderHoles();
 
 // Start round handler: validate minimal fields then show holes
 function startRound(){
-  // DISTANCE_UNIT은 'yd' 고정 — 변경하지 않음
   let date = roundDateInput.value;
   // If no date provided, auto-fill today's date so the round can start
   if (!date){
@@ -1129,7 +1151,6 @@ if (btnToggleAll) btnToggleAll.addEventListener('click', ()=>{
 // club data toggle button
 if (btnToggleClubData && clubDataPanel) btnToggleClubData.addEventListener('click', ()=>{
   clubDataPanel.classList.toggle('hidden');
-  btnToggleClubData.textContent = clubDataPanel.classList.contains('hidden') ? 'Club Data' : 'Close Club Data';
 });
 if (btnPrevHole) btnPrevHole.addEventListener('click', ()=>{
   if (singleHoleIndex>1) { singleHoleIndex--; renderHoles(); if (!showAllHoles) startHole(singleHoleIndex); }
@@ -1160,7 +1181,6 @@ function startHole(holeNumber){
   
   // default club suggestion for tee shots: Driver on par4/5, 7Iron on par3
   try{
-    const nextShot = (shotsByHole[holeNumber] && shotsByHole[holeNumber].length) ? shotsByHole[holeNumber].length + 1 : 1;
     if (nextShot === 1){
       const p = Number(h.par) || 4;
       if (p >= 4){ if (shotTypeWoodEl && (!shotTypeWoodEl.value)) { shotTypeWoodEl.value = 'Driver'; clearOtherShotSelects('shotTypeWood'); } }
@@ -1184,7 +1204,6 @@ function startHole(holeNumber){
   if (shotNoteEl) shotNoteEl.value = '';
   shotEntryCard.classList.remove('hidden');
   // set a default result for the next shot (if none chosen)
-  try{ const nextShotForDefault = (shotsByHole[holeNumber] && shotsByHole[holeNumber].length) ? shotsByHole[holeNumber].length + 1 : 1; setDefaultShotResultFor(holeNumber, nextShotForDefault); }catch(e){}
   renderCurrentHoleShots();
   updateProgress();
   // scroll to shot entry card on mobile
@@ -1196,7 +1215,6 @@ function saveShot(clubOverride){
   // ensure activeHole is set; try to infer from header if missing
   if (!activeHole){
     const lbl = activeHoleLabel && activeHoleLabel.textContent;
-    const m = lbl ? lbl.match(/(\d+)/) : null;
     if (m) activeHole = Number(m[1]);
   }
   if (!activeHole) return;
@@ -1204,7 +1222,6 @@ function saveShot(clubOverride){
   // determine numeric penalty count: Out => 2, Water => 1, otherwise use penalty flag (1) or 0
   let penaltyCount = 0;
   try{
-    const resVal = (shotResultEl && shotResultEl.value) ? String(shotResultEl.value) : '';
     if (resVal === 'Out' || resVal === 'out') penaltyCount = 2;
     else if (resVal === 'Water' || resVal === 'water') penaltyCount = 1;
     else if (penaltyFlagEl) penaltyCount = Number(penaltyFlagEl.value) || 0;
@@ -1216,8 +1233,6 @@ function saveShot(clubOverride){
     shotNumber: shotsByHole[activeHole].length + 1,
     shotType: shotTypeVal,
     result: shotResultEl.value,
-    distanceToHole: distanceToHoleEl.value === '' ? null : Number(distanceToHoleEl.value),
-    putts: puttsThisEl.value === '' ? 0 : Number(puttsThisEl.value),
     penalty: penaltyCount,
     note: shotNoteEl.value || ''
   };
@@ -1228,7 +1243,6 @@ function saveShot(clubOverride){
   if (!shotsByHole[activeHole]) shotsByHole[activeHole] = [];
   // prevent accidental duplicate save: if last shot matches key, skip push
   const arrNow = shotsByHole[activeHole];
-  const last = arrNow.length ? arrNow[arrNow.length-1] : null;
   const sameAsLast = last && last.shotType === shot.shotType && String(last.result||'') === String(shot.result||'') && (last.distanceToHole === shot.distanceToHole) && (Number(last.putts||0) === Number(shot.putts||0)) && (last.penalty === shot.penalty) && String(last.note||'') === String(shot.note||'');
   if (sameAsLast){
     console.debug('saveShot: duplicate detected, skipping push', {hole: activeHole, shot});
@@ -1252,7 +1266,6 @@ function saveShot(clubOverride){
 
 // helper: read and set grouped club selects
 function getShotTypeValue(){
-  return (shotTypeWoodEl && shotTypeWoodEl.value) || (shotTypeIronEl && shotTypeIronEl.value) || (shotTypePutterEl && shotTypePutterEl.value ? 'Putter' : '') || '';
 }
 function clearOtherShotSelects(chosenId){
   if (chosenId !== 'shotTypeWood' && shotTypeWoodEl) shotTypeWoodEl.value = '';
@@ -1303,8 +1316,6 @@ function setDefaultShotResultFor(holeNumber, nextShot){
 }
 
 // auto-save when any club select or result changes, but only if both club and result are present
-if (shotTypeWoodEl) shotTypeWoodEl.addEventListener('change', ()=>{ const v = shotTypeWoodEl.value || ''; hiddenSelectedClub = v || null; clubTouched = true; clearOtherShotSelects('shotTypeWood'); if (shotSelectsContainer) shotSelectsContainer.style.display='none'; if (btnShotAction){ if (v) btnShotAction.textContent = '저장 (Save)'; else { const next = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1; btnShotAction.textContent = `Shots ${next}`; } } });
-if (shotTypeIronEl) shotTypeIronEl.addEventListener('change', ()=>{ const v = shotTypeIronEl.value || ''; hiddenSelectedClub = v || null; clubTouched = true; clearOtherShotSelects('shotTypeIron'); if (shotSelectsContainer) shotSelectsContainer.style.display='none'; if (btnShotAction){ if (v) btnShotAction.textContent = '저장 (Save)'; else { const next = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1; btnShotAction.textContent = `Shots ${next}`; } } });
 // removed shotTypeOtherEl listener; 'Other' now lives in Wood select
 if (shotResultEl) shotResultEl.addEventListener('change', ()=>{ /* result changed - do not auto-save; wait for explicit Save */ });
 if (distanceToHoleEl) distanceToHoleEl.addEventListener('input', ()=>{ distanceTouched = true; });
@@ -1357,23 +1368,15 @@ function resetPuttPanel(){
 
 // recordPutt: if isMissAppend true, append a single-stroke 'NotHoled' shot and keep panel open; if made=true, append final InHole shot and close panel
 function recordPutt(made, isMissAppend){
-  if (!activeHole) return alert('먼저 홀을 선택하세요.');
   // increment stroke counter for this action
   puttStrokeCount = Number(puttStrokeCount||0) + 1;
   puttStrokeCountEl.textContent = puttStrokeCount;
   const shot = {
     hole: activeHole,
     timestamp: new Date().toISOString(),
-    shotNumber: shotsByHole[activeHole] ? (shotsByHole[activeHole].length + 1) : 1,
     shotType: 'Putter',
-    result: made ? 'InHole' : 'NotHoled',
-    distanceToHole: puttStartDistEl && puttStartDistEl.value !== '' ? Number(puttStartDistEl.value) : null,
     putts: 1,
     penalty: 0,
-    note: `putt:${made? 'made':'miss'}`,
-    lie: puttLieEl ? puttLieEl.value : '',
-    slope: puttSlopeEl ? puttSlopeEl.value : '',
-    puttStartDistance: puttStartDistEl && puttStartDistEl.value !== '' ? Number(puttStartDistEl.value) : null
   };
   if (!shotsByHole[activeHole]) shotsByHole[activeHole] = [];
   shotsByHole[activeHole].push(shot);
@@ -1425,17 +1428,14 @@ if (btnShotAction){
         // reset Result select so defaults can be applied for next shot (prevents previous value carrying over)
         try{ if (shotResultEl) shotResultEl.selectedIndex = 0; }catch(e){}
         // set default result for the upcoming shot
-        try{ const nextShot = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1; setDefaultShotResultFor(activeHole, nextShot); }catch(e){}
       } else {
         // failed to save (validation); keep Save label so user can correct inputs
-        if (btnShotAction) btnShotAction.textContent = '저장 (Save)';
       }
     } else {
       // show selects to choose club
       if (shotSelectsContainer) shotSelectsContainer.style.display = 'flex';
       // suggest default club for tee shot if none selected yet
       try{
-        const nextShot = (activeHole && shotsByHole[activeHole]) ? shotsByHole[activeHole].length + 1 : 1;
         if (nextShot === 1 && !hiddenSelectedClub){
           const p = Number((HOLES[activeHole] && HOLES[activeHole].par) || 4);
           if (p >= 4){ if (shotTypeWoodEl && !shotTypeWoodEl.value) { shotTypeWoodEl.value = 'Driver'; clearOtherShotSelects('shotTypeWood'); } }
@@ -1485,7 +1485,7 @@ function renderCurrentHoleShots(){
     
     // 퍼팅 샷의 경우 퍼팅 거리 표시 추가
     let metaText = '';
-    if (s.shotType === 'Putter') {
+    if (normalizeShotType(s.shotType) === 'Putter') {
       const puttDist = (s.puttStartDistance != null && s.puttStartDistance !== '') ? formatDistance(s.puttStartDistance) : '';
       const remaining = (s.distanceToHole != null) ? formatDistance(s.distanceToHole) : '';
       metaText = `${puttDist ? (puttDist + ' 퍼팅') : ''}${remaining ? (' → ' + remaining) : ''}${s.putts ? (' · P:' + s.putts) : ''}`;
@@ -1520,13 +1520,12 @@ function startEditShot(index){
   const s = arr[index];
   // populate form
   // if editing a putt, show putt panel and populate fields
-  if (s.shotType === 'Putter'){
+  if (normalizeShotType(s.shotType) === 'Putter'){
     if (puttPanelEl) puttPanelEl.style.display = 'block';
     try{ if (shotResultEl) shotResultEl.closest('label').style.display = 'none'; }catch(e){}
     try{ if (distanceToHoleEl) distanceToHoleEl.closest('label').style.display = 'none'; }catch(e){}
     if (puttLieEl) puttLieEl.value = s.lie || 'OnGreen';
     if (puttSlopeEl) puttSlopeEl.value = s.slope || 'Flat';
-    if (puttStartDistEl) puttStartDistEl.value = s.puttStartDistance != null ? s.puttStartDistance : (s.distanceToHole != null ? s.distanceToHole : '');
     puttStrokeCount = Number(s.putts || 1);
     if (puttStrokeCountEl) puttStrokeCountEl.textContent = puttStrokeCount;
     // ensure club selects are cleared
@@ -1535,16 +1534,12 @@ function startEditShot(index){
   } else {
     setShotTypeSelect(s.shotType || '');
     if (shotResultEl) shotResultEl.value = s.result || '';
-    if (distanceToHoleEl) distanceToHoleEl.value = s.distanceToHole != null ? s.distanceToHole : '';
-    if (puttsThisEl) puttsThisEl.value = s.putts != null ? s.putts : '';
-    if (penaltyFlagEl) penaltyFlagEl.value = (s.penalty != null ? String(Number(s.penalty) || 0) : '0');
     if (shotNoteEl) shotNoteEl.value = s.note || '';
   }
   editingShotIndex = index;
   if (btnUpdateShot) btnUpdateShot.classList.remove('hidden');
   // set button state to indicate a saved club is pending update
   hiddenSelectedClub = s.shotType || null;
-  if (btnShotAction) btnShotAction.textContent = '저장 (Save)';
   if (shotSelectsContainer) shotSelectsContainer.style.display = 'none';
 }
 
@@ -1558,16 +1553,11 @@ function updateShot(){
     shotNumber: editingShotIndex + 1,
     shotType: getShotTypeValue() || hiddenSelectedClub,
     result: shotResultEl.value,
-    distanceToHole: distanceToHoleEl.value === '' ? null : Number(distanceToHoleEl.value),
-    putts: puttsThisEl.value === '' ? 0 : Number(puttsThisEl.value),
     penalty: Number(penaltyFlagEl.value) || 0,
     note: shotNoteEl.value || ''
   };
   // If editing a Putter shot, include putt metadata (lie/slope/start distance)
-  if (shot.shotType === 'Putter'){
-    shot.lie = (puttLieEl && puttLieEl.value) ? puttLieEl.value : (shot.lie || '');
-    shot.slope = (puttSlopeEl && puttSlopeEl.value) ? puttSlopeEl.value : (shot.slope || '');
-    shot.puttStartDistance = (puttStartDistEl && puttStartDistEl.value !== '') ? Number(puttStartDistEl.value) : (shot.puttStartDistance != null ? shot.puttStartDistance : (shot.distanceToHole != null ? shot.distanceToHole : null));
+  if (normalizeShotType(shot.shotType) === 'Putter'){
     // keep distanceToHole in sync with start distance when editing putts
     if (shot.puttStartDistance != null) shot.distanceToHole = shot.puttStartDistance;
   }
@@ -1602,7 +1592,6 @@ function deleteShot(index){
   if (!activeHole) return;
   const arr = shotsByHole[activeHole] || [];
   if (!arr[index]) return;
-  if (!confirm('Delete this shot?')) return;
   arr.splice(index,1);
   // re-number
   for (let i=0;i<arr.length;i++) arr[i].shotNumber = i+1;
@@ -1634,7 +1623,6 @@ function finishHole(){
   }
   const arr = shotsByHole[activeHole] || [];
   // compute strokes same as recomputeRound: club-selected shots + putts + penalties
-  const puttsOnHole = arr.reduce((sum,sh)=> sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
   const clubShots = arr.filter(sh=> sh.shotType && !(sh.putts && Number(sh.putts) > 0)).length;
   const penaltiesOnHole = arr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
   let strokes = clubShots + puttsOnHole + penaltiesOnHole;
@@ -1685,9 +1673,7 @@ function finishHole(){
       for (let i=1;i<=18;i++) totalStrokes += Number(HOLES[i].computedStrokes || 0);
       const combined = clubShotsTotal + totalPuttsCount + totalPenaltiesCount;
       if (combined === totalStrokes){
-        alert('경기 결과가 정확하게 기록되었습니다. 수고하셨습니다.');
       } else {
-        alert('입력오차가 있습니다. Club Count 합 + Total Putts + Penalties 값이 총 스트로크와 일치하지 않습니다. 입력을 다시 점검해주세요.');
       }
     }
   }catch(e){ console.warn('final totals check failed', e); }
@@ -1696,7 +1682,6 @@ function finishHole(){
 /* Clear all */
 const btnClearAllEl = document.getElementById('btnClearAll');
 if (btnClearAllEl) btnClearAllEl.addEventListener('click', ()=>{
-  if (!confirm('모든 입력을 초기화하시겠습니까?')) return;
   // Reset in-memory state
   initHoles();
   for (let i=1;i<=18;i++) shotsByHole[i]=[];
@@ -1756,11 +1741,10 @@ function recomputeRound(){
     const sArr = shotsByHole[i] || [];
 
     // compute putts on this hole: sum only putts recorded via Putter selections
-    const puttsOnHole = sArr.reduce((sum,sh)=> sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
+    const puttsOnHole = sArr.reduce((sum,sh)=> sum + ((sh && normalizeShotType(sh.shotType) === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
     
-    // compute on-green putts only (lie가 OnGreen, Green 또는 Fringe인 퍼팅만)
     const onGreenPuttsOnHole = sArr.reduce((sum,sh)=> {
-      if (sh && sh.shotType === 'Putter') {
+      if (sh && normalizeShotType(sh.shotType) === 'Putter') {
         const lie = (sh.lie || '').toString().trim().toLowerCase();
         const isOnGreen = (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
         console.log(`[Hole ${i}] Putter shot: lie="${sh.lie}" -> normalized="${lie}" -> isOnGreen=${isOnGreen}, putts=${sh.putts}`);
@@ -1780,7 +1764,7 @@ function recomputeRound(){
     // count this hole as played if any shots were recorded
     if (sArr && sArr.length) holesPlayed++;
     // count club-selected shots (include putts as shots)
-    const clubShots = sArr.filter(sh=> sh.shotType && !(sh.putts && Number(sh.putts) > 0)).length;
+    const clubShots = sArr.filter(sh=> normalizeShotType(sh && sh.shotType) && !(sh.putts && Number(sh.putts) > 0)).length;
     // penalties on this hole
     const penaltiesOnHole = sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
 
@@ -1817,13 +1801,13 @@ function recomputeRound(){
     totalClubShots += clubShots;
 
     // fairway: Drive shot with result 'Fairway' for par>=4
-    const drive = sArr.find(sh=>sh.shotType === 'Drive' || sh.shotType === 'Driver');
+    const drive = sArr.find(sh=>['Drive','Driver'].includes(normalizeShotType(sh && sh.shotType)));
     if (drive && (drive.result === 'Fairway' || drive.result === 'fairway') && (hole.par >= 4)) fairways++;
 
     // GIR: find the first non-putter shot that landed on the green within regulation (<= par-2)
     const approach = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)).find(sh=>{
       if (!sh || !sh.result) return false;
-      if (sh.shotType === 'Putter') return false;
+      if (normalizeShotType(sh.shotType) === 'Putter') return false;
       const sn = Number(sh.shotNumber || 0);
       const parAllowed = Math.max(0, Number(hole.par || 4) - 2);
       if (!sn || sn > parAllowed) return false;
@@ -1840,20 +1824,16 @@ function recomputeRound(){
       // proximity: reflect larger value between green-hit remaining distance and first on-green putt start distance
       const proximityDist = getOnGreenProximityDistance(approach, sArr);
       if (proximityDist != null) proximityDistances.push(proximityDist);
-      // club-only proximity: approach remaining distance only (without putt-distance reflection)
-      const clubOnlyProximityDist = getApproachOnlyProximityDistance(approach);
-      if (clubOnlyProximityDist != null) clubOnlyProximityDistances.push(clubOnlyProximityDist);
       // count on-green holes for statistics
       onGreenHoles++;
       onGreenPuttsTotal += Number(onGreenPuttsOnHole || 0);
       
       // Collect 1-putt / 3+-putt distances: prefer recorded putter distance, fallback to approach distance
-      // 온그린 및 프린지 퍼팅 사용
       try{
         if (onGreenPuttsOnHole === 1){
           onePuttCount++;
           const putterShot = sArr.find(sh=> {
-            if (!sh || sh.shotType !== 'Putter') return false;
+            if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
             const lie = (sh.lie || '').toString().trim().toLowerCase();
             return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
           });
@@ -1865,7 +1845,7 @@ function recomputeRound(){
         if (onGreenPuttsOnHole >= 3){
           threePuttCount++;
           const putterShot = sArr.find(sh=> {
-            if (!sh || sh.shotType !== 'Putter') return false;
+            if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
             const lie = (sh.lie || '').toString().trim().toLowerCase();
             return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
           });
@@ -1878,8 +1858,6 @@ function recomputeRound(){
     }
     
 
-    // 칩샷 핀 근접도: AroundGreen 결과 샷 다음에 오는 비퍼터 샷(칩샷)의 distanceToHole
-    // 벙커 세이브율: Bunker_Greenside(그린사이드) 진입 후 2타 이내 완료 여부
     const orderedAll = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
     for (let si = 0; si < orderedAll.length; si++) {
       const sh = orderedAll[si];
@@ -1887,11 +1865,10 @@ function recomputeRound(){
       const rKey = normResultKey(sh.result || '');
       if (rKey === 'aroundgreen') {
         chipTotal++;
-        // 다음 비퍼터 샷이 칩샷 — 그 distanceToHole이 핀 근접도
         for (let ni = si + 1; ni < orderedAll.length; ni++) {
           const nsh = orderedAll[ni];
-          if (!nsh || nsh.shotType === 'Putter') break;
-          if (nsh.distanceToHole != null && !isNaN(Number(nsh.distanceToHole))) {
+          if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
+          if (nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0) {
             chipProximityDistances.push(Math.abs(Number(nsh.distanceToHole)));
           }
           break;
@@ -1915,16 +1892,22 @@ function recomputeRound(){
     ordered.forEach(sh => {
       const curRem = (sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
       // record distance only for club-selected shots (exclude putts-only and putters) and when we have a previous remaining distance
-      if (curRem != null && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+      const shotTypeName = normalizeShotType(sh && sh.shotType);
+      if (curRem != null && shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
-        if (!clubDistances[sh.shotType]) clubDistances[sh.shotType] = [];
-        clubDistances[sh.shotType].push(shotDist);
+        if (!clubDistances[shotTypeName]) clubDistances[shotTypeName] = [];
+        clubDistances[shotTypeName].push(shotDist);
+      }
+      // club proximity: all non-putter shots (green hits + around-green �� chip result)
+      if (sh && shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        const clProx = getClubProximityForShot(sh, ordered);
+        if (clProx != null) clubOnlyProximityDistances.push(clProx);
       }
       // update prevRemaining if current shot provides remaining distance
       if (curRem != null) prevRemaining = curRem;
     });
     // compute per-hole drive distance: first Driver shot's computed distance
-    const firstDrive = sArr.find(sh=> sh.shotType === 'Driver' || sh.shotType === 'Drive');
+    const firstDrive = sArr.find(sh=> ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
     if (firstDrive){
       // consider driver attempts for par 4/5 holes (tee shots)
       if (hole.par >= 4) {
@@ -1941,95 +1924,96 @@ function recomputeRound(){
   }
   // compute longest and average from per-hole drive distances
   const driveLens = perHoleDriveDistances;
-  const avgDrive = driveLens.length ? Math.round(driveLens.reduce((s,n)=>s+n,0)/driveLens.length) : 0;
-  longestDrive = driveLens.length ? Math.max(...driveLens) : 0;
   
   // count drives 250yd or longer (convert to current unit for comparison)
   const threshold250yd = (DISTANCE_UNIT === 'm') ? 229 : 250; // 250yd = ~229m
   const drive250PlusCount = driveLens.filter(d => d >= threshold250yd).length;
 
   // compute GIR% and putt percentages and proximity avg
-  const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 1000) / 10 : null; // one decimal
   // compute percentages over holes that had putts (more intuitive)
   // Use totalPutts as denominator per request
-  const onePuttPct = totalPutts ? Math.round((onePuttCount / totalPutts) * 1000) / 10 : null;
-  const threePuttPct = totalPutts ? Math.round((threePuttCount / totalPutts) * 1000) / 10 : null;
-  const avgOnePuttDist = onePutDistances.length ? Math.round(onePutDistances.reduce((s,n)=>s+n,0)/onePutDistances.length) : null;
-  const avgThreePuttDist = threePutDistances.length ? Math.round(threePutDistances.reduce((s,n)=>s+n,0)/threePutDistances.length) : null;
-  const proxAvg = proximityDistances.length ? Math.round(proximityDistances.reduce((s,n)=>s+n,0)/proximityDistances.length) : null;
-  const clubProxAvg = clubOnlyProximityDistances.length ? Math.round(clubOnlyProximityDistances.reduce((s,n)=>s+n,0)/clubOnlyProximityDistances.length) : null;
-  const driverFairPct = driverAttempts ? Math.round((driverFairways / driverAttempts) * 1000) / 10 : null;
 
   // Display Total Strokes using computed per-hole strokes (includes penalties)
   const displayTotalStrokes = totalStrokes;
+  const avgDrive = driveLens.length ? Math.round((driveLens.reduce((a,b)=>a+b,0)/driveLens.length) * 10) / 10 : '-';
+  const longestDriveValue = driveLens.length ? Math.max(...driveLens) : '-';
+  const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 100) : 0;
+  const onePuttPct = onGreenHoles ? Math.round((onePuttCount / onGreenHoles) * 100) : 0;
+  const threePuttPct = onGreenHoles ? Math.round((threePuttCount / onGreenHoles) * 100) : 0;
+  const driverFairPct = driverAttempts ? Math.round((driverFairways / driverAttempts) * 100) : 0;
+  const avgProximity = proximityDistances.length ? Math.round((proximityDistances.reduce((a,b)=>a+b,0)/proximityDistances.length) * 10) / 10 : '-';
+  const avgClubProximity = clubOnlyProximityDistances.length ? Math.round((clubOnlyProximityDistances.reduce((a,b)=>a+b,0)/clubOnlyProximityDistances.length) * 10) / 10 : '-';
+  const avgChipProximity = chipProximityDistances.length ? Math.round((chipProximityDistances.reduce((a,b)=>a+b,0)/chipProximityDistances.length) * 10) / 10 : '-';
+  const chipWithin1 = chipProximityDistances.filter(d => d <= 1).length;
+
   statTotalStrokes.textContent = displayTotalStrokes;
   statFairways.textContent = fairways;
   statGIR.textContent = gir;
-  statGIRPct.textContent = (girPct !== null) ? (girPct + '%') : '-';
+  statGIRPct.textContent = `${girPct}%`;
   statPutts.textContent = totalPutts;
-  statOnePuttPct.textContent = (onePuttPct !== null) ? (onePuttPct + '%' + (avgOnePuttDist != null ? (' (' + formatDistance(avgOnePuttDist) + ')') : '')) : '-';
+  statOnePuttPct.textContent = `${onePuttPct}%`;
+  statThreePuttPct.textContent = `${threePuttPct}%`;
   statPenalties.textContent = penalties;
-  statThreePuttPct.textContent = (threePuttPct !== null) ? (threePuttPct + '%' + (avgThreePuttDist != null ? (' (' + formatDistance(avgThreePuttDist) + ')') : '')) : '-';
-  statLongestDrive.textContent = longestDrive > 0 ? formatDistance(longestDrive) : '-';
-  statAvgDrive.textContent = avgDrive > 0 ? formatDistance(avgDrive) : '-';
+  statLongestDrive.textContent = longestDriveValue === '-' ? '-' : `${longestDriveValue}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  statAvgDrive.textContent = avgDrive === '-' ? '-' : `${avgDrive}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statDrive250Plus.textContent = drive250PlusCount || 0;
   statBBD.textContent = `${birdiesCount} / ${bogeysCount} / ${doublesCount}`;
-  statProximity.textContent = proxAvg != null ? formatDistance(proxAvg) : '-';
-  statClubProximity.textContent = clubProxAvg != null ? formatDistance(clubProxAvg) : '-';
-  const chipProxAvg = chipProximityDistances.length ? Math.round(chipProximityDistances.reduce((s,n)=>s+n,0)/chipProximityDistances.length) : null;
-  const chipWithin1 = chipProximityDistances.filter(d => d <= 1).length;
-  const chipWithin1Pct = chipTotal ? Math.round((chipWithin1 / chipTotal) * 1000) / 10 : 0;
-  const bunkerSavePctVal = bunkerAttempts ? Math.round((bunkerSaves / bunkerAttempts) * 1000) / 10 : null;
+  statProximity.textContent = avgProximity === '-' ? '-' : `${avgProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  statClubProximity.textContent = avgClubProximity === '-' ? '-' : `${avgClubProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  statDriverFairPct.textContent = `${driverFairPct}%`;
   if (statChipProximity) {
-    if (chipTotal === 0) { statChipProximity.textContent = '-'; }
+    if (chipProximityDistances.length === 0) { statChipProximity.textContent = '-'; }
     else {
-      const avgPart = chipProxAvg != null ? formatDistance(chipProxAvg) : '-';
-      statChipProximity.textContent = `${avgPart}  (within 1yd: ${chipWithin1Pct}%)`;
+      statChipProximity.textContent = `${avgChipProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}  (within 1yd: ${chipWithin1}/${chipProximityDistances.length})`;
     }
   }
-  if (statBunkerSavePct) statBunkerSavePct.textContent = bunkerAttempts > 0 ? (bunkerSavePctVal + '% (' + bunkerSaves + '/' + bunkerAttempts + ')') : '-';
-  statDriverFairPct.textContent = (driverFairPct !== null) ? (driverFairPct + '%') : '-';
   // club averages display (non-driver details are in clubDataPanel)
   if (clubStatsEl){
     clubStatsEl.innerHTML = '';
   }
     // populate the club table inside clubDataPanel (include all clubs used on any hole)
     if (clubDataPanel){
-      // build counts from all shots (count every shot that has a shotType)
+      const unitSuffix = DISTANCE_UNIT === 'm' ? ' m' : ' yd';
       const clubCounts = {};
-      const clubOnGreen = {}; // track how many times each club landed On/Green
-      const clubProx = {}; // per-club proximity with first-putt-reflected rule
+      const clubDists = {};
+      const clubOnGreen = {};
+      const clubProx = {};
       for (let ii=1; ii<=18; ii++){
         const sArr2 = shotsByHole[ii] || [];
-        const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(sArr2);
-        sArr2.forEach(sh => {
-          if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
-            clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+        const ordShotsClub = sArr2.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+        let prevRemaining = (HOLES[ii] && HOLES[ii].yard && !isNaN(Number(HOLES[ii].yard))) ? Number(HOLES[ii].yard) : null;
+        ordShotsClub.forEach(sh => {
+          const clubName = normalizeShotType(sh && sh.shotType);
+          const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+          if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+            clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
+            if (curRem != null && prevRemaining != null){
+              const shotDist = Math.max(0, prevRemaining - curRem);
+              if (!clubDists[clubName]) clubDists[clubName] = [];
+              clubDists[clubName].push(shotDist);
+            }
             const res = (sh.result || '').toString();
-                if (isGreenResult(res)){
-                  clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
-                  if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
-                    if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
-                    const approachDist = Math.abs(Number(sh.distanceToHole));
-                    const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
-                    clubProx[sh.shotType].push(adjustedProx);
-                  }
-                }
+            if (isGreenResult(res)){
+              clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
+            }
+            const prox = getClubProximityForShot(sh, ordShotsClub);
+            if (prox != null){
+              if (!clubProx[clubName]) clubProx[clubName] = [];
+              clubProx[clubName].push(prox);
+            }
           }
+          if (curRem != null) prevRemaining = curRem;
         });
       }
-      const rows = [];
-      for (const club in clubCounts){
+      const rows = Object.keys(clubCounts).map(club => {
         const count = clubCounts[club] || 0;
-        const arr = (clubDistances[club] && clubDistances[club].length) ? clubDistances[club] : [];
-        const avg = arr.length ? Math.round(arr.reduce((s,n)=>s+n,0)/arr.length) : '-';
         const onGreen = clubOnGreen[club] || 0;
-        const onGreenPct = count ? Math.round((onGreen / count) * 1000) / 10 : null;
-        const proxArr = (clubProx[club] && clubProx[club].length) ? clubProx[club] : [];
-        const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '-';
-        rows.push({club, count, avg, onGreen, onGreenPct, proxAvg});
-      }
-      // sort by our custom club order, then by count desc and name as a fallback
+        const distances = clubDists[club] || [];
+        const avgDist = distances.length ? `${(Math.round((distances.reduce((a,b)=>a+b,0)/distances.length) * 10) / 10)}${unitSuffix}` : '-';
+        const onGreenPct = count ? `${Math.round((onGreen / count) * 100)}%` : '0%';
+        const proxAvg = (clubProx[club] || []).length ? `${(Math.round((clubProx[club].reduce((a,b)=>a+b,0)/clubProx[club].length) * 10) / 10)}${unitSuffix}` : '-';
+        return {club, count, avgDist, onGreen, onGreenPct, proxAvg};
+      });
       rows.sort((a,b)=>{
         const ord = clubCompareByOrder(a.club, b.club);
         if (ord !== 0) return ord;
@@ -2038,7 +2022,6 @@ function recomputeRound(){
       if (!rows.length){
         clubDataPanel.innerHTML = '<div class="tiny muted">No data</div>';
       } else {
-        // Build distance-based statistics (60y, 100y, 130y, 150y, 170y, 200y)
         const distBuckets = ['60y 이내', '100y 이내', '130y 이내', '150y 이내', '170y 이내', '200y 이내'];
         function getDistBucket(dist){
           if (dist == null || isNaN(dist)) return null;
@@ -2054,24 +2037,22 @@ function recomputeRound(){
         const distStats = {};
         for (let di=1;di<=18;di++){
           const arr = shotsByHole[di] || [];
-          const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
           let prevRemaining = (HOLES[di] && HOLES[di].yard && !isNaN(Number(HOLES[di].yard))) ? Number(HOLES[di].yard) : null;
           const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
           ordered.forEach(sh => {
             const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-            if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+            if (curRem != null && sh && normalizeShotType(sh.shotType) && normalizeShotType(sh.shotType) !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
               const shotDist = Math.max(0, prevRemaining - curRem);
               const bucket = getDistBucket(shotDist);
               if (bucket){
-                if (!distStats[bucket]) distStats[bucket] = {count:0, distances:[], onGreen:0, proximities:[]};
+                if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
                 distStats[bucket].count += 1;
-                distStats[bucket].distances.push(shotDist);
                 const res = (sh.result || '').toString();
                 if (isGreenResult(res)){
                   distStats[bucket].onGreen += 1;
-                  const approachDist = Math.abs(Number(sh.distanceToHole));
-                  const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
-                  distStats[bucket].proximities.push(adjustedProx);
+                  if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
+                    distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
+                  }
                 }
               }
             }
@@ -2079,38 +2060,31 @@ function recomputeRound(){
           });
         }
         const distRows = distBuckets.map(bucket => {
-          const stats = distStats[bucket] || {count:0, distances:[], onGreen:0, proximities:[]};
-          const avg = stats.distances.length ? Math.round(stats.distances.reduce((s,n)=>s+n,0)/stats.distances.length) : '-';
-          const ongPct = stats.count ? Math.round((stats.onGreen / stats.count) * 1000) / 10 : null;
-          const proxAvg = stats.proximities.length ? Math.round(stats.proximities.reduce((s,n)=>s+n,0)/stats.proximities.length) : '-';
-          return {bucket, count: stats.count, avg, ong: stats.onGreen, ongPct, proxAvg};
+          const stats = distStats[bucket] || {count:0, onGreen:0, proximities:[]};
+          const count = stats.count || 0;
+          const onGreen = stats.onGreen || 0;
+          const onGreenPct = count ? `${Math.round((onGreen / count) * 100)}%` : '0%';
+          const proxAvg = stats.proximities.length ? `${(Math.round((stats.proximities.reduce((a,b)=>a+b,0)/stats.proximities.length) * 10) / 10)}${unitSuffix}` : '-';
+          return {bucket, count, onGreen, onGreenPct, proxAvg};
         });
-        
-        // Build side-by-side tables
         let html = '<div style="display:flex; gap:20px; flex-wrap:wrap;">';
-        
-        // Club data table
         html += '<div style="flex: 1 1 400px; min-width:300px;">';
         html += '<div style="margin-bottom:8px; font-weight:bold;">Club Data</div>';
         html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
-        html += `<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Club</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen %</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd; white-space:nowrap;" title="클럽별: max(approach, first putt start) / Per-club: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
-        html += '<tbody>' + rows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.club}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.club==='Driver' ? '-' : r.onGreen}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.club==='Driver' ? '-' : (r.onGreenPct!=null ? (r.onGreenPct + '%') : '-')}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.club==='Driver' ? '-' : (r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-')}</td></tr>`).join('') + '</tbody>';
-        html += '</table>';
-        html += '</div>';
-        
-        // Distance stats table
+        html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Club</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen %</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg Prox</th></tr></thead><tbody>';
+        rows.forEach(r => {
+          html += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0;">${r.club}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.avgDist}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.onGreen}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.onGreenPct}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.proxAvg}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
         html += '<div style="flex: 1 1 400px; min-width:300px;">';
-        html += '<div style="margin-bottom:8px; font-weight:bold;">거리별 통계 (Distance Stats)</div>';
         html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
-        html += `<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen %</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd; white-space:nowrap;" title="거리구간: max(approach, first putt start) / By distance: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
-        html += '<tbody>' + distRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.bucket}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count ? r.ong : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.count ? (r.ongPct!=null ? (r.ongPct + '%') : '-') : '-'}</td><td style="padding:6px; text-align:right; border-bottom:1px solid #f0f0f0">${r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-'}</td></tr>`).join('') + '</tbody>';
-        html += '</table>';
-        html += '</div>';
-        
-        html += '</div>';
+        html += `<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">OnGreen %</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd;">Avg Prox</th></tr></thead><tbody>`;
+        distRows.forEach(r => {
+          html += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0;">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.onGreen}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.onGreenPct}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${r.proxAvg}</td></tr>`;
+        });
+        html += '</tbody></table></div></div>';
         clubDataPanel.innerHTML = html;
       }
-      // ensure panel is collapsed by default
       if (!clubDataPanel.classList.contains('hidden')) clubDataPanel.classList.add('hidden');
     }
     // Build putt stats: separate by Distance and by Slope
@@ -2124,14 +2098,12 @@ function recomputeRound(){
         if (d <= 5) return '5y 이내';
         if (d <= 7) return '7y 이내';
         if (d <= 10) return '10y 이내';
-        return '10y 이상';
       }
       // Slope-based putting stats (unified across all distances)
       const puttStatsBySlope = {};
       
       for (let i=1;i<=18;i++){
         const arr = shotsByHole[i] || [];
-        // 온그린 및 프린지 퍼팅 필터링
         const onGreenPutterShots = arr.filter(sh => {
           if (!sh || sh.shotType !== 'Putter') return false;
           const lie = (sh.lie || '').toString().trim().toLowerCase();
@@ -2140,21 +2112,16 @@ function recomputeRound(){
         
         if (onGreenPutterShots.length === 0) continue;
         
-        // 각 퍼팅을 개별적으로 카운트
         onGreenPutterShots.forEach((putt, index) => {
-          // 이 퍼팅의 시작 거리
           const puttDist = (typeof putt.puttStartDistance !== 'undefined' && putt.puttStartDistance !== null) 
-            ? putt.puttStartDistance 
+            ? putt.puttStartDistance
             : putt.distanceToHole;
           const bucket = distBucket(puttDist);
           
-          // 이 퍼팅의 경사
           const slope = putt.slope || 'Flat';
           
-          // 이 퍼팅 이후 홀을 완료하는데 필요한 퍼팅 수 (남은 퍼팅 개수)
           const puttsToFinish = onGreenPutterShots.length - index;
           
-          // 마지막 퍼팅이면 홀인 성공, 아니면 실패
           const isLastPutt = (index === onGreenPutterShots.length - 1);
           
           // Distance-based stats
@@ -2176,7 +2143,6 @@ function recomputeRound(){
         const distKeys = Object.keys(puttStatsByDist);
         const slopeKeys = Object.keys(puttStatsBySlope);
         if (!distKeys.length && !slopeKeys.length){ 
-          panel.innerHTML = '<div class="tiny muted">퍼팅 통계 데이터 없음</div>'; 
         } else {
           let html = '<div style="max-width:820px; margin-left:auto; margin-right:auto; overflow:auto; background:rgba(255,255,255,0.02); padding:8px; border-radius:8px;">';
           
@@ -2184,18 +2150,13 @@ function recomputeRound(){
           if (distKeys.length > 0) {
             const distRows = distKeys.map(k=>{ 
               const v = puttStatsByDist[k]; 
-              v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
-              v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
               return v; 
             });
             // Sort by distance order
             const distOrder = ['2y 이내', '5y 이내', '7y 이내', '10y 이내', '10y 이상', 'Unknown'];
             distRows.sort((a,b)=> distOrder.indexOf(a.bucket) - distOrder.indexOf(b.bucket));
             
-            html += '<div class="small muted" style="margin-bottom:6px"><strong>거리별 퍼팅 통계</strong></div>';
             html += '<table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">';
-            html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
-            html += '<tbody>' + distRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
             html += '</table>';
           }
           
@@ -2203,8 +2164,6 @@ function recomputeRound(){
           if (slopeKeys.length > 0) {
             const slopeRows = slopeKeys.map(k=>{ 
               const v = puttStatsBySlope[k]; 
-              v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
-              v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
               return v; 
             });
             // Sort by slope type
@@ -2218,10 +2177,7 @@ function recomputeRound(){
               return idxA - idxB;
             });
             
-            html += '<div class="small muted" style="margin-bottom:6px"><strong>경사별 퍼팅 통계</strong></div>';
             html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
-            html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">경사</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
-            html += '<tbody>' + slopeRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.slope}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
             html += '</table>';
           }
           
@@ -2231,9 +2187,7 @@ function recomputeRound(){
       }
     }catch(e){ console.warn('puttStats build failed', e); }
   totalScoreLabel.textContent = displayTotalStrokes;
-  // par diff sign: show + for over par (strokes - par)
-  const parDiff = displayTotalStrokes - totalPar;
-  parDiffLabel.textContent = (parDiff >= 0 ? '+' : '') + parDiff;
+  if (parDiffLabel) parDiffLabel.textContent = `${displayTotalStrokes - totalPar > 0 ? '+' : ''}${displayTotalStrokes - totalPar}`;
 }
 
 // Build a printable summary element for all entered shots
@@ -2245,8 +2199,7 @@ function buildSummaryElement(forPdf){
   let _clubOnlyProximityDistances = [];
   for (let i=1;i<=18;i++){
     const arr = shotsByHole[i] || [];
-    // choose the approach shot the same way recomputeRound does: first non-putter
-    // shot within regulation (<= par-2), excluding certain par-5 second-shot cases.
+    // _proximityDistances: GIR approach only (Avg Proximity on green stat)
     const approach = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)).find(sh=>{
       if (!sh || !sh.result) return false;
       if (sh.shotType === 'Putter') return false;
@@ -2259,16 +2212,19 @@ function buildSummaryElement(forPdf){
       }
       return isGreenResult(sh.result);
     });
-      if (approach){
-        const proximityDist = getOnGreenProximityDistance(approach, arr);
-        if (proximityDist != null) _proximityDistances.push(proximityDist);
-        const clubOnlyProximityDist = getApproachOnlyProximityDistance(approach);
-        if (clubOnlyProximityDist != null) _clubOnlyProximityDistances.push(clubOnlyProximityDist);
+    if (approach){
+      const proximityDist = getOnGreenProximityDistance(approach, arr);
+      if (proximityDist != null) _proximityDistances.push(proximityDist);
+    }
+    // _clubOnlyProximityDistances: all non-putter shots (consistent with per-club table)
+    const ordArr = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    ordArr.forEach(sh => {
+      if (sh && normalizeShotType(sh.shotType) && normalizeShotType(sh.shotType) !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        const prox = getClubProximityForShot(sh, ordArr);
+        if (prox != null) _clubOnlyProximityDistances.push(prox);
       }
+    });
   }
-  const proxAvgLocal = _proximityDistances.length ? Math.round(_proximityDistances.reduce((s,n)=>s+n,0)/_proximityDistances.length) : null;
-    const clubProxAvgLocal = _clubOnlyProximityDistances.length ? Math.round(_clubOnlyProximityDistances.reduce((s,n)=>s+n,0)/_clubOnlyProximityDistances.length) : null;
-  // 칩샷 핀 근접도 및 벙커 세이브율 계산 (buildSummaryElement 내 독립 계산)
   let _chipProxDists = []; let _chipTotal = 0; let _bAttempts = 0; let _bSaves = 0;
   for (let i=1;i<=18;i++){
     const _arr = shotsByHole[i] || [];
@@ -2279,20 +2235,17 @@ function buildSummaryElement(forPdf){
       if (_rk === 'aroundgreen'){
         _chipTotal++;
         for (let _ni = si + 1; _ni < _ord.length; _ni++){
-          const _nsh = _ord[_ni]; if (!_nsh || _nsh.shotType === 'Putter') break;
-          if (_nsh.distanceToHole != null && !isNaN(Number(_nsh.distanceToHole))) _chipProxDists.push(Math.abs(Number(_nsh.distanceToHole)));
+          const _nsh = _ord[_ni]; if (!_nsh || normalizeShotType(_nsh.shotType) === 'Putter') break;
+          if (_nsh.distanceToHole != null && _nsh.distanceToHole !== '' && !isNaN(Number(_nsh.distanceToHole)) && Number(_nsh.distanceToHole) > 0) _chipProxDists.push(Math.abs(Number(_nsh.distanceToHole)));
           break;
         }
       }
       if (_rk === 'bunkergreenside'){ _bAttempts++; if (_ord.length - si - 1 <= 2) _bSaves++; }
     }
   }
-  const chipProxAvgLocal = _chipProxDists.length ? Math.round(_chipProxDists.reduce((s,n)=>s+n,0)/_chipProxDists.length) : null;
   const chipWithin1Local = _chipProxDists.filter(d => d <= 1).length;
-  const chipWithin1PctLocal = _chipTotal ? Math.round((chipWithin1Local / _chipTotal) * 1000) / 10 : 0;
-  const chipLabelLocal = _chipTotal === 0 ? '-' : ((chipProxAvgLocal != null ? formatDistance(chipProxAvgLocal) : '-') + '  (within 1yd: ' + chipWithin1PctLocal + '%)');
-  const bunkerSavePctLocal = _bAttempts ? Math.round((_bSaves / _bAttempts) * 1000) / 10 : null;
-  const bunkerSaveLabelLocal = _bAttempts > 0 ? (bunkerSavePctLocal + '% (' + _bSaves + '/' + _bAttempts + ')') : '-';
+  const avgChipProx = _chipProxDists.length ? (Math.round((_chipProxDists.reduce((a,b)=>a+b,0) / _chipProxDists.length) * 10) / 10) : '-';
+  const chipLabelLocal = avgChipProx === '-' ? '-' : `${avgChipProx}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'} (within 1yd: ${chipWithin1Local}/${_chipProxDists.length})`;
   const container = document.createElement('div');
   container.style.padding = '16px';
   container.style.fontFamily = 'Arial, Helvetica, sans-serif';
@@ -2307,7 +2260,8 @@ function buildSummaryElement(forPdf){
   hdr.style.gap = '12px';
   const metaStr = `Player: ${playerNameInput.value || ''} · Date: ${roundDateInput.value || ''} · Course: ${courseNameInput.value || ''} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT} · Weather: ${document.getElementById('roundWeather').value || ''}`;
   const left = document.createElement('div');
-  left.innerHTML = `<h2 style="margin:0">경기력 요약 / Performance Summary</h2><div style="margin-top:6px">${metaStr}</div>`;
+  left.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">Performance Summary</div><div style="font-size:13px; line-height:1.4;">${metaStr}</div>`;
+  left.style.maxWidth = '640px';
   const right = document.createElement('div');
   right.style.fontFamily = "Georgia, 'Times New Roman', serif";
   right.style.fontSize = '12px';
@@ -2337,52 +2291,41 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">GIR (%)</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statGIRPct.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">1-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statOnePuttPct.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">3-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statThreePuttPct.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Birdies/Bogeys/Doubles+</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statBBD ? statBBD.textContent : '0 / 0 / 0'}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green)</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${proxAvgLocal != null ? formatDistance(proxAvgLocal) : '-'}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${clubProxAvgLocal != null ? formatDistance(clubProxAvgLocal) : '-'}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${chipLabelLocal}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Bunker save rate: hole out in ≤2 shots after greenside bunker">Bunker Save%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${bunkerSaveLabelLocal}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Longest Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statLongestDrive.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Avg Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statAvgDrive.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">250yd over</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statDrive250Plus ? statDrive250Plus.textContent : '0'}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Driver Fairway %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statDriverFairPct ? statDriverFairPct.textContent : '-'}</td></tr>
     </tbody>`;
   statsWrap.appendChild(summaryTable);
 
-  // build club summary table (club, count, avg yd)
-  // compute club counts, average shot distances, OnGreen counts and per-club proximity averages (exclude Putter)
+  const unitSuffix = DISTANCE_UNIT === 'm' ? ' m' : ' yd';
   const clubCounts = {};
   const clubDists = {};
   const clubOnGreen = {};
   const clubProx = {};
   for (let i=1;i<=18;i++){
     const arr = shotsByHole[i] || [];
-    const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
-    // prevRemaining starts from hole yard if available
     let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
     const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
-      ordered.forEach(sh => {
-      if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
-        clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+    ordered.forEach(sh => {
+      const clubName = normalizeShotType(sh && sh.shotType);
+      if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
       }
       const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-      // distance per club (approx)
-      if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && prevRemaining != null){
+      if (curRem != null && clubName && clubName !== 'Putter' && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
-        if (!clubDists[sh.shotType]) clubDists[sh.shotType] = [];
-        clubDists[sh.shotType].push(shotDist);
+        if (!clubDists[clubName]) clubDists[clubName] = [];
+        clubDists[clubName].push(shotDist);
       }
-      // OnGreen and proximity: if this shot landed on the green, record proximity for the club
-      if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+      if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
         const res = (sh.result || '').toString();
         if (isGreenResult(res)){
-          clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
-          if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
-            if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
-            const approachDist = Math.abs(Number(sh.distanceToHole));
-            const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
-            clubProx[sh.shotType].push(adjustedProx);
-          }
+          clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
+        }
+        const prox = getClubProximityForShot(sh, ordered);
+        if (prox != null){
+          if (!clubProx[clubName]) clubProx[clubName] = [];
+          clubProx[clubName].push(prox);
         }
       }
       if (curRem != null) prevRemaining = curRem;
@@ -2390,38 +2333,33 @@ function buildSummaryElement(forPdf){
   }
   const clubRows = Object.keys(clubCounts).map(c=>{
     const count = clubCounts[c] || 0;
-    const arr = (clubDists[c] && clubDists[c].length) ? clubDists[c] : [];
-    const avg = arr.length ? Math.round(arr.reduce((s,n)=>s+n,0)/arr.length) : '-';
     const ong = clubOnGreen[c] || 0;
-    const ongPct = count ? Math.round((ong / count) * 1000) / 10 : null;
-    const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : [];
-    const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '-';
-    return {club: c, count, avg, ong, ongPct, proxAvg};
+    const distances = clubDists[c] || [];
+    const avgDist = distances.length ? `${(Math.round((distances.reduce((a,b)=>a+b,0)/distances.length) * 10) / 10)}${unitSuffix}` : '-';
+    const ongPct = count ? `${Math.round((ong / count) * 100)}%` : '0%';
+    const proxAvg = (clubProx[c] || []).length ? `${(Math.round((clubProx[c].reduce((a,b)=>a+b,0)/clubProx[c].length) * 10) / 10)}${unitSuffix}` : '-';
+    return {club: c, count, avgDist, ong, ongPct, proxAvg};
   });
-      clubRows.sort((a,b)=>{
-        const ord = clubCompareByOrder(a.club, b.club);
-        if (ord !== 0) return ord;
-        return (b.count - a.count) || a.club.localeCompare(b.club);
-      });
+  clubRows.sort((a,b)=>{
+    const ord = clubCompareByOrder(a.club, b.club);
+    if (ord !== 0) return ord;
+    return (b.count - a.count) || a.club.localeCompare(b.club);
+  });
   const clubTable = document.createElement('table');
-  clubTable.style.width = '100%'; clubTable.style.minWidth = forPdf ? '0' : '620px'; clubTable.style.borderCollapse = 'collapse'; clubTable.style.fontSize = '13px';
-  clubTable.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Club</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Count</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">OnGreen (횟수%)</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;" title="클럽별: max(approach, first putt start) / Per-club: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+  clubTable.style.width = '100%';
+  clubTable.style.borderCollapse = 'collapse';
+  clubTable.style.fontSize = '14px';
   const clubTbody = document.createElement('tbody');
   if (!clubRows.length){
     clubTbody.innerHTML = `<tr><td colspan="5" style="padding:6px;color:#777">No club data</td></tr>`;
   } else {
     clubRows.forEach(r=>{
-      const ongCell = r.club === 'Driver' ? '-' : (r.ong != null ? (r.ong + ' (' + (r.ongPct!=null ? (r.ongPct + '%') : '-') + ')') : '-');
-      const proxCell = r.club === 'Driver' ? '-' : (r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-');
-      const avgCell = r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-';
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.club}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${avgCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${ongCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${proxCell}</td>`;
+      tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.club}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.avgDist}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.ong}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.ongPct}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.proxAvg}</td>`;
       clubTbody.appendChild(tr);
     });
   }
   clubTable.appendChild(clubTbody);
-  
-  // Build distance-based statistics table (60y, 100y, 130y, 150y, 170y, 200y)
   const distBuckets = ['60y 이내', '100y 이내', '130y 이내', '150y 이내', '170y 이내', '200y 이내'];
   function getDistBucket(dist){
     if (dist == null || isNaN(dist)) return null;
@@ -2437,25 +2375,22 @@ function buildSummaryElement(forPdf){
   const distStats = {};
   for (let i=1;i<=18;i++){
     const arr = shotsByHole[i] || [];
-    const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
     let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
     const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
     ordered.forEach(sh => {
       const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-      if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+      const clubName = normalizeShotType(sh && sh.shotType);
+      if (curRem != null && clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
         const bucket = getDistBucket(shotDist);
         if (bucket){
-          if (!distStats[bucket]) distStats[bucket] = {count:0, distances:[], onGreen:0, proximities:[]};
+          if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
           distStats[bucket].count += 1;
-          distStats[bucket].distances.push(shotDist);
           const res = (sh.result || '').toString();
-          if (res === 'Green' || res === 'OnGreen' || res === 'green'){
+          if (isGreenResult(res)){
             distStats[bucket].onGreen += 1;
-            if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
-              const approachDist = Math.abs(Number(sh.distanceToHole));
-              const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
-              distStats[bucket].proximities.push(adjustedProx);
+            if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
+              distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
             }
           }
         }
@@ -2464,27 +2399,24 @@ function buildSummaryElement(forPdf){
     });
   }
   const distRows = distBuckets.map(bucket => {
-    const stats = distStats[bucket] || {count:0, distances:[], onGreen:0, proximities:[]};
-    const avg = stats.distances.length ? Math.round(stats.distances.reduce((s,n)=>s+n,0)/stats.distances.length) : '-';
-    const ongPct = stats.count ? Math.round((stats.onGreen / stats.count) * 1000) / 10 : null;
-    const proxAvg = stats.proximities.length ? Math.round(stats.proximities.reduce((s,n)=>s+n,0)/stats.proximities.length) : '-';
-    return {bucket, count: stats.count, avg, ong: stats.onGreen, ongPct, proxAvg};
+    const stats = distStats[bucket] || {count:0, onGreen:0, proximities:[]};
+    const count = stats.count || 0;
+    const onGreen = stats.onGreen || 0;
+    const onGreenPct = count ? `${Math.round((onGreen / count) * 100)}%` : '0%';
+    const proxAvg = stats.proximities.length ? `${(Math.round((stats.proximities.reduce((a,b)=>a+b,0)/stats.proximities.length) * 10) / 10)}${unitSuffix}` : '-';
+    return {bucket, count, onGreen, onGreenPct, proxAvg};
   });
   const distTable = document.createElement('table');
-  distTable.style.width = '100%'; distTable.style.minWidth = forPdf ? '0' : '700px'; distTable.style.borderCollapse = 'collapse'; distTable.style.fontSize = '13px';
-  distTable.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">거리</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Count</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">Avg (${DISTANCE_UNIT})</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;">OnGreen (횟수%)</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd; white-space:nowrap;" title="거리구간: max(approach, first putt start) / By distance: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
+  distTable.style.width = '100%';
+  distTable.style.borderCollapse = 'collapse';
+  distTable.style.fontSize = '14px';
   const distTbody = document.createElement('tbody');
   distRows.forEach(r=>{
-    const ongCell = r.count ? (r.ong + ' (' + (r.ongPct!=null ? (r.ongPct + '%') : '-') + ')') : '-';
-    const proxCell = r.proxAvg !== '-' ? formatDistance(r.proxAvg, true) : '-';
-    const avgCell = r.avg !== '-' ? convertDistance(r.avg, DISTANCE_UNIT) : '-';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${avgCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${ongCell}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${proxCell}</td>`;
+    tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.onGreen}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.onGreenPct}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.proxAvg}</td>`;
     distTbody.appendChild(tr);
   });
   distTable.appendChild(distTbody);
-  
-  // Create a wrapper for both tables side by side
   statsWrap.appendChild(document.createElement('div'));
   const tablesContainer = document.createElement('div');
   tablesContainer.style.display = 'flex';
@@ -2497,7 +2429,6 @@ function buildSummaryElement(forPdf){
   clubDataWrap.style.flex = '1 1 auto';
   clubDataWrap.style.width = '100%';
   clubDataWrap.style.minWidth = '0';
-  clubDataWrap.style.overflowX = forPdf ? 'visible' : 'auto';
   const clubTitle = document.createElement('div');
   clubTitle.innerHTML = '<strong>Club Data</strong>';
   clubTitle.style.marginBottom = '8px';
@@ -2508,9 +2439,7 @@ function buildSummaryElement(forPdf){
   distDataWrap.style.flex = '1 1 auto';
   distDataWrap.style.width = '100%';
   distDataWrap.style.minWidth = '0';
-  distDataWrap.style.overflowX = forPdf ? 'visible' : 'auto';
   const distTitle = document.createElement('div');
-  distTitle.innerHTML = '<strong>거리별 통계 (Distance Stats)</strong>';
   distTitle.style.marginBottom = '8px';
   distDataWrap.appendChild(distTitle);
   distDataWrap.appendChild(distTable);
@@ -2527,7 +2456,6 @@ function buildSummaryElement(forPdf){
   container.appendChild(statsWrapOuter);
   // Putt statistics for summary: separate by Distance and by Slope
   try{
-    // Distance-based putting stats (2y, 5y, 7y, 10y, 10y+)
     const puttStatsByDist = {};
     function distBucket(d){ 
       if (d == null || isNaN(Number(d))) return 'Unknown'; 
@@ -2538,47 +2466,34 @@ function buildSummaryElement(forPdf){
       if (d <= 10) return '10y 이내';
       return '10y 이상';
     }
-    // Slope-based putting stats (unified across all distances)
     const puttStatsBySlope = {};
     
     for (let i=1;i<=18;i++){
       const arr = shotsByHole[i] || [];
-      // 온그린 및 프린지 퍼팅 필터링
       const onGreenPutterShots = arr.filter(sh => {
-        if (!sh || sh.shotType !== 'Putter') return false;
+        if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
         const lie = (sh.lie || '').toString().trim().toLowerCase();
         return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
       });
       
       if (onGreenPutterShots.length === 0) continue;
       
-      // 각 퍼팅을 개별적으로 카운트
       onGreenPutterShots.forEach((putt, index) => {
-        // 이 퍼팅의 시작 거리
-        const puttDist = (typeof putt.puttStartDistance !== 'undefined' && putt.puttStartDistance !== null) 
-          ? putt.puttStartDistance 
+        const puttDist = (typeof putt.puttStartDistance !== 'undefined' && putt.puttStartDistance !== null)
+          ? putt.puttStartDistance
           : putt.distanceToHole;
         const bucket = distBucket(puttDist);
-        
-        // 이 퍼팅의 경사
-        const slope = putt.slope || 'Flat';
-        
-        // 이 퍼팅 이후 홀을 완료하는데 필요한 퍼팅 수 (남은 퍼팅 개수)
-        const puttsToFinish = onGreenPutterShots.length - index;
-        
-        // 마지막 퍼팅이면 홀인 성공, 아니면 실패
+        const slope = (putt.slope || 'Flat').toString().trim() || 'Flat';
         const isLastPutt = (index === onGreenPutterShots.length - 1);
         
-        // Distance-based stats
         if (!puttStatsByDist[bucket]) puttStatsByDist[bucket] = {bucket, attempts:0, makes:0, totalPutts:0};
         puttStatsByDist[bucket].attempts += 1;
-        puttStatsByDist[bucket].totalPutts += puttsToFinish;
+        puttStatsByDist[bucket].totalPutts += 1;
         if (isLastPutt) puttStatsByDist[bucket].makes += 1;
         
-        // Slope-based stats
         if (!puttStatsBySlope[slope]) puttStatsBySlope[slope] = {slope, attempts:0, makes:0, totalPutts:0};
         puttStatsBySlope[slope].attempts += 1;
-        puttStatsBySlope[slope].totalPutts += puttsToFinish;
+        puttStatsBySlope[slope].totalPutts += 1;
         if (isLastPutt) puttStatsBySlope[slope].makes += 1;
       });
     }
@@ -2586,45 +2501,33 @@ function buildSummaryElement(forPdf){
     const distKeys = Object.keys(puttStatsByDist);
     const slopeKeys = Object.keys(puttStatsBySlope);
     const puttWrap = document.createElement('div'); 
-    puttWrap.style.marginTop = '10px'; 
+    puttWrap.style.marginTop = '12px'; 
     puttWrap.style.maxWidth = '820px'; 
     puttWrap.style.marginLeft = 'auto'; 
-    puttWrap.style.marginRight = 'auto'; 
     puttWrap.style.marginRight = 'auto';
     
-    if (!distKeys.length && !slopeKeys.length){ 
-      puttWrap.innerHTML = '<div class="tiny muted">퍼팅 통계 데이터 없음</div>'; 
+    if (!distKeys.length && !slopeKeys.length){
+      puttWrap.innerHTML = '<div style="padding:10px 0; color:#777;">No putting data</div>';
     } else {
-      let html = '<div style="overflow:auto; background:rgba(255,255,255,0.02); padding:8px; border-radius:8px;">';
+      let html = '<div style="overflow:auto; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px;">';
+      html += '<div style="font-weight:700; margin-bottom:8px;">Putting Analysis</div>';
       
-      // Distance-based table
       if (distKeys.length > 0) {
-        const distRows = distKeys.map(k=>{ 
-          const v = puttStatsByDist[k]; 
-          v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
-          v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
-          return v; 
-        });
-        // Sort by distance order
+        const distRows = distKeys.map(k => puttStatsByDist[k]);
         const distOrder = ['2y 이내', '5y 이내', '7y 이내', '10y 이내', '10y 이상', 'Unknown'];
-        distRows.sort((a,b)=> distOrder.indexOf(a.bucket) - distOrder.indexOf(b.bucket));
-        
-        html += '<div class="small muted" style="margin-bottom:6px"><strong>거리별 퍼팅 통계</strong></div>';
-        html += '<table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">';
-        html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">거리</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
-        html += '<tbody>' + distRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
-        html += '</table>';
+        distRows.sort((a,b) => distOrder.indexOf(a.bucket) - distOrder.indexOf(b.bucket));
+        html += '<table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">';
+        html += '<thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Distance</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Attempts</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Makes</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Avg Putts</th></tr></thead><tbody>';
+        distRows.forEach(row => {
+          const avgPutts = row.attempts ? (row.totalPutts / row.attempts).toFixed(1) : '0.0';
+          const makePct = row.attempts ? `${Math.round((row.makes / row.attempts) * 100)}%` : '0%';
+          html += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0;">${row.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${row.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${row.makes} (${makePct})</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${avgPutts}</td></tr>`;
+        });
+        html += '</tbody></table>';
       }
       
-      // Slope-based table
       if (slopeKeys.length > 0) {
-        const slopeRows = slopeKeys.map(k=>{ 
-          const v = puttStatsBySlope[k]; 
-          v.avgPutts = v.attempts ? Math.round((v.totalPutts / v.attempts) * 10) / 10 : null; 
-          v.pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; 
-          return v; 
-        });
-        // Sort by slope type
+        const slopeRows = slopeKeys.map(k => puttStatsBySlope[k]);
         const slopeOrder = ['Flat', 'Uphill', 'Downhill', 'Sidehill'];
         slopeRows.sort((a,b)=> {
           const idxA = slopeOrder.indexOf(a.slope);
@@ -2634,12 +2537,14 @@ function buildSummaryElement(forPdf){
           if (idxB === -1) return -1;
           return idxA - idxB;
         });
-        
-        html += '<div class="small muted" style="margin-bottom:6px"><strong>경사별 퍼팅 통계</strong></div>';
         html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
-        html += '<thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd">경사</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">시도</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">성공률</th><th style="text-align:right; padding:6px; border-bottom:1px solid #ddd">평균 퍼팅수</th></tr></thead>';
-        html += '<tbody>' + slopeRows.map(r=> `<tr><td style="padding:6px; border-bottom:1px solid #f0f0f0">${r.slope}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.makes}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.pct}%</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${r.avgPutts!=null? r.avgPutts : '-'}</td></tr>`).join('') + '</tbody>';
-        html += '</table>';
+        html += '<thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Slope</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Attempts</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Makes</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Avg Putts</th></tr></thead><tbody>';
+        slopeRows.forEach(row => {
+          const avgPutts = row.attempts ? (row.totalPutts / row.attempts).toFixed(1) : '0.0';
+          const makePct = row.attempts ? `${Math.round((row.makes / row.attempts) * 100)}%` : '0%';
+          html += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0;">${row.slope}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${row.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${row.makes} (${makePct})</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0;">${avgPutts}</td></tr>`;
+        });
+        html += '</tbody></table>';
       }
       
       html += '</div>';
@@ -2650,16 +2555,8 @@ function buildSummaryElement(forPdf){
   // emphasized total box at bottom of summary
     try{
     // compute totals directly from HOLES to avoid any DOM/ordering discrepancies
-    let totalDisplayNum = 0;
-    let totalParLocal = 0;
-    for (let i=1;i<=18;i++){
-      const h = HOLES[i] || {};
-      const strokes = (typeof h.computedStrokes !== 'undefined' && h.computedStrokes !== null) ? Number(h.computedStrokes) : (h.score != null ? Number(h.score) : 0);
-      totalDisplayNum += (isNaN(strokes) ? 0 : strokes);
-      totalParLocal += Number(h.par || 0);
-    }
-    const totalDisplay = String(totalDisplayNum);
-    const parDiffDisplay = (totalDisplayNum - totalParLocal >= 0 ? '+' : '') + (totalDisplayNum - totalParLocal);
+    const totalDisplay = String(totalScoreLabel.textContent || '0');
+    const parDiffDisplay = String(parDiffLabel ? (parDiffLabel.textContent || '0') : '0');
     const footerBox = document.createElement('div');
     footerBox.style.display = 'flex';
     footerBox.style.justifyContent = 'center';
@@ -2726,7 +2623,6 @@ function exportSummaryPDF(){
   // filename
   function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi,'_').replace(/_+/g,'_'); }
   const datePart = roundDateInput.value || new Date().toISOString().slice(0,10);
-  const playerPart = safeFileName(playerNameInput.value) ? (safeFileName(playerNameInput.value) + '_') : '';
   const filename = `${playerPart}${datePart}_summary.pdf`;
   // use html2pdf to generate and save
   // Balanced settings: good visual quality but reasonable file size.
@@ -2790,7 +2686,6 @@ function buildStyledReport(forPdf){
   scoreBox.style.borderRadius = '6px';
   scoreBox.style.marginTop = '14px';
   scoreBox.style.textAlign = 'center';
-  const mainScore = (typeof totalScoreLabel !== 'undefined' && totalScoreLabel.textContent) ? totalScoreLabel.textContent : '0';
   scoreBox.innerHTML = `<div style="color:#6b6b6b;font-size:14px">Combined Total Score</div><div style="font-size:44px;color:#179f5f;font-weight:800;margin-top:6px">${mainScore}</div><div style="color:#9aa9a0;margin-top:6px">/ 100 points</div>`;
   wrap.appendChild(scoreBox);
 
@@ -2800,7 +2695,6 @@ function buildStyledReport(forPdf){
   sectionTitle.style.marginTop = '14px';
   sectionTitle.style.fontSize = '16px';
   sectionTitle.style.fontWeight = '700';
-  sectionTitle.textContent = '경기력요약 (Combined Results)';
   wrap.appendChild(sectionTitle);
 
   // Build a compact table using existing shots and stats
@@ -2814,10 +2708,6 @@ function buildStyledReport(forPdf){
 
   // populate with a few key metrics from the summary (if present)
   const metrics = [
-    {k:'Total Strokes', v: (typeof totalScoreLabel!=='undefined'? totalScoreLabel.textContent : '0')},
-    {k:'Total Putts', v: (typeof statPutts!=='undefined'? statPutts.textContent : '0')},
-    {k:'Penalties', v: (typeof statPenalties!=='undefined'? statPenalties.textContent : '0')},
-    {k:'Avg Proximity (on green)', v: (typeof statProximity!=='undefined'? statProximity.textContent : '-')},
   ];
   metrics.forEach(m=>{
     const tr = document.createElement('tr');
@@ -2831,32 +2721,29 @@ function buildStyledReport(forPdf){
   const clubTitle = document.createElement('div'); clubTitle.style.marginTop='12px'; clubTitle.style.fontWeight='700'; clubTitle.textContent='Club Data';
   wrap.appendChild(clubTitle);
   const clubTbl = document.createElement('table'); clubTbl.style.width='100%'; clubTbl.style.borderCollapse='collapse'; clubTbl.style.fontSize='13px';
-  clubTbl.innerHTML = `<thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Club</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">Count</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">OnGreen</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06)">OnGreen %</th><th style="text-align:right;padding:6px;border-bottom:2px solid rgba(0,0,0,0.06); white-space:nowrap;" title="클럽별: max(approach, first putt start) / Per-club: max(approach, first putt start)">Avg Club Proximity (${DISTANCE_UNIT})</th></tr></thead>`;
   const clubTbody2 = document.createElement('tbody');
   const clubList = [];
   const clubOnGreen = {};
   const clubProx = {};
   for (let i=1;i<=18;i++){
     const arr = shotsByHole[i] || [];
-    const firstOnGreenPuttDist = getFirstOnGreenPuttDistance(arr);
-    arr.forEach(sh=>{ if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+    const ordShots = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    ordShots.forEach(sh=>{ if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
       clubList.push(sh.shotType);
       const res = (sh.result || '').toString();
       if (isGreenResult(res)){
         clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
-        if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
-          if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
-          const approachDist = Math.abs(Number(sh.distanceToHole));
-          const adjustedProx = (firstOnGreenPuttDist != null) ? Math.max(approachDist, firstOnGreenPuttDist) : approachDist;
-          clubProx[sh.shotType].push(adjustedProx);
-        }
+      }
+      const prox = getClubProximityForShot(sh, ordShots);
+      if (prox != null){
+        if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
+        clubProx[sh.shotType].push(prox);
       }
     }});
   }
   const counts2 = {};
   clubList.forEach(c=> counts2[c] = (counts2[c]||0)+1);
   const keys = Object.keys(counts2).slice(0,10);
-  keys.forEach(c=>{ const ong = clubOnGreen[c] || 0; const pct = counts2[c] ? Math.round((ong/counts2[c])*1000)/10 : null; const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : []; const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : null; const tr=document.createElement('tr'); tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid rgba(0,0,0,0.06)">${c}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${counts2[c]}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${c==='Driver' ? '-' : ong}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${c==='Driver' ? '-' : (pct!=null ? (pct + '%') : '-')}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${c==='Driver' ? '-' : (proxAvg!=null ? formatDistance(proxAvg, true) : '-')}</td>`; clubTbody2.appendChild(tr); });
   if (!keys.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="5" style="padding:6px;color:#888">No club data</td>'; clubTbody2.appendChild(tr); }
   clubTbl.appendChild(clubTbody2);
   wrap.appendChild(clubTbl);
@@ -2871,7 +2758,6 @@ function buildStyledReport(forPdf){
         if (!sh || sh.shotType !== 'Putter') return;
         const lie = sh.lie || 'OnGreen';
         const slope = sh.slope || 'Flat';
-        const start = (typeof sh.puttStartDistance !== 'undefined' && sh.puttStartDistance !== null) ? sh.puttStartDistance : sh.distanceToHole;
         const bucket = distBucket(start);
         const key = `${lie}|${slope}|${bucket}`;
         if (!puttStats[key]) puttStats[key] = {lie, slope, bucket, attempts:0, makes:0, totalPutts:0};
@@ -2886,7 +2772,6 @@ function buildStyledReport(forPdf){
     const pBody = document.createElement('tbody');
     if (!keys.length){ const tr = document.createElement('tr'); tr.innerHTML = `<td colspan="3" style="padding:6px;color:#888">No putt data</td>`; pBody.appendChild(tr); }
     else {
-      keys.forEach(k=>{ const v = puttStats[k]; const pct = v.attempts ? Math.round((v.makes / v.attempts) * 1000) / 10 : 0; const tr = document.createElement('tr'); tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid rgba(0,0,0,0.06)">${v.lie} / ${v.slope} / ${v.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${v.attempts}</td><td style="padding:6px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.06)">${pct}%</td>`; pBody.appendChild(tr); });
     }
     pTable.appendChild(pBody);
     const pTitle = document.createElement('div'); pTitle.style.marginTop='12px'; pTitle.style.fontWeight='700'; pTitle.textContent='Putt Stats';
@@ -2942,7 +2827,6 @@ function exportSummaryWithPreset(preset){
   const el = buildSummaryElement(true);
   function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi,'_').replace(/_+/g,'_'); }
   const datePart = roundDateInput.value || new Date().toISOString().slice(0,10);
-  const playerPart = safeFileName(playerNameInput.value) ? (safeFileName(playerNameInput.value) + '_') : '';
   const filename = `${playerPart}${datePart}_summary.pdf`;
   const opt = getPdfOptionsForPreset(preset, filename);
   html2pdf().set(opt).from(el).save();
@@ -2982,7 +2866,6 @@ function previewSummaryWithPreset(preset){
       }).catch(e=>{
         try{ if (el && el.parentNode) el.parentNode.removeChild(el); }catch(e){}
         console.error('previewSummaryWithPreset html2canvas failed', e);
-        alert('미리보기 생성에 실패했습니다. PDF로 직접 내보내기 시도하세요.');
       });
     });
   }catch(e){ alert('미리보기 불가: ' + (e && e.message)); }
@@ -3015,7 +2898,6 @@ function fillSampleData(){
   recomputeRound();
   // open analysis card and show alert
   try{ document.getElementById('holesContainer').classList.remove('hidden'); if (analysisCard) analysisCard.classList.remove('hidden'); }catch(e){}
-  alert('샘플 데이터가 채워졌습니다. Analysis & Export에서 1-Putt/3-Putt 평균 거리를 확인하세요.');
 }
 if (btnFillSample) btnFillSample.addEventListener('click', fillSampleData);
 
@@ -3035,7 +2917,6 @@ function exportCSV(){
   lines.push(['Player', meta.player, '', 'Date', meta.date, '', 'Course', meta.course, '', 'Unit', DISTANCE_UNIT].join(','));
   lines.push('');
   // summary metrics (Birdies/Bogeys/Doubles+)
-  try{ lines.push(['Birdies/Bogeys/Doubles+', (statBBD ? statBBD.textContent : '0 / 0 / 0')].join(',')); lines.push(''); }catch(e){}
   // shots header
   const hdr = ['Hole','Par','HoleYard','ShotNumber','ShotType','Result','DistanceToHole','Putts','Penalty','Note','Lie','Slope','PuttStartDistance','Timestamp'];
   lines.push(hdr.join(','));
@@ -3053,13 +2934,9 @@ function exportCSV(){
           s.shotNumber,
           s.shotType,
           `"${(s.result||'').toString().replace(/"/g,'""')}"`,
-          s.distanceToHole != null ? s.distanceToHole : '',
-          s.putts != null ? s.putts : '',
-          (s.penalty != null ? String(s.penalty) : '0'),
           `"${(s.note||'').toString().replace(/"/g,'""')}"`,
           s.lie || '',
           s.slope || '',
-          s.puttStartDistance != null ? s.puttStartDistance : '',
           s.timestamp
         ];
         lines.push(row.join(','));
@@ -3075,13 +2952,8 @@ function exportCSV(){
     const arr = shotsByHole[i] || [];
     const shotsCount = arr.length;
     const drive = arr.find(sh=>sh.shotType==='Drive' || sh.shotType==='Driver');
-    const fairwayHit = drive && (drive.result==='Fairway' || drive.result==='fairway') && (h.par>=4) ? 1 : 0;
     const approach = arr.find(sh=>sh.result==='Green' || sh.result==='OnGreen' || sh.result==='green');
-    const girVal = approach ? 1 : 0;
-    const putts = arr.reduce((sum,sh)=>sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0),0);
-    const threePutts = putts >= 3 ? 1 : 0;
     const penalties = arr.reduce((sum,sh)=>sum + (Number(sh.penalty) || 0),0);
-    const compStrokes = (h.computedStrokes !== undefined ? h.computedStrokes : (h.score != null ? h.score : ''));
     lines.push([i, h.par, h.yard || '', compStrokes, shotsCount, fairwayHit, girVal, putts, threePutts, penalties].join(','));
   }
   // Club Data section: compute per-club counts, avg distance, OnGreen count/percent, avg proximity
@@ -3094,8 +2966,8 @@ function exportCSV(){
     const clubProx = {};
     for (let i=1;i<=18;i++){
       const arr = shotsByHole[i] || [];
-      let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
       const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+      let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
       ordered.forEach(sh=>{
           if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
             clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
@@ -3126,15 +2998,7 @@ function exportCSV(){
     });
     clubs.forEach(c=>{
       const count = clubCounts[c] || 0;
-      const dArr = (clubDists[c] && clubDists[c].length) ? clubDists[c] : [];
-      const avg = dArr.length ? Math.round(dArr.reduce((s,n)=>s+n,0)/dArr.length) : '';
-      const avgConverted = avg !== '' ? convertDistance(avg, DISTANCE_UNIT) : '';
       const ong = clubOnGreen[c] || 0;
-      const ongPct = count ? (Math.round((ong/count)*1000)/10) : '';
-      const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : [];
-      const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '';
-      const ongDisplay = c === 'Driver' ? '-' : (ong !== undefined ? (ong + ' (' + (ongPct !== '' ? (ongPct + '%') : '') + ')') : '');
-      const proxDisplay = c === 'Driver' ? '-' : (proxAvg !== '' ? formatDistance(proxAvg, true) : '');
       lines.push([c, count, avgConverted, ongDisplay, proxDisplay].join(','));
     });
   }
@@ -3153,17 +3017,14 @@ async function saveRoundToServer(){
     if(!el) return;
     el.innerHTML = msg;
     el.style.display = 'block';
-    el.style.background = ok ? 'rgba(31,181,122,0.15)' : 'rgba(255,80,80,0.15)';
-    el.style.border = ok ? '1px solid rgba(31,181,122,0.4)' : '1px solid rgba(255,80,80,0.4)';
-    el.style.color = ok ? '#7adf9a' : '#ff9999';
   }
   try{
     const authRes = await sb.auth.getSession();
     const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
     if(!authSession){
       console.warn('saveRoundToServer: no auth session, skipping server save.');
-      if(syncedRoundStatus) syncedRoundStatus.textContent = '로그인 세션이 없습니다. 코치 포탈에서 로그인 후 다시 시도하세요.';
-      showSaveBanner('⚠️ 서버 저장 실패: 로그인 세션이 없습니다. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">코치 포탈에서 로그인 후 돌아오세요</a>', false);
+      if(syncedRoundStatus) syncedRoundStatus.textContent = 'No auth session. Please login via coach portal.';
+      showSaveBanner('[!] Server save failed: No login session. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">Login via coach portal</a>', false);
       return;
     }
     const roundDate = (roundDateInput && roundDateInput.value) || new Date().toISOString().slice(0,10);
@@ -3193,11 +3054,11 @@ async function saveRoundToServer(){
     },{onConflict:'player_id,round_date,course'});
     if(error){
       console.warn('saveRoundToServer upsert error', error);
-      if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 저장 중 오류가 발생했습니다: '+error.message;
-      showSaveBanner('❌ 서버 저장 실패: ' + error.message, false);
+      if(syncedRoundStatus) syncedRoundStatus.textContent = 'Server save error: '+error.message;
+      showSaveBanner('[X] Server save failed: ' + error.message, false);
     } else {
-      if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 라운드 데이터가 저장되었습니다. ('+new Date().toLocaleTimeString()+')';
-      showSaveBanner('✅ 서버에 저장 완료! (' + new Date().toLocaleTimeString() + ')', true);
+      if(syncedRoundStatus) syncedRoundStatus.textContent = 'Round saved to server. ('+new Date().toLocaleTimeString()+')';
+      showSaveBanner('[OK] Saved to server! (' + new Date().toLocaleTimeString() + ')', true);
       try{ localStorage.setItem('sytpt_round_last_saved', new Date().toISOString()); }catch(e){}
     }
   }catch(e){
@@ -3205,7 +3066,7 @@ async function saveRoundToServer(){
   }
 }
 
-// 페이지 로드 시 인증 상태 자동 확인
+// Check auth state on page load
 async function checkAuthOnLoad(){
   initSupabase();
   if(!sb) return;
@@ -3216,8 +3077,8 @@ async function checkAuthOnLoad(){
     if(!banner) return;
     if(!authSession){
       const storedSess = getStoredSession();
-      const nameHint = storedSess && storedSess.name ? `(${storedSess.name})` : '';
-      banner.innerHTML = `⚠️ 서버 저장에 필요한 로그인 세션이 없습니다 ${nameHint}. CSV 저장 시 서버 동기화가 되지 않습니다. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">코치 포탈에서 로그인 후 돌아오세요</a>`;
+      const nameHint = (storedSess && storedSess.user && storedSess.user.user_metadata && storedSess.user.user_metadata.name) || '';
+      banner.innerHTML = '[!] No login session for server sync ' + (nameHint ? nameHint + ' ' : '') + '. CSV save will NOT sync to server. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">Login via coach portal</a>';
       banner.style.display = 'block';
       banner.style.background = 'rgba(255,160,0,0.12)';
       banner.style.border = '1px solid rgba(255,160,0,0.35)';
@@ -3225,7 +3086,6 @@ async function checkAuthOnLoad(){
     } else {
       const user = authSession.user;
       const name = (user && user.user_metadata && user.user_metadata.name) || (user && user.email) || '';
-      banner.textContent = `✅ 서버 연동 중 ${name ? '(' + name + ')' : ''} — CSV 저장 시 서버에 자동 동기화됩니다.`;
       banner.style.display = 'block';
       banner.style.background = 'rgba(31,181,122,0.10)';
       banner.style.border = '1px solid rgba(31,181,122,0.3)';
@@ -3245,10 +3105,20 @@ if (btnImportCsv && fileImportCsv){
     if (!f) return;
     const reader = new FileReader();
     reader.onload = function(e){
-      try{ const txt = e.target.result; const rows = parseCSV(txt); processImportedCSV(rows); }catch(err){ alert('CSV 읽기 중 오류: ' + (err && err.message ? err.message : err)); }
+      try{
+        const text = e.target && e.target.result ? e.target.result : '';
+        const rows = parseCSV(text);
+        processImportedCSV(rows);
+      } catch (err) {
+        console.error('CSV import failed', err);
+        alert('CSV 불러오기 중 오류가 발생했습니다. 형식을 확인해 주세요.');
+      }
     };
-    reader.onerror = function(){ alert('파일을 읽을 수 없습니다.'); };
+    reader.onerror = function(){
+      alert('CSV 파일을 읽는 중 오류가 발생했습니다.');
+    };
     reader.readAsText(f, 'utf-8');
+    ev.target.value = '';
   });
 }
 
@@ -3274,222 +3144,198 @@ function parseCSV(text){
 }
 
 function processImportedCSV(rows){
-  if (!rows || rows.length===0) return alert('CSV에 데이터가 없습니다.');
-  
-  // Extract saved metadata from first row (format: Player,name,,Date,date,,Course,course,,Unit,yd)
-  let savedUnit = 'yd'; // default
-  if (rows.length > 0 && rows[0]) {
-    const firstRow = rows[0].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
-    const playerIdx = firstRow.indexOf('Player');
-    const dateIdx   = firstRow.indexOf('Date');
-    const courseIdx = firstRow.indexOf('Course');
-    const unitIndex = firstRow.indexOf('Unit');
-    // 플레이어명, 날짜, 골프장명을 폼 필드에 반영
-    if (playerIdx >= 0 && playerIdx < firstRow.length - 1) {
-      const playerEl = document.getElementById('playerName');
-      if (playerEl) playerEl.value = firstRow[playerIdx + 1];
+  const normalizeCell = (value) => String(value == null ? '' : value).replace(/^\uFEFF/, '').trim();
+  const normalizeHeader = (value) => normalizeCell(value).toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const getHeaderIndex = (headers, candidates) => {
+    const normalizedHeaders = headers.map(normalizeHeader);
+    for (const candidate of candidates) {
+      const idx = normalizedHeaders.indexOf(normalizeHeader(candidate));
+      if (idx >= 0) return idx;
     }
-    if (dateIdx >= 0 && dateIdx < firstRow.length - 1) {
-      const dateEl = document.getElementById('roundDate');
-      if (dateEl && firstRow[dateIdx + 1]) dateEl.value = firstRow[dateIdx + 1];
-    }
-    if (courseIdx >= 0 && courseIdx < firstRow.length - 1) {
-      const courseEl = document.getElementById('courseName');
-      if (courseEl) courseEl.value = firstRow[courseIdx + 1];
-    }
-    // 저장된 단위 감지 (변환에만 사용, 표시는 항상 야드 고정)
-    if (unitIndex >= 0 && unitIndex < firstRow.length - 1) {
-      const unitValue = firstRow[unitIndex + 1].trim();
-      if (unitValue === 'm' || unitValue === 'yd') {
-        savedUnit = unitValue; // 야드 변환 기준으로만 사용
-      }
-    } else {
-      // Unit 필드 없는 구 CSV → 불러오기 단위 선택자 값으로 대체
-      const csvImportUnitEl = document.getElementById('csvImportUnit');
-      if (csvImportUnitEl && csvImportUnitEl.value) savedUnit = csvImportUnitEl.value;
-    }
-  }
-  
-  // Helper function to convert distance from saved unit to current unit
-  function convertDistanceValue(value, fromUnit, toUnit) {
-    if (!value || isNaN(value)) return value;
-    if (fromUnit === toUnit) return value;
+    return -1;
+  };
+
+  const convertDistanceValue = (value, fromUnit, toUnit) => {
+    if (value === '' || value === null || value === undefined || isNaN(Number(value))) return value;
     const numValue = Number(value);
-    if (fromUnit === 'yd' && toUnit === 'm') {
-      return Math.round(numValue * 0.9144);
-    }
-    if (fromUnit === 'm' && toUnit === 'yd') {
-      return Math.round(numValue * 1.09361);
-    }
+    if (fromUnit === toUnit) return numValue;
+    if (fromUnit === 'yd' && toUnit === 'm') return Math.round(numValue * 0.9144);
+    if (fromUnit === 'm' && toUnit === 'yd') return Math.round(numValue * 1.09361);
     return numValue;
+  };
+
+  let savedUnit = 'yd';
+  const firstRow = rows.length > 0 && rows[0] ? rows[0].map(normalizeCell) : [];
+  const firstRowLower = firstRow.map((value) => value.toLowerCase());
+  const playerMetaValue = firstRowLower.includes('player') ? firstRow[firstRowLower.indexOf('player') + 1] : '';
+  const dateMetaValue = firstRowLower.includes('date') ? firstRow[firstRowLower.indexOf('date') + 1] : '';
+  const courseMetaValue = firstRowLower.includes('course') ? firstRow[firstRowLower.indexOf('course') + 1] : '';
+  const unitMetaValue = firstRowLower.includes('unit') ? firstRow[firstRowLower.indexOf('unit') + 1] : '';
+
+  if (playerMetaValue) {
+    const playerEl = document.getElementById('playerName');
+    if (playerEl) playerEl.value = playerMetaValue;
   }
-  
-  // find shots header row robustly: prefer a row that contains 'ShotNumber' or 'ShotType'
+  if (dateMetaValue) {
+    const dateEl = document.getElementById('roundDate');
+    if (dateEl) dateEl.value = dateMetaValue;
+  }
+  if (courseMetaValue) {
+    const courseEl = document.getElementById('courseName');
+    if (courseEl) courseEl.value = courseMetaValue;
+  }
+  if (unitMetaValue === 'm' || unitMetaValue === 'yd') {
+    savedUnit = unitMetaValue;
+  }
+
   let headerRowIndex = -1;
-  for (let i=0;i<rows.length;i++){
-    if (!rows[i] || rows[i].length===0) continue;
-    const cand = rows[i].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
-    const candLower = cand.map(c=>c.toLowerCase());
-    if (candLower.indexOf('shotnumber')>=0 || candLower.indexOf('shottype')>=0){ headerRowIndex = i; break; }
-  }
-  // fallback: first row that starts with 'Hole'
-  if (headerRowIndex === -1){
-    for (let i=0;i<rows.length;i++){
-      if (!rows[i] || rows[i].length===0) continue;
-      const rawFirst = String(rows[i][0]||'');
-      const first = rawFirst.replace(/^\uFEFF/, '').trim();
-      if (first.toLowerCase() === 'hole' || first === 'Hole') { headerRowIndex = i; break; }
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    if (!row.length) continue;
+    const rowLower = row.map((cell) => normalizeCell(cell).toLowerCase());
+    if (rowLower.some((cell) => cell.includes('shotnumber')) || rowLower.some((cell) => cell.includes('shottype')) || rowLower.some((cell) => cell.includes('hole'))) {
+      headerRowIndex = i;
+      break;
     }
   }
-  if (headerRowIndex === -1) return alert('CSV 형식이 올바르지 않습니다 (샷 헤더를 찾을 수 없음).');
-  // normalize headers and strip BOM from each header cell
-  const headers = rows[headerRowIndex].map(h=>String(h||'').replace(/^\uFEFF/, '').trim());
 
-  // Clear existing data and reinitialize HOLES
-  for (let i=1;i<=18;i++) {
+  if (headerRowIndex < 0) {
+    alert('지원하지 않는 CSV 형식입니다. 내보내기 형식과 다를 수 있습니다.');
+    return;
+  }
+
+  const headers = rows[headerRowIndex].map(normalizeCell);
+  const holeIdx = getHeaderIndex(headers, ['Hole', 'HoleNumber']);
+  const parIdx = getHeaderIndex(headers, ['Par']);
+  const yardIdx = getHeaderIndex(headers, ['HoleYard', 'Yard']);
+  const shotNumIdx = getHeaderIndex(headers, ['ShotNumber', 'ShotNum', 'Shot #']);
+  const shotTypeIdx = getHeaderIndex(headers, ['ShotType', 'Club']);
+  const resultIdx = getHeaderIndex(headers, ['Result']);
+  const distanceIdx = getHeaderIndex(headers, ['DistanceToHole', 'DistanceToPin', 'Distance', 'RemainingDistance']);
+  const puttsIdx = getHeaderIndex(headers, ['Putts']);
+  const penaltyIdx = getHeaderIndex(headers, ['Penalty', 'Penalties']);
+  const noteIdx = getHeaderIndex(headers, ['Note', 'Notes']);
+  const lieIdx = getHeaderIndex(headers, ['Lie']);
+  const slopeIdx = getHeaderIndex(headers, ['Slope']);
+  const puttStartIdx = getHeaderIndex(headers, ['PuttStartDistance', 'StartDistance']);
+  const timestampIdx = getHeaderIndex(headers, ['Timestamp', 'Time']);
+
+  for (let i = 1; i <= 18; i++) {
     shotsByHole[i] = [];
-    // Reset hole data but preserve structure
-    HOLES[i] = { 
-      hole: i, 
-      yard: '', 
-      par: 4, 
-      score: null, 
-      computedStrokes: 0, 
-      manualScore: false, 
-      shots: [] 
+    HOLES[i] = {
+      hole: i,
+      yard: '',
+      par: 4,
+      score: null,
+      computedStrokes: 0,
+      manualScore: false,
+      shots: []
     };
   }
 
-  // parse shot rows until we encounter a Holes summary header (which contains 'Hole' and ('Score' or 'TotalShots'))
-  let holesHeaderIndex = -1;
-  // First, find where the hole summary section starts
-  for (let r = headerRowIndex+1; r<rows.length; r++){
-    const line = rows[r];
-    if (!line || line.length===0) continue;
-    const lineNorm = line.map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
-    const lineLower = lineNorm.map(c=> c.toLowerCase());
-    // Check for hole summary header: contains 'Hole' and either 'Score' or 'TotalShots'
-    if (lineLower.indexOf('hole')>=0 && (lineLower.indexOf('score')>=0 || lineLower.indexOf('totalshots')>=0)){ 
-      holesHeaderIndex = r; 
-      break; 
+  let summaryHeaderIndex = -1;
+  for (let r = headerRowIndex + 1; r < rows.length; r++) {
+    const line = rows[r] || [];
+    if (!line.length) continue;
+    const lineNorm = line.map(normalizeCell);
+    const lower = lineNorm.map((cell) => cell.toLowerCase());
+    if (lower.some((cell) => cell.includes('hole')) && (lower.some((cell) => cell.includes('score')) || lower.some((cell) => cell.includes('shotscount')) || lower.some((cell) => cell.includes('totalshots')))) {
+      summaryHeaderIndex = r;
+      break;
     }
   }
-  
-  // Now parse shot data only up to the hole summary section (or end of file)
-  const parseEndIndex = (holesHeaderIndex > 0) ? holesHeaderIndex : rows.length;
-  
-  for (let r = headerRowIndex+1; r<parseEndIndex; r++){
-    const line = rows[r];
-    if (!line || line.length===0) continue;
-    // normalize cells for header detection
-    const lineNorm = line.map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
 
-    const first = lineNorm[0];
-    if (first === '') continue;
-    const hole = Number(line[headers.indexOf('Hole')]||line[0]||0);
-    if (!hole || hole<1 || hole>18) continue;
-    
-    // Skip rows with empty ShotType - these are not valid shots
-    const shotTypeIdx = headers.indexOf('ShotType');
-    if (shotTypeIdx >= 0){
-      const shotTypeVal = String(line[shotTypeIdx] || '').trim();
-      if (shotTypeVal === '') continue; // Skip rows without a club/shot type
-      // Skip rows where ShotType is purely numeric (likely hole summary data)
-      if (/^\d+$/.test(shotTypeVal)) continue;
+  const dataEndIndex = summaryHeaderIndex >= 0 ? summaryHeaderIndex : rows.length;
+  for (let r = headerRowIndex + 1; r < dataEndIndex; r++) {
+    const line = rows[r] || [];
+    if (!line.length) continue;
+    const normalizedLine = line.map(normalizeCell);
+    if (!normalizedLine.some((cell) => cell !== '')) continue;
+
+    const holeValue = normalizedLine[holeIdx] || normalizedLine[0] || '';
+    const hole = Number(holeValue);
+    if (!hole || hole < 1 || hole > 18) continue;
+
+    const shotTypeValue = normalizedLine[shotTypeIdx] || '';
+    if (!shotTypeValue) continue;
+
+    const shotNumberValue = normalizedLine[shotNumIdx] || '';
+    const shotNumber = shotNumberValue ? (Number(shotNumberValue) || 1) : (shotsByHole[hole].length + 1);
+
+    const rawDistance = normalizedLine[distanceIdx] || '';
+    const rawPuttStartDistance = normalizedLine[puttStartIdx] || '';
+    const rawPutts = normalizedLine[puttsIdx] || '';
+    const rawPenalty = normalizedLine[penaltyIdx] || '';
+    const rawPar = normalizedLine[parIdx] || '';
+    const rawYard = normalizedLine[yardIdx] || '';
+
+    const convertedDistance = rawDistance !== '' && !isNaN(Number(rawDistance)) ? convertDistanceValue(Number(rawDistance), savedUnit, DISTANCE_UNIT) : null;
+    const convertedPuttStartDistance = rawPuttStartDistance !== '' && !isNaN(Number(rawPuttStartDistance)) ? convertDistanceValue(Number(rawPuttStartDistance), savedUnit, DISTANCE_UNIT) : null;
+
+    if (rawPar !== '' && !isNaN(Number(rawPar))) {
+      HOLES[hole].par = Number(rawPar);
     }
-    
-    // Skip rows without valid ShotNumber (hole summary rows don't have shot numbers)
-    const snIdx = headers.indexOf('ShotNumber');
-    if (snIdx >= 0){
-      const snVal = String(line[snIdx] || '').trim();
-      if (snVal === '' || isNaN(Number(snVal))) continue;
+    if (rawYard !== '' && !isNaN(Number(rawYard))) {
+      HOLES[hole].yard = convertDistanceValue(Number(rawYard), savedUnit, DISTANCE_UNIT);
     }
-    if (headers.indexOf('Par')>=0){ HOLES[hole].par = Number(line[headers.indexOf('Par')]) || HOLES[hole].par; }
-    // Convert HoleYard from saved unit to current DISTANCE_UNIT
-    if (headers.indexOf('HoleYard')>=0){ 
-      const rawYard = line[headers.indexOf('HoleYard')] || HOLES[hole].yard;
-      HOLES[hole].yard = convertDistanceValue(rawYard, savedUnit, DISTANCE_UNIT);
-    }
-    // CSV에서 불러온 데이터는 자동 계산 모드로 시작
-    if (!HOLES[hole].manualScore) HOLES[hole].manualScore = false;
-    // Build shot object. If ShotNumber cell is present (non-empty), use it; otherwise fallback to next index.
-    const snRaw = (headers.indexOf('ShotNumber')>=0) ? (line[headers.indexOf('ShotNumber')]||'') : '';
-    const shotNumber = (String(snRaw).trim() !== '') ? Number(snRaw) : (shotsByHole[hole].length+1);
-    
-    // Convert distance values from saved unit to current DISTANCE_UNIT
-    const rawDistanceToHole = (headers.indexOf('DistanceToHole')>=0 && line[headers.indexOf('DistanceToHole')]!==undefined && line[headers.indexOf('DistanceToHole')]!=='') ? Number(line[headers.indexOf('DistanceToHole')]) : null;
-    const convertedDistanceToHole = rawDistanceToHole !== null ? convertDistanceValue(rawDistanceToHole, savedUnit, DISTANCE_UNIT) : null;
-    
-    const rawPuttStartDistance = headers.indexOf('PuttStartDistance')>=0 ? (line[headers.indexOf('PuttStartDistance')] || '') : '';
-    const convertedPuttStartDistance = rawPuttStartDistance ? convertDistanceValue(rawPuttStartDistance, savedUnit, DISTANCE_UNIT) : '';
-    
-    const sh = {
-      hole: hole,
-      shotNumber: shotNumber,
-      shotType: line[headers.indexOf('ShotType')] || '',
-      result: line[headers.indexOf('Result')] || '',
-      distanceToHole: convertedDistanceToHole,
-      putts: (headers.indexOf('Putts')>=0) ? (Number(line[headers.indexOf('Putts')]||0) || 0) : 0,
-      penalty: (headers.indexOf('Penalty')>=0) ? (Number(line[headers.indexOf('Penalty')]||0) || 0) : 0,
-      note: line[headers.indexOf('Note')] || '',
-      lie: headers.indexOf('Lie')>=0 ? (line[headers.indexOf('Lie')] || '').toString().trim() : (line[headers.indexOf('lie')] || '').toString().trim(),
-      slope: headers.indexOf('Slope')>=0 ? (line[headers.indexOf('Slope')] || '').toString().trim() : (line[headers.indexOf('slope')] || '').toString().trim(),
+
+    const shot = {
+      hole,
+      shotNumber,
+      shotType: normalizeShotType(shotTypeValue),
+      result: normalizedLine[resultIdx] || '',
+      distanceToHole: convertedDistance,
+      putts: rawPutts !== '' && !isNaN(Number(rawPutts)) ? Number(rawPutts) : 0,
+      penalty: rawPenalty !== '' && !isNaN(Number(rawPenalty)) ? Number(rawPenalty) : 0,
+      note: normalizedLine[noteIdx] || '',
+      lie: normalizedLine[lieIdx] || '',
+      slope: normalizedLine[slopeIdx] || '',
       puttStartDistance: convertedPuttStartDistance,
-      timestamp: line[headers.indexOf('Timestamp')] || new Date().toISOString()
+      timestamp: normalizedLine[timestampIdx] || new Date().toISOString()
     };
-    // 디버깅: Putter 샷의 lie 값 확인
-    if (sh.shotType === 'Putter') {
-      console.log(`Hole ${hole}, Shot ${shotNumber}: shotType=${sh.shotType}, lie="${sh.lie}", putts=${sh.putts}`);
-    }
-    shotsByHole[hole].push(sh);
+
+    shotsByHole[hole].push(shot);
   }
 
-  // After shots parsed, try to find a Holes summary section (header row that includes 'Score' or 'TotalShots') and apply hole scores
-  if (typeof holesHeaderIndex === 'undefined' || holesHeaderIndex === -1){
-    for (let i=headerRowIndex+1;i<rows.length;i++){
-      if (!rows[i] || rows[i].length===0) continue;
-      const cand = rows[i].map(c=> String(c||'').replace(/^\uFEFF/, '').trim());
-      const candLower = cand.map(c=>c.toLowerCase());
-      if ((candLower.indexOf('score')>=0 || candLower.indexOf('totalshots')>=0) && candLower.indexOf('hole')>=0){ holesHeaderIndex = i; break; }
-    }
-  }
-  if (holesHeaderIndex >= 0){
-    const holeHeaders = rows[holesHeaderIndex].map(h=>String(h||'').replace(/^\uFEFF/, '').trim());
-    for (let r = holesHeaderIndex+1; r<rows.length; r++){
-      const line = rows[r]; if (!line || line.length===0) continue;
-      const first = String(line[0]||'').replace(/^\uFEFF/, '').trim(); if (first === '') continue;
-      const hnum = Number(line[holeHeaders.indexOf('Hole')]||line[0]||0); if (!hnum || hnum<1 || hnum>18) continue;
-      // Don't read TotalShots or Score from summary - let recomputeRound() calculate it from shots
-      // This ensures penalties are properly added to the score
-      // Convert Yard from saved unit to current DISTANCE_UNIT
-      const yardIdx = holeHeaders.indexOf('Yard'); 
-      if (yardIdx>=0) {
-        const rawYard = line[yardIdx];
-        HOLES[hnum].yard = convertDistanceValue(rawYard, savedUnit, DISTANCE_UNIT) || HOLES[hnum].yard;
+  if (summaryHeaderIndex >= 0) {
+    const holeHeaders = rows[summaryHeaderIndex].map(normalizeCell);
+    for (let r = summaryHeaderIndex + 1; r < rows.length; r++) {
+      const line = rows[r] || [];
+      if (!line.length) continue;
+      const normalizedLine = line.map(normalizeCell);
+      if (!normalizedLine.some((cell) => cell !== '')) continue;
+      const holeValue = normalizedLine[holeHeaders.findIndex((h) => normalizeHeader(h) === 'hole')] || normalizedLine[0] || '';
+      const hnum = Number(holeValue);
+      if (!hnum || hnum < 1 || hnum > 18) continue;
+      const yardIdxInSummary = getHeaderIndex(holeHeaders, ['Yard', 'HoleYard']);
+      const parIdxInSummary = getHeaderIndex(holeHeaders, ['Par']);
+      const rawYard = normalizedLine[yardIdxInSummary] || '';
+      const rawPar = normalizedLine[parIdxInSummary] || '';
+      if (rawYard !== '' && !isNaN(Number(rawYard))) {
+        HOLES[hnum].yard = convertDistanceValue(Number(rawYard), savedUnit, DISTANCE_UNIT);
       }
-      const parIdx = holeHeaders.indexOf('Par'); if (parIdx>=0) HOLES[hnum].par = Number(line[parIdx]) || HOLES[hnum].par;
-      // Ensure manualScore is false for CSV imports
+      if (rawPar !== '' && !isNaN(Number(rawPar))) {
+        HOLES[hnum].par = Number(rawPar);
+      }
       HOLES[hnum].manualScore = false;
     }
   }
 
-  // Force recompute to ensure all computedStrokes are calculated from shotsByHole data
-  try{ recomputeRound(); }catch(e){ console.error('recomputeRound failed', e); }
-  try{ renderHoles(); }catch(e){ console.error('renderHoles failed', e); }
-  try{ saveDraft(); }catch(e){}
-  try{ if (roundInfoCard) roundInfoCard.classList.add('hidden'); }catch(e){}
-  try{ document.getElementById('holesContainer').classList.remove('hidden'); }catch(e){}
-  if (analysisCard) analysisCard.classList.remove('hidden');
-  showAllHoles = false; singleHoleIndex = 1; startHole(1);
-  
-  // Show success message with conversion info if units differ
-  let alertMessage = 'CSV 불러오기 완료';
-  if (savedUnit !== DISTANCE_UNIT) {
-    const fromLabel = savedUnit === 'm' ? '미터 (m)' : '야드 (yd)';
-    const toLabel = DISTANCE_UNIT === 'm' ? '미터 (m)' : '야드 (yd)';
-    alertMessage += `\n\n거리 단위가 ${fromLabel}에서 ${toLabel}로 변환되었습니다.`;
+  for (let i = 1; i <= 18; i++) {
+    HOLES[i].shots = (shotsByHole[i] || []).slice();
   }
-  alert(alertMessage);
+
+  try { recomputeRound(); } catch (e) { console.error('recomputeRound failed', e); }
+  try { renderHoles(); } catch (e) { console.error('renderHoles failed', e); }
+  try { saveDraft(); } catch (e) {}
+  try { if (roundInfoCard) roundInfoCard.classList.add('hidden'); } catch (e) {}
+  try { document.getElementById('holesContainer').classList.remove('hidden'); } catch (e) {}
+  if (analysisCard) analysisCard.classList.remove('hidden');
+  showAllHoles = false;
+  singleHoleIndex = 1;
+  startHole(1);
+
+  alert('CSV 불러오기 완료');
 }
 
 if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
@@ -3503,7 +3349,6 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
   try{
     const summaryRows = [];
     summaryRows.push(['Metric','Value']);
-    summaryRows.push(['Birdies/Bogeys/Doubles+', (statBBD ? statBBD.textContent : '0 / 0 / 0')]);
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
   }catch(e){}
@@ -3515,7 +3360,6 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
     const arr = shotsByHole[i] || [];
     if (arr.length){
       arr.forEach(s=>{
-        shotsRows.push([s.hole, hole.par, hole.yard || '', s.shotNumber, s.shotType, s.result, s.distanceToHole, s.putts, Number(s.penalty) || 0, s.note, s.lie || '', s.slope || '', s.puttStartDistance != null ? s.puttStartDistance : '', s.timestamp]);
       });
     }
   }
@@ -3530,14 +3374,9 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
     const arr = shotsByHole[i] || [];
     const shotsCount = arr.length;
     const drive = arr.find(sh=>sh.shotType==='Drive');
-    const fairwayHit = drive && (drive.result==='Fairway' || drive.result==='fairway') && h.par>=4 ? 1 : 0;
     const approach = arr.find(sh=>sh.result==='Green' || sh.result==='OnGreen' || sh.result==='green');
-    const girVal = approach ? 1 : 0;
-    const putts = arr.reduce((sum,sh)=>sum + ((sh && sh.shotType === 'Putter') ? (Number(sh.putts) || 0) : 0),0);
-    const threePutts = putts >= 3 ? 1 : 0;
     const penalties = arr.reduce((sum,sh)=>sum + (Number(sh.penalty) || 0),0);
     // use computedStrokes and scoreDiff if available
-    const compStrokes = (h.computedStrokes !== undefined ? h.computedStrokes : (h.score != null ? h.score : ''));
     // export the computed strokes (total strokes) as the score cell
     const scoreCell = compStrokes;
     holeRows.push([i, h.par, h.yard || '', scoreCell, shotsCount, fairwayHit, girVal, putts, threePutts, penalties]);
@@ -3587,15 +3426,7 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
     });
     clubs.forEach(c=>{
       const count = clubCounts[c] || 0;
-      const dArr = (clubDists[c] && clubDists[c].length) ? clubDists[c] : [];
-      const avg = dArr.length ? Math.round(dArr.reduce((s,n)=>s+n,0)/dArr.length) : '';
-      const avgConverted = avg !== '' ? convertDistance(avg, DISTANCE_UNIT) : '';
       const ong = clubOnGreen[c] || 0;
-      const ongPct = count ? (Math.round((ong/count)*1000)/10) : '';
-      const proxArr = (clubProx[c] && clubProx[c].length) ? clubProx[c] : [];
-      const proxAvg = proxArr.length ? Math.round(proxArr.reduce((s,n)=>s+n,0)/proxArr.length) : '';
-      const ongDisplay = c === 'Driver' ? '-' : (ong !== undefined ? (ong + ' (' + (ongPct !== '' ? (ongPct + '%') : '') + ')') : '');
-      const proxDisplay = c === 'Driver' ? '-' : (proxAvg !== '' ? formatDistance(proxAvg, true) : '');
       clubRowsOut.push([c, count, avgConverted, ongDisplay, proxDisplay]);
     });
   }
@@ -3608,7 +3439,6 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
   // build filename from player + date, sanitized
   function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.]/gi,'_').replace(/_+/g,'_'); }
   const datePart = meta.date || (new Date().toISOString().slice(0,10));
-  const playerPart = safeFileName(meta.player) ? (safeFileName(meta.player) + '_') : '';
   const filename = `${playerPart}${datePart}.xlsx`;
   downloadBlob(filename, blob);
 });
@@ -3717,7 +3547,6 @@ function loadDraft(){
     if (draft.shots){
       for (const k in draft.shots){
         try{ 
-          shotsByHole[k] = Array.isArray(draft.shots[k]) ? draft.shots[k] : [];
           // normalize penalty values to numeric (support older boolean/string values)
           if (Array.isArray(shotsByHole[k])){
             for (let si=0; si<shotsByHole[k].length; si++){
@@ -3736,7 +3565,6 @@ function loadDraft(){
     recomputeRound();
     // If the restored data results in a total score of 0, treat this as a new round
     try{
-      const total = Number((totalScoreLabel && totalScoreLabel.textContent) ? totalScoreLabel.textContent : 0);
       if (total === 0){
         if (roundInfoCard) roundInfoCard.classList.remove('hidden');
         const holesContainer = document.getElementById('holesContainer');
@@ -3769,7 +3597,6 @@ window.addEventListener('beforeunload', saveDraft);
             const playerName = sharedDraft.meta.player || '이름없음';
             const roundDate = sharedDraft.meta.date || '날짜없음';
             const courseName = sharedDraft.meta.course || '코스없음';
-            const msg = `선수 포털에서 저장된 라운드 데이터가 있습니다.\n플레이어: ${playerName}\n날짜: ${roundDate}\n코스: ${courseName}\n\n불러오시겠습니까?`;
             if (confirm(msg)){
               localStorage.setItem(STORAGE_KEY, sharedRaw);
               loadDraft();
@@ -3811,9 +3638,7 @@ window.addEventListener('beforeunload', saveDraft);
     }
     if (!hasHoleData) return; // nothing meaningful to restore
 
-    const msg = '이전에 저장된 입력이 있습니다. 이전 입력을 복원하시겠습니까?';
     // Use a simple confirm dialog so user can choose to restore or start fresh
-    const ok = confirm(msg + '\n\n확인: 복원, 취소: 새 입력');
     if (ok){
       loadDraft();
     } else {
