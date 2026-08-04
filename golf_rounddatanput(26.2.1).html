@@ -480,7 +480,7 @@
       <div class="stat">Penalties: <strong id="statPenalties">0</strong></div>
       <div class="stat">Longest Drive: <strong id="statLongestDrive">-</strong></div>
       <div class="stat">Avg Drive: <strong id="statAvgDrive">-</strong></div>
-      <div class="stat">250yd over: <strong id="statDrive250Plus">0</strong></div>
+      <div class="stat"><span id="statDrive250Label">250yd over</span>: <strong id="statDrive250Plus">0</strong></div>
       <div class="stat">Birdies/Bogeys/Doubles+: <strong id="statBBD">0 / 0 / 0</strong></div>
       <div class="stat" style="white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green): <strong id="statProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
@@ -698,13 +698,13 @@ function restoreRoundFromRemote(row){
         shotNumber: idx + 1,
         shotType: input.shotType || input.club || '',
         result: input.result || '',
-        distanceToHole: input.distanceToHole != null ? input.distanceToHole : null,
+        distanceToHole: input.distanceToHole != null && input.distanceToHole !== '' && !isNaN(Number(input.distanceToHole)) ? convertDistanceValue(Number(input.distanceToHole), remoteSavedUnit, DISTANCE_UNIT) : null,
         putts: Number(input.putts || 0),
         penalty: Number(input.penalty || 0),
         note: input.note || '',
         lie: input.lie || '',
         slope: input.slope || '',
-        puttStartDistance: input.puttStartDistance != null ? input.puttStartDistance : null,
+        puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertDistanceValue(Number(input.puttStartDistance), remoteSavedUnit, DISTANCE_UNIT) : null,
         timestamp: input.timestamp || ''
       };
     });
@@ -712,7 +712,7 @@ function restoreRoundFromRemote(row){
     HOLES[i] = {
       hole: i,
       par: holeData.par != null ? holeData.par : 4,
-      yard: holeData.yard != null ? holeData.yard : '',
+      yard: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, DISTANCE_UNIT) : '',
       score: holeData.score != null ? holeData.score : null,
       computedStrokes: holeData.computedStrokes != null ? holeData.computedStrokes : 0,
       manualScore: holeData.manualScore || false,
@@ -733,7 +733,7 @@ function restoreRoundFromRemote(row){
   if(roundDateEl) roundDateEl.value = meta.date || row.round_date || new Date().toISOString().slice(0,10);
   if(courseNameEl) courseNameEl.value = meta.course || row.course || '';
   if(roundParEl) roundParEl.value = meta.roundPar || 72;
-  if(roundYardEl) roundYardEl.value = convertToYd(meta.totalYard, remoteSavedUnit) || '';
+  if(roundYardEl) roundYardEl.value = (meta.totalYard != null && meta.totalYard !== '' && !isNaN(Number(meta.totalYard))) ? convertDistanceValue(Number(meta.totalYard), remoteSavedUnit, DISTANCE_UNIT) : '';
   if(roundWeatherEl) roundWeatherEl.value = meta.weather || '';
   if(distanceUnitEl){
     distanceUnitEl.value = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
@@ -747,24 +747,29 @@ function restoreRoundFromRemote(row){
   if(holesContainer) holesContainer.classList.remove('hidden');
   if(analysisCard) analysisCard.classList.remove('hidden');
 }
-function convertDistance(yards, toUnit) {
-  if (yards == null || isNaN(yards)) return null;
-  const y = Number(yards);
-  if (toUnit === 'm') {
-    return Math.round(y * 0.9144);
-  }
-  return y; // already in yards
-}
-function convertToYd(val, fromUnit) {
-  if (val == null || val === '' || isNaN(Number(val)) || fromUnit === 'yd' || !fromUnit) return val;
+function convertDistanceValue(value, fromUnit, toUnit) {
+  if (value == null || value === '' || isNaN(Number(value))) return null;
+  const num = Number(value);
+  if (fromUnit === toUnit) return num;
+  if (fromUnit === 'yd' && toUnit === 'm') return Math.round(num * 0.9144);
+  if (fromUnit === 'm' && toUnit === 'yd') return Math.round(num * 1.09361);
+  return num;
 }
 
-function formatDistance(yards, includeUnit = true) {
-  const converted = convertDistance(yards, DISTANCE_UNIT);
-  if (converted == null || converted === '' || isNaN(Number(converted))) return '-';
-  const value = Number(converted);
+function convertDistance(yards, toUnit) {
+  return convertDistanceValue(yards, 'yd', toUnit);
+}
+
+function convertToYd(val, fromUnit) {
+  if (val == null || val === '' || isNaN(Number(val))) return val;
+  return convertDistanceValue(Number(val), fromUnit || 'yd', 'yd');
+}
+
+function formatDistance(value, includeUnit = true) {
+  if (value == null || value === '' || isNaN(Number(value))) return '-';
+  const numeric = Number(value);
   const unit = includeUnit ? (DISTANCE_UNIT === 'm' ? ' m' : ' yd') : '';
-  return `${value}${unit}`;
+  return `${numeric}${unit}`;
 }
 
 function getUnitLabel() {
@@ -776,6 +781,50 @@ function updateUnitLabels() {
   if (lbl) {
     lbl.textContent = DISTANCE_UNIT === 'm' ? 'Total Distance (m)' : 'Total Distance (yd)';
   }
+  const unitSelect = document.getElementById('distanceUnit');
+  if (unitSelect) {
+    unitSelect.value = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
+  }
+  const distanceInput = document.getElementById('distanceToHole');
+  if (distanceInput) {
+    distanceInput.placeholder = DISTANCE_UNIT === 'm' ? 'e.g. 120 m' : 'e.g. 120 yd';
+    distanceInput.setAttribute('aria-label', DISTANCE_UNIT === 'm' ? 'Distance to hole (m)' : 'Distance to hole (yd)');
+  }
+}
+
+function applyDistanceUnit(nextUnit, convertExisting = true) {
+  const unit = nextUnit === 'm' ? 'm' : 'yd';
+  if (DISTANCE_UNIT === unit) {
+    updateUnitLabels();
+    return;
+  }
+  const previousUnit = DISTANCE_UNIT;
+  DISTANCE_UNIT = unit;
+  if (convertExisting) {
+    const roundYardEl = document.getElementById('roundYard');
+    if (roundYardEl && roundYardEl.value !== '' && !isNaN(Number(roundYardEl.value))) {
+      roundYardEl.value = convertDistanceValue(Number(roundYardEl.value), previousUnit, unit);
+    }
+    for (let i = 1; i <= 18; i++) {
+      const hole = HOLES[i];
+      if (hole && hole.yard != null && hole.yard !== '' && !isNaN(Number(hole.yard))) {
+        hole.yard = convertDistanceValue(Number(hole.yard), previousUnit, unit);
+      }
+      const arr = shotsByHole[i] || [];
+      arr.forEach((shot) => {
+        if (shot && shot.distanceToHole != null && shot.distanceToHole !== '' && !isNaN(Number(shot.distanceToHole))) {
+          shot.distanceToHole = convertDistanceValue(Number(shot.distanceToHole), previousUnit, unit);
+        }
+        if (shot && shot.puttStartDistance != null && shot.puttStartDistance !== '' && !isNaN(Number(shot.puttStartDistance))) {
+          shot.puttStartDistance = convertDistanceValue(Number(shot.puttStartDistance), previousUnit, unit);
+        }
+      });
+    }
+  }
+  updateUnitLabels();
+  try { renderHoles(); } catch (e) {}
+  try { recomputeRound(); } catch (e) {}
+  try { saveDraft(); } catch (e) {}
 }
 const playerNameInput = document.getElementById('playerName');
 const roundDateInput = document.getElementById('roundDate');
@@ -962,6 +1011,7 @@ const statPenalties = document.getElementById('statPenalties');
 const statLongestDrive = document.getElementById('statLongestDrive');
 const statAvgDrive = document.getElementById('statAvgDrive');
 const statDrive250Plus = document.getElementById('statDrive250Plus');
+const statDrive250Label = document.getElementById('statDrive250Label');
 const statBBD = document.getElementById('statBBD');
 const statProximity = document.getElementById('statProximity');
 const statClubProximity = document.getElementById('statClubProximity');
@@ -1013,7 +1063,7 @@ function renderHoles(){
         <div class="hole-number">${h.hole}</div>
         <div>
           <div class="hole-meta">Par <input data-hole="${i}" class="hole-par input--short" type="number" min="3" max="5" value="${h.par}" inputmode="numeric" pattern="[0-9]*" aria-label="Hole ${i} par"></div>
-          <div class="tiny muted">Yard: <input data-hole="${i}" class="hole-yard input--yard" type="number" min="0" value="${h.yard || ''}" placeholder="yd" inputmode="numeric" pattern="[0-9]*" aria-label="Hole ${i} yard"></div>
+          <div class="tiny muted">${DISTANCE_UNIT === 'm' ? 'Meter' : 'Yard'}: <input data-hole="${i}" class="hole-yard input--yard" type="number" min="0" value="${h.yard || ''}" placeholder="${DISTANCE_UNIT === 'm' ? 'm' : 'yd'}" inputmode="numeric" pattern="[0-9]*" aria-label="Hole ${i} yard"></div>
         </div>
       </div>
       <div class="hole-actions">
@@ -1123,6 +1173,12 @@ function startRound(){
   // Update unit labels
   updateUnitLabels();
 }
+if (distanceUnitSelect) {
+  distanceUnitSelect.addEventListener('change', () => {
+    applyDistanceUnit(distanceUnitSelect.value, true);
+  });
+}
+
 if (btnStartRound) btnStartRound.addEventListener('click', startRound);
 if (btnLoadSyncedRound) btnLoadSyncedRound.addEventListener('click', async ()=>{
   if(!syncedRoundSelect || !syncedRoundSelect.value){
@@ -1810,8 +1866,8 @@ function recomputeRound(){
     // accumulate club-shot counts (exclude putts)
     totalClubShots += clubShots;
 
-    // fairway: Drive shot with result 'Fairway' for par>=4
-    const drive = sArr.find(sh=>['Drive','Driver'].includes(normalizeShotType(sh && sh.shotType)));
+    // fairway: tee-shot driver only for par>=4
+    const drive = sArr.find(sh => ((Number(sh.shotNumber) || 1) === 1) && ['Drive','Driver'].includes(normalizeShotType(sh && sh.shotType)));
     if (drive && (drive.result === 'Fairway' || drive.result === 'fairway') && (hole.par >= 4)) fairways++;
 
     // GIR: find the first non-putter shot that landed on the green within regulation (<= par-2)
@@ -1916,18 +1972,23 @@ function recomputeRound(){
       // update prevRemaining if current shot provides remaining distance
       if (curRem != null) prevRemaining = curRem;
     });
-    // compute per-hole drive distance: first Driver shot's computed distance
-    const firstDrive = sArr.find(sh=> ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
+    // compute per-hole drive distance: only tee-shot driver entries
+    const firstDrive = sArr.find(sh => ((Number(sh.shotNumber) || 1) === 1) && ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
     if (firstDrive){
       // consider driver attempts for par 4/5 holes (tee shots)
       if (hole.par >= 4) {
         driverAttempts++;
         if (firstDrive.result === 'Fairway' || firstDrive.result === 'fairway' || firstDrive.result === 'FW') driverFairways++;
       }
-      if (firstDrive.distanceToHole != null){
+      const holeDistance = (hole.yard != null && hole.yard !== '' && !isNaN(Number(hole.yard))) ? Number(hole.yard) : null;
+      const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? Number(firstDrive.distanceToHole) : null;
+      if (shotRemaining != null){
         let d = null;
-        if (hole.yard && !isNaN(Number(hole.yard))) d = Math.max(0, Number(hole.yard) - Number(firstDrive.distanceToHole || 0));
-        else d = Number(firstDrive.distanceToHole || 0);
+        if (holeDistance != null) {
+          d = Math.max(0, holeDistance - shotRemaining);
+        } else {
+          d = shotRemaining;
+        }
         if (d != null) perHoleDriveDistances.push(d);
       }
     }
@@ -1935,9 +1996,9 @@ function recomputeRound(){
   // compute longest and average from per-hole drive distances
   const driveLens = perHoleDriveDistances;
   
-  // count drives 250yd or longer (convert to current unit for comparison)
-  const threshold250yd = (DISTANCE_UNIT === 'm') ? 229 : 250; // 250yd = ~229m
-  const drive250PlusCount = driveLens.filter(d => d >= threshold250yd).length;
+  // count drives above 228m (or 250yd) using the selected unit
+  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
+  const drive250PlusCount = driveLens.filter(d => d > threshold250).length;
 
   // compute GIR% and putt percentages and proximity avg
   // compute percentages over holes that had putts (more intuitive)
@@ -1964,6 +2025,9 @@ function recomputeRound(){
   statOnePuttPct.textContent = `${onePuttPct}%`;
   statThreePuttPct.textContent = `${threePuttPct}%`;
   statPenalties.textContent = penalties;
+  if (statDrive250Label) {
+    statDrive250Label.textContent = DISTANCE_UNIT === 'm' ? '228m over' : '250yd over';
+  }
   statLongestDrive.textContent = longestDriveValue === '-' ? '-' : `${longestDriveValue}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statAvgDrive.textContent = avgDrive === '-' ? '-' : `${avgDrive}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statDrive250Plus.textContent = drive250PlusCount || 0;
@@ -1974,7 +2038,8 @@ function recomputeRound(){
   if (statChipProximity) {
     if (chipProximityDistances.length === 0) { statChipProximity.textContent = '-'; }
     else {
-      statChipProximity.textContent = `${avgChipProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}  (within 1yd: ${chipWithin1}/${chipProximityDistances.length})`;
+      const withinLabel = DISTANCE_UNIT === 'm' ? 'within 1m' : 'within 1yd';
+      statChipProximity.textContent = `${avgChipProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}  (${withinLabel}: ${chipWithin1}/${chipProximityDistances.length})`;
     }
   }
   // club averages display (non-driver details are in clubDataPanel)
@@ -2268,7 +2333,7 @@ function buildSummaryElement(forPdf){
   hdr.style.justifyContent = 'space-between';
   hdr.style.alignItems = 'flex-start';
   hdr.style.gap = '12px';
-  const metaStr = `Player: ${playerNameInput.value || ''} · Date: ${roundDateInput.value || ''} · Course: ${courseNameInput.value || ''} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT} · Weather: ${document.getElementById('roundWeather').value || ''}`;
+  const metaStr = `Player: ${playerNameInput.value || ''} · Date: ${roundDateInput.value || ''} · Course: ${courseNameInput.value || ''} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`;
   const left = document.createElement('div');
   left.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">Performance Summary</div><div style="font-size:13px; line-height:1.4;">${metaStr}</div>`;
   left.style.maxWidth = '640px';
@@ -3196,6 +3261,8 @@ function processImportedCSV(rows){
   }
   if (unitMetaValue === 'm' || unitMetaValue === 'yd') {
     savedUnit = unitMetaValue;
+    DISTANCE_UNIT = unitMetaValue;
+    updateUnitLabels();
   }
 
   let headerRowIndex = -1;
@@ -3521,7 +3588,8 @@ function saveDraft(){
         course: (courseNameInput && courseNameInput.value) || '',
         roundPar: (rpEl && rpEl.value) || '',
         totalYard: (ryEl && ryEl.value) || '',
-        weather: (rwEl && rwEl.value) || ''
+        weather: (rwEl && rwEl.value) || '',
+        distanceUnit: DISTANCE_UNIT
       },
       holes: HOLES,
       shots: sanitizedShots,
@@ -3547,6 +3615,10 @@ function loadDraft(){
     if (document.getElementById('roundPar')) document.getElementById('roundPar').value = draft.meta.roundPar || document.getElementById('roundPar').value;
     if (document.getElementById('roundYard')) document.getElementById('roundYard').value = draft.meta.totalYard || document.getElementById('roundYard').value;
     if (document.getElementById('roundWeather')) document.getElementById('roundWeather').value = draft.meta.weather || document.getElementById('roundWeather').value;
+    if (draft.meta && (draft.meta.distanceUnit === 'm' || draft.meta.distanceUnit === 'yd')) {
+      DISTANCE_UNIT = draft.meta.distanceUnit;
+      updateUnitLabels();
+    }
 
     // restore holes and shots
     if (draft.holes){
