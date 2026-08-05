@@ -231,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.2</div>
+      <div class="tiny muted">버전 26.8.2f</div>
     </div>
   </header>
 
@@ -473,11 +473,10 @@
       <div class="stat">Total Strokes: <strong id="statTotalStrokes">0</strong></div>
       <div class="stat" style="display:none">Fairways: <strong id="statFairways">0</strong></div>
       <div class="stat">Driver Fairway%: <strong id="statDriverFairPct">-</strong></div>
-      <div class="stat">GIR: <strong id="statGIR">0</strong></div>
-      <div class="stat">GIR%: <strong id="statGIRPct">-</strong></div>
+      <div class="stat">GIR: <strong id="statGIRCompact">0</strong></div>
       <div class="stat">Total Putts: <strong id="statPutts">0</strong></div>
-      <div class="stat">1-Putt%: <strong id="statOnePuttPct">-</strong></div>
-      <div class="stat">3-Putt%: <strong id="statThreePuttPct">-</strong></div>
+      <div class="stat">1-Putt: <strong id="statOnePuttCompact">-</strong></div>
+      <div class="stat">3-Putt: <strong id="statThreePuttCompact">-</strong></div>
       <div class="stat">Penalties: <strong id="statPenalties">0</strong></div>
       <div class="stat">Longest Drive: <strong id="statLongestDrive">-</strong></div>
       <div class="stat">Avg Drive: <strong id="statAvgDrive">-</strong></div>
@@ -1025,11 +1024,11 @@ let puttStrokeCount = 0;
 
 const statTotalStrokes = document.getElementById('statTotalStrokes');
 const statFairways = document.getElementById('statFairways');
-const statGIR = document.getElementById('statGIR');
+const statGIR = document.getElementById('statGIRCompact');
 const statGIRPct = document.getElementById('statGIRPct');
 const statPutts = document.getElementById('statPutts');
-const statOnePuttPct = document.getElementById('statOnePuttPct');
-const statThreePuttPct = document.getElementById('statThreePuttPct');
+const statOnePuttPct = document.getElementById('statOnePuttCompact');
+const statThreePuttPct = document.getElementById('statThreePuttCompact');
 const statPenalties = document.getElementById('statPenalties');
 const statLongestDrive = document.getElementById('statLongestDrive');
 const statAvgDrive = document.getElementById('statAvgDrive');
@@ -2063,11 +2062,10 @@ function recomputeRound(){
 
   statTotalStrokes.textContent = displayTotalStrokes;
   statFairways.textContent = fairways;
-  statGIR.textContent = gir;
-  statGIRPct.textContent = `${girPct}%`;
+  statGIR.textContent = `${gir} (${girPct}%)`;
   statPutts.textContent = totalPutts;
-  statOnePuttPct.textContent = `${onePuttPct}%`;
-  statThreePuttPct.textContent = `${threePuttPct}%`;
+  statOnePuttPct.textContent = `${onePuttPct}% (${onePuttCount})`;
+  statThreePuttPct.textContent = `${threePuttPct}% (${threePuttCount})`;
   statPenalties.textContent = penalties;
   if (statDrive250Label) {
     statDrive250Label.textContent = DISTANCE_UNIT === 'm' ? '228m over' : '250yd over';
@@ -2416,20 +2414,25 @@ function buildSummaryElement(forPdf){
   statsWrap.style.marginTop = '12px';
   // build summary metrics table
   const summaryTable = document.createElement('table');
-  summaryTable.style.width = '100%'; summaryTable.style.borderCollapse = 'collapse'; summaryTable.style.marginBottom = '10px'; summaryTable.style.fontSize = '14px';
+  summaryTable.style.width = '100%'; summaryTable.style.borderCollapse = 'collapse'; summaryTable.style.marginBottom = '10px'; summaryTable.style.fontSize = '14px'; summaryTable.style.background = '#fff'; summaryTable.style.color = '#222'; summaryTable.style.borderRadius = '10px'; summaryTable.style.overflow = 'hidden';
   summaryTable.innerHTML = `
-    <thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Metric</th><th style="text-align:right;padding:6px;border-bottom:1px solid #ddd;">Value</th></tr></thead>
+    <thead><tr>
+      <th style="text-align:left;padding:10px 10px;border:1px solid #e5e7eb;background:#f8fafc;color:#0f172a;font-weight:700;">Metric</th>
+      <th style="text-align:right;padding:10px 10px;border:1px solid #e5e7eb;background:#f8fafc;color:#0f172a;font-weight:700;">Value</th>
+    </tr></thead>
     <tbody>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Total Strokes</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${totalScoreLabel.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Total Putts</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statPutts.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Penalties</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statPenalties.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">GIR (%)</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statGIRPct.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">1-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statOnePuttPct.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">3-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statThreePuttPct.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${chipLabelLocal}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (Greenside Bunker result)">Avg Greenside Bunker Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${greensideBunkerLabelLocal}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Longest Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statLongestDrive.textContent}</td></tr>
-      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Avg Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statAvgDrive.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Total Strokes</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${totalScoreLabel.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Penalties</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statPenalties.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">GIR</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statGIR.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">1-Putt</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statOnePuttPct.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">3-Putt</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statThreePuttPct.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Total Putts</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statPutts.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Birdies / Bogeys / Doubles+</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statBBD.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${chipLabelLocal}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (Greenside Bunker result)">Avg Greenside Bunker Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${greensideBunkerLabelLocal}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Longest Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statLongestDrive.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Avg Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statAvgDrive.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Driver Fairway</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statDriverFairPct.textContent}</td></tr>
     </tbody>`;
   statsWrap.appendChild(summaryTable);
 
@@ -2485,16 +2488,21 @@ function buildSummaryElement(forPdf){
   clubTable.style.width = '100%';
   clubTable.style.borderCollapse = 'collapse';
   clubTable.style.fontSize = '14px';
+  clubTable.style.background = '#fff';
   const clubTbody = document.createElement('tbody');
   if (!clubRows.length){
     clubTbody.innerHTML = `<tr><td colspan="5" style="padding:6px;color:#777">No club data</td></tr>`;
   } else {
-    clubRows.forEach(r=>{
+    clubRows.forEach((r, idx)=>{
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.club}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.avgDist}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.ong}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.ongPct}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.proxAvg}</td>`;
+      tr.style.background = idx % 2 === 0 ? '#fcfdff' : '#f8fafc';
+      tr.innerHTML = `<td style="padding:6px 6px; white-space:nowrap;">${r.club}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.count}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.avgDist}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.ong}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.ongPct}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.proxAvg}</td>`;
       clubTbody.appendChild(tr);
     });
   }
+  const clubThead = document.createElement('thead');
+  clubThead.innerHTML = '<tr><th style="text-align:left;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">Club</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">Count</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">Avg</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">OnGreen</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">OnGreen %</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">Avg Prox</th></tr>';
+  clubTable.appendChild(clubThead);
   clubTable.appendChild(clubTbody);
   const distBuckets = ['60y 이내', '100y 이내', '130y 이내', '150y 이내', '170y 이내', '200y 이내'];
   function getDistBucket(dist){
@@ -2546,12 +2554,17 @@ function buildSummaryElement(forPdf){
   distTable.style.width = '100%';
   distTable.style.borderCollapse = 'collapse';
   distTable.style.fontSize = '14px';
+  distTable.style.background = '#fff';
   const distTbody = document.createElement('tbody');
-  distRows.forEach(r=>{
+  distRows.forEach((r, idx)=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.bucket}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.count}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.onGreen}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.onGreenPct}</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0; white-space:nowrap;">${r.proxAvg}</td>`;
+    tr.style.background = idx % 2 === 0 ? '#fcfdff' : '#f8fafc';
+    tr.innerHTML = `<td style="padding:6px 6px; white-space:nowrap;">${r.bucket}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.count}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.onGreen}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.onGreenPct}</td><td style="padding:6px 6px;text-align:right; white-space:nowrap;">${r.proxAvg}</td>`;
     distTbody.appendChild(tr);
   });
+  const distThead = document.createElement('thead');
+  distThead.innerHTML = '<tr><th style="text-align:left;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">거리</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">Count</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">OnGreen</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">OnGreen %</th><th style="text-align:right;padding:8px 6px;background:#f8fafc;color:#0f172a;font-weight:700;">Avg Prox</th></tr>';
+  distTable.appendChild(distThead);
   distTable.appendChild(distTbody);
   statsWrap.appendChild(document.createElement('div'));
   const tablesContainer = document.createElement('div');
@@ -2576,6 +2589,7 @@ function buildSummaryElement(forPdf){
   distDataWrap.style.width = '100%';
   distDataWrap.style.minWidth = '0';
   const distTitle = document.createElement('div');
+  distTitle.innerHTML = '<strong>Distance</strong>';
   distTitle.style.marginBottom = '8px';
   distDataWrap.appendChild(distTitle);
   distDataWrap.appendChild(distTable);
