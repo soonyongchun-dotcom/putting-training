@@ -98,9 +98,6 @@
   .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.08); color:var(--text); font-weight:700;}
   .btn.warn{background:var(--danger); color:#fff;}
   .btn.primary{background:var(--accent); color:#052;}
-  .btn.distance-unit-btn.active,
-  .btn.distance-unit-btn[aria-pressed="true"],
-  .btn.distance-unit-btn.selected{background:var(--accent) !important; color:#052 !important; border-color:var(--accent) !important; box-shadow:0 0 0 1px rgba(255,255,255,0.2) inset;}
   .stat{font-weight:700;}
   /* Prevent mobile/UA focus from making buttons white and ensure contrast on active/focus */
   .btn{ -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color: transparent; transition: background .12s, color .12s, box-shadow .12s; }
@@ -234,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.1</div>
+      <div class="tiny muted">버전 26.8.2</div>
     </div>
   </header>
 
@@ -259,14 +256,7 @@
         Round Par<br>
         <input id="roundPar" type="number" min="9" max="90" value="72" class="input--short" inputmode="numeric" pattern="[0-9]*" aria-label="Round par">
       </label>
-      <label style="flex:1 1 180px; min-width:180px;">
-        Distance Unit<br>
-        <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
-          <button type="button" class="btn ghost distance-unit-btn" data-unit="yd" id="btnUnitYd">야드 (yd)</button>
-          <button type="button" class="btn ghost distance-unit-btn" data-unit="m" id="btnUnitM">미터 (m)</button>
-        </div>
-      </label>
-      <label class="hidden">
+      <label>
         Distance Unit (거리 단위)<br>
         <select id="distanceUnit" aria-label="Distance unit">
           <option value="yd" selected>야드 (yd)</option>
@@ -496,6 +486,7 @@
       <div class="stat" style="white-space:nowrap;" title="온그린 기준: max(approach, first putt start) / On-green: max(approach, first putt start)">Avg Proximity (on green): <strong id="statProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after chip shots (result: Around the Green)">Avg Chip Proximity: <strong id="statChipProximity">-</strong></div>
+      <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (result: Greenside Bunker)">Avg Greenside Bunker Proximity: <strong id="statGreensideBunkerProximity">-</strong></div>
       <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       <div style="margin-top:6px;">
         <button class="btn ghost" id="btnToggleClubData">클럽데이터 (Club Data)</button>
@@ -511,9 +502,6 @@
         <input id="fileImportCsv" type="file" accept=".csv,text/csv" style="display:none" />
         <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
         <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
-          <option value="yd" selected>야드 (yd)</option>
-          <option value="m">미터 (m)</option>
-          </select>
         </span>
         <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
         <button class="btn ghost" id="btnShowAllData">경기력요약 (Performance Summary)</button>
@@ -1052,6 +1040,7 @@ const statBBD = document.getElementById('statBBD');
 const statProximity = document.getElementById('statProximity');
 const statClubProximity = document.getElementById('statClubProximity');
 const statChipProximity = document.getElementById('statChipProximity');
+const statGreensideBunkerProximity = document.getElementById('statGreensideBunkerProximity');
 const statBunkerSavePct = document.getElementById('statBunkerSavePct');
 const statDriverFairPct = document.getElementById('statDriverFairPct');
 const clubStatsEl = document.getElementById('clubStats');
@@ -1073,20 +1062,10 @@ const syncedRoundStatus = document.getElementById('syncedRoundStatus');
 const roundInfoCard = document.getElementById('roundInfoCard');
 const analysisCard = document.getElementById('analysisCard');
 const distanceUnitSelect = document.getElementById('distanceUnit');
-const distanceUnitButtons = Array.from(document.querySelectorAll('.distance-unit-btn'));
 
 function syncDistanceUnitButtons(){
-  const activeUnit = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
-  distanceUnitButtons.forEach((btn) => {
-    const isActive = btn.dataset.unit === activeUnit;
-    btn.classList.toggle('primary', isActive);
-    btn.classList.toggle('ghost', !isActive);
-    btn.classList.toggle('active', isActive);
-    btn.classList.toggle('selected', isActive);
-    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-  });
   if (distanceUnitSelect) {
-    distanceUnitSelect.value = activeUnit;
+    distanceUnitSelect.value = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
   }
 }
 
@@ -1231,13 +1210,6 @@ if (distanceUnitSelect) {
     applyDistanceUnit(distanceUnitSelect.value, true);
   });
 }
-distanceUnitButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const nextUnit = btn.dataset.unit === 'm' ? 'm' : 'yd';
-    applyDistanceUnit(nextUnit, true);
-  });
-});
-
 if (btnStartRound) btnStartRound.addEventListener('click', startRound);
 if (btnLoadSyncedRound) btnLoadSyncedRound.addEventListener('click', async ()=>{
   if(!syncedRoundSelect || !syncedRoundSelect.value){
@@ -1854,6 +1826,7 @@ function recomputeRound(){
   let driverAttempts = 0;
   let driverFairways = 0;
   const chipProximityDistances = [];
+  const greensideBunkerProximityDistances = [];
   let chipTotal = 0;
   let bunkerAttempts = 0;
   let bunkerSaves = 0;
@@ -2004,6 +1977,14 @@ function recomputeRound(){
         const remaining = orderedAll.length - si - 1;
         bunkerAttempts++;
         if (remaining <= 2) bunkerSaves++;
+        for (let ni = si + 1; ni < orderedAll.length; ni++) {
+          const nsh = orderedAll[ni];
+          if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
+          if (nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0) {
+            greensideBunkerProximityDistances.push(Math.abs(Number(nsh.distanceToHole)));
+          }
+          break;
+        }
       }
     }
 
@@ -2078,6 +2059,7 @@ function recomputeRound(){
   const avgProximity = proximityDistances.length ? Math.round((proximityDistances.reduce((a,b)=>a+b,0)/proximityDistances.length) * 10) / 10 : '-';
   const avgClubProximity = clubOnlyProximityDistances.length ? Math.round((clubOnlyProximityDistances.reduce((a,b)=>a+b,0)/clubOnlyProximityDistances.length) * 10) / 10 : '-';
   const avgChipProximity = chipProximityDistances.length ? Math.round((chipProximityDistances.reduce((a,b)=>a+b,0)/chipProximityDistances.length) * 10) / 10 : '-';
+  const avgGreensideBunkerProximity = greensideBunkerProximityDistances.length ? Math.round((greensideBunkerProximityDistances.reduce((a,b)=>a+b,0)/greensideBunkerProximityDistances.length) * 10) / 10 : '-';
   const chipWithin1 = chipProximityDistances.filter(d => d <= 1).length;
 
   statTotalStrokes.textContent = displayTotalStrokes;
@@ -2104,6 +2086,9 @@ function recomputeRound(){
       const withinLabel = DISTANCE_UNIT === 'm' ? 'within 1m' : 'within 1yd';
       statChipProximity.textContent = `${avgChipProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}  (${withinLabel}: ${chipWithin1}/${chipProximityDistances.length})`;
     }
+  }
+  if (statGreensideBunkerProximity) {
+    statGreensideBunkerProximity.textContent = avgGreensideBunkerProximity === '-' ? '-' : `${avgGreensideBunkerProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'} (${greensideBunkerProximityDistances.length} shots)`;
   }
   // club averages display (non-driver details are in clubDataPanel)
   if (clubStatsEl){
@@ -2363,7 +2348,7 @@ function buildSummaryElement(forPdf){
       }
     });
   }
-  let _chipProxDists = []; let _chipTotal = 0; let _bAttempts = 0; let _bSaves = 0;
+  let _chipProxDists = []; let _greensideBunkerProxDists = []; let _chipTotal = 0; let _bAttempts = 0; let _bSaves = 0;
   for (let i=1;i<=18;i++){
     const _arr = shotsByHole[i] || [];
     const _ord = _arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
@@ -2378,12 +2363,25 @@ function buildSummaryElement(forPdf){
           break;
         }
       }
-      if (_rk === 'bunkergreenside'){ _bAttempts++; if (_ord.length - si - 1 <= 2) _bSaves++; }
+      if (_rk === 'bunkergreenside'){ 
+        _bAttempts++; 
+        if (_ord.length - si - 1 <= 2) _bSaves++; 
+        for (let _ni = si + 1; _ni < _ord.length; _ni++) {
+          const _nsh = _ord[_ni];
+          if (!_nsh || normalizeShotType(_nsh.shotType) === 'Putter') break;
+          if (_nsh.distanceToHole != null && _nsh.distanceToHole !== '' && !isNaN(Number(_nsh.distanceToHole)) && Number(_nsh.distanceToHole) > 0) {
+            _greensideBunkerProxDists.push(Math.abs(Number(_nsh.distanceToHole)));
+          }
+          break;
+        }
+      }
     }
   }
   const chipWithin1Local = _chipProxDists.filter(d => d <= 1).length;
   const avgChipProx = _chipProxDists.length ? (Math.round((_chipProxDists.reduce((a,b)=>a+b,0) / _chipProxDists.length) * 10) / 10) : '-';
+  const avgGreensideBunkerProx = _greensideBunkerProxDists.length ? (Math.round((_greensideBunkerProxDists.reduce((a,b)=>a+b,0) / _greensideBunkerProxDists.length) * 10) / 10) : '-';
   const chipLabelLocal = avgChipProx === '-' ? '-' : `${avgChipProx}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'} (within 1yd: ${chipWithin1Local}/${_chipProxDists.length})`;
+  const greensideBunkerLabelLocal = avgGreensideBunkerProx === '-' ? '-' : `${avgGreensideBunkerProx}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'} (${_greensideBunkerProxDists.length} shots)`;
   const container = document.createElement('div');
   container.style.padding = '16px';
   container.style.fontFamily = 'Arial, Helvetica, sans-serif';
@@ -2430,6 +2428,7 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">1-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statOnePuttPct.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">3-Putt %</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statThreePuttPct.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${chipLabelLocal}</td></tr>
+      <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0; white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (Greenside Bunker result)">Avg Greenside Bunker Proximity</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${greensideBunkerLabelLocal}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Longest Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statLongestDrive.textContent}</td></tr>
       <tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">Avg Drive</td><td style="padding:6px;text-align:right;border-bottom:1px solid #f0f0f0">${statAvgDrive.textContent}</td></tr>
     </tbody>`;
