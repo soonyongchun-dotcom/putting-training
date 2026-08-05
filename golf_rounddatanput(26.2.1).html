@@ -930,6 +930,8 @@ function shouldCountClubShot(sh){
   const clubName = normalizeShotType(sh && sh.shotType);
   if (!clubName || clubName === 'Putter' || (sh.putts && Number(sh.putts) > 0)) return false;
   if (clubName === 'Driver' && !isFairwayResult(sh.result)) return false;
+  const rKey = normResultKey(sh.result || '');
+  if (rKey === 'lay' || rKey === 'layup' || rKey === 'bunker' || rKey === 'bunkers' || rKey === 'hazard' || rKey === 'hazards' || rKey === 'outofbounds' || rKey === 'ob' || rKey === 'water' || rKey === 'penalty') return false;
   return true;
 }
 
@@ -2444,16 +2446,16 @@ function buildSummaryElement(forPdf){
     const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
     ordered.forEach(sh => {
       const clubName = normalizeShotType(sh && sh.shotType);
-      if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+      if (shouldCountClubShot(sh)){
         clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
       }
       const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-      if (curRem != null && clubName && clubName !== 'Putter' && prevRemaining != null){
+      if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
         if (!clubDists[clubName]) clubDists[clubName] = [];
         clubDists[clubName].push(shotDist);
       }
-      if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+      if (shouldCountClubShot(sh)){
         const res = (sh.result || '').toString();
         if (isGreenResult(res)){
           clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
@@ -2516,7 +2518,7 @@ function buildSummaryElement(forPdf){
     ordered.forEach(sh => {
       const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
       const clubName = normalizeShotType(sh && sh.shotType);
-      if (curRem != null && clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+      if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
         const bucket = getDistBucket(shotDist);
         if (bucket){
