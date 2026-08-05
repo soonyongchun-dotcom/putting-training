@@ -2310,6 +2310,18 @@ function recomputeRound(){
   if (parDiffLabel) parDiffLabel.textContent = `${displayTotalStrokes - totalPar > 0 ? '+' : ''}${displayTotalStrokes - totalPar}`;
 }
 
+function safeFileName(s){
+  if (!s) return '';
+  return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi, '_').replace(/_+/g, '_');
+}
+
+function getSummaryDownloadBaseName(){
+  const playerPart = safeFileName((playerNameInput && playerNameInput.value) || 'round');
+  const datePart = (roundDateInput && roundDateInput.value) || new Date().toISOString().slice(0, 10);
+  const cleanDate = String(datePart).replace(/[^0-9]/g, '');
+  return `${playerPart ? playerPart + '_' : ''}${cleanDate || 'round'}`;
+}
+
 // Build a printable summary element for all entered shots
 function buildSummaryElement(forPdf){
   // ensure stats are current before building summary
@@ -2770,24 +2782,21 @@ function buildSummaryElement(forPdf){
 
 function exportSummaryPDF(){
   const el = buildSummaryElement(true);
-  // filename
-  function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi,'_').replace(/_+/g,'_'); }
-  const datePart = roundDateInput.value || new Date().toISOString().slice(0,10);
-  const filename = `${playerPart}${datePart}_summary.pdf`;
-  // use html2pdf to generate and save
-  // Balanced settings: good visual quality but reasonable file size.
-  // - html2canvas.scale: 1.5 (not too large)
-  // - image.quality: 0.86 (JPEG quality)
-  // - useCORS: true to allow external fonts/assets when possible
-  const opt = {
-    margin:10,
-    filename: filename,
-    image:{type:'jpeg', quality:0.86},
-    html2canvas:{scale:1.5, useCORS:true},
-    jsPDF:{unit:'mm', format:'a4', orientation:'portrait', compress:true},
-    pagebreak: { mode: ['css', 'legacy'] }
-  };
-  html2pdf().set(opt).from(el).save();
+  try {
+    const filename = `${getSummaryDownloadBaseName()}_summary.pdf`;
+    const opt = {
+      margin:10,
+      filename: filename,
+      image:{type:'jpeg', quality:0.86},
+      html2canvas:{scale:1.5, useCORS:true},
+      jsPDF:{unit:'mm', format:'a4', orientation:'portrait', compress:true},
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+    html2pdf().set(opt).from(el).save();
+  } catch (err) {
+    console.error('Summary PDF export failed', err);
+    alert('경기력요약 PDF 다운로드 중 오류가 발생했습니다.');
+  }
 }
 
 function showSummaryPreview(){
@@ -2975,11 +2984,14 @@ function getPdfOptionsForPreset(preset, filename){
 // Export built summary with chosen preset
 function exportSummaryWithPreset(preset){
   const el = buildSummaryElement(true);
-  function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.가-힣]/gi,'_').replace(/_+/g,'_'); }
-  const datePart = roundDateInput.value || new Date().toISOString().slice(0,10);
-  const filename = `${playerPart}${datePart}_summary.pdf`;
-  const opt = getPdfOptionsForPreset(preset, filename);
-  html2pdf().set(opt).from(el).save();
+  try {
+    const filename = `${getSummaryDownloadBaseName()}_summary.pdf`;
+    const opt = getPdfOptionsForPreset(preset, filename);
+    html2pdf().set(opt).from(el).save();
+  } catch (err) {
+    console.error('Summary PDF export with preset failed', err);
+    alert('경기력요약 PDF 다운로드 중 오류가 발생했습니다.');
+  }
 }
 
 // Preview: render summary to canvas using html2canvas with the preset's scale and show modal image
@@ -3631,9 +3643,7 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
 
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([wbout], { type: 'application/octet-stream' });
-  const playerPart = safeFileName(meta.player || 'round');
-  const datePart = (meta.date || new Date().toISOString().slice(0, 10)).replace(/[^0-9]/g, '');
-  const filename = `${playerPart ? playerPart + '_' : ''}${datePart || 'round'}.xlsx`;
+  const filename = `${getSummaryDownloadBaseName()}.xlsx`;
   downloadBlob(filename, blob);
 });
 
