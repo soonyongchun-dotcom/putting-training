@@ -499,15 +499,14 @@
       <div class="small muted">Export:</div>
       <div class="export-row">
         <button class="btn" id="btnExportCSV">CSV로 저장 (Export CSV)</button>
-        <input id="fileImportCsv" type="file" accept=".csv,text/csv" style="display:none" />
+        <input id="fileImportCsv" type="file" accept=".csv,text/csv,.xlsx,.xls" style="display:none" />
         <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
-        <button class="btn ghost" id="btnImportCsv">CSV 불러오기 (Import CSV)</button>
+        <button class="btn ghost" id="btnImportCsv">CSV/XLSX 불러오기 (Import CSV/XLSX)</button>
         </span>
         <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
         <button class="btn ghost" id="btnShowAllData">경기력요약 (Performance Summary)</button>
         <!-- PDF preview (balanced preset) -->
         <button class="btn ghost" id="btnPreviewPdf">미리보기 (Preview PDF)</button>
-        <button class="btn ghost" id="btnFillSample">샘플데이터 채우기 (Fill Sample)</button>
       </div>
     </div>
 
@@ -3016,28 +3015,6 @@ if (btnShowAllDataEl) btnShowAllDataEl.addEventListener('click', showSummaryPrev
 // Preview button (uses Balanced preset)
 const btnPreviewPdf = document.getElementById('btnPreviewPdf');
 if (btnPreviewPdf) btnPreviewPdf.addEventListener('click', ()=>{ previewSummaryWithPreset('balanced'); });
-// Fill sample data for quick verification (debug helper)
-const btnFillSample = document.getElementById('btnFillSample');
-function fillSampleData(){
-  // reset holes and shots
-  initHoles();
-  for (let i=1;i<=18;i++) shotsByHole[i]=[];
-  // Hole 1: approach on green, 1-putt (distance 6)
-  HOLES[1].par = 4; HOLES[1].yard = 420;
-  shotsByHole[1].push({ hole:1, shotNumber:1, shotType:'7Iron', result:'Green', distanceToHole:6, putts:0, penalty:0, note:'approach' });
-  shotsByHole[1].push({ hole:1, shotNumber:2, shotType:'Putter', result:'InHole', distanceToHole:6, putts:1, penalty:0, note:'putt' });
-  // Hole 3: approach on green, 3-putt (distance 12)
-  HOLES[3].par = 3; HOLES[3].yard = 150;
-  shotsByHole[3].push({ hole:3, shotNumber:1, shotType:'7Iron', result:'Green', distanceToHole:12, putts:0, penalty:0, note:'approach' });
-  shotsByHole[3].push({ hole:3, shotNumber:2, shotType:'Putter', result:'InHole', distanceToHole:12, putts:3, penalty:0, note:'putts' });
-  // some other holes with no putts
-  renderHoles();
-  recomputeRound();
-  // open analysis card and show alert
-  try{ document.getElementById('holesContainer').classList.remove('hidden'); if (analysisCard) analysisCard.classList.remove('hidden'); }catch(e){}
-}
-if (btnFillSample) btnFillSample.addEventListener('click', fillSampleData);
-
 /* ===== Export CSV / XLSX ===== */
 function downloadBlob(filename, blob){
   const url = URL.createObjectURL(blob);
@@ -3232,29 +3209,68 @@ async function checkAuthOnLoad(){
 }
 window.addEventListener('load', checkAuthOnLoad);
 
-// CSV Import: wire file input and import button
+// CSV/XLSX Import: wire file input and import button
 const fileImportCsv = document.getElementById('fileImportCsv');
 const btnImportCsv = document.getElementById('btnImportCsv');
-if (btnImportCsv && fileImportCsv){
-  btnImportCsv.addEventListener('click', ()=> fileImportCsv.click());
-  fileImportCsv.addEventListener('change', (ev)=>{
-    const f = ev.target.files && ev.target.files[0];
-    if (!f) return;
+
+function getImportedRowsFromFile(file){
+  return new Promise((resolve, reject) => {
+    const name = (file && file.name ? file.name : '').toLowerCase();
     const reader = new FileReader();
     reader.onload = function(e){
       try{
-        const text = e.target && e.target.result ? e.target.result : '';
-        const rows = parseCSV(text);
-        processImportedCSV(rows);
+        if (name.endsWith('.csv') || name.endsWith('.txt')) {
+          const text = e.target && e.target.result ? e.target.result : '';
+          resolve(parseCSV(text));
+          return;
+        }
+        const buffer = e.target && e.target.result;
+        if (!buffer) {
+          reject(new Error('파일 내용을 읽을 수 없습니다.'));
+          return;
+        }
+        const workbook = XLSX.read(buffer, { type: 'array', cellText: false, cellDates: false });
+        for (const sheetName of workbook.SheetNames || []) {
+          const sheet = workbook.Sheets[sheetName];
+          if (!sheet) continue;
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+          const hasShotHeader = Array.isArray(rows) && rows.some((row) => Array.isArray(row) && row.some((cell) => {
+            const textValue = String(cell || '').toLowerCase();
+            return textValue.includes('shotnumber') || textValue.includes('shottype') || textValue.includes('hole');
+          }));
+          if (hasShotHeader) {
+            resolve(rows);
+            return;
+          }
+        }
+        reject(new Error('지원하지 않는 XLSX 형식입니다.')); 
       } catch (err) {
-        console.error('CSV import failed', err);
-        alert('CSV 불러오기 중 오류가 발생했습니다. 형식을 확인해 주세요.');
+        reject(err);
       }
     };
     reader.onerror = function(){
-      alert('CSV 파일을 읽는 중 오류가 발생했습니다.');
+      reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
     };
-    reader.readAsText(f, 'utf-8');
+    if (name.endsWith('.csv') || name.endsWith('.txt')) {
+      reader.readAsText(file, 'utf-8');
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+
+if (btnImportCsv && fileImportCsv){
+  btnImportCsv.addEventListener('click', ()=> fileImportCsv.click());
+  fileImportCsv.addEventListener('change', async (ev)=>{
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    try {
+      const rows = await getImportedRowsFromFile(f);
+      processImportedCSV(rows);
+    } catch (err) {
+      console.error('Import failed', err);
+      alert('불러오기 중 오류가 발생했습니다. 저장 형식을 확인해 주세요.');
+    }
     ev.target.value = '';
   });
 }
@@ -3474,111 +3490,136 @@ function processImportedCSV(rows){
   singleHoleIndex = 1;
   startHole(1);
 
-  alert('CSV 불러오기 완료');
+  alert('CSV/XLSX 불러오기 완료');
 }
 
 if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
-  // Build workbook with two sheets: Shots and Holes summary
   const wb = XLSX.utils.book_new();
   const meta = { player: playerNameInput.value || '', date: roundDateInput.value || '', course: courseNameInput.value || '' };
+  const unitLabel = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
 
-  // Shots sheet (omit 'Lie' column — removed from UI)
   const shotsRows = [];
-  // Summary sheet: key metrics
-  try{
-    const summaryRows = [];
-    summaryRows.push(['Metric','Value']);
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
-  }catch(e){}
-  shotsRows.push(['Player', meta.player, 'Date', meta.date, 'Course', meta.course]);
+  shotsRows.push(['Player', meta.player, 'Date', meta.date, 'Course', meta.course, 'Unit', unitLabel]);
   shotsRows.push([]);
   shotsRows.push(['Hole','Par','HoleYard','ShotNumber','ShotType','Result','DistanceToHole','Putts','Penalty','Note','Lie','Slope','PuttStartDistance','Timestamp']);
-  for (let i=1;i<=18;i++){
+  for (let i = 1; i <= 18; i++) {
     const hole = HOLES[i];
     const arr = shotsByHole[i] || [];
-    if (arr.length){
-      arr.forEach(s=>{
-      });
-    }
+    arr.forEach((s) => {
+      if (!s) return;
+      shotsRows.push([
+        i,
+        hole && hole.par != null ? hole.par : '',
+        hole && hole.yard != null ? hole.yard : '',
+        s.shotNumber != null ? s.shotNumber : '',
+        s.shotType || '',
+        s.result || '',
+        s.distanceToHole != null ? s.distanceToHole : '',
+        s.putts != null ? s.putts : '',
+        s.penalty != null ? s.penalty : '',
+        s.note || '',
+        s.lie || '',
+        s.slope || '',
+        s.puttStartDistance != null ? s.puttStartDistance : '',
+        s.timestamp || ''
+      ]);
+    });
   }
   const wsShots = XLSX.utils.aoa_to_sheet(shotsRows);
   XLSX.utils.book_append_sheet(wb, wsShots, 'Shots');
 
-  // Holes summary sheet
+  const summaryRows = [['Metric','Value']];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
   const holeHdr = ['Hole','Par','Yard','Score','ShotsCount','FairwayHit','GIR','Putts','3Putts','Penalties'];
   const holeRows = [holeHdr];
-  for (let i=1;i<=18;i++){
+  for (let i = 1; i <= 18; i++) {
     const h = HOLES[i];
     const arr = shotsByHole[i] || [];
     const shotsCount = arr.length;
-    const drive = arr.find(sh=>sh.shotType==='Drive');
-    const approach = arr.find(sh=>sh.result==='Green' || sh.result==='OnGreen' || sh.result==='green');
-    const penalties = arr.reduce((sum,sh)=>sum + (Number(sh.penalty) || 0),0);
-    // use computedStrokes and scoreDiff if available
-    // export the computed strokes (total strokes) as the score cell
-    const scoreCell = compStrokes;
-    holeRows.push([i, h.par, h.yard || '', scoreCell, shotsCount, fairwayHit, girVal, putts, threePutts, penalties]);
+    const drive = arr.find((sh) => {
+      const shotType = normalizeShotType(sh && sh.shotType);
+      return shotType === 'Drive' || shotType === 'Driver';
+    });
+    const fairwayHit = drive && isFairwayResult(drive.result) ? 1 : 0;
+    const approach = arr.slice().sort((a, b) => (a.shotNumber || 0) - (b.shotNumber || 0)).find((sh) => {
+      if (!sh || !sh.result) return false;
+      if (normalizeShotType(sh.shotType) === 'Putter') return false;
+      const sn = Number(sh.shotNumber || 0);
+      const parAllowed = Math.max(0, Number(h && h.par ? h.par : 4) - 2);
+      if (!sn || sn > parAllowed) return false;
+      return isGreenResult(sh.result);
+    });
+    const girVal = approach ? 1 : 0;
+    const putts = arr.reduce((sum, sh) => sum + ((normalizeShotType(sh && sh.shotType) === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
+    const threePutts = arr.reduce((sum, sh) => sum + ((normalizeShotType(sh && sh.shotType) === 'Putter' && Number(sh.putts) >= 3) ? 1 : 0), 0);
+    const penalties = arr.reduce((sum, sh) => sum + (Number(sh.penalty) || 0), 0);
+    const scoreCell = h && h.computedStrokes != null ? h.computedStrokes : (h && h.score != null ? h.score : '');
+    holeRows.push([i, h && h.par != null ? h.par : '', h && h.yard != null ? h.yard : '', scoreCell, shotsCount, fairwayHit, girVal, putts, threePutts, penalties]);
   }
   const wsHoles = XLSX.utils.aoa_to_sheet(holeRows);
   XLSX.utils.book_append_sheet(wb, wsHoles, 'Holes');
 
-  // Club Data sheet: Club, Count, AvgYd, OnGreen(횟수%), AvgProx(yd)
-  const clubHdr = ['Club','Count',`Avg(${DISTANCE_UNIT})`,'OnGreen(횟수%)',`AvgProx(${DISTANCE_UNIT})`];
+  const clubHdr = ['Club','Count',`Avg(${unitLabel})`,'OnGreen(횟수%)',`AvgProx(${unitLabel})`];
   const clubRowsOut = [clubHdr];
   {
     const clubCounts = {};
     const clubDists = {};
     const clubOnGreen = {};
     const clubProx = {};
-    for (let i=1;i<=18;i++){
+    for (let i = 1; i <= 18; i++) {
       const arr = shotsByHole[i] || [];
       let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
-      const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
-      ordered.forEach(sh=>{
-        if (sh && sh.shotType && sh.shotType !== 'Putter'){
-          clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
+      const ordered = arr.slice().sort((a, b) => (a.shotNumber || 0) - (b.shotNumber || 0));
+      ordered.forEach((sh) => {
+        const clubName = normalizeShotType(sh && sh.shotType);
+        if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)) {
+          clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
         }
         const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-        if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && prevRemaining != null){
+        if (curRem != null && clubName && clubName !== 'Putter' && prevRemaining != null && !(sh.putts && Number(sh.putts) > 0)) {
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (!clubDists[sh.shotType]) clubDists[sh.shotType] = [];
-          clubDists[sh.shotType].push(shotDist);
+          if (!clubDists[clubName]) clubDists[clubName] = [];
+          clubDists[clubName].push(shotDist);
         }
-        if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)) {
           const res = (sh.result || '').toString();
-          if (res === 'Green' || res === 'OnGreen' || res === 'green'){
-            clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
-            if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
-              if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
-              clubProx[sh.shotType].push(Math.abs(Number(sh.distanceToHole)));
+          if (isGreenResult(res)) {
+            clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
+            if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))) {
+              if (!clubProx[clubName]) clubProx[clubName] = [];
+              clubProx[clubName].push(Math.abs(Number(sh.distanceToHole)));
             }
           }
         }
         if (curRem != null) prevRemaining = curRem;
       });
     }
-    const clubs = Object.keys(clubCounts).sort((a,b)=>{
-      const ord = clubCompareByOrder(a,b);
+    const clubs = Object.keys(clubCounts).sort((a, b) => {
+      const ord = clubCompareByOrder(a, b);
       if (ord !== 0) return ord;
       return (clubCounts[b] - clubCounts[a]) || a.localeCompare(b);
     });
-    clubs.forEach(c=>{
+    clubs.forEach((c) => {
       const count = clubCounts[c] || 0;
+      const distances = clubDists[c] || [];
+      const avgConverted = distances.length ? (Math.round((distances.reduce((a, b) => a + b, 0) / distances.length) * 10) / 10) : '';
       const ong = clubOnGreen[c] || 0;
+      const ongDisplay = count ? `${ong}/${count}` : '0/0';
+      const prox = clubProx[c] || [];
+      const proxDisplay = prox.length ? (Math.round((prox.reduce((a, b) => a + b, 0) / prox.length) * 10) / 10) : '';
       clubRowsOut.push([c, count, avgConverted, ongDisplay, proxDisplay]);
     });
   }
   const wsClub = XLSX.utils.aoa_to_sheet(clubRowsOut);
   XLSX.utils.book_append_sheet(wb, wsClub, 'Club Data');
 
-  // finalize
-  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-  const blob = new Blob([wbout], {type:'application/octet-stream'});
-  // build filename from player + date, sanitized
-  function safeFileName(s){ if(!s) return ''; return s.toString().trim().replace(/[^a-z0-9\-_.]/gi,'_').replace(/_+/g,'_'); }
-  const datePart = meta.date || (new Date().toISOString().slice(0,10));
-  const filename = `${playerPart}${datePart}.xlsx`;
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
+  const playerPart = safeFileName(meta.player || 'round');
+  const datePart = (meta.date || new Date().toISOString().slice(0, 10)).replace(/[^0-9]/g, '');
+  const filename = `${playerPart ? playerPart + '_' : ''}${datePart || 'round'}.xlsx`;
   downloadBlob(filename, blob);
 });
 
