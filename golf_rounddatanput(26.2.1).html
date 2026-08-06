@@ -231,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 28.08.03f</div>
+      <div class="tiny muted">버전 26.8.3f</div>
     </div>
   </header>
 
@@ -539,8 +539,6 @@ const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
 let sb = null;
 let syncedRoundsCache = [];
-let restoredAuthSession = null;
-let lastRoundSyncIssue = '';
 
 function initSupabase(){
   if(sb || typeof supabase === 'undefined') return;
@@ -552,61 +550,6 @@ function initSupabase(){
   }catch(e){
     console.warn('auth state listener init failed', e);
   }
-}
-
-function base64DecodeUnicode(str){
-  const decoded = atob(str);
-  const percentEncoded = Array.from(decoded).map(ch => '%'+ch.charCodeAt(0).toString(16).padStart(2,'0')).join('');
-  return decodeURIComponent(percentEncoded);
-}
-
-function getSessionFromUrl(){
-  const params = new URLSearchParams(window.location.search);
-  const encoded = params.get('supabase_session');
-  if(!encoded) return null;
-  try{
-    return JSON.parse(base64DecodeUnicode(decodeURIComponent(encoded)));
-  }catch(e){
-    console.warn('Invalid supabase_session param', e);
-    return null;
-  }
-}
-
-function normalizeSupabaseSession(session){
-  if(!session || typeof session !== 'object') return null;
-  if(session.data && typeof session.data === 'object'){
-    const data = session.data;
-    if(data.session && typeof data.session === 'object'){
-      session = data.session;
-    } else if(data.user && data.access_token){
-      session = data;
-    }
-  }
-  if(session.session && typeof session.session === 'object'){
-    session = session.session;
-  }
-  if(session.user && session.access_token) return session;
-  return null;
-}
-
-async function restoreSessionFromUrl(){
-  const rawSession = getSessionFromUrl();
-  if(!rawSession) return null;
-  const normalizedSession = normalizeSupabaseSession(rawSession);
-  if(!normalizedSession) return null;
-  restoredAuthSession = normalizedSession;
-  try{
-    initSupabase();
-    if(sb && normalizedSession.access_token && normalizedSession.refresh_token){
-      await sb.auth.setSession({
-        access_token: normalizedSession.access_token,
-        refresh_token: normalizedSession.refresh_token
-      });
-    }
-  }catch(e){
-    console.warn('restoreSessionFromUrl failed', e);
-  }
-  return normalizedSession;
 }
 
 function getStoredSession(){
@@ -3707,10 +3650,7 @@ function exportCSV(){
 
 async function saveRoundToServer(){
   initSupabase();
-  if(!sb){
-    lastRoundSyncIssue = 'Supabase client missing.';
-    return;
-  }
+  if(!sb) return;
   function showSaveBanner(msg, ok){
     const el = document.getElementById('authStatusBanner');
     if(!el) return;
@@ -3721,21 +3661,10 @@ async function saveRoundToServer(){
     const authRes = await sb.auth.getSession();
     const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
     if(!authSession){
-      if(!restoredAuthSession && getSessionFromUrl()){
-        await restoreSessionFromUrl();
-      }
-      const retryRes = await sb.auth.getSession();
-      const retrySession = retryRes && (retryRes.data ? retryRes.data.session : retryRes.session);
-      if(retrySession && retrySession.user){
-        restoredAuthSession = retrySession;
-      }
-      if(!retrySession || !retrySession.user){
       console.warn('saveRoundToServer: no auth session, skipping server save.');
-        lastRoundSyncIssue = 'No login session for server sync.';
       if(syncedRoundStatus) syncedRoundStatus.textContent = 'No auth session. Please login via coach portal.';
       showSaveBanner('[!] Server save failed: No login session. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">Login via coach portal</a>', false);
       return;
-      }
     }
     const roundDate = (roundDateInput && roundDateInput.value) || new Date().toISOString().slice(0,10);
     const playerId = getRoundSyncPlayerId();
@@ -3764,7 +3693,6 @@ async function saveRoundToServer(){
     },{onConflict:'player_id,round_date,course'});
     if(error){
       console.warn('saveRoundToServer upsert error', error);
-      lastRoundSyncIssue = error.message || String(error);
       if(syncedRoundStatus) syncedRoundStatus.textContent = 'Server save error: '+error.message;
       showSaveBanner('[X] Server save failed: ' + error.message, false);
     } else {
@@ -3774,8 +3702,6 @@ async function saveRoundToServer(){
     }
   }catch(e){
     console.warn('saveRoundToServer failed', e);
-    lastRoundSyncIssue = e && e.message ? e.message : String(e);
-    if(syncedRoundStatus) syncedRoundStatus.textContent = 'Server save exception: ' + lastRoundSyncIssue;
   }
 }
 
@@ -3784,9 +3710,6 @@ async function checkAuthOnLoad(){
   initSupabase();
   if(!sb) return;
   try{
-    if(!restoredAuthSession && getSessionFromUrl()){
-      await restoreSessionFromUrl();
-    }
     const authRes = await sb.auth.getSession();
     const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
     const banner = document.getElementById('authStatusBanner');
@@ -3794,12 +3717,11 @@ async function checkAuthOnLoad(){
     if(!authSession){
       const storedSess = getStoredSession();
       const nameHint = (storedSess && storedSess.user && storedSess.user.user_metadata && storedSess.user.user_metadata.name) || '';
-      banner.innerHTML = '[!] No login session for server sync ' + (nameHint ? nameHint + ' ' : '') + '. CSV save will NOT sync to server. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">Login via coach portal</a>' + (lastRoundSyncIssue ? '<div style="margin-top:6px;font-size:12px;color:#ffcc66;">Last sync issue: ' + lastRoundSyncIssue + '</div>' : '');
+      banner.innerHTML = '[!] No login session for server sync ' + (nameHint ? nameHint + ' ' : '') + '. CSV save will NOT sync to server. &nbsp;<a href="./index3.html" style="color:#1fb57a; text-decoration:underline;">Login via coach portal</a>';
       banner.style.display = 'block';
       banner.style.background = 'rgba(255,160,0,0.12)';
       banner.style.border = '1px solid rgba(255,160,0,0.35)';
       banner.style.color = '#ffcc66';
-      <div class="tiny muted">버전 28.08.03f</div>
     } else {
       const user = authSession.user;
       const name = (user && user.user_metadata && user.user_metadata.name) || (user && user.email) || '';
