@@ -531,6 +531,8 @@ const HOLES = []; // will contain 18 hole objects
 const shotsByHole = {}; // holeNumber -> array of shots
 let activeHole = null;
 let DISTANCE_UNIT = 'yd'; // 'yd' or 'm'
+const STORAGE_KEY = 'golf_round_draft_v1';
+const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
 const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
 let sb = null;
@@ -696,6 +698,7 @@ function restoreRoundFromRemote(row){
         shotNumber: idx + 1,
         shotType: input.shotType || input.club || '',
         result: input.result || '',
+        holeYardAtShot: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, DISTANCE_UNIT) : null,
         distanceToHole: input.distanceToHole != null && input.distanceToHole !== '' && !isNaN(Number(input.distanceToHole)) ? convertDistanceValue(Number(input.distanceToHole), remoteSavedUnit, DISTANCE_UNIT) : null,
         putts: Number(input.putts || 0),
         penalty: Number(input.penalty || 0),
@@ -912,6 +915,17 @@ function isFairwayResult(r){
   return k === 'fairway' || k === 'fw';
 }
 
+function isValidDriveDistanceResult(r){
+  const k = normResultKey(r);
+  if (!k) return true;
+  if (k.indexOf('water') >= 0) return false;
+  if (k.indexOf('out') >= 0 || k === 'ob' || k.indexOf('outofbounds') >= 0) return false;
+  if (k.indexOf('hazard') >= 0) return false;
+  if (k.indexOf('penalty') >= 0) return false;
+  if (k.indexOf('bunker') >= 0) return false;
+  return true;
+}
+
 function shouldCountClubShot(sh){
   if (!sh) return false;
   const clubName = normalizeShotType(sh && sh.shotType);
@@ -919,6 +933,9 @@ function shouldCountClubShot(sh){
   if (clubName === 'Driver' && !isFairwayResult(sh.result)) return false;
   const rKey = normResultKey(sh.result || '');
   if (rKey === 'lay' || rKey === 'layup' || rKey === 'bunker' || rKey === 'bunkers' || rKey === 'hazard' || rKey === 'hazards' || rKey === 'outofbounds' || rKey === 'ob' || rKey === 'water' || rKey === 'penalty') return false;
+  if (rKey.indexOf('rough') >= 0) return false;
+  if (rKey.indexOf('aroundgreen') >= 0) return false;
+  if (rKey.indexOf('bunkergreenside') >= 0 || rKey.indexOf('greensidebunker') >= 0) return false;
   return true;
 }
 
@@ -1325,6 +1342,7 @@ function saveShot(clubOverride){
     hole: activeHole,
     timestamp: new Date().toISOString(),
     shotNumber: shotsByHole[activeHole].length + 1,
+    holeYardAtShot: getNumericYard(HOLES[activeHole] && HOLES[activeHole].yard),
     shotType: shotTypeVal,
     result: shotResultEl.value,
     penalty: penaltyCount,
@@ -1648,6 +1666,7 @@ function updateShot(){
     hole: activeHole,
     timestamp: new Date().toISOString(),
     shotNumber: editingShotIndex + 1,
+    holeYardAtShot: getNumericYard(HOLES[activeHole] && HOLES[activeHole].yard),
     shotType: getShotTypeValue() || hiddenSelectedClub,
     result: shotResultEl.value,
     penalty: Number(penaltyFlagEl.value) || 0,
@@ -1834,6 +1853,22 @@ function getHoleShotGroups(holeNumber){
   return groups;
 }
 
+function getNumericYard(value){
+  if (value == null || value === '' || isNaN(Number(value))) return null;
+  return Number(value);
+}
+
+function resolveGroupStartYard(holeNumber, groupShots){
+  if (Array.isArray(groupShots)){
+    for (let i = 0; i < groupShots.length; i++){
+      const sh = groupShots[i];
+      const shotYard = getNumericYard(sh && sh.holeYardAtShot);
+      if (shotYard != null) return shotYard;
+    }
+  }
+  return getNumericYard(HOLES[holeNumber] && HOLES[holeNumber].yard);
+}
+
 function calcMetricsForRound(roundId){
   let totalStrokes = 0;
   let totalPar = 0;
@@ -1905,12 +1940,12 @@ function calcMetricsForRound(roundId){
         driverAttempts++;
         if (isFairwayResult(firstDrive.result)) driverFairways++;
       }
-      const holeDistance = (HOLES[i] && HOLES[i].yard != null && HOLES[i].yard !== '' && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+      const holeDistance = getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(HOLES[i] && HOLES[i].yard);
       const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? Number(firstDrive.distanceToHole) : null;
       if (shotRemaining != null){
         let d = holeDistance != null ? Math.max(0, holeDistance - shotRemaining) : shotRemaining;
         longestDriveLens.push(d);
-        if (isFairwayResult(firstDrive.result)) driveLens.push(d);
+        if (isValidDriveDistanceResult(firstDrive.result)) driveLens.push(d);
       }
     }
   }
@@ -1997,7 +2032,7 @@ function recomputeRound(){
   let bunkerSaves = 0;
 
   const clubDistances = {};
-  const perHoleDriveDistances = []; // one drive distance per hole (first Driver shot, fairway-only for avg/over)
+  const perHoleDriveDistances = []; // one drive distance per hole (first Driver shot, valid drive outcomes only)
   const longestDriveDistances = []; // longest drive uses the farthest tee-shot driver regardless of result
   for (let i=1;i<=18;i++){
     const hole = HOLES[i];
@@ -2157,10 +2192,10 @@ function recomputeRound(){
     penalties += sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
 
     // accumulate club distances by computing change in remaining distance between consecutive shots
-    // start previous remaining distance as hole yard if available
-    let prevRemaining = (hole.yard && !isNaN(Number(hole.yard))) ? Number(hole.yard) : null;
     // ensure shots are processed in order
     const ordered = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
+    // start previous remaining distance as hole yard if available
+    let prevRemaining = resolveGroupStartYard(i, ordered);
     ordered.forEach(sh => {
       const curRem = (sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
       // record distance only for club-selected shots (exclude putts-only and putters) and when we have a previous remaining distance
@@ -2186,7 +2221,7 @@ function recomputeRound(){
         driverAttempts++;
         if (isFairwayResult(firstDrive.result)) driverFairways++;
       }
-      const holeDistance = (hole.yard != null && hole.yard !== '' && !isNaN(Number(hole.yard))) ? Number(hole.yard) : null;
+      const holeDistance = getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(hole.yard);
       const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? Number(firstDrive.distanceToHole) : null;
       if (shotRemaining != null){
         let d = null;
@@ -2197,7 +2232,7 @@ function recomputeRound(){
         }
         if (d != null) {
           longestDriveDistances.push(d);
-          if (isFairwayResult(firstDrive.result)) perHoleDriveDistances.push(d);
+          if (isValidDriveDistanceResult(firstDrive.result)) perHoleDriveDistances.push(d);
         }
       }
     }
@@ -2231,8 +2266,8 @@ function recomputeRound(){
   statFairways.textContent = fairways;
   statGIR.textContent = `${gir} (${girPct}%)`;
   statPutts.textContent = totalPutts;
-  statOnePuttPct.textContent = `${onePuttPct}% (${onePuttCount})`;
-  statThreePuttPct.textContent = `${threePuttPct}% (${threePuttCount})`;
+  statOnePuttPct.textContent = `${onePuttPct}% (${onePuttCount} holes)`;
+  statThreePuttPct.textContent = `${threePuttPct}% (${threePuttCount} holes)`;
   statPenalties.textContent = penalties;
   if (statDrive250Label) {
     statDrive250Label.textContent = DISTANCE_UNIT === 'm' ? '228m over' : '250yd over';
@@ -2295,8 +2330,8 @@ function recomputeRound(){
       statTotalStrokes.textContent = formatAvgValue(avgTotalStrokes);
       statGIR.textContent = `${formatAvgValue(totalGirCount)} (${Math.round(pooledGirPct)}%)`;
       statPutts.textContent = formatAvgValue(avgPutts);
-      statOnePuttPct.textContent = `${Math.round(pooledOnePuttPct)}% (${formatAvgValue(totalOnePuttCount)})`;
-      statThreePuttPct.textContent = `${Math.round(pooledThreePuttPct)}% (${formatAvgValue(totalThreePuttCount)})`;
+      statOnePuttPct.textContent = `${Math.round(pooledOnePuttPct)}% (${formatAvgValue(totalOnePuttCount)} holes)`;
+      statThreePuttPct.textContent = `${Math.round(pooledThreePuttPct)}% (${formatAvgValue(totalThreePuttCount)} holes)`;
       statPenalties.textContent = formatAvgValue(avgPenalties);
       statDriverFairPct.textContent = `${Math.round(pooledDriverFairPct)}%`;
       statAvgDrive.textContent = (pooledAvgDrive != null && !isNaN(Number(pooledAvgDrive))) ? `${formatAvgValue(pooledAvgDrive)}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}` : '-';
@@ -2323,7 +2358,7 @@ function recomputeRound(){
       for (let ii=1; ii<=18; ii++){
         const roundGroups = getHoleShotGroups(ii);
         roundGroups.forEach((ordShotsClub)=>{
-          let prevRemaining = (HOLES[ii] && HOLES[ii].yard && !isNaN(Number(HOLES[ii].yard))) ? Number(HOLES[ii].yard) : null;
+          let prevRemaining = resolveGroupStartYard(ii, ordShotsClub);
           ordShotsClub.forEach(sh => {
             const clubName = normalizeShotType(sh && sh.shotType);
             const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
@@ -2381,7 +2416,7 @@ function recomputeRound(){
         for (let di=1;di<=18;di++){
           const roundGroups = getHoleShotGroups(di);
           roundGroups.forEach((ordered)=>{
-            let prevRemaining = (HOLES[di] && HOLES[di].yard && !isNaN(Number(HOLES[di].yard))) ? Number(HOLES[di].yard) : null;
+            let prevRemaining = resolveGroupStartYard(di, ordered);
             ordered.forEach(sh => {
               const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
               if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
@@ -2681,7 +2716,7 @@ function buildSummaryElement(forPdf){
   for (let i=1;i<=18;i++){
     const roundGroups = getHoleShotGroups(i);
     roundGroups.forEach((ordered)=>{
-      let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+      let prevRemaining = resolveGroupStartYard(i, ordered);
       ordered.forEach(sh => {
         const clubName = normalizeShotType(sh && sh.shotType);
         if (shouldCountClubShot(sh)){
@@ -2758,7 +2793,7 @@ function buildSummaryElement(forPdf){
   for (let i=1;i<=18;i++){
     const roundGroups = getHoleShotGroups(i);
     roundGroups.forEach((ordered)=>{
-      let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
+      let prevRemaining = resolveGroupStartYard(i, ordered);
       ordered.forEach(sh => {
         const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
         if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
@@ -3567,6 +3602,13 @@ function processImportedCSV(rows, options){
   const importMode = options && options.mode === 'accumulate' ? 'accumulate' : 'replace';
   const isAccumulate = importMode === 'accumulate';
   const normalizeCell = (value) => String(value == null ? '' : value).replace(/^\uFEFF/, '').trim();
+  const normalizeUnitToken = (value) => {
+    const raw = normalizeCell(value).toLowerCase();
+    if (!raw) return '';
+    if (raw === 'm' || raw === 'meter' || raw === 'meters' || raw === 'metre' || raw === 'metres' || raw.indexOf('미터') >= 0) return 'm';
+    if (raw === 'yd' || raw === 'yard' || raw === 'yards' || raw.indexOf('야드') >= 0) return 'yd';
+    return '';
+  };
   const normalizeHeader = (value) => normalizeCell(value).toLowerCase().replace(/[^a-z0-9]+/g, '');
   const getHeaderIndex = (headers, candidates) => {
     const normalizedHeaders = headers.map(normalizeHeader);
@@ -3586,13 +3628,15 @@ function processImportedCSV(rows, options){
     return numValue;
   };
 
-  let savedUnit = 'yd';
+  let savedUnit = '';
+  let targetUnit = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
   const firstRow = rows.length > 0 && rows[0] ? rows[0].map(normalizeCell) : [];
   const firstRowLower = firstRow.map((value) => value.toLowerCase());
   const playerMetaValue = firstRowLower.includes('player') ? firstRow[firstRowLower.indexOf('player') + 1] : '';
   const dateMetaValue = firstRowLower.includes('date') ? firstRow[firstRowLower.indexOf('date') + 1] : '';
   const courseMetaValue = firstRowLower.includes('course') ? firstRow[firstRowLower.indexOf('course') + 1] : '';
   const unitMetaValue = firstRowLower.includes('unit') ? firstRow[firstRowLower.indexOf('unit') + 1] : '';
+  const normalizedUnitMeta = normalizeUnitToken(unitMetaValue);
   const roundSeed = [dateMetaValue || '', courseMetaValue || '', playerMetaValue || ''].join('|') || String(Date.now());
   const importRoundId = `import:${roundSeed}:${Date.now()}`;
 
@@ -3608,12 +3652,20 @@ function processImportedCSV(rows, options){
     const courseEl = document.getElementById('courseName');
     if (courseEl && (!isAccumulate || !courseEl.value)) courseEl.value = courseMetaValue;
   }
-  if (unitMetaValue === 'm' || unitMetaValue === 'yd') {
-    savedUnit = unitMetaValue;
-    if (!isAccumulate) {
-      DISTANCE_UNIT = unitMetaValue;
-      updateUnitLabels();
+  if (normalizedUnitMeta) savedUnit = normalizedUnitMeta;
+
+  if (isAccumulate) {
+    // In cumulative mode, keep a single app-wide target unit and require source-unit metadata.
+    targetUnit = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
+    if (!savedUnit) {
+      alert('누적 불러오기 중단: 파일의 단위(Unit: yd/m) 정보를 찾을 수 없습니다. 앱에서 내보낸 CSV/XLSX(단위 포함)만 누적 불러오기를 사용하세요.');
+      return;
     }
+  } else {
+    if (!savedUnit) savedUnit = targetUnit;
+    targetUnit = savedUnit;
+    DISTANCE_UNIT = targetUnit;
+    updateUnitLabels();
   }
 
   let headerRowIndex = -1;
@@ -3722,19 +3774,20 @@ function processImportedCSV(rows, options){
     const rawPar = normalizedLine[parIdx] || '';
     const rawYard = normalizedLine[yardIdx] || '';
 
-    const convertedDistance = rawDistance !== '' && !isNaN(Number(rawDistance)) ? convertDistanceValue(Number(rawDistance), savedUnit, DISTANCE_UNIT) : null;
-    const convertedPuttStartDistance = rawPuttStartDistance !== '' && !isNaN(Number(rawPuttStartDistance)) ? convertDistanceValue(Number(rawPuttStartDistance), savedUnit, DISTANCE_UNIT) : null;
+    const convertedDistance = rawDistance !== '' && !isNaN(Number(rawDistance)) ? convertDistanceValue(Number(rawDistance), savedUnit, targetUnit) : null;
+    const convertedPuttStartDistance = rawPuttStartDistance !== '' && !isNaN(Number(rawPuttStartDistance)) ? convertDistanceValue(Number(rawPuttStartDistance), savedUnit, targetUnit) : null;
 
     if (rawPar !== '' && !isNaN(Number(rawPar))) {
       HOLES[hole].par = Number(rawPar);
     }
     if (rawYard !== '' && !isNaN(Number(rawYard))) {
-      HOLES[hole].yard = convertDistanceValue(Number(rawYard), savedUnit, DISTANCE_UNIT);
+      HOLES[hole].yard = convertDistanceValue(Number(rawYard), savedUnit, targetUnit);
     }
 
     const shot = {
       hole,
       shotNumber,
+      holeYardAtShot: rawYard !== '' && !isNaN(Number(rawYard)) ? convertDistanceValue(Number(rawYard), savedUnit, targetUnit) : getNumericYard(HOLES[hole] && HOLES[hole].yard),
       shotType: normalizeShotType(shotTypeValue),
       result: normalizedLine[resultIdx] || '',
       distanceToHole: convertedDistance,
@@ -3747,6 +3800,8 @@ function processImportedCSV(rows, options){
       timestamp: normalizedLine[timestampIdx] || new Date().toISOString(),
       roundId: importRoundId,
       roundShotNumber,
+      sourceUnit: savedUnit,
+      targetUnit,
       parAtShot: rawPar !== '' && !isNaN(Number(rawPar)) ? Number(rawPar) : Number(HOLES[hole].par || 4)
     };
 
@@ -3768,7 +3823,7 @@ function processImportedCSV(rows, options){
       const rawYard = normalizedLine[yardIdxInSummary] || '';
       const rawPar = normalizedLine[parIdxInSummary] || '';
       if (rawYard !== '' && !isNaN(Number(rawYard))) {
-        HOLES[hnum].yard = convertDistanceValue(Number(rawYard), savedUnit, DISTANCE_UNIT);
+        HOLES[hnum].yard = convertDistanceValue(Number(rawYard), savedUnit, targetUnit);
       }
       if (rawPar !== '' && !isNaN(Number(rawPar))) {
         HOLES[hnum].par = Number(rawPar);
@@ -3792,9 +3847,9 @@ function processImportedCSV(rows, options){
   startHole(1);
 
   if (isAccumulate) {
-    alert('데이터 누적분석 불러오기 완료 (기존 데이터에 누적 반영됨)');
+    alert(`데이터 누적분석 불러오기 완료 (기준 단위: ${targetUnit})`);
   } else {
-    alert('CSV/XLSX 불러오기 완료');
+    alert(`CSV/XLSX 불러오기 완료 (단위: ${targetUnit})`);
   }
 }
 
@@ -3966,8 +4021,6 @@ recomputeRound();
 window.startHole = startHole;
 
 /* ======= Auto-save / Restore Draft (localStorage) ======= */
-const STORAGE_KEY = 'golf_round_draft_v1';
-const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
 function debounce(fn, wait){ let t; return function(){ clearTimeout(t); const args = arguments; t = setTimeout(()=> fn.apply(this, args), wait); }; }
 
 function saveDraft(){
