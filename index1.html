@@ -797,14 +797,35 @@ let restoredAuthSession = null;
 let loggedInUserId = null;
 let loggedInUserEmail = null;
 let supabaseClient = null;
+let lastRoundSyncIssue = '';
+
+const authMemStore = (function(){
+  var store = {};
+  return {
+    getItem: function(key){
+      return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null;
+    },
+    setItem: function(key, value){
+      store[key] = String(value);
+    },
+    removeItem: function(key){
+      delete store[key];
+    }
+  };
+})();
 
 function initSupabaseClient(){
   if(!window.supabase) return null;
   if(!supabaseClient){
-    // persistSession/autoRefreshToken 비활성화 — URL 파라미터로 세션을 전달하므로
-    // SDK가 localStorage에 저장하려는 시도 자체를 막아 Tracking Prevention 경고 제거
+    // 일부 모바일 브라우저에서 토큰 갱신 실패를 줄이기 위해 메모리 스토리지 + 자동 갱신 사용
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+      auth: {
+        storage: authMemStore,
+        storageKey: 'sytpt_index1_auth',
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
     });
   }
   return supabaseClient;
@@ -1031,6 +1052,7 @@ async function restoreSessionFromUrl(){
 
 async function saveRoundToSupabase(){
   try{
+    lastRoundSyncIssue = '';
     // SDK에서 최신 세션을 먼저 가져옴 (access_token 만료 시 자동 갱신)
     const sbClient = initSupabaseClient();
     if(sbClient){
@@ -1050,10 +1072,12 @@ async function saveRoundToSupabase(){
     const resolvedAuthSession = restoredAuthSession;
     if(!resolvedAuthSession || !resolvedAuthSession.user){
       console.warn('Supabase auth session missing; cannot sync without login.');
+      lastRoundSyncIssue = '로그인 세션을 확인하지 못했습니다. Player Dashboard에서 다시 로그인 후 재시도해주세요.';
       return false;
     }
     if(typeof navigator !== 'undefined' && navigator.onLine === false){
       console.warn('Offline detected; skipping Supabase sync.');
+      lastRoundSyncIssue = '현재 오프라인 상태입니다. 네트워크 연결 후 다시 저장해주세요.';
       return false;
     }
     const authPlayerId = getPlayerIdFromAuthSession(resolvedAuthSession);
@@ -1113,6 +1137,7 @@ async function saveRoundToSupabase(){
         normalizedUserEmail,
         authSessionUser: resolvedAuthSession.user
       });
+      lastRoundSyncIssue = '로그인 계정의 선수 ID를 확인하지 못했습니다. 관리자에게 계정 매핑을 요청해주세요.';
       return false;
     }
 
@@ -1251,6 +1276,7 @@ async function saveRoundToSupabase(){
 
     const errorBody = await response.text();
     if(!response.ok){
+      const shortBody = String(errorBody || '').slice(0, 240);
       console.warn('Supabase round sync failed', {
         status: response.status,
         statusText: response.statusText,
@@ -1258,12 +1284,14 @@ async function saveRoundToSupabase(){
         existingId,
         row
       });
+      lastRoundSyncIssue = `서버 저장 실패 (${response.status} ${response.statusText})${shortBody ? ': ' + shortBody : ''}`;
       return false;
     }
     console.log('Round synced to Supabase', { row, existingId, method: existingId ? 'PATCH' : 'POST' });
     return true;
   }catch(e){
     console.error('saveRoundToSupabase exception', e);
+    lastRoundSyncIssue = '저장 중 예외가 발생했습니다: ' + (e && e.message ? e.message : String(e));
     return false;
   }
 }
@@ -1948,14 +1976,15 @@ btnExportCSV.addEventListener('click', async ()=>{
   // 서버 동기화 시도
   const syncSuccess = await saveRoundToSupabase();
   if(!syncSuccess){
-    console.warn('서버 동기화가 실패했습니다. 코치 포털에 데이터가 반영되지 않을 수 있습니다.');
+    console.warn('서버 동기화가 실패했습니다. 코치 포털에 데이터가 반영되지 않을 수 있습니다.', lastRoundSyncIssue);
   }
   
   // 저장 성공 메시지와 함께 통계 정보 표시
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
   let message = `CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`;
   if(!syncSuccess){
-    message += '\n\n⚠️ 서버 동기화 실패: 포털에서 로그인 후 이 페이지를 다시 열어주세요.';
+    const reason = lastRoundSyncIssue ? `\n사유: ${lastRoundSyncIssue}` : '';
+    message += `\n\n⚠️ 서버 동기화 실패: 포털에서 로그인 후 이 페이지를 다시 열어주세요.${reason}`;
   } else {
     message += '\n\n✅ 서버에 저장되었습니다. 코치 포털에서 확인할 수 있습니다.';
   }

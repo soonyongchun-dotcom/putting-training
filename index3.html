@@ -411,7 +411,10 @@
       <div class="card player-block tone-mint" style="margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <h3 style="margin:0">시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</h3>
-          <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">오늘경기데이터 입력</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">오늘경기데이터 입력</button>
+            <button class="btn" type="button" id="openPastMatchBtn">지난경기</button>
+          </div>
         </div>
         <div id="phaseBoard" class="phase-board"></div>
       </div>
@@ -432,6 +435,16 @@
         <div class="row">
           <div class="card kpi"><div class="label">오늘 일자</div><div class="value" id="todayDate"></div></div>
           <div class="card kpi"><div class="label">오늘 미션 수</div><div class="value" id="todayMissionCount">0</div></div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="card" id="pastMatchHistoryPanel" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <h3 style="margin:0">지난경기 히스토리</h3>
+            <button class="btn btn-sm" type="button" id="closePastMatchHistoryBtn">닫기</button>
+          </div>
+          <div id="pastMatchHistoryContent"></div>
         </div>
 
         <div style="height:12px"></div>
@@ -754,6 +767,14 @@
       // iOS Safari는 async/await 이후 window.open()을 팝업 차단함.
       // 사용자 제스처 컨텍스트 내에서 즉시 창을 열고, 이후 URL을 설정하는 방식으로 우회.
       const newWin = window.open('', '_blank');
+      function navigateWithFallback(targetUrl){
+        if(newWin && !newWin.closed){
+          newWin.location.href = targetUrl;
+          return;
+        }
+        // 일부 모바일 브라우저에서 팝업이 차단되면 현재 탭 이동으로 세션 전달 보장
+        window.location.href = targetUrl;
+      }
       try{
         const authRes = await sb.auth.getSession();
         const authSession = authRes && authRes.data ? authRes.data.session : null;
@@ -769,15 +790,13 @@
           for(let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
           const encoded = encodeURIComponent(btoa(binary));
           const sep = url.includes('?') ? '&' : '?';
-          if(newWin){ newWin.location.href = url + sep + 'supabase_session=' + encoded; }
-          else { window.open(url + sep + 'supabase_session=' + encoded, '_blank'); }
+          navigateWithFallback(url + sep + 'supabase_session=' + encoded);
           return;
         }
       }catch(e){
         console.warn('openIndex1WithSession: failed to get session', e);
       }
-      if(newWin){ newWin.location.href = url; }
-      else { window.open(url, '_blank'); }
+      navigateWithFallback(url);
     }
 
     // ====== 디바이스 전용 (localStorage) ======
@@ -808,6 +827,8 @@
     const COACH_DIRECTIVES_ERROR_TTL = 30000;
     const COACH_DIRECTIVES_FETCH_LIMIT = 30;
     const COACH_DIRECTIVES_FALLBACK_LIMIT = 20;
+    const PHASE_SELECTION_STORAGE_PREFIX = 'sytpt_phase_sel_';
+    const MATCH_HISTORY_MESSAGE_TYPE = 'match_history';
     let hasCoachReadColumn = false;
     let hasDirectiveReadAtColumn = true;
     let lastDirectiveReadAtProbeAt = 0;
@@ -819,6 +840,7 @@
     let lastDashboardCoachHtml = '';
     let lastCoachDirectiveHtml = '';
     let isSendingCoachDirective = false;
+    let pastMatchHistoryPlayerId = '';
     let lastPerformanceEdit = null;
     // 메시지 / 사용자 캐시 (getMessages, getUsers 내부에서도 사용)
     let messagesCache = [];
@@ -1363,6 +1385,245 @@
         end_date:payload.endDate!=null?payload.endDate:prev.endDate
       },{onConflict:'player_id'});
     }
+    function isDefaultMatchInfo(info){
+      if(!info) return true;
+      return (!info.matchName || info.matchName==='경기명')
+        && (!info.startDate || info.startDate==='시작일')
+        && (!info.endDate || info.endDate==='종료일');
+    }
+    function normalizeMatchString(v){
+      return String(v==null?'':v).trim();
+    }
+    function getPhaseSelectionStorageKey(playerId){
+      return PHASE_SELECTION_STORAGE_PREFIX + String(playerId || '');
+    }
+    async function clearPhaseSelectionsForPlayer(playerId){
+      if(!playerId) return;
+      localStorage.removeItem(getPhaseSelectionStorageKey(playerId));
+      await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_selections');
+    }
+    function hasAnyCheckedSelection(sel){
+      if(!sel || typeof sel!=='object') return false;
+      return Object.keys(sel).some(function(k){ return !!sel[k]; });
+    }
+    function hasCustomPhaseItems(config){
+      if(!config || typeof config!=='object') return false;
+      return ['pre','in','post'].some(function(phKey){
+        var items = Array.isArray(config[phKey]) ? config[phKey] : [];
+        return items.some(function(item){ return !isLockedItem(phKey, item); });
+      });
+    }
+    function normalizeHistoryEntry(raw){
+      if(!raw || typeof raw!=='object') return null;
+      var info = raw.matchInfo || {};
+      var entry = {
+        archivedAt: raw.archivedAt || raw.createdAt || null,
+        reason: raw.reason || 'new_match_registered',
+        matchInfo: {
+          matchName: info.matchName || '경기명',
+          startDate: info.startDate || '시작일',
+          endDate: info.endDate || '종료일'
+        },
+        phaseConfig: raw.phaseConfig || { pre:[], in:[], post:[] },
+        phaseSelections: raw.phaseSelections || {},
+        missionSummary: raw.missionSummary || null
+      };
+      return entry;
+    }
+    async function getMatchHistoryListByPlayerId(playerId){
+      if(!playerId) return [];
+      var res = await sb
+        .from('sytpt_messages')
+        .select('text,created_at')
+        .eq('player_id',playerId)
+        .eq('message_type',MATCH_HISTORY_MESSAGE_TYPE)
+        .order('created_at',{ascending:false})
+        .limit(100);
+      if(res.error || !Array.isArray(res.data)) return [];
+      return res.data.map(function(row){
+        try{
+          var parsed = JSON.parse(row.text || '{}');
+          var normalized = normalizeHistoryEntry(parsed);
+          if(normalized && !normalized.archivedAt) normalized.archivedAt = row.created_at || null;
+          return normalized;
+        }catch(_){ return null; }
+      }).filter(Boolean);
+    }
+    async function archiveCurrentMatchHistory(playerId, reason){
+      if(!playerId) return false;
+      var info = await getMatchInfoByPlayerId(playerId);
+      if(isDefaultMatchInfo(info)) return false;
+
+      var config = await getPhaseConfig(playerId);
+      var serverSel = await getPhaseSelectionsFromServer(playerId);
+      var localSel = getPhaseSelections(playerId);
+      var sel = serverSel!==null ? serverSel : localSel;
+
+      var payload = {
+        version: 1,
+        archivedAt: new Date().toISOString(),
+        reason: reason || 'new_match_registered',
+        matchInfo: {
+          matchName: info.matchName || '경기명',
+          startDate: info.startDate || '시작일',
+          endDate: info.endDate || '종료일'
+        },
+        phaseConfig: config || { pre:[], in:[], post:[] },
+        phaseSelections: sel || {}
+      };
+
+      try{
+        var missions = await getDisplayMissionsForPlayer(playerId);
+        var completed = missions.filter(function(m){ return !!m.completed; }).length;
+        payload.missionSummary = { total: missions.length, completed: completed };
+      }catch(_){ }
+
+      var latestList = await getMatchHistoryListByPlayerId(playerId);
+      var latest = latestList.length ? latestList[0] : null;
+      if(
+        latest
+        && normalizeMatchString(latest.matchInfo && latest.matchInfo.matchName)===normalizeMatchString(payload.matchInfo.matchName)
+        && normalizeMatchString(latest.matchInfo && latest.matchInfo.startDate)===normalizeMatchString(payload.matchInfo.startDate)
+        && normalizeMatchString(latest.matchInfo && latest.matchInfo.endDate)===normalizeMatchString(payload.matchInfo.endDate)
+      ){
+        return false;
+      }
+
+      await sb.from('sytpt_messages').insert({
+        player_id: playerId,
+        author: 'system',
+        text: JSON.stringify(payload),
+        message_type: MATCH_HISTORY_MESSAGE_TYPE,
+        created_at: payload.archivedAt
+      });
+      return true;
+    }
+    function activatePlayerScreen(screenId){
+      if(!screenId) return;
+      document.querySelectorAll('.screen-tabs button[data-screen]').forEach(function(btn){
+        btn.classList.toggle('active', btn.dataset.screen===screenId);
+      });
+      document.querySelectorAll('#playerPortal .panel.player-panel').forEach(function(panel){
+        panel.classList.toggle('active', panel.id===screenId);
+      });
+    }
+    function hidePastMatchHistoryPanel(){
+      var panel = document.getElementById('pastMatchHistoryPanel');
+      var content = document.getElementById('pastMatchHistoryContent');
+      if(panel) panel.style.display='none';
+      if(content) content.innerHTML='';
+      pastMatchHistoryPlayerId = '';
+    }
+    function renderPastMatchHistoryPanel(entry, player){
+      var panel = document.getElementById('pastMatchHistoryPanel');
+      var content = document.getElementById('pastMatchHistoryContent');
+      if(!panel || !content || !entry) return;
+
+      var info = entry.matchInfo || {};
+      var archivedAt = entry.archivedAt || null;
+      var cfg = entry.phaseConfig || {};
+      var sel = entry.phaseSelections || {};
+      var phaseDefs = [
+        {key:'pre',label:'🟡 Pre-Match (경기 전)',color:'#d97706'},
+        {key:'in',label:'🟢 In-Match (경기 중)',color:'#16a34a'},
+        {key:'post',label:'🔵 Post-Match (경기 후)',color:'#2563eb'}
+      ];
+
+      var phaseHtml = phaseDefs.map(function(ph){
+        var items = Array.isArray(cfg[ph.key]) ? cfg[ph.key] : [];
+        var liHtml = items.length
+          ? items.map(function(item, idx){
+              var txt = getItemText(item);
+              var done = !!sel[ph.key+'_'+idx];
+              var lineStyle = done ? 'text-decoration:line-through;color:#9ca3af;' : 'color:var(--sub);';
+              return '<li style="font-size:12px;padding:2px 0;'+lineStyle+'">'+escapeHtml((done?'✅ ':'')+txt)+'</li>';
+            }).join('')
+          : '<li class="muted" style="font-size:12px">항목 없음</li>';
+        var completedCount = items.reduce(function(acc, _item, idx){ return acc + (sel[ph.key+'_'+idx] ? 1 : 0); }, 0);
+        var badge = items.length ? '<span style="font-size:11px;color:var(--sub);margin-left:6px">'+completedCount+'/'+items.length+' 완료</span>' : '';
+        return '<div class="match-phase-cell"><div class="phase-label" style="color:'+ph.color+'">'+ph.label+badge+'</div><ul style="padding-left:16px;margin:4px 0">'+liHtml+'</ul></div>';
+      }).join('');
+
+      var missionSummary = entry.missionSummary
+        ? '<div class="muted" style="font-size:12px;margin-top:8px">미션 완료: '+escapeHtml(String(entry.missionSummary.completed||0))+' / '+escapeHtml(String(entry.missionSummary.total||0))+'</div>'
+        : '';
+
+      content.innerHTML =
+        '<div class="message" style="margin-bottom:8px">'
+          + '<div class="meta">선수: '+escapeHtml(player && player.name ? player.name : '-')+' · 보관 시각: '+escapeHtml(archivedAt ? formatTime(archivedAt) : '-')+'</div>'
+          + '<div style="font-weight:700;color:var(--blue);margin-top:4px">📅 '+escapeHtml(info.matchName||'경기명')+' · '+escapeHtml(formatMatchRangeText(info.startDate, info.endDate))+'</div>'
+          + missionSummary
+        + '</div>'
+        + '<div class="match-phase-grid">'+phaseHtml+'</div>';
+
+      panel.style.display='block';
+      pastMatchHistoryPlayerId = player && player.id ? String(player.id) : '';
+    }
+    async function openPastMatchHistoryPicker(){
+      var users = await getUsers();
+      var player = getActivePlayerForView(users);
+      if(!player){
+        alert('선수 정보가 없어 지난경기 히스토리를 불러올 수 없습니다.');
+        return;
+      }
+      var list = await getMatchHistoryListByPlayerId(player.id);
+      if(!list.length){
+        alert('지난경기 히스토리가 없습니다.');
+        return;
+      }
+      var menu = list.map(function(item, idx){
+        var info = item.matchInfo || {};
+        var label = (info.matchName || '경기명') + ' (' + formatMatchRangeText(info.startDate, info.endDate) + ')';
+        var when = item.archivedAt ? formatTime(item.archivedAt) : '-';
+        return (idx+1)+'. '+label+' · '+when;
+      }).join('\n');
+      var input = prompt('확인할 지난경기 번호를 입력하세요.\n\n'+menu, '1');
+      if(input===null) return;
+      var n = Number(input);
+      if(!Number.isInteger(n) || n<1 || n>list.length){
+        alert('유효한 번호를 입력해주세요.');
+        return;
+      }
+      activatePlayerScreen('dashboard');
+      renderPastMatchHistoryPanel(list[n-1], player);
+    }
+    async function applyMatchScheduleUpdate(playerId, payload){
+      if(!playerId) return { changed:false, reset:false, archived:false };
+
+      var prev = await getMatchInfoByPlayerId(playerId);
+      var merged = {
+        matchName: payload.matchName!=null ? payload.matchName : prev.matchName,
+        startDate: payload.startDate!=null ? payload.startDate : prev.startDate,
+        endDate: payload.endDate!=null ? payload.endDate : prev.endDate
+      };
+      var changed = normalizeMatchString(prev.matchName)!==normalizeMatchString(merged.matchName)
+        || normalizeMatchString(prev.startDate)!==normalizeMatchString(merged.startDate)
+        || normalizeMatchString(prev.endDate)!==normalizeMatchString(merged.endDate);
+      if(!changed) return { changed:false, reset:false, archived:false };
+
+      var reset = false;
+      var archived = false;
+      if(!isDefaultMatchInfo(prev)){
+        var config = await getPhaseConfig(playerId);
+        var serverSel = await getPhaseSelectionsFromServer(playerId);
+        var localSel = getPhaseSelections(playerId);
+        var sel = serverSel!==null ? serverSel : localSel;
+        var hasResetTarget = hasCustomPhaseItems(config) || hasAnyCheckedSelection(sel);
+        if(hasResetTarget){
+          try{
+            archived = await archiveCurrentMatchHistory(playerId, 'new_match_registered');
+          }catch(e){
+            console.warn('archiveCurrentMatchHistory failed', e);
+          }
+          await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_config');
+          await clearPhaseSelectionsForPlayer(playerId);
+          reset = true;
+        }
+      }
+
+      await upsertMatchInfoByPlayerId(playerId,payload);
+      return { changed:true, reset:reset, archived:archived };
+    }
     // ====== 유틸 ======
     function isChatMessage(m){
       const mt=m.messageType||m.message_type;
@@ -1793,8 +2054,13 @@
       const next=prompt('경기명을 입력하세요.',current==='경기명'?'':current);
       if(next===null) return;
       const value=next.trim(); if(!value) return;
-      await upsertMatchInfoByPlayerId(player.id,{matchName:value});
+      const result=await applyMatchScheduleUpdate(player.id,{matchName:value});
       renderMatchHeader();
+      renderPhaseBoard();
+      if(result.reset){
+        hidePastMatchHistoryPanel();
+        alert('새 시합 일정으로 등록되어 이전 경기 준비 항목이 초기화되었습니다. 지난경기 버튼에서 히스토리를 확인할 수 있습니다.');
+      }
     }
     async function editMatchDateRange(){
       const users=await getUsers();
@@ -1812,8 +2078,13 @@
       const ns=start.year+'.'+start.month+'.'+start.day;
       const ey=end.year!=null?end.year:start.year;
       const ne=ey+'.'+end.month+'.'+end.day;
-      await upsertMatchInfoByPlayerId(player.id,{startDate:ns,endDate:ne});
+      const result=await applyMatchScheduleUpdate(player.id,{startDate:ns,endDate:ne});
       renderMatchHeader();
+      renderPhaseBoard();
+      if(result.reset){
+        hidePastMatchHistoryPanel();
+        alert('새 시합 일정으로 등록되어 이전 경기 준비 항목이 초기화되었습니다. 지난경기 버튼에서 히스토리를 확인할 수 있습니다.');
+      }
     }
     async function renderCommCounts(){
       const renderSeq=++commCountsRenderSeq;
@@ -1867,7 +2138,14 @@
       const sr=document.getElementById('playerViewStatus');
       if(!nr||!cr||!rr||!sr) return;
       await renderMatchHeader();
-      if(!player){nr.textContent='선택된 승인 선수가 없습니다';cr.textContent='0%';rr.textContent='-';sr.textContent='-';return;}
+      if(!player){
+        hidePastMatchHistoryPanel();
+        nr.textContent='선택된 승인 선수가 없습니다';cr.textContent='0%';rr.textContent='-';sr.textContent='-';
+        return;
+      }
+      if(pastMatchHistoryPlayerId && pastMatchHistoryPlayerId!==String(player.id)){
+        hidePastMatchHistoryPanel();
+      }
       const isCoach=session&&session.role==='coach';
       nr.textContent=isCoach?(player.name+' ('+player.id+')'):player.name;
       cr.textContent=player.todayCompletion||'0%';
@@ -3316,6 +3594,14 @@
     document.getElementById('globalBackBtn').addEventListener('click',goBack);
     document.getElementById('authBackBtn').addEventListener('click',goBack);
     document.getElementById('logoutBtn').addEventListener('click',async function(){await safeAuthSignOut();clearSession();applySessionUI();});
+    var openPastMatchBtn=document.getElementById('openPastMatchBtn');
+    if(openPastMatchBtn){
+      openPastMatchBtn.addEventListener('click',openPastMatchHistoryPicker);
+    }
+    var closePastMatchHistoryBtn=document.getElementById('closePastMatchHistoryBtn');
+    if(closePastMatchHistoryBtn){
+      closePastMatchHistoryBtn.addEventListener('click',hidePastMatchHistoryPanel);
+    }
 
     var mnt=document.getElementById('matchNameDisplay');
     var mdt=document.getElementById('matchDateRangeDisplay');
@@ -3365,8 +3651,8 @@
       await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_config');
       await sb.from('sytpt_messages').insert({player_id:playerId,author:'coach',text:JSON.stringify(config),message_type:'phase_config',created_at:new Date().toISOString()});
     }
-    function getPhaseSelections(playerId){return JSON.parse(localStorage.getItem('sytpt_phase_sel_'+playerId)||'{}');}
-    function setPhaseSelections(playerId,sel){localStorage.setItem('sytpt_phase_sel_'+playerId,JSON.stringify(sel));}
+    function getPhaseSelections(playerId){return JSON.parse(localStorage.getItem(getPhaseSelectionStorageKey(playerId))||'{}');}
+    function setPhaseSelections(playerId,sel){localStorage.setItem(getPhaseSelectionStorageKey(playerId),JSON.stringify(sel));}
     async function getPhaseSelectionsFromServer(playerId){
       try{
         const {data}=await sb.from('sytpt_messages').select('text').eq('player_id',playerId).eq('message_type','phase_selections').order('created_at',{ascending:false}).limit(1).maybeSingle();
