@@ -56,6 +56,16 @@
     ];
 
     document.getElementById('loginBtn').addEventListener('click', login);
+    (function syncCoachFrameSession(){
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('supabase_session');
+      const frame = document.getElementById('coachFrame');
+      if(frame && encoded){
+        const base = frame.getAttribute('src') || 'golf_rounddatanput(26.2.1).html';
+        const sep = base.includes('?') ? '&' : '?';
+        frame.src = base + sep + 'supabase_session=' + encoded;
+      }
+    })();
     function login(){
       const id=document.getElementById('loginId').value.trim();
       const pw=document.getElementById('loginPw').value;

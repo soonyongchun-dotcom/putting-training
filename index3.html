@@ -931,11 +931,31 @@
       });
       localStorage.setItem(STORAGE_COMM_LAST_READ, JSON.stringify(m));
     }
-    function openCoachAnalysisPage(pagePath){
+    async function openCoachAnalysisPage(pagePath){
       var normalized=String(pagePath||'').trim();
       if(!normalized){
         alert('분석 페이지 경로가 비어 있습니다.');
         return;
+      }
+      try{
+        const authRes = await sb.auth.getSession();
+        const authSession = authRes && authRes.data ? authRes.data.session : null;
+        if(authSession && authSession.access_token){
+          const json = JSON.stringify({
+            access_token: authSession.access_token,
+            refresh_token: authSession.refresh_token,
+            user: authSession.user
+          });
+          let binary = '';
+          const bytes = new TextEncoder().encode(json);
+          for(let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          const encoded = encodeURIComponent(btoa(binary));
+          const sep = normalized.includes('?') ? '&' : '?';
+          window.location.href = encodeURI(normalized + sep + 'supabase_session=' + encoded);
+          return;
+        }
+      }catch(e){
+        console.warn('openCoachAnalysisPage session handoff failed', e);
       }
       window.location.href=encodeURI(normalized);
     }
