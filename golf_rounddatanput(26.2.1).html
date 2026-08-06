@@ -231,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.2f</div>
+      <div class="tiny muted">버전 26.8.3f</div>
     </div>
   </header>
 
@@ -280,15 +280,16 @@
       </label>
       <label style="flex:1 1 280px; min-width:220px;">
         서버 라운드 선택<br>
-        <select id="syncedRoundSelect">
-          <option value="">서버에서 불러올 라운드를 선택하세요</option>
+        <select id="syncedRoundSelect" multiple size="6">
+          <option value="" disabled>서버 라운드를 선택하세요 (여러 개 선택 가능)</option>
         </select>
-        <div id="syncedRoundStatus" class="tiny muted" style="margin-top:6px;">서버 라운드 목록을 불러오는 중입니다...</div>
+        <div id="syncedRoundStatus" class="tiny muted" style="margin-top:6px;">서버 라운드 목록을 불러오는 중입니다... (Ctrl/Shift로 다중 선택)</div>
       </label>
     </div>
     <div class="right-actions mt8">
       <button class="btn" id="btnStartRound" aria-label="Start round">라운드 시작 (Start Round)</button>
       <button class="btn ghost" id="btnLoadSyncedRound" aria-label="Load synced round" style="min-width:160px;">서버에서 라운드 불러오기</button>
+      <button class="btn ghost" id="btnBatchAccumulateSyncedRounds" aria-label="Batch accumulate synced rounds" style="min-width:180px;">선택 라운드 일괄 누적</button>
       <button class="btn warn" id="btnDeleteSyncedRound" aria-label="Delete synced round" style="min-width:120px;">선택 삭제</button>
     </div>
     </div>
@@ -502,6 +503,7 @@
         <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
         <button class="btn ghost" id="btnImportCsv">CSV/XLSX 불러오기 (Import CSV/XLSX)</button>
         <button class="btn ghost" id="btnImportCsvAccumulate">데이터 누적분석 불러오기</button>
+        <button class="btn ghost" id="btnLoadSyncedRoundAccumulate" aria-label="Accumulate synced round">서버 라운드 누적불러오기</button>
         </span>
         <button class="btn ghost" id="btnExportXLSX">XLSX로 저장 (Export XLSX)</button>
         <button class="btn ghost" id="btnShowAllData">경기력요약 (Performance Summary)</button>
@@ -625,11 +627,16 @@ async function fetchSyncedRounds(){
 }
 
 async function deleteSelectedSyncedRound(){
-  if(!syncedRoundSelect || !syncedRoundSelect.value){
-    alert('삭제할 서버 라운드를 선택하세요.');
+  const selectedIds = getSelectedSyncedRoundIds();
+  if(!selectedIds.length){
+    alert('삭제할 서버 라운드를 선택하세요. (단건 선택)');
     return;
   }
-  const selected = syncedRoundsCache.find(r => r.id === syncedRoundSelect.value);
+  if(selectedIds.length !== 1){
+    alert('선택 삭제는 한 번에 1개 라운드만 가능합니다.');
+    return;
+  }
+  const selected = syncedRoundsCache.find(r => r.id === selectedIds[0]);
   if(!selected){
     alert('선택한 라운드를 찾을 수 없습니다. 목록을 다시 불러옵니다.');
     await populateSyncedRoundSelect();
@@ -665,20 +672,31 @@ async function populateSyncedRoundSelect(){
   const select = document.getElementById('syncedRoundSelect');
   if(!select) return;
   if(syncedRoundStatus) syncedRoundStatus.textContent = '서버 라운드 목록을 불러오는 중입니다...';
-  select.innerHTML = '<option value="">서버에서 불러올 라운드를 선택하세요</option>';
+  select.innerHTML = '<option value="" disabled>서버 라운드를 선택하세요 (여러 개 선택 가능)</option>';
   const rounds = await fetchSyncedRounds();
   syncedRoundsCache = rounds;
   if(!rounds.length){
     if(syncedRoundStatus) syncedRoundStatus.textContent = '서버에 저장된 라운드가 없습니다. 선수 포털에서 로그인 후 CSV 저장 시 서버 동기화가 필요합니다.';
     return;
   }
-  if(syncedRoundStatus) syncedRoundStatus.textContent = `${rounds.length}개의 서버 라운드를 불러왔습니다.`;
+  if(syncedRoundStatus) syncedRoundStatus.textContent = `${rounds.length}개의 서버 라운드를 불러왔습니다. (Ctrl/Shift로 다중 선택)`;
   rounds.forEach(r => {
     const opt = document.createElement('option');
     opt.value = r.id;
     opt.textContent = `${r.player_name || r.player_id} · ${r.round_date || ''} · ${r.course || ''}`;
     select.appendChild(opt);
   });
+}
+
+function getSelectedSyncedRoundIds(){
+  if(!syncedRoundSelect || !syncedRoundSelect.selectedOptions) return [];
+  return Array.from(syncedRoundSelect.selectedOptions).map(opt => opt.value).filter(v => !!v);
+}
+
+function getSelectedSyncedRounds(){
+  const ids = getSelectedSyncedRoundIds();
+  const map = new Map((syncedRoundsCache || []).map(r => [r.id, r]));
+  return ids.map(id => map.get(id)).filter(Boolean);
 }
 
 function restoreRoundFromRemote(row){
@@ -747,6 +765,95 @@ function restoreRoundFromRemote(row){
   const holesContainer = document.getElementById('holesContainer');
   if(holesContainer) holesContainer.classList.remove('hidden');
   if(analysisCard) analysisCard.classList.remove('hidden');
+}
+
+function appendRoundFromRemote(row, options){
+  const opts = options || {};
+  const deferRefresh = !!opts.deferRefresh;
+  const silent = !!opts.silent;
+  if(!row || !row.id) return;
+  const meta = row.round_meta || {};
+  const payload = row.round_payload || {};
+  const sourceUnitRaw = (meta.distanceUnit || row.distance_unit || '').toString().trim().toLowerCase();
+  const sourceUnit = (sourceUnitRaw === 'm' || sourceUnitRaw === 'yd') ? sourceUnitRaw : '';
+  const targetUnit = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
+  if(!sourceUnit){
+    if(!silent) alert('누적 불러오기 중단: 서버 라운드 단위 정보(yd/m)가 없습니다.');
+    return { ok:false, reason:'missing-unit', unit:targetUnit };
+  }
+
+  const holes = Array.isArray(payload.holes) ? payload.holes : [];
+  const importRoundId = `server:${row.id}:${Date.now()}`;
+
+  for(let i=1;i<=18;i++){
+    if(!HOLES[i]){
+      HOLES[i] = { hole:i, yard:'', par:4, score:null, computedStrokes:0, manualScore:false, shots:[] };
+    }
+    if(!Array.isArray(shotsByHole[i])) shotsByHole[i] = [];
+  }
+
+  for(let i=1;i<=18;i++){
+    const holeData = holes[i-1] || {};
+    const rawShots = Array.isArray(holeData.shots) ? holeData.shots : [];
+
+    if ((HOLES[i].yard == null || HOLES[i].yard === '') && holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard))) {
+      HOLES[i].yard = convertDistanceValue(Number(holeData.yard), sourceUnit, targetUnit);
+    }
+    if ((HOLES[i].par == null || HOLES[i].par === 4) && holeData.par != null && !isNaN(Number(holeData.par))) {
+      HOLES[i].par = Number(holeData.par);
+    }
+
+    let nextRoundShotNumber = 0;
+    rawShots.forEach((s)=>{
+      const input = s || {};
+      nextRoundShotNumber += 1;
+      const shot = {
+        hole: i,
+        shotNumber: (shotsByHole[i] && shotsByHole[i].length ? shotsByHole[i].length : 0) + 1,
+        roundShotNumber: nextRoundShotNumber,
+        roundId: importRoundId,
+        roundPlayer: meta.player || row.player_name || row.player_id || '',
+        roundDate: meta.date || row.round_date || '',
+        roundCourse: meta.course || row.course || '',
+        shotType: input.shotType || input.club || '',
+        result: input.result || '',
+        holeYardAtShot: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), sourceUnit, targetUnit) : getNumericYard(HOLES[i] && HOLES[i].yard),
+        distanceToHole: input.distanceToHole != null && input.distanceToHole !== '' && !isNaN(Number(input.distanceToHole)) ? convertDistanceValue(Number(input.distanceToHole), sourceUnit, targetUnit) : null,
+        putts: Number(input.putts || 0),
+        penalty: Number(input.penalty || 0),
+        note: input.note || '',
+        lie: input.lie || '',
+        slope: input.slope || '',
+        puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertDistanceValue(Number(input.puttStartDistance), sourceUnit, targetUnit) : null,
+        timestamp: input.timestamp || new Date().toISOString(),
+        parAtShot: holeData.par != null && !isNaN(Number(holeData.par)) ? Number(holeData.par) : Number(HOLES[i].par || 4),
+        sourceUnit,
+        targetUnit
+      };
+      shotsByHole[i].push(shot);
+    });
+
+    HOLES[i].shots = (shotsByHole[i] || []).slice();
+  }
+
+  const playerNameEl = document.getElementById('playerName');
+  const roundDateEl = document.getElementById('roundDate');
+  const courseNameEl = document.getElementById('courseName');
+  if(playerNameEl && !playerNameEl.value) playerNameEl.value = meta.player || row.player_name || row.player_id || '';
+  if(roundDateEl && !roundDateEl.value) roundDateEl.value = meta.date || row.round_date || new Date().toISOString().slice(0,10);
+  if(courseNameEl && !courseNameEl.value) courseNameEl.value = meta.course || row.course || '';
+
+  if(!deferRefresh){
+    try{ renderHoles(); }catch(e){}
+    try{ recomputeRound(); }catch(e){}
+    try{ saveDraft(); }catch(e){}
+    if(roundInfoCard) roundInfoCard.classList.add('hidden');
+    const holesContainer = document.getElementById('holesContainer');
+    if(holesContainer) holesContainer.classList.remove('hidden');
+    if(analysisCard) analysisCard.classList.remove('hidden');
+    if(!silent) alert(`서버 라운드 누적 불러오기 완료 (기준 단위: ${targetUnit})`);
+  }
+  return { ok:true, unit:targetUnit };
 }
 function convertDistanceValue(value, fromUnit, toUnit) {
   if (value == null || value === '' || isNaN(Number(value))) return null;
@@ -1074,6 +1181,8 @@ const btnUpdateShot = document.getElementById('btnUpdateShot');
 
 const btnStartRound = document.getElementById('btnStartRound');
 const btnLoadSyncedRound = document.getElementById('btnLoadSyncedRound');
+const btnLoadSyncedRoundAccumulate = document.getElementById('btnLoadSyncedRoundAccumulate');
+const btnBatchAccumulateSyncedRounds = document.getElementById('btnBatchAccumulateSyncedRounds');
 const syncedRoundSelect = document.getElementById('syncedRoundSelect');
 const syncedRoundStatus = document.getElementById('syncedRoundStatus');
 const roundInfoCard = document.getElementById('roundInfoCard');
@@ -1227,19 +1336,100 @@ if (distanceUnitSelect) {
     applyDistanceUnit(distanceUnitSelect.value, true);
   });
 }
+
+async function ensureSyncedRoundPickerVisible(){
+  if (!roundInfoCard || !syncedRoundSelect) return false;
+  const wasHidden = roundInfoCard.classList.contains('hidden');
+  if (wasHidden) {
+    roundInfoCard.classList.remove('hidden');
+  }
+  if (!syncedRoundsCache || !syncedRoundsCache.length) {
+    await populateSyncedRoundSelect();
+  }
+  try{ syncedRoundSelect.focus(); }catch(e){}
+  try{ syncedRoundSelect.scrollIntoView({ behavior:'smooth', block:'center' }); }catch(e){}
+  return wasHidden;
+}
+
 if (btnStartRound) btnStartRound.addEventListener('click', startRound);
 if (btnLoadSyncedRound) btnLoadSyncedRound.addEventListener('click', async ()=>{
   if(!syncedRoundSelect || !syncedRoundSelect.value){
     alert('불러올 서버 라운드를 선택하세요.');
     return;
   }
-  const selected = syncedRoundsCache.find(r => r.id === syncedRoundSelect.value);
+  const selectedIds = getSelectedSyncedRoundIds();
+  if(selectedIds.length !== 1){
+    alert('덮어쓰기 불러오기는 한 번에 1개 라운드만 가능합니다.');
+    return;
+  }
+  const selected = syncedRoundsCache.find(r => r.id === selectedIds[0]);
   if(!selected){
     alert('선택한 서버 라운드를 찾을 수 없습니다. 목록을 다시 불러옵니다.');
     await populateSyncedRoundSelect();
     return;
   }
   restoreRoundFromRemote(selected);
+});
+if (btnLoadSyncedRoundAccumulate) btnLoadSyncedRoundAccumulate.addEventListener('click', async ()=>{
+  const opened = await ensureSyncedRoundPickerVisible();
+  if (opened){
+    if (syncedRoundStatus) syncedRoundStatus.textContent = '누적 불러올 서버 라운드를 선택하세요. (선택 후 버튼을 다시 누르세요)';
+    return;
+  }
+  const selectedIds = getSelectedSyncedRoundIds();
+  if(!selectedIds.length){
+    alert('누적 불러올 서버 라운드를 선택하세요.');
+    return;
+  }
+  if(selectedIds.length !== 1){
+    alert('단건 누적은 한 번에 1개 라운드만 가능합니다. 여러 개는 일괄 누적 버튼을 사용하세요.');
+    return;
+  }
+  const selected = syncedRoundsCache.find(r => r.id === selectedIds[0]);
+  if(!selected){
+    alert('선택한 서버 라운드를 찾을 수 없습니다. 목록을 다시 불러옵니다.');
+    await populateSyncedRoundSelect();
+    return;
+  }
+  appendRoundFromRemote(selected);
+});
+if (btnBatchAccumulateSyncedRounds) btnBatchAccumulateSyncedRounds.addEventListener('click', async ()=>{
+  const opened = await ensureSyncedRoundPickerVisible();
+  if (opened){
+    if (syncedRoundStatus) syncedRoundStatus.textContent = '일괄 누적할 서버 라운드를 여러 개 선택하세요. (선택 후 버튼을 다시 누르세요)';
+    return;
+  }
+  const selectedRounds = getSelectedSyncedRounds();
+  if(!selectedRounds.length){
+    alert('일괄 누적할 서버 라운드를 1개 이상 선택하세요.');
+    return;
+  }
+  let success = 0;
+  let failed = 0;
+  let unitUsed = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
+  selectedRounds.forEach((row)=>{
+    const result = appendRoundFromRemote(row, { deferRefresh:true, silent:true });
+    if(result && result.ok){
+      success += 1;
+      unitUsed = result.unit || unitUsed;
+    } else {
+      failed += 1;
+    }
+  });
+
+  try{ renderHoles(); }catch(e){}
+  try{ recomputeRound(); }catch(e){}
+  try{ saveDraft(); }catch(e){}
+  if(roundInfoCard) roundInfoCard.classList.add('hidden');
+  const holesContainer = document.getElementById('holesContainer');
+  if(holesContainer) holesContainer.classList.remove('hidden');
+  if(analysisCard) analysisCard.classList.remove('hidden');
+
+  if(success > 0){
+    alert(`서버 라운드 일괄 누적 완료: 성공 ${success}개, 실패 ${failed}개 (기준 단위: ${unitUsed})`);
+  } else {
+    alert('서버 라운드 일괄 누적 실패: 단위 정보가 없는 라운드가 포함되어 있습니다.');
+  }
 });
 if (syncedRoundSelect) populateSyncedRoundSelect();
 const btnDeleteSyncedRound = document.getElementById('btnDeleteSyncedRound');
@@ -1822,11 +2012,43 @@ function getImportedRoundIds(){
     const arr = shotsByHole[i] || [];
     arr.forEach((sh)=>{
       if (!sh || !sh.roundId) return;
-      if (String(sh.roundId).indexOf('import:') !== 0) return;
       ids.add(sh.roundId);
     });
   }
   return Array.from(ids);
+}
+
+function collectAccumulatedRoundMeta(){
+  const metaMap = new Map();
+  for (let i=1;i<=18;i++){
+    const arr = shotsByHole[i] || [];
+    arr.forEach((sh)=>{
+      if (!sh || !sh.roundId) return;
+      const roundId = String(sh.roundId);
+      if (!metaMap.has(roundId)) metaMap.set(roundId, { roundId, player:'', date:'', course:'' });
+      const item = metaMap.get(roundId);
+
+      if (!item.player && sh.roundPlayer) item.player = String(sh.roundPlayer);
+      if (!item.date && sh.roundDate) item.date = String(sh.roundDate);
+      if (!item.course && sh.roundCourse) item.course = String(sh.roundCourse);
+
+      if ((!item.player || !item.date || !item.course) && roundId.indexOf('import:') === 0){
+        const raw = roundId.substring('import:'.length);
+        const lastColon = raw.lastIndexOf(':');
+        const seed = lastColon >= 0 ? raw.substring(0, lastColon) : raw;
+        const parts = seed.split('|');
+        if (!item.date && parts[0]) item.date = parts[0];
+        if (!item.course && parts[1]) item.course = parts[1];
+        if (!item.player && parts[2]) item.player = parts[2];
+      }
+    });
+  }
+
+  const rounds = Array.from(metaMap.values());
+  const players = Array.from(new Set(rounds.map(r => (r.player || '').trim()).filter(Boolean)));
+  const courses = Array.from(new Set(rounds.map(r => (r.course || '').trim()).filter(Boolean)));
+  const dates = Array.from(new Set(rounds.map(r => (r.date || '').trim()).filter(Boolean))).sort();
+  return { rounds, roundCount: rounds.length, players, courses, dates };
 }
 
 function sortShotsByRoundOrder(shots){
@@ -2663,9 +2885,22 @@ function buildSummaryElement(forPdf){
   hdr.style.justifyContent = 'space-between';
   hdr.style.alignItems = 'flex-start';
   hdr.style.gap = '12px';
-  const metaStr = `Player: ${playerNameInput.value || ''} · Date: ${roundDateInput.value || ''} · Course: ${courseNameInput.value || ''} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`;
+  const roundMeta = collectAccumulatedRoundMeta();
+  const isAccumulated = roundMeta.roundCount >= 2;
+  const playerText = isAccumulated
+    ? (roundMeta.players.length ? roundMeta.players.join(', ') : `누적 ${roundMeta.roundCount}경기`)
+    : (playerNameInput.value || '');
+  const dateText = isAccumulated
+    ? (roundMeta.dates.length ? (roundMeta.dates[0] === roundMeta.dates[roundMeta.dates.length - 1] ? roundMeta.dates[0] : `${roundMeta.dates[0]} ~ ${roundMeta.dates[roundMeta.dates.length - 1]}`) : `누적 ${roundMeta.roundCount}경기`)
+    : (roundDateInput.value || '');
+  const courseText = isAccumulated
+    ? (roundMeta.courses.length ? roundMeta.courses.join(', ') : `누적 ${roundMeta.roundCount}경기`)
+    : (courseNameInput.value || '');
+  const metaStr = isAccumulated
+    ? `누적 경기: ${roundMeta.roundCount} · Player: ${playerText} · Date: ${dateText} · Course: ${courseText} · Unit: ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`
+    : `Player: ${playerText} · Date: ${dateText} · Course: ${courseText} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`;
   const left = document.createElement('div');
-  left.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">Performance Summary</div><div style="font-size:13px; line-height:1.4;">${metaStr}</div>`;
+  left.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">Performance Summary${isAccumulated ? ` (누적 ${roundMeta.roundCount}경기)` : ''}</div><div style="font-size:13px; line-height:1.4;">${metaStr}</div>`;
   left.style.maxWidth = '640px';
   const right = document.createElement('div');
   right.style.fontFamily = "Georgia, 'Times New Roman', serif";
@@ -3800,6 +4035,9 @@ function processImportedCSV(rows, options){
       timestamp: normalizedLine[timestampIdx] || new Date().toISOString(),
       roundId: importRoundId,
       roundShotNumber,
+      roundPlayer: playerMetaValue || '',
+      roundDate: dateMetaValue || '',
+      roundCourse: courseMetaValue || '',
       sourceUnit: savedUnit,
       targetUnit,
       parAtShot: rawPar !== '' && !isNaN(Number(rawPar)) ? Number(rawPar) : Number(HOLES[hole].par || 4)
