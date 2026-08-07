@@ -231,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.3f</div>
+      <div class="tiny muted">버전 26.8.4f</div>
     </div>
   </header>
 
@@ -1044,6 +1044,54 @@ function shouldCountClubShot(sh){
   if (rKey.indexOf('aroundgreen') >= 0) return false;
   if (rKey.indexOf('bunkergreenside') >= 0 || rKey.indexOf('greensidebunker') >= 0) return false;
   return true;
+}
+
+function getSafeRemainingDistance(sh){
+  if (!sh || sh.distanceToHole == null || sh.distanceToHole === '' || isNaN(Number(sh.distanceToHole))) return null;
+  const v = Number(sh.distanceToHole);
+  // Negative remaining distance inflates segment length; exclude from distance-chain math.
+  if (v < 0) return null;
+  return v;
+}
+
+function getClubMaxDistance(clubName){
+  const ydCaps = {
+    Driver: 360,
+    '3Wood': 320,
+    '5Wood': 300,
+    Utility1: 285,
+    Utility2: 275,
+    '4Iron': 255,
+    '5Iron': 240,
+    '6Iron': 225,
+    '7Iron': 210,
+    '8Iron': 195,
+    '9Iron': 180,
+    PW: 165,
+    AW: 155,
+    SW: 145,
+    Wedge1: 165,
+    Wedge2: 160,
+    Wedge3: 150,
+    Other: 320
+  };
+  const capYd = ydCaps[clubName] || 280;
+  if (DISTANCE_UNIT === 'm') return convertDistanceValue(capYd, 'yd', 'm');
+  return capYd;
+}
+
+function isReasonableClubDistance(clubName, shotDist){
+  if (shotDist == null || isNaN(Number(shotDist))) return false;
+  const d = Number(shotDist);
+  if (d <= 0) return false;
+  return d <= getClubMaxDistance(clubName);
+}
+
+function nextPrevRemainingAfterShot(prevRemaining, sh, shouldBreakOnMissing){
+  const curRem = getSafeRemainingDistance(sh);
+  if (curRem != null) return curRem;
+  if (shouldBreakOnMissing) return null;
+  return prevRemaining;
 }
 
 function getFirstOnGreenPuttDistance(shots){
@@ -2419,21 +2467,24 @@ function recomputeRound(){
     // start previous remaining distance as hole yard if available
     let prevRemaining = resolveGroupStartYard(i, ordered);
     ordered.forEach(sh => {
-      const curRem = (sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
+      const curRem = getSafeRemainingDistance(sh);
       // record distance only for club-selected shots (exclude putts-only and putters) and when we have a previous remaining distance
       const shotTypeName = normalizeShotType(sh && sh.shotType);
-      if (curRem != null && shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0) && prevRemaining != null){
+      const isNonPutterClubShot = !!(shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0));
+      if (curRem != null && isNonPutterClubShot && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
-        if (!clubDistances[shotTypeName]) clubDistances[shotTypeName] = [];
-        clubDistances[shotTypeName].push(shotDist);
+        if (isReasonableClubDistance(shotTypeName, shotDist)){
+          if (!clubDistances[shotTypeName]) clubDistances[shotTypeName] = [];
+          clubDistances[shotTypeName].push(shotDist);
+        }
       }
       // club proximity: all non-putter shots (green hits + around-green �� chip result)
-      if (sh && shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+      if (isNonPutterClubShot){
         const clProx = getClubProximityForShot(sh, ordered);
         if (clProx != null) clubOnlyProximityDistances.push(clProx);
       }
-      // update prevRemaining if current shot provides remaining distance
-      if (curRem != null) prevRemaining = curRem;
+      // break distance-chain when a non-putter club shot misses remaining distance data.
+      prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
     });
     // compute per-hole drive distance: only tee-shot driver entries
     const firstDrive = sArr.find(sh => ((Number(sh.shotNumber) || 1) === 1) && ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
@@ -2583,13 +2634,17 @@ function recomputeRound(){
           let prevRemaining = resolveGroupStartYard(ii, ordShotsClub);
           ordShotsClub.forEach(sh => {
             const clubName = normalizeShotType(sh && sh.shotType);
-            const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-            if (shouldCountClubShot(sh)){
+            const curRem = getSafeRemainingDistance(sh);
+            const shouldCount = shouldCountClubShot(sh);
+            const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
+            if (shouldCount){
               clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
               if (curRem != null && prevRemaining != null){
                 const shotDist = Math.max(0, prevRemaining - curRem);
-                if (!clubDists[clubName]) clubDists[clubName] = [];
-                clubDists[clubName].push(shotDist);
+                if (isReasonableClubDistance(clubName, shotDist)){
+                  if (!clubDists[clubName]) clubDists[clubName] = [];
+                  clubDists[clubName].push(shotDist);
+                }
               }
               const res = (sh.result || '').toString();
               if (isGreenResult(res)){
@@ -2601,7 +2656,7 @@ function recomputeRound(){
                 clubProx[clubName].push(prox);
               }
             }
-            if (curRem != null) prevRemaining = curRem;
+            prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
           });
         });
       }
@@ -2640,23 +2695,28 @@ function recomputeRound(){
           roundGroups.forEach((ordered)=>{
             let prevRemaining = resolveGroupStartYard(di, ordered);
             ordered.forEach(sh => {
-              const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-              if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
+              const curRem = getSafeRemainingDistance(sh);
+              const shouldCount = shouldCountClubShot(sh);
+              const clubName = normalizeShotType(sh && sh.shotType);
+              const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
+              if (curRem != null && shouldCount && prevRemaining != null){
                 const shotDist = Math.max(0, prevRemaining - curRem);
-                const bucket = getDistBucket(shotDist);
-                if (bucket){
-                  if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
-                  distStats[bucket].count += 1;
-                  const res = (sh.result || '').toString();
-                  if (isGreenResult(res)){
-                    distStats[bucket].onGreen += 1;
-                    if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
-                      distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
+                if (isReasonableClubDistance(clubName, shotDist)){
+                  const bucket = getDistBucket(shotDist);
+                  if (bucket){
+                    if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
+                    distStats[bucket].count += 1;
+                    const res = (sh.result || '').toString();
+                    if (isGreenResult(res)){
+                      distStats[bucket].onGreen += 1;
+                      if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
+                        distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
+                      }
                     }
                   }
                 }
               }
-              if (curRem != null) prevRemaining = curRem;
+              prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
             });
           });
         }
@@ -2954,16 +3014,20 @@ function buildSummaryElement(forPdf){
       let prevRemaining = resolveGroupStartYard(i, ordered);
       ordered.forEach(sh => {
         const clubName = normalizeShotType(sh && sh.shotType);
-        if (shouldCountClubShot(sh)){
+        const shouldCount = shouldCountClubShot(sh);
+        const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
+        if (shouldCount){
           clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
         }
-        const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-        if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
+        const curRem = getSafeRemainingDistance(sh);
+        if (curRem != null && shouldCount && prevRemaining != null){
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (!clubDists[clubName]) clubDists[clubName] = [];
-          clubDists[clubName].push(shotDist);
+          if (isReasonableClubDistance(clubName, shotDist)){
+            if (!clubDists[clubName]) clubDists[clubName] = [];
+            clubDists[clubName].push(shotDist);
+          }
         }
-        if (shouldCountClubShot(sh)){
+        if (shouldCount){
           const res = (sh.result || '').toString();
           if (isGreenResult(res)){
             clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
@@ -2974,7 +3038,7 @@ function buildSummaryElement(forPdf){
             clubProx[clubName].push(prox);
           }
         }
-        if (curRem != null) prevRemaining = curRem;
+        prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
       });
     });
   }
@@ -3030,23 +3094,28 @@ function buildSummaryElement(forPdf){
     roundGroups.forEach((ordered)=>{
       let prevRemaining = resolveGroupStartYard(i, ordered);
       ordered.forEach(sh => {
-        const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-        if (curRem != null && shouldCountClubShot(sh) && prevRemaining != null){
+        const curRem = getSafeRemainingDistance(sh);
+        const shouldCount = shouldCountClubShot(sh);
+        const clubName = normalizeShotType(sh && sh.shotType);
+        const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
+        if (curRem != null && shouldCount && prevRemaining != null){
           const shotDist = Math.max(0, prevRemaining - curRem);
-          const bucket = getDistBucket(shotDist);
-          if (bucket){
-            if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
-            distStats[bucket].count += 1;
-            const res = (sh.result || '').toString();
-            if (isGreenResult(res)){
-              distStats[bucket].onGreen += 1;
-              if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
-                distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
+          if (isReasonableClubDistance(clubName, shotDist)){
+            const bucket = getDistBucket(shotDist);
+            if (bucket){
+              if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
+              distStats[bucket].count += 1;
+              const res = (sh.result || '').toString();
+              if (isGreenResult(res)){
+                distStats[bucket].onGreen += 1;
+                if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
+                  distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
+                }
               }
             }
           }
         }
-        if (curRem != null) prevRemaining = curRem;
+        prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
       });
     });
   }
@@ -3608,26 +3677,31 @@ function exportCSV(){
       const ordered = arr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
       let prevRemaining = (HOLES[i] && HOLES[i].yard && !isNaN(Number(HOLES[i].yard))) ? Number(HOLES[i].yard) : null;
       ordered.forEach(sh=>{
-          if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
-            clubCounts[sh.shotType] = (clubCounts[sh.shotType] || 0) + 1;
-          }
-        const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-        if (curRem != null && sh && sh.shotType && sh.shotType !== 'Putter' && prevRemaining != null){
-          const shotDist = Math.max(0, prevRemaining - curRem);
-          if (!clubDists[sh.shotType]) clubDists[sh.shotType] = [];
-          clubDists[sh.shotType].push(shotDist);
+        const clubName = normalizeShotType(sh && sh.shotType);
+        const shouldCount = shouldCountClubShot(sh);
+        const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
+        if (shouldCount){
+          clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
         }
-        if (sh && sh.shotType && sh.shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)){
+        const curRem = getSafeRemainingDistance(sh);
+        if (curRem != null && shouldCount && prevRemaining != null){
+          const shotDist = Math.max(0, prevRemaining - curRem);
+          if (isReasonableClubDistance(clubName, shotDist)){
+            if (!clubDists[clubName]) clubDists[clubName] = [];
+            clubDists[clubName].push(shotDist);
+          }
+        }
+        if (shouldCount){
           const res = (sh.result || '').toString();
-          if (res === 'Green' || res === 'OnGreen' || res === 'green'){
-            clubOnGreen[sh.shotType] = (clubOnGreen[sh.shotType] || 0) + 1;
+          if (isGreenResult(res)){
+            clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
             if (sh.distanceToHole != null && !isNaN(Number(sh.distanceToHole))){
-              if (!clubProx[sh.shotType]) clubProx[sh.shotType] = [];
-              clubProx[sh.shotType].push(Math.abs(Number(sh.distanceToHole)));
+              if (!clubProx[clubName]) clubProx[clubName] = [];
+              clubProx[clubName].push(Math.abs(Number(sh.distanceToHole)));
             }
           }
         }
-        if (curRem != null) prevRemaining = curRem;
+        prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
       });
     }
     const clubs = Object.keys(clubCounts).sort((a,b)=>{
@@ -4172,16 +4246,20 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
       const ordered = arr.slice().sort((a, b) => (a.shotNumber || 0) - (b.shotNumber || 0));
       ordered.forEach((sh) => {
         const clubName = normalizeShotType(sh && sh.shotType);
-        if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)) {
+        const shouldCount = shouldCountClubShot(sh);
+        const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
+        if (shouldCount) {
           clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
         }
-        const curRem = (sh && sh.distanceToHole != null) ? Number(sh.distanceToHole) : null;
-        if (curRem != null && clubName && clubName !== 'Putter' && prevRemaining != null && !(sh.putts && Number(sh.putts) > 0)) {
+        const curRem = getSafeRemainingDistance(sh);
+        if (curRem != null && shouldCount && prevRemaining != null) {
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (!clubDists[clubName]) clubDists[clubName] = [];
-          clubDists[clubName].push(shotDist);
+          if (isReasonableClubDistance(clubName, shotDist)){
+            if (!clubDists[clubName]) clubDists[clubName] = [];
+            clubDists[clubName].push(shotDist);
+          }
         }
-        if (clubName && clubName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0)) {
+        if (shouldCount) {
           const res = (sh.result || '').toString();
           if (isGreenResult(res)) {
             clubOnGreen[clubName] = (clubOnGreen[clubName] || 0) + 1;
@@ -4191,7 +4269,7 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
             }
           }
         }
-        if (curRem != null) prevRemaining = curRem;
+        prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
       });
     }
     const clubs = Object.keys(clubCounts).sort((a, b) => {
