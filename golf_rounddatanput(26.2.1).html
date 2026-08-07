@@ -1039,10 +1039,14 @@ function shouldCountClubShot(sh){
   if (!clubName || clubName === 'Putter' || (sh.putts && Number(sh.putts) > 0)) return false;
   if (clubName === 'Driver' && !isFairwayResult(sh.result)) return false;
   const rKey = normResultKey(sh.result || '');
+  const lieKey = normResultKey(sh.lie || '');
   if (rKey === 'lay' || rKey === 'layup' || rKey === 'bunker' || rKey === 'bunkers' || rKey === 'hazard' || rKey === 'hazards' || rKey === 'outofbounds' || rKey === 'ob' || rKey === 'water' || rKey === 'penalty') return false;
   if (rKey.indexOf('rough') >= 0) return false;
   if (rKey.indexOf('aroundgreen') >= 0) return false;
   if (rKey.indexOf('bunkergreenside') >= 0 || rKey.indexOf('greensidebunker') >= 0) return false;
+  // Exclude greenside chip/pitch shots from club distance averages.
+  if (lieKey === 'fringe' || lieKey === 'green' || lieKey === 'ongreen') return false;
+  if (lieKey.indexOf('around') >= 0 || lieKey.indexOf('greenside') >= 0) return false;
   return true;
 }
 
@@ -1080,10 +1084,33 @@ function getClubMaxDistance(clubName){
   return capYd;
 }
 
-function isReasonableClubDistance(clubName, shotDist){
+function isWedgeClub(clubName){
+  return clubName === 'PW' || clubName === 'AW' || clubName === 'SW' || clubName === 'Wedge1' || clubName === 'Wedge2' || clubName === 'Wedge3';
+}
+
+function getWedgeChipThreshold(){
+  const yd = 40;
+  if (DISTANCE_UNIT === 'm') return convertDistanceValue(yd, 'yd', 'm');
+  return yd;
+}
+
+function isChipLikeClubShot(sh, clubName, shotDist){
+  const rKey = normResultKey((sh && sh.result) || '');
+  const lieKey = normResultKey((sh && sh.lie) || '');
+  if (rKey.indexOf('aroundgreen') >= 0) return true;
+  if (rKey.indexOf('bunkergreenside') >= 0 || rKey.indexOf('greensidebunker') >= 0) return true;
+  if (lieKey === 'fringe' || lieKey === 'green' || lieKey === 'ongreen') return true;
+  if (lieKey.indexOf('around') >= 0 || lieKey.indexOf('greenside') >= 0) return true;
+  // Even when lie/result is not tagged, very short wedge segments are usually chips.
+  if (isWedgeClub(clubName) && Number(shotDist) <= getWedgeChipThreshold()) return true;
+  return false;
+}
+
+function isReasonableClubDistance(clubName, shotDist, sh){
   if (shotDist == null || isNaN(Number(shotDist))) return false;
   const d = Number(shotDist);
   if (d <= 0) return false;
+  if (isChipLikeClubShot(sh, clubName, d)) return false;
   return d <= getClubMaxDistance(clubName);
 }
 
@@ -2473,7 +2500,7 @@ function recomputeRound(){
       const isNonPutterClubShot = !!(shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0));
       if (curRem != null && isNonPutterClubShot && prevRemaining != null){
         const shotDist = Math.max(0, prevRemaining - curRem);
-        if (isReasonableClubDistance(shotTypeName, shotDist)){
+        if (isReasonableClubDistance(shotTypeName, shotDist, sh)){
           if (!clubDistances[shotTypeName]) clubDistances[shotTypeName] = [];
           clubDistances[shotTypeName].push(shotDist);
         }
@@ -2641,7 +2668,7 @@ function recomputeRound(){
               clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
               if (curRem != null && prevRemaining != null){
                 const shotDist = Math.max(0, prevRemaining - curRem);
-                if (isReasonableClubDistance(clubName, shotDist)){
+                if (isReasonableClubDistance(clubName, shotDist, sh)){
                   if (!clubDists[clubName]) clubDists[clubName] = [];
                   clubDists[clubName].push(shotDist);
                 }
@@ -2701,7 +2728,7 @@ function recomputeRound(){
               const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
               if (curRem != null && shouldCount && prevRemaining != null){
                 const shotDist = Math.max(0, prevRemaining - curRem);
-                if (isReasonableClubDistance(clubName, shotDist)){
+                if (isReasonableClubDistance(clubName, shotDist, sh)){
                   const bucket = getDistBucket(shotDist);
                   if (bucket){
                     if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
@@ -3022,7 +3049,7 @@ function buildSummaryElement(forPdf){
         const curRem = getSafeRemainingDistance(sh);
         if (curRem != null && shouldCount && prevRemaining != null){
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (isReasonableClubDistance(clubName, shotDist)){
+          if (isReasonableClubDistance(clubName, shotDist, sh)){
             if (!clubDists[clubName]) clubDists[clubName] = [];
             clubDists[clubName].push(shotDist);
           }
@@ -3100,7 +3127,7 @@ function buildSummaryElement(forPdf){
         const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
         if (curRem != null && shouldCount && prevRemaining != null){
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (isReasonableClubDistance(clubName, shotDist)){
+          if (isReasonableClubDistance(clubName, shotDist, sh)){
             const bucket = getDistBucket(shotDist);
             if (bucket){
               if (!distStats[bucket]) distStats[bucket] = {count:0, onGreen:0, proximities:[]};
@@ -3686,7 +3713,7 @@ function exportCSV(){
         const curRem = getSafeRemainingDistance(sh);
         if (curRem != null && shouldCount && prevRemaining != null){
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (isReasonableClubDistance(clubName, shotDist)){
+          if (isReasonableClubDistance(clubName, shotDist, sh)){
             if (!clubDists[clubName]) clubDists[clubName] = [];
             clubDists[clubName].push(shotDist);
           }
@@ -4254,7 +4281,7 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
         const curRem = getSafeRemainingDistance(sh);
         if (curRem != null && shouldCount && prevRemaining != null) {
           const shotDist = Math.max(0, prevRemaining - curRem);
-          if (isReasonableClubDistance(clubName, shotDist)){
+          if (isReasonableClubDistance(clubName, shotDist, sh)){
             if (!clubDists[clubName]) clubDists[clubName] = [];
             clubDists[clubName].push(shotDist);
           }
