@@ -487,11 +487,15 @@
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after chip shots (result: Around the Green)">Avg Chip Proximity: <strong id="statChipProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (result: Greenside Bunker)">Avg Greenside Bunker Proximity: <strong id="statGreensideBunkerProximity">-</strong></div>
-      <div style="flex:1 1 100%; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);" class="tiny muted">SG & Recovery Metrics (PGA / Yard Baseline)</div>
+      <div style="flex:1 1 100%; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:space-between; gap:8px;" class="tiny muted">
+        <span id="sgBaselineHeader">SG & Recovery Metrics (PGA / Yard Baseline)</span>
+        <button class="btn ghost" id="btnToggleSgBaseline" style="min-width:auto; padding:6px 10px; font-size:12px;">SG 기준: PGA</button>
+      </div>
       <div class="stat">SG: Off-the-Tee: <strong id="statSgOtt">-</strong></div>
       <div class="stat">SG: Approach: <strong id="statSgApproach">-</strong></div>
       <div class="stat">SG: Around-the-Green: <strong id="statSgAround">-</strong></div>
       <div class="stat">SG: Putting: <strong id="statSgPutting">-</strong></div>
+      <div class="stat" id="statPgaVsKlpgaWrap" style="display:none;" title="KLPGA median SG (Putting) comparison">PGA vs KLPGA median: <strong id="statPgaVsKlpga">-</strong></div>
       <div class="stat">SG Total: <strong id="statSgTotal">-</strong></div>
       <div class="stat">Scrambling Rate: <strong id="statScramblingRate">-</strong></div>
       <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
@@ -540,6 +544,7 @@ const HOLES = []; // will contain 18 hole objects
 const shotsByHole = {}; // holeNumber -> array of shots
 let activeHole = null;
 let DISTANCE_UNIT = 'yd'; // 'yd' or 'm'
+let SG_BASELINE = 'pga'; // 'pga' or 'klpga'
 const STORAGE_KEY = 'golf_round_draft_v1';
 const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
 const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
@@ -711,6 +716,8 @@ function restoreRoundFromRemote(row){
   const meta = row.round_meta || {};
   const payload = row.round_payload || {};
   const remoteSavedUnit = meta.distanceUnit || row.distance_unit || 'yd';
+  const targetUnit = (remoteSavedUnit === 'm' || remoteSavedUnit === 'yd') ? remoteSavedUnit : (DISTANCE_UNIT === 'm' ? 'm' : 'yd');
+  DISTANCE_UNIT = targetUnit;
   const holes = Array.isArray(payload.holes) ? payload.holes : [];
 
   for(let i=1;i<=18;i++){
@@ -723,14 +730,14 @@ function restoreRoundFromRemote(row){
         shotNumber: idx + 1,
         shotType: input.shotType || input.club || '',
         result: input.result || '',
-        holeYardAtShot: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, DISTANCE_UNIT) : null,
-        distanceToHole: input.distanceToHole != null && input.distanceToHole !== '' && !isNaN(Number(input.distanceToHole)) ? convertDistanceValue(Number(input.distanceToHole), remoteSavedUnit, DISTANCE_UNIT) : null,
+        holeYardAtShot: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, targetUnit) : null,
+        distanceToHole: input.distanceToHole != null && input.distanceToHole !== '' && !isNaN(Number(input.distanceToHole)) ? convertDistanceValue(Number(input.distanceToHole), remoteSavedUnit, targetUnit) : null,
         putts: Number(input.putts || 0),
         penalty: Number(input.penalty || 0),
         note: input.note || '',
         lie: input.lie || '',
         slope: input.slope || '',
-        puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertDistanceValue(Number(input.puttStartDistance), remoteSavedUnit, DISTANCE_UNIT) : null,
+        puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertPuttStartDistanceValue(Number(input.puttStartDistance), remoteSavedUnit, targetUnit) : null,
         timestamp: input.timestamp || ''
       };
     });
@@ -738,7 +745,7 @@ function restoreRoundFromRemote(row){
     HOLES[i] = {
       hole: i,
       par: holeData.par != null ? holeData.par : 4,
-      yard: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, DISTANCE_UNIT) : '',
+      yard: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, targetUnit) : '',
       score: holeData.score != null ? holeData.score : null,
       computedStrokes: holeData.computedStrokes != null ? holeData.computedStrokes : 0,
       manualScore: holeData.manualScore || false,
@@ -759,11 +766,10 @@ function restoreRoundFromRemote(row){
   if(roundDateEl) roundDateEl.value = meta.date || row.round_date || new Date().toISOString().slice(0,10);
   if(courseNameEl) courseNameEl.value = meta.course || row.course || '';
   if(roundParEl) roundParEl.value = meta.roundPar || 72;
-  if(roundYardEl) roundYardEl.value = (meta.totalYard != null && meta.totalYard !== '' && !isNaN(Number(meta.totalYard))) ? convertDistanceValue(Number(meta.totalYard), remoteSavedUnit, DISTANCE_UNIT) : '';
+  if(roundYardEl) roundYardEl.value = (meta.totalYard != null && meta.totalYard !== '' && !isNaN(Number(meta.totalYard))) ? convertDistanceValue(Number(meta.totalYard), remoteSavedUnit, targetUnit) : '';
   if(roundWeatherEl) roundWeatherEl.value = meta.weather || '';
   if(distanceUnitEl){
-    distanceUnitEl.value = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
-    DISTANCE_UNIT = meta.distanceUnit || row.distance_unit || DISTANCE_UNIT;
+    distanceUnitEl.value = targetUnit;
   }
 
   renderHoles();
@@ -831,7 +837,7 @@ function appendRoundFromRemote(row, options){
         note: input.note || '',
         lie: input.lie || '',
         slope: input.slope || '',
-        puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertDistanceValue(Number(input.puttStartDistance), sourceUnit, targetUnit) : null,
+        puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertPuttStartDistanceValue(Number(input.puttStartDistance), sourceUnit, targetUnit) : null,
         timestamp: input.timestamp || new Date().toISOString(),
         parAtShot: holeData.par != null && !isNaN(Number(holeData.par)) ? Number(holeData.par) : Number(HOLES[i].par || 4),
         sourceUnit,
@@ -873,6 +879,22 @@ function convertDistanceValue(value, fromUnit, toUnit) {
 
 function convertDistance(yards, toUnit) {
   return convertDistanceValue(yards, 'yd', toUnit);
+}
+// Putt start distance uses feet when app unit is yd, and meters when app unit is m.
+// This keeps SG putting normalization consistent across server/import/unit-convert flows.
+function convertPuttStartDistanceValue(value, fromUnit, toUnit) {
+  if (value === '' || value === null || value === undefined || isNaN(Number(value))) return value;
+  const num = Number(value);
+  if (fromUnit === toUnit) return num;
+  if (fromUnit === 'm' && toUnit === 'yd') {
+    const feet = num * 3.28084;
+    return Math.round(feet * 10) / 10;
+  }
+  if (fromUnit === 'yd' && toUnit === 'm') {
+    const meters = num * 0.3048;
+    return Math.round(meters * 10) / 10;
+  }
+  return num;
 }
 
 function convertToYd(val, fromUnit) {
@@ -953,7 +975,7 @@ function applyDistanceUnit(nextUnit, convertExisting = true) {
           shot.distanceToHole = convertDistanceValue(Number(shot.distanceToHole), previousUnit, unit);
         }
         if (shot && shot.puttStartDistance != null && shot.puttStartDistance !== '' && !isNaN(Number(shot.puttStartDistance))) {
-          shot.puttStartDistance = convertDistanceValue(Number(shot.puttStartDistance), previousUnit, unit);
+          shot.puttStartDistance = convertPuttStartDistanceValue(Number(shot.puttStartDistance), previousUnit, unit);
         }
       });
     }
@@ -1145,9 +1167,7 @@ function getFirstOnGreenPuttDistance(shots){
     return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
   });
   if (!firstOnGreenPutt) return null;
-  const dRaw = (firstOnGreenPutt.puttStartDistance != null && !isNaN(Number(firstOnGreenPutt.puttStartDistance)))
-    ? Number(firstOnGreenPutt.puttStartDistance)
-    : null;
+  const dRaw = resolveRawPuttStartDistance(firstOnGreenPutt);
   const normalizedStart = normalizeOnGreenPuttStartForSg(dRaw);
   const dYd = toCalcYards(normalizedStart);
   return dYd != null ? Math.abs(dYd) : null;
@@ -1257,8 +1277,11 @@ const statSgOtt = document.getElementById('statSgOtt');
 const statSgApproach = document.getElementById('statSgApproach');
 const statSgAround = document.getElementById('statSgAround');
 const statSgPutting = document.getElementById('statSgPutting');
+const statPgaVsKlpga = document.getElementById('statPgaVsKlpga');
 const statSgTotal = document.getElementById('statSgTotal');
 const statScramblingRate = document.getElementById('statScramblingRate');
+const sgBaselineHeader = document.getElementById('sgBaselineHeader');
+const btnToggleSgBaseline = document.getElementById('btnToggleSgBaseline');
 const statProximity = document.getElementById('statProximity');
 const statClubProximity = document.getElementById('statClubProximity');
 const statChipProximity = document.getElementById('statChipProximity');
@@ -1780,7 +1803,7 @@ function recordPutt(made, isMissAppend){
     timestamp: new Date().toISOString(),
     shotType: 'Putter',
     result: made ? 'InHole' : 'Green',
-    distanceToHole: made ? 0 : null,
+    distanceToHole: puttStart != null ? puttStart : (made ? 0 : null),
     lie: puttLieEl ? (puttLieEl.value || 'OnGreen') : 'OnGreen',
     slope: puttSlopeEl ? (puttSlopeEl.value || 'Flat') : 'Flat',
     puttStartDistance: puttStart,
@@ -1971,8 +1994,15 @@ function updateShot(){
   };
   // If editing a Putter shot, include putt metadata (lie/slope/start distance)
   if (normalizeShotType(shot.shotType) === 'Putter'){
+    const puttStart = (puttStartDistEl && puttStartDistEl.value !== '' && !isNaN(Number(puttStartDistEl.value)))
+      ? Number(puttStartDistEl.value)
+      : null;
+    shot.lie = puttLieEl ? (puttLieEl.value || 'OnGreen') : 'OnGreen';
+    shot.slope = puttSlopeEl ? (puttSlopeEl.value || 'Flat') : 'Flat';
+    shot.puttStartDistance = puttStart;
+    shot.putts = Math.max(1, Number(puttStrokeCount || 1));
     // keep distanceToHole in sync with start distance when editing putts
-    if (shot.puttStartDistance != null) shot.distanceToHole = shot.puttStartDistance;
+    shot.distanceToHole = shot.puttStartDistance != null ? shot.puttStartDistance : (shot.result === 'InHole' ? 0 : null);
   }
   // require a result; allow saving putts-only edits (no club) if putts > 0
   if (!shot.result) return alert('Result is required.');
@@ -2208,6 +2238,33 @@ const PGA_SG_TABLE = {
   greenFt: [[1,1.00],[2,1.05],[3,1.13],[4,1.22],[5,1.31],[6,1.40],[8,1.56],[10,1.72],[15,1.95],[20,2.11],[25,2.23],[30,2.33],[40,2.50],[50,2.64],[60,2.75],[80,2.95]]
 };
 
+function convertAnchorYdToM(table){
+  return (table || []).map(([yd, v]) => [Math.round(Number(yd) * 0.9144 * 100) / 100, v]);
+}
+
+function convertAnchorFtToM(table){
+  return (table || []).map(([ft, v]) => [Math.round(Number(ft) * 0.3048 * 100) / 100, v]);
+}
+
+function buildAdjustedExpectationTable(table, baseOffset, distanceOffset){
+  if (!Array.isArray(table) || !table.length) return [];
+  const maxDist = Number(table[table.length - 1][0]) || 1;
+  return table.map(([dist, exp]) => {
+    const ratio = Math.max(0, Math.min(1, Number(dist) / maxDist));
+    const adj = Number(baseOffset || 0) + ratio * Number(distanceOffset || 0);
+    return [dist, Math.round((Number(exp) + adj) * 1000) / 1000];
+  });
+}
+
+const KLPGA_SG_TABLE = {
+  tee: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.tee), 0.03, 0.08),
+  fairway: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.fairway), 0.03, 0.06),
+  rough: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.rough), 0.04, 0.07),
+  sand: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.sand), 0.05, 0.06),
+  around: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.around), 0.03, 0.04),
+  greenM: buildAdjustedExpectationTable(convertAnchorFtToM(PGA_SG_TABLE.greenFt), 0.01, 0.05)
+};
+
 function interpolateExpected(table, distance){
   if (!Array.isArray(table) || !table.length) return null;
   if (distance == null || isNaN(Number(distance))) return null;
@@ -2229,7 +2286,13 @@ function interpolateExpected(table, distance){
 function toYardsFromCurrentUnit(value){
   if (value == null || value === '' || isNaN(Number(value))) return null;
   const num = Number(value);
-  return DISTANCE_UNIT === 'm' ? convertDistanceValue(num, 'm', 'yd') : num;
+  return DISTANCE_UNIT === 'm' ? (num * 1.09361) : num;
+}
+
+function toMetersFromCurrentUnit(value){
+  if (value == null || value === '' || isNaN(Number(value))) return null;
+  const num = Number(value);
+  return DISTANCE_UNIT === 'm' ? num : (num * 0.9144);
 }
 
 function mapResultToLieCategory(result){
@@ -2272,6 +2335,31 @@ function getPgaExpectedStrokes(lieCategory, distanceCurrentUnit){
   return interpolateExpected(PGA_SG_TABLE.fairway, dYd);
 }
 
+function getKlpgaExpectedStrokes(lieCategory, distanceCurrentUnit){
+  if (lieCategory === 'hole') return 0;
+  const dM = toMetersFromCurrentUnit(distanceCurrentUnit);
+  if (dM == null) return null;
+  if (lieCategory === 'green'){
+    const greenDistM = Math.max(0.15, dM);
+    return interpolateExpected(KLPGA_SG_TABLE.greenM, greenDistM);
+  }
+  if (lieCategory === 'tee') return interpolateExpected(KLPGA_SG_TABLE.tee, dM);
+  if (lieCategory === 'rough') return interpolateExpected(KLPGA_SG_TABLE.rough, dM);
+  if (lieCategory === 'sand') return interpolateExpected(KLPGA_SG_TABLE.sand, dM);
+  if (lieCategory === 'around') return interpolateExpected(KLPGA_SG_TABLE.around, dM);
+  if (lieCategory === 'recovery'){
+    const fairwayExp = interpolateExpected(KLPGA_SG_TABLE.fairway, dM);
+    return fairwayExp != null ? fairwayExp + 0.25 : null;
+  }
+  return interpolateExpected(KLPGA_SG_TABLE.fairway, dM);
+}
+
+function getExpectedStrokesByBaseline(lieCategory, distanceCurrentUnit){
+  return SG_BASELINE === 'klpga'
+    ? getKlpgaExpectedStrokes(lieCategory, distanceCurrentUnit)
+    : getPgaExpectedStrokes(lieCategory, distanceCurrentUnit);
+}
+
 function resolveEndDistanceCurrentUnit(orderedShots, idx, shot, curRemaining){
   if (shot && normResultKey(shot.result || '') === 'inhole') return 0;
   if (curRemaining != null && !isNaN(Number(curRemaining))) return Number(curRemaining);
@@ -2294,10 +2382,14 @@ function resolveStartLieCategory(shot, prevShot, shotNumber){
 function classifySgBucket(shot, startLieCategory, startDistanceCurrentUnit, holePar){
   const shotType = normalizeShotType(shot && shot.shotType);
   const startYd = toYardsFromCurrentUnit(startDistanceCurrentUnit);
+  const startM = toMetersFromCurrentUnit(startDistanceCurrentUnit);
   if (shotType === 'Putter' || startLieCategory === 'green') return 'putting';
   if (startLieCategory === 'tee' && Number(holePar || 4) >= 4) return 'ott';
   if (startLieCategory === 'around') return 'around';
-  if (startLieCategory === 'sand' && startYd != null && startYd <= 45) return 'around';
+  if (startLieCategory === 'sand') {
+    if (SG_BASELINE === 'klpga' && startM != null && startM <= 41.15) return 'around';
+    if (SG_BASELINE !== 'klpga' && startYd != null && startYd <= 45) return 'around';
+  }
   return 'approach';
 }
 
@@ -2306,6 +2398,21 @@ function formatSgValue(value){
   const n = Math.round(Number(value) * 100) / 100;
   const sign = n > 0 ? '+' : '';
   return `${sign}${n.toFixed(2)}`;
+}
+
+function getBaselineAdjustedSg(rawValue, bucket){
+  return Number(rawValue || 0);
+}
+
+function refreshSgBaselineUi(){
+  if (sgBaselineHeader) {
+    sgBaselineHeader.textContent = SG_BASELINE === 'klpga'
+      ? 'SG & Recovery Metrics (KLPGA / Meter Baseline)'
+      : 'SG & Recovery Metrics (PGA / Yard Baseline)';
+  }
+  if (btnToggleSgBaseline) {
+    btnToggleSgBaseline.textContent = SG_BASELINE === 'klpga' ? 'SG 기준: KLPGA' : 'SG 기준: PGA';
+  }
 }
 
 function normalizeOnGreenPuttStartForSg(startDistCurrentUnit){
@@ -2317,11 +2424,22 @@ function normalizeOnGreenPuttStartForSg(startDistCurrentUnit){
     // SG Putting standard uses feet; field users often enter feet in this box.
     yd = raw / 3;
   } else {
-    yd = convertDistanceValue(raw, 'm', 'yd');
+    yd = raw * 1.09361;
   }
   if (yd == null || isNaN(Number(yd))) return null;
   if (yd > 27) return null;
-  return DISTANCE_UNIT === 'm' ? convertDistanceValue(yd, 'yd', 'm') : yd;
+  return DISTANCE_UNIT === 'm' ? (yd * 0.9144) : yd;
+}
+
+function resolveRawPuttStartDistance(puttShot){
+  if (!puttShot) return null;
+  if (puttShot.puttStartDistance != null && puttShot.puttStartDistance !== '' && !isNaN(Number(puttShot.puttStartDistance))) {
+    return Number(puttShot.puttStartDistance);
+  }
+  if (puttShot.distanceToHole != null && puttShot.distanceToHole !== '' && !isNaN(Number(puttShot.distanceToHole)) && Number(puttShot.distanceToHole) > 0) {
+    return Number(puttShot.distanceToHole);
+  }
+  return null;
 }
 
 function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartYard){
@@ -2381,8 +2499,8 @@ function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartY
     // Putts often miss reliable end-distance logging in field input.
     // To avoid optimistic bias, putting SG is computed once per hole (below), not per putt shot.
     if (shotType !== 'Putter'){
-      const startExp = getPgaExpectedStrokes(startLie, startRemaining);
-      const endExp = (endLie === 'hole') ? 0 : getPgaExpectedStrokes(endLie, endRemaining);
+      const startExp = getExpectedStrokesByBaseline(startLie, startRemaining);
+      const endExp = (endLie === 'hole') ? 0 : getExpectedStrokesByBaseline(endLie, endRemaining);
       if (startExp != null && endExp != null){
         const sg = startExp - (1 + shotPenalty + endExp);
         const bucket = classifySgBucket(sh, startLie, startRemaining, parRef);
@@ -2410,11 +2528,9 @@ function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartY
     let prevEndExp = null;
     for (let pIdx = 0; pIdx < puttingShots.length; pIdx++){
       const psh = puttingShots[pIdx];
-      const rawStart = (psh.puttStartDistance != null && psh.puttStartDistance !== '' && !isNaN(Number(psh.puttStartDistance)))
-        ? Number(psh.puttStartDistance)
-        : null;
+      const rawStart = resolveRawPuttStartDistance(psh);
       const normStart = normalizeOnGreenPuttStartForSg(rawStart);
-      let startExp = getPgaExpectedStrokes('green', normStart);
+      let startExp = getExpectedStrokesByBaseline('green', normStart);
       if (startExp == null){
         startExp = (prevEndExp != null) ? prevEndExp : 1.95;
       }
@@ -2426,11 +2542,9 @@ function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartY
         const nextPutt = puttingShots[pIdx + 1];
         let nextNormStart = null;
         if (nextPutt){
-          const nextRawStart = (nextPutt.puttStartDistance != null && nextPutt.puttStartDistance !== '' && !isNaN(Number(nextPutt.puttStartDistance)))
-            ? Number(nextPutt.puttStartDistance)
-            : null;
+          const nextRawStart = resolveRawPuttStartDistance(nextPutt);
           nextNormStart = normalizeOnGreenPuttStartForSg(nextRawStart);
-          endExp = getPgaExpectedStrokes('green', nextNormStart);
+          endExp = getExpectedStrokesByBaseline('green', nextNormStart);
         }
         if (endExp == null) {
           // Missing next-putt distance should not create optimistic SG drift.
@@ -2941,14 +3055,22 @@ function recomputeRound(){
   statAvgDrive.textContent = avgDriveDisplay == null ? '-' : `${avgDriveDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statDrive250Plus.textContent = drive250PlusCount || 0;
   statBBD.textContent = `${birdiesCount} / ${bogeysCount} / ${doublesCount}`;
-  if (statSgOtt) statSgOtt.textContent = formatSgValue(sgOtt);
-  if (statSgApproach) statSgApproach.textContent = formatSgValue(sgApproach);
-  if (statSgAround) statSgAround.textContent = formatSgValue(sgAround);
+  const displaySgOtt = getBaselineAdjustedSg(sgOtt, 'tee');
+  const displaySgApproach = getBaselineAdjustedSg(sgApproach, 'approach');
+  const displaySgAround = getBaselineAdjustedSg(sgAround, 'around');
+  const displaySgPutting = getBaselineAdjustedSg(sgPutting, 'putt');
+  const displaySgTotal = getBaselineAdjustedSg(sgTotal, 'total');
+  if (statSgOtt) statSgOtt.textContent = formatSgValue(displaySgOtt);
+  if (statSgApproach) statSgApproach.textContent = formatSgValue(displaySgApproach);
+  if (statSgAround) statSgAround.textContent = formatSgValue(displaySgAround);
   if (statSgPutting) {
     const missText = (Number(sgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(sgPuttingMissingLinks)}` : '';
-    statSgPutting.textContent = `${formatSgValue(sgPutting)} (Exp ${formatAvgValue(sgPuttingExpected)} / Act ${formatAvgValue(sgPuttingActual)}${missText})`;
+    statSgPutting.textContent = `${formatSgValue(displaySgPutting)} (Exp ${formatAvgValue(sgPuttingExpected)} / Act ${formatAvgValue(sgPuttingActual)}${missText})`;
   }
-  if (statSgTotal) statSgTotal.textContent = formatSgValue(sgTotal);
+  if (statPgaVsKlpga) {
+    statPgaVsKlpga.textContent = '-';
+  }
+  if (statSgTotal) statSgTotal.textContent = formatSgValue(displaySgTotal);
   if (statScramblingRate) statScramblingRate.textContent = scramblingRate == null ? '-' : `${scramblingRate}% (${scrambleSuccess}/${scrambleAttempts})`;
   statProximity.textContent = avgProximityDisplay == null ? '-' : `${avgProximityDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statClubProximity.textContent = avgClubProximityDisplay == null ? '-' : `${avgClubProximityDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
@@ -3030,14 +3152,22 @@ function recomputeRound(){
       statLongestDrive.textContent = avgLongestDriveDisplay == null ? '-' : `${formatAvgValue(avgLongestDriveDisplay)}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
       statDrive250Plus.textContent = formatAvgValue(avgDrive250Plus);
       statBBD.textContent = `${formatAvgValue(avgBirdies)} / ${formatAvgValue(avgBogeys)} / ${formatAvgValue(avgDoubles)}`;
-      if (statSgOtt) statSgOtt.textContent = formatSgValue(avgSgOtt);
-      if (statSgApproach) statSgApproach.textContent = formatSgValue(avgSgApproach);
-      if (statSgAround) statSgAround.textContent = formatSgValue(avgSgAround);
+      const avgDisplaySgOtt = getBaselineAdjustedSg(avgSgOtt, 'tee');
+      const avgDisplaySgApproach = getBaselineAdjustedSg(avgSgApproach, 'approach');
+      const avgDisplaySgAround = getBaselineAdjustedSg(avgSgAround, 'around');
+      const avgDisplaySgPutting = getBaselineAdjustedSg(avgSgPutting, 'putt');
+      const avgDisplaySgTotal = getBaselineAdjustedSg(avgSgTotal, 'total');
+      if (statSgOtt) statSgOtt.textContent = formatSgValue(avgDisplaySgOtt);
+      if (statSgApproach) statSgApproach.textContent = formatSgValue(avgDisplaySgApproach);
+      if (statSgAround) statSgAround.textContent = formatSgValue(avgDisplaySgAround);
       if (statSgPutting) {
         const avgMissText = (Number(avgSgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(avgSgPuttingMissingLinks)}` : '';
-        statSgPutting.textContent = `${formatSgValue(avgSgPutting)} (Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText})`;
+        statSgPutting.textContent = `${formatSgValue(avgDisplaySgPutting)} (Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText})`;
       }
-      if (statSgTotal) statSgTotal.textContent = formatSgValue(avgSgTotal);
+      if (statPgaVsKlpga) {
+        statPgaVsKlpga.textContent = '-';
+      }
+      if (statSgTotal) statSgTotal.textContent = formatSgValue(avgDisplaySgTotal);
       if (statScramblingRate) statScramblingRate.textContent = `${Math.round(pooledScramblingRate)}% (${formatAvgValue(avgScrambleSuccess)}/${formatAvgValue(avgScrambleAttempts)})`;
 
       summaryTotalForHeader = avgTotalStrokes;
@@ -3427,6 +3557,8 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Total Strokes</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${totalScoreLabel.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Penalties</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statPenalties.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">GIR</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statGIR.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="On-green: max(approach, first putt start)">Avg Proximity (on green)</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statProximity.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Club-only: approach only (no putt)">Avg Club Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statClubProximity.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">1-Putt</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statOnePuttPct.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">3-Putt</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statThreePuttPct.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Total Putts</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statPutts.textContent}</td></tr>
@@ -3436,7 +3568,7 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Longest Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statLongestDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Avg Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statAvgDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Driver Fairway</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statDriverFairPct.textContent}</td></tr>
-      <tr><td colspan="2" style="padding:8px 10px;border:1px solid #f1f5f9;background:#f8fafc;font-weight:700;color:#0f172a;">SG &amp; Recovery Metrics (PGA / Yard Baseline)</td></tr>
+      <tr><td colspan="2" style="padding:8px 10px;border:1px solid #f1f5f9;background:#f8fafc;font-weight:700;color:#0f172a;">SG &amp; Recovery Metrics (${SG_BASELINE === 'klpga' ? 'KLPGA / Meter Baseline' : 'PGA / Yard Baseline'})</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Off-the-Tee</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgOtt.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Approach</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgApproach.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Around-the-Green</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgAround.textContent}</td></tr>
@@ -4058,6 +4190,15 @@ function previewSummaryWithPreset(preset){
 const btnShowAllDataEl = document.getElementById('btnShowAllData');
 if (btnShowAllDataEl) btnShowAllDataEl.addEventListener('click', showSummaryPreview);
 
+if (btnToggleSgBaseline) {
+  btnToggleSgBaseline.addEventListener('click', ()=>{
+    SG_BASELINE = SG_BASELINE === 'klpga' ? 'pga' : 'klpga';
+    refreshSgBaselineUi();
+    recomputeRound();
+  });
+}
+refreshSgBaselineUi();
+
 // Preview button (uses Balanced preset)
 const btnPreviewPdf = document.getElementById('btnPreviewPdf');
 if (btnPreviewPdf) btnPreviewPdf.addEventListener('click', ()=>{ previewSummaryWithPreset('balanced'); });
@@ -4536,7 +4677,7 @@ function processImportedCSV(rows, options){
     const rawYard = normalizedLine[yardIdx] || '';
 
     const convertedDistance = rawDistance !== '' && !isNaN(Number(rawDistance)) ? convertDistanceValue(Number(rawDistance), savedUnit, targetUnit) : null;
-    const convertedPuttStartDistance = rawPuttStartDistance !== '' && !isNaN(Number(rawPuttStartDistance)) ? convertDistanceValue(Number(rawPuttStartDistance), savedUnit, targetUnit) : null;
+    const convertedPuttStartDistance = rawPuttStartDistance !== '' && !isNaN(Number(rawPuttStartDistance)) ? convertPuttStartDistanceValue(Number(rawPuttStartDistance), savedUnit, targetUnit) : null;
 
     if (rawPar !== '' && !isNaN(Number(rawPar))) {
       HOLES[hole].par = Number(rawPar);
