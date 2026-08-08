@@ -2506,7 +2506,6 @@ function calcMetricsForRound(roundId){
       return sum;
     }, 0);
     totalPutts += onGreenPuttsOnHole;
-    if (puttsOnHole > 0) holesWithPutts++;
 
     const clubShots = sArr.filter(sh=> normalizeShotType(sh && sh.shotType) && !(sh.putts && Number(sh.putts) > 0)).length;
     const penaltiesOnHole = sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
@@ -2533,9 +2532,9 @@ function calcMetricsForRound(roundId){
     if (approach){
       gir++;
       onGreenHoles++;
+      if (onGreenPuttsOnHole === 1) onePuttCount++;
+      if (onGreenPuttsOnHole >= 3) threePuttCount++;
     }
-    if (puttsOnHole === 1) onePuttCount++;
-    if (puttsOnHole >= 3) threePuttCount++;
 
     const firstDrive = sArr.find(sh => Number(sh.roundShotNumber != null ? sh.roundShotNumber : sh.shotNumber || 0) === 1 && ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
     if (firstDrive){
@@ -2565,8 +2564,8 @@ function calcMetricsForRound(roundId){
   }
 
   const girPct = holesPlayed ? (gir / holesPlayed) * 100 : 0;
-  const onePuttPct = holesWithPutts ? (onePuttCount / holesWithPutts) * 100 : 0;
-  const threePuttPct = holesWithPutts ? (threePuttCount / holesWithPutts) * 100 : 0;
+  const onePuttPct = onGreenHoles ? (onePuttCount / onGreenHoles) * 100 : 0;
+  const threePuttPct = onGreenHoles ? (threePuttCount / onGreenHoles) * 100 : 0;
   const driverFairPct = driverAttempts ? (driverFairways / driverAttempts) * 100 : 0;
   const avgDrive = driveLens.length ? (driveLens.reduce((a,b)=>a+b,0) / driveLens.length) : null;
   const driveDistanceSum = driveLens.reduce((a,b)=> a + Number(b || 0), 0);
@@ -2588,10 +2587,10 @@ function calcMetricsForRound(roundId){
     girDenominator: holesPlayed,
     onePuttCount,
     onePuttPct,
-    onePuttDenominator: holesWithPutts,
+    onePuttDenominator: onGreenHoles,
     threePuttCount,
     threePuttPct,
-    threePuttDenominator: holesWithPutts,
+    threePuttDenominator: onGreenHoles,
     driverFairways,
     driverAttempts,
     driverFairPct,
@@ -2680,11 +2679,11 @@ function recomputeRound(){
       return sum;
     }, 0);
     
-    // track holes that had any putts for statistics
-    if (puttsOnHole > 0) holesWithPutts++;
-    // accumulate total putts using the hole total, not only the lie-filtered subset
-    totalPutts += puttsOnHole;
-    console.log(`[Hole ${i}] puttsOnHole=${puttsOnHole}, totalPutts so far=${totalPutts}`);
+    // track holes that had any on-green putts for statistics
+    if (onGreenPuttsOnHole > 0) holesWithPutts++;
+    // accumulate total on-green putts
+    totalPutts += onGreenPuttsOnHole;
+    console.log(`[Hole ${i}] onGreenPuttsOnHole=${onGreenPuttsOnHole}, totalPutts so far=${totalPutts}`);
     
     // count this hole as played if any shots were recorded
     if (sArr && sArr.length) holesPlayed++;
@@ -2752,35 +2751,35 @@ function recomputeRound(){
       // count on-green holes for statistics
       onGreenHoles++;
       onGreenPuttsTotal += Number(onGreenPuttsOnHole || 0);
+      
+      // Collect 1-putt / 3+-putt distances: prefer recorded putter distance, fallback to approach distance
+      try{
+        if (onGreenPuttsOnHole === 1){
+          onePuttCount++;
+          const putterShot = sArr.find(sh=> {
+            if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
+            const lie = (sh.lie || '').toString().trim().toLowerCase();
+            return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+          });
+          let d = null;
+          if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d = Math.abs(Number(putterShot.distanceToHole));
+          else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d = Math.abs(Number(approach.distanceToHole));
+          if (d != null) onePutDistances.push(d);
+        }
+        if (onGreenPuttsOnHole >= 3){
+          threePuttCount++;
+          const putterShot = sArr.find(sh=> {
+            if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
+            const lie = (sh.lie || '').toString().trim().toLowerCase();
+            return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+          });
+          let d3 = null;
+          if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d3 = Math.abs(Number(putterShot.distanceToHole));
+          else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d3 = Math.abs(Number(approach.distanceToHole));
+          if (d3 != null) threePutDistances.push(d3);
+        }
+      }catch(e){}
     }
-
-    // Collect 1-putt / 3+-putt distances from the actual hole putt total
-    try{
-      if (puttsOnHole === 1){
-        onePuttCount++;
-        const putterShot = sArr.find(sh=> {
-          if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
-          const lie = (sh.lie || '').toString().trim().toLowerCase();
-          return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
-        });
-        let d = null;
-        if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d = Math.abs(Number(putterShot.distanceToHole));
-        else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d = Math.abs(Number(approach.distanceToHole));
-        if (d != null) onePutDistances.push(d);
-      }
-      if (puttsOnHole >= 3){
-        threePuttCount++;
-        const putterShot = sArr.find(sh=> {
-          if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
-          const lie = (sh.lie || '').toString().trim().toLowerCase();
-          return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
-        });
-        let d3 = null;
-        if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d3 = Math.abs(Number(putterShot.distanceToHole));
-        else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d3 = Math.abs(Number(approach.distanceToHole));
-        if (d3 != null) threePutDistances.push(d3);
-      }
-    }catch(e){}
     
 
     const orderedAll = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
@@ -2884,8 +2883,8 @@ function recomputeRound(){
   const avgDriveYd = driveLens.length ? Math.round((driveLens.reduce((a,b)=>a+b,0)/driveLens.length) * 10) / 10 : null;
   const longestDriveYd = longestDriveDistances.length ? Math.max(...longestDriveDistances) : null;
   const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 100) : 0;
-  const onePuttPct = holesWithPutts ? Math.round((onePuttCount / holesWithPutts) * 100) : 0;
-  const threePuttPct = holesWithPutts ? Math.round((threePuttCount / holesWithPutts) * 100) : 0;
+  const onePuttPct = onGreenHoles ? Math.round((onePuttCount / onGreenHoles) * 100) : 0;
+  const threePuttPct = onGreenHoles ? Math.round((threePuttCount / onGreenHoles) * 100) : 0;
   const driverFairPct = driverAttempts ? Math.round((driverFairways / driverAttempts) * 100) : 0;
   const avgProximityYd = proximityDistances.length ? Math.round((proximityDistances.reduce((a,b)=>a+b,0)/proximityDistances.length) * 10) / 10 : null;
   const avgClubProximityYd = clubOnlyProximityDistances.length ? Math.round((clubOnlyProximityDistances.reduce((a,b)=>a+b,0)/clubOnlyProximityDistances.length) * 10) / 10 : null;
@@ -3438,12 +3437,12 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Avg Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statAvgDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Driver Fairway</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statDriverFairPct.textContent}</td></tr>
       <tr><td colspan="2" style="padding:8px 10px;border:1px solid #f1f5f9;background:#f8fafc;font-weight:700;color:#0f172a;">SG &amp; Recovery Metrics (PGA / Yard Baseline)</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9;background:#fbfdff">SG: Off-the-Tee</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9;background:#fbfdff">${statSgOtt.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9;background:#fbfdff">SG: Approach</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9;background:#fbfdff">${statSgApproach.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9;background:#fbfdff">SG: Around-the-Green</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9;background:#fbfdff">${statSgAround.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9;background:#fbfdff">SG: Putting</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9;background:#fbfdff">${statSgPutting.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9;background:#fbfdff">SG Total</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9;background:#fbfdff">${statSgTotal.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9;background:#fbfdff">Scrambling Rate</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9;background:#fbfdff">${statScramblingRate.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Off-the-Tee</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgOtt.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Approach</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgApproach.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Around-the-Green</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgAround.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Putting</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgPutting.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG Total</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgTotal.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Scrambling Rate</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statScramblingRate.textContent}</td></tr>
     </tbody>`;
   statsWrap.appendChild(summaryTable);
 
@@ -3879,6 +3878,9 @@ function buildStyledReport(forPdf){
 
   // populate with a few key metrics from the summary (if present)
   const metrics = [
+    { k: 'Longest Drive', v: statLongestDrive ? statLongestDrive.textContent : '-' },
+    { k: 'Avg Drive', v: statAvgDrive ? statAvgDrive.textContent : '-' },
+    { k: 'Driver Fairway', v: statDriverFairPct ? statDriverFairPct.textContent : '-' },
     { k: 'SG: Off-the-Tee', v: statSgOtt ? statSgOtt.textContent : '-' },
     { k: 'SG: Approach', v: statSgApproach ? statSgApproach.textContent : '-' },
     { k: 'SG: Around-the-Green', v: statSgAround ? statSgAround.textContent : '-' },
