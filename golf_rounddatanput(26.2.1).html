@@ -231,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.4f</div>
+      <div class="tiny muted">버전 26.8.5f</div>
     </div>
   </header>
 
@@ -487,6 +487,13 @@
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after chip shots (result: Around the Green)">Avg Chip Proximity: <strong id="statChipProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (result: Greenside Bunker)">Avg Greenside Bunker Proximity: <strong id="statGreensideBunkerProximity">-</strong></div>
+      <div style="flex:1 1 100%; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);" class="tiny muted">SG & Recovery Metrics (PGA / Yard Baseline)</div>
+      <div class="stat">SG: Off-the-Tee: <strong id="statSgOtt">-</strong></div>
+      <div class="stat">SG: Approach: <strong id="statSgApproach">-</strong></div>
+      <div class="stat">SG: Around-the-Green: <strong id="statSgAround">-</strong></div>
+      <div class="stat">SG: Putting: <strong id="statSgPutting">-</strong></div>
+      <div class="stat">SG Total: <strong id="statSgTotal">-</strong></div>
+      <div class="stat">Scrambling Rate: <strong id="statScramblingRate">-</strong></div>
       <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       <div style="margin-top:6px;">
         <button class="btn ghost" id="btnToggleClubData">클럽데이터 (Club Data)</button>
@@ -873,6 +880,18 @@ function convertToYd(val, fromUnit) {
   return convertDistanceValue(Number(val), fromUnit || 'yd', 'yd');
 }
 
+function toCalcYards(value){
+  if (value == null || value === '' || isNaN(Number(value))) return null;
+  const n = Number(value);
+  return DISTANCE_UNIT === 'm' ? convertDistanceValue(n, 'm', 'yd') : n;
+}
+
+function fromCalcYardsToDisplay(valueYd){
+  if (valueYd == null || valueYd === '' || isNaN(Number(valueYd))) return null;
+  const n = Number(valueYd);
+  return DISTANCE_UNIT === 'm' ? convertDistanceValue(n, 'yd', 'm') : n;
+}
+
 function formatDistance(value, includeUnit = true) {
   if (value == null || value === '' || isNaN(Number(value))) return '-';
   const numeric = Number(value);
@@ -1080,7 +1099,6 @@ function getClubMaxDistance(clubName){
     Other: 320
   };
   const capYd = ydCaps[clubName] || 280;
-  if (DISTANCE_UNIT === 'm') return convertDistanceValue(capYd, 'yd', 'm');
   return capYd;
 }
 
@@ -1089,9 +1107,7 @@ function isWedgeClub(clubName){
 }
 
 function getWedgeChipThreshold(){
-  const yd = 40;
-  if (DISTANCE_UNIT === 'm') return convertDistanceValue(yd, 'yd', 'm');
-  return yd;
+  return 40;
 }
 
 function isChipLikeClubShot(sh, clubName, shotDist){
@@ -1129,15 +1145,17 @@ function getFirstOnGreenPuttDistance(shots){
     return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
   });
   if (!firstOnGreenPutt) return null;
-  const d = (firstOnGreenPutt.puttStartDistance != null && !isNaN(Number(firstOnGreenPutt.puttStartDistance)))
+  const dRaw = (firstOnGreenPutt.puttStartDistance != null && !isNaN(Number(firstOnGreenPutt.puttStartDistance)))
     ? Number(firstOnGreenPutt.puttStartDistance)
-    : ((firstOnGreenPutt.distanceToHole != null && !isNaN(Number(firstOnGreenPutt.distanceToHole))) ? Number(firstOnGreenPutt.distanceToHole) : null);
-  return d != null ? Math.abs(d) : null;
+    : null;
+  const normalizedStart = normalizeOnGreenPuttStartForSg(dRaw);
+  const dYd = toCalcYards(normalizedStart);
+  return dYd != null ? Math.abs(dYd) : null;
 }
 
 function getOnGreenProximityDistance(approach, shots){
   const approachDist = (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole)))
-    ? Math.abs(Number(approach.distanceToHole))
+    ? Math.abs(toCalcYards(Number(approach.distanceToHole)))
     : null;
   const firstPuttDist = getFirstOnGreenPuttDistance(shots);
   if (approachDist == null) return firstPuttDist;
@@ -1147,7 +1165,7 @@ function getOnGreenProximityDistance(approach, shots){
 
 function getApproachOnlyProximityDistance(approach){
   if (!approach || approach.distanceToHole == null || approach.distanceToHole === '' || isNaN(Number(approach.distanceToHole)) || Number(approach.distanceToHole) <= 0) return null;
-  return Math.abs(Number(approach.distanceToHole));
+  return Math.abs(toCalcYards(Number(approach.distanceToHole)));
 }
 
 // Returns club proximity for a single shot:
@@ -1160,7 +1178,7 @@ function getClubProximityForShot(sh, orderedShots){
   const res = (sh.result || '').toString();
   if (isGreenResult(res)){
     if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0)
-      return Math.abs(Number(sh.distanceToHole));
+      return Math.abs(toCalcYards(Number(sh.distanceToHole)));
     return null;
   }
   if (normResultKey(res) === 'aroundgreen'){
@@ -1170,7 +1188,7 @@ function getClubProximityForShot(sh, orderedShots){
       const nsh = orderedShots[k];
       if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
       if (isGreenResult(nsh.result) && nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0)
-        return Math.abs(Number(nsh.distanceToHole));
+        return Math.abs(toCalcYards(Number(nsh.distanceToHole)));
       break;
     }
   }
@@ -1235,6 +1253,12 @@ const statAvgDrive = document.getElementById('statAvgDrive');
 const statDrive250Plus = document.getElementById('statDrive250Plus');
 const statDrive250Label = document.getElementById('statDrive250Label');
 const statBBD = document.getElementById('statBBD');
+const statSgOtt = document.getElementById('statSgOtt');
+const statSgApproach = document.getElementById('statSgApproach');
+const statSgAround = document.getElementById('statSgAround');
+const statSgPutting = document.getElementById('statSgPutting');
+const statSgTotal = document.getElementById('statSgTotal');
+const statScramblingRate = document.getElementById('statScramblingRate');
 const statProximity = document.getElementById('statProximity');
 const statClubProximity = document.getElementById('statClubProximity');
 const statChipProximity = document.getElementById('statChipProximity');
@@ -1748,10 +1772,18 @@ function recordPutt(made, isMissAppend){
   // increment stroke counter for this action
   puttStrokeCount = Number(puttStrokeCount||0) + 1;
   puttStrokeCountEl.textContent = puttStrokeCount;
+  const puttStart = (puttStartDistEl && puttStartDistEl.value !== '' && !isNaN(Number(puttStartDistEl.value)))
+    ? Number(puttStartDistEl.value)
+    : null;
   const shot = {
     hole: activeHole,
     timestamp: new Date().toISOString(),
     shotType: 'Putter',
+    result: made ? 'InHole' : 'Green',
+    distanceToHole: made ? 0 : null,
+    lie: puttLieEl ? (puttLieEl.value || 'OnGreen') : 'OnGreen',
+    slope: puttSlopeEl ? (puttSlopeEl.value || 'Flat') : 'Flat',
+    puttStartDistance: puttStart,
     putts: 1,
     penalty: 0,
   };
@@ -2166,6 +2198,270 @@ function resolveGroupStartYard(holeNumber, groupShots){
   return getNumericYard(HOLES[holeNumber] && HOLES[holeNumber].yard);
 }
 
+// PGA 공개(요약) 기대타수 앵커를 사용한 SG 근사 계산
+const PGA_SG_TABLE = {
+  tee: [[80,2.95],[120,3.10],[160,3.30],[200,3.50],[240,3.72],[280,3.92],[320,4.10],[360,4.28],[400,4.44],[440,4.58],[480,4.72],[520,4.86],[560,5.00],[600,5.12]],
+  fairway: [[20,2.20],[40,2.36],[60,2.50],[80,2.64],[100,2.77],[120,2.90],[140,3.02],[160,3.14],[180,3.25],[200,3.35],[220,3.45],[240,3.55],[260,3.64],[280,3.72],[300,3.80]],
+  rough: [[20,2.35],[40,2.50],[60,2.64],[80,2.78],[100,2.91],[120,3.04],[140,3.16],[160,3.28],[180,3.39],[200,3.49],[220,3.59],[240,3.69],[260,3.78],[280,3.86],[300,3.94]],
+  sand: [[10,2.45],[20,2.55],[30,2.65],[40,2.76],[60,2.94],[80,3.08],[100,3.22],[120,3.35],[140,3.47],[160,3.59],[180,3.70]],
+  around: [[5,2.20],[10,2.35],[15,2.47],[20,2.58],[30,2.74],[40,2.89],[50,3.00]],
+  greenFt: [[1,1.00],[2,1.05],[3,1.13],[4,1.22],[5,1.31],[6,1.40],[8,1.56],[10,1.72],[15,1.95],[20,2.11],[25,2.23],[30,2.33],[40,2.50],[50,2.64],[60,2.75],[80,2.95]]
+};
+
+function interpolateExpected(table, distance){
+  if (!Array.isArray(table) || !table.length) return null;
+  if (distance == null || isNaN(Number(distance))) return null;
+  const d = Math.max(0, Number(distance));
+  if (d <= table[0][0]) return table[0][1];
+  for (let i = 1; i < table.length; i++){
+    const prev = table[i - 1];
+    const cur = table[i];
+    if (d <= cur[0]){
+      const span = cur[0] - prev[0];
+      if (span <= 0) return cur[1];
+      const ratio = (d - prev[0]) / span;
+      return prev[1] + (cur[1] - prev[1]) * ratio;
+    }
+  }
+  return table[table.length - 1][1];
+}
+
+function toYardsFromCurrentUnit(value){
+  if (value == null || value === '' || isNaN(Number(value))) return null;
+  const num = Number(value);
+  return DISTANCE_UNIT === 'm' ? convertDistanceValue(num, 'm', 'yd') : num;
+}
+
+function mapResultToLieCategory(result){
+  const k = normResultKey(result || '');
+  if (!k) return 'fairway';
+  if (k === 'fairway' || k === 'fw') return 'fairway';
+  if (k.indexOf('rough') >= 0) return 'rough';
+  if (k === 'green' || k === 'ongreen') return 'green';
+  if (k === 'inhole') return 'hole';
+  if (k === 'aroundgreen') return 'around';
+  if (k === 'bunkerfairway' || k === 'bunkergreenside' || k.indexOf('bunker') >= 0) return 'sand';
+  if (k === 'water' || k === 'out' || k === 'ob' || k.indexOf('hazard') >= 0) return 'recovery';
+  return 'fairway';
+}
+
+function mapPuttLieToCategory(lie){
+  const k = normResultKey(lie || '');
+  if (k === 'green' || k === 'ongreen') return 'green';
+  if (k === 'fringe') return 'around';
+  if (k === 'rough' || k === 'bare') return 'around';
+  return 'green';
+}
+
+function getPgaExpectedStrokes(lieCategory, distanceCurrentUnit){
+  if (lieCategory === 'hole') return 0;
+  const dYd = toYardsFromCurrentUnit(distanceCurrentUnit);
+  if (dYd == null) return null;
+  if (lieCategory === 'green'){
+    const dFt = Math.max(0.5, dYd * 3.0);
+    return interpolateExpected(PGA_SG_TABLE.greenFt, dFt);
+  }
+  if (lieCategory === 'tee') return interpolateExpected(PGA_SG_TABLE.tee, dYd);
+  if (lieCategory === 'rough') return interpolateExpected(PGA_SG_TABLE.rough, dYd);
+  if (lieCategory === 'sand') return interpolateExpected(PGA_SG_TABLE.sand, dYd);
+  if (lieCategory === 'around') return interpolateExpected(PGA_SG_TABLE.around, dYd);
+  if (lieCategory === 'recovery'){
+    const fairwayExp = interpolateExpected(PGA_SG_TABLE.fairway, dYd);
+    return fairwayExp != null ? fairwayExp + 0.25 : null;
+  }
+  return interpolateExpected(PGA_SG_TABLE.fairway, dYd);
+}
+
+function resolveEndDistanceCurrentUnit(orderedShots, idx, shot, curRemaining){
+  if (shot && normResultKey(shot.result || '') === 'inhole') return 0;
+  if (curRemaining != null && !isNaN(Number(curRemaining))) return Number(curRemaining);
+  if (shot && normalizeShotType(shot.shotType) === 'Putter'){
+    const next = orderedShots[idx + 1];
+    if (next && normalizeShotType(next.shotType) === 'Putter' && next.puttStartDistance != null && next.puttStartDistance !== '' && !isNaN(Number(next.puttStartDistance))) {
+      return Number(next.puttStartDistance);
+    }
+  }
+  return null;
+}
+
+function resolveStartLieCategory(shot, prevShot, shotNumber){
+  if (normalizeShotType(shot && shot.shotType) === 'Putter') return mapPuttLieToCategory(shot && shot.lie);
+  if (Number(shotNumber || 0) <= 1) return 'tee';
+  if (prevShot) return mapResultToLieCategory(prevShot.result);
+  return 'fairway';
+}
+
+function classifySgBucket(shot, startLieCategory, startDistanceCurrentUnit, holePar){
+  const shotType = normalizeShotType(shot && shot.shotType);
+  const startYd = toYardsFromCurrentUnit(startDistanceCurrentUnit);
+  if (shotType === 'Putter' || startLieCategory === 'green') return 'putting';
+  if (startLieCategory === 'tee' && Number(holePar || 4) >= 4) return 'ott';
+  if (startLieCategory === 'around') return 'around';
+  if (startLieCategory === 'sand' && startYd != null && startYd <= 45) return 'around';
+  return 'approach';
+}
+
+function formatSgValue(value){
+  if (value == null || isNaN(Number(value))) return '-';
+  const n = Math.round(Number(value) * 100) / 100;
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${n.toFixed(2)}`;
+}
+
+function normalizeOnGreenPuttStartForSg(startDistCurrentUnit){
+  if (startDistCurrentUnit == null || startDistCurrentUnit === '' || isNaN(Number(startDistCurrentUnit))) return null;
+  const raw = Number(startDistCurrentUnit);
+  if (raw <= 0) return null;
+  let yd = null;
+  if (DISTANCE_UNIT === 'yd') {
+    // SG Putting standard uses feet; field users often enter feet in this box.
+    yd = raw / 3;
+  } else {
+    yd = convertDistanceValue(raw, 'm', 'yd');
+  }
+  if (yd == null || isNaN(Number(yd))) return null;
+  if (yd > 27) return null;
+  return DISTANCE_UNIT === 'm' ? convertDistanceValue(yd, 'yd', 'm') : yd;
+}
+
+function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartYard){
+  const shots = Array.isArray(orderedShots) ? orderedShots.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)) : [];
+  if (!shots.length) {
+    return { sgOtt:0, sgApproach:0, sgAround:0, sgPutting:0, sgTotal:0, scrambleAttempt:0, scrambleSuccess:0, sgPuttingExpected:0, sgPuttingActual:0, sgPuttingMissingLinks:0 };
+  }
+
+  const parRef = Number(holePar || 4);
+  const puttsOnHole = shots.reduce((sum,sh)=> sum + ((sh && normalizeShotType(sh.shotType) === 'Putter') ? (Number(sh.putts) || 0) : 0), 0);
+  const clubShots = shots.filter(sh=> normalizeShotType(sh && sh.shotType) && !(sh.putts && Number(sh.putts) > 0)).length;
+  const penaltiesOnHole = shots.reduce((sum,sh)=> sum + (Number((sh && sh.penalty) || 0)), 0);
+  const holeScore = Math.max(0, clubShots + puttsOnHole + penaltiesOnHole);
+
+  let girAchieved = false;
+  shots.forEach((sh)=>{
+    if (!sh || !sh.result) return;
+    if (normalizeShotType(sh.shotType) === 'Putter') return;
+    const sn = Number(sh.shotNumber || 0);
+    const parAllowed = Math.max(0, parRef - 2);
+    if (!sn || sn > parAllowed) return;
+    if (isGreenResult(sh.result)) girAchieved = true;
+  });
+
+  const scrambleAttempt = girAchieved ? 0 : 1;
+  const scrambleSuccess = (!girAchieved && holeScore <= parRef) ? 1 : 0;
+
+  let sgOtt = 0;
+  let sgApproach = 0;
+  let sgAround = 0;
+  let sgPutting = 0;
+  let sgPuttingExpected = 0;
+  let sgPuttingActual = 0;
+  let sgPuttingMissingLinks = 0;
+
+  let prevRemaining = (holeStartYard != null && !isNaN(Number(holeStartYard))) ? Number(holeStartYard) : null;
+  let prevShot = null;
+  for (let idx = 0; idx < shots.length; idx++){
+    const sh = shots[idx];
+    if (!sh) continue;
+    const shotType = normalizeShotType(sh.shotType);
+    const shotPenalty = Number(sh.penalty || 0);
+    const shotNumber = Number(sh.shotNumber || (idx + 1));
+    const curRemaining = getSafeRemainingDistance(sh);
+    const endRemaining = resolveEndDistanceCurrentUnit(shots, idx, sh, curRemaining);
+
+    let startRemaining = prevRemaining;
+    if (shotType === 'Putter' && sh.puttStartDistance != null && sh.puttStartDistance !== '' && !isNaN(Number(sh.puttStartDistance))) {
+      startRemaining = Number(sh.puttStartDistance);
+    }
+
+    const startLie = resolveStartLieCategory(sh, prevShot, shotNumber);
+    let endLie = mapResultToLieCategory(sh.result);
+    if (normResultKey(sh.result || '') === 'inhole') endLie = 'hole';
+    else if (shotType === 'Putter' && endRemaining != null) endLie = 'green';
+
+    // Putts often miss reliable end-distance logging in field input.
+    // To avoid optimistic bias, putting SG is computed once per hole (below), not per putt shot.
+    if (shotType !== 'Putter'){
+      const startExp = getPgaExpectedStrokes(startLie, startRemaining);
+      const endExp = (endLie === 'hole') ? 0 : getPgaExpectedStrokes(endLie, endRemaining);
+      if (startExp != null && endExp != null){
+        const sg = startExp - (1 + shotPenalty + endExp);
+        const bucket = classifySgBucket(sh, startLie, startRemaining, parRef);
+        if (bucket === 'ott') sgOtt += sg;
+        else if (bucket === 'approach') sgApproach += sg;
+        else if (bucket === 'around') sgAround += sg;
+      }
+    }
+
+    if (endRemaining != null && !isNaN(Number(endRemaining))) {
+      prevRemaining = Number(endRemaining);
+    } else {
+      const isNonPutterClubShot = !!(shotType && shotType !== 'Putter' && !(sh.putts && Number(sh.putts) > 0));
+      prevRemaining = nextPrevRemainingAfterShot(prevRemaining, sh, isNonPutterClubShot);
+    }
+    prevShot = sh;
+  }
+
+  const puttingShots = shots.filter((sh)=>{
+    if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
+    const lie = (sh.lie || '').toString().trim().toLowerCase();
+    return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+  });
+  if (puttingShots.length){
+    let prevEndExp = null;
+    for (let pIdx = 0; pIdx < puttingShots.length; pIdx++){
+      const psh = puttingShots[pIdx];
+      const rawStart = (psh.puttStartDistance != null && psh.puttStartDistance !== '' && !isNaN(Number(psh.puttStartDistance)))
+        ? Number(psh.puttStartDistance)
+        : null;
+      const normStart = normalizeOnGreenPuttStartForSg(rawStart);
+      let startExp = getPgaExpectedStrokes('green', normStart);
+      if (startExp == null){
+        startExp = (prevEndExp != null) ? prevEndExp : 1.95;
+      }
+
+      const isHoled = normResultKey(psh.result || '') === 'inhole';
+      const strokeCount = Math.max(1, Number(psh.putts) || 1);
+      let endExp = 0;
+      if (!isHoled){
+        const nextPutt = puttingShots[pIdx + 1];
+        let nextNormStart = null;
+        if (nextPutt){
+          const nextRawStart = (nextPutt.puttStartDistance != null && nextPutt.puttStartDistance !== '' && !isNaN(Number(nextPutt.puttStartDistance)))
+            ? Number(nextPutt.puttStartDistance)
+            : null;
+          nextNormStart = normalizeOnGreenPuttStartForSg(nextRawStart);
+          endExp = getPgaExpectedStrokes('green', nextNormStart);
+        }
+        if (endExp == null) {
+          // Missing next-putt distance should not create optimistic SG drift.
+          endExp = Math.max(0, startExp - strokeCount);
+          sgPuttingMissingLinks += 1;
+        }
+      }
+
+      const expectedContribution = Math.max(0, startExp - endExp);
+      sgPuttingExpected += expectedContribution;
+      sgPuttingActual += strokeCount;
+      sgPutting += (startExp - (strokeCount + endExp));
+      prevEndExp = endExp;
+      if (isHoled) prevEndExp = 0;
+    }
+  }
+
+  return {
+    sgOtt,
+    sgApproach,
+    sgAround,
+    sgPutting,
+    sgTotal: sgOtt + sgApproach + sgAround + sgPutting,
+    scrambleAttempt,
+    scrambleSuccess,
+    sgPuttingExpected,
+    sgPuttingActual,
+    sgPuttingMissingLinks
+  };
+}
+
 function calcMetricsForRound(roundId){
   let totalStrokes = 0;
   let totalPar = 0;
@@ -2183,6 +2479,15 @@ function calcMetricsForRound(roundId){
   let birdiesCount = 0;
   let bogeysCount = 0;
   let doublesCount = 0;
+  let sgOtt = 0;
+  let sgApproach = 0;
+  let sgAround = 0;
+  let sgPutting = 0;
+  let sgPuttingExpected = 0;
+  let sgPuttingActual = 0;
+  let sgPuttingMissingLinks = 0;
+  let scrambleAttempts = 0;
+  let scrambleSuccess = 0;
 
   for (let i=1;i<=18;i++){
     const holeAll = shotsByHole[i] || [];
@@ -2237,14 +2542,25 @@ function calcMetricsForRound(roundId){
         driverAttempts++;
         if (isFairwayResult(firstDrive.result)) driverFairways++;
       }
-      const holeDistance = getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(HOLES[i] && HOLES[i].yard);
-      const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? Number(firstDrive.distanceToHole) : null;
+      const holeDistance = toCalcYards(getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(HOLES[i] && HOLES[i].yard));
+      const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? toCalcYards(Number(firstDrive.distanceToHole)) : null;
       if (shotRemaining != null){
         let d = holeDistance != null ? Math.max(0, holeDistance - shotRemaining) : shotRemaining;
         longestDriveLens.push(d);
         if (isValidDriveDistanceResult(firstDrive.result)) driveLens.push(d);
       }
     }
+
+    const sgHole = computeSgAndScramblingForOrderedShots(sArr, parRef, resolveGroupStartYard(i, sArr));
+    sgOtt += Number(sgHole.sgOtt || 0);
+    sgApproach += Number(sgHole.sgApproach || 0);
+    sgAround += Number(sgHole.sgAround || 0);
+    sgPutting += Number(sgHole.sgPutting || 0);
+    sgPuttingExpected += Number(sgHole.sgPuttingExpected || 0);
+    sgPuttingActual += Number(sgHole.sgPuttingActual || 0);
+    sgPuttingMissingLinks += Number(sgHole.sgPuttingMissingLinks || 0);
+    scrambleAttempts += Number(sgHole.scrambleAttempt || 0);
+    scrambleSuccess += Number(sgHole.scrambleSuccess || 0);
   }
 
   const girPct = holesPlayed ? (gir / holesPlayed) * 100 : 0;
@@ -2255,8 +2571,9 @@ function calcMetricsForRound(roundId){
   const driveDistanceSum = driveLens.reduce((a,b)=> a + Number(b || 0), 0);
   const driveDistanceCount = driveLens.length;
   const longestDrive = longestDriveLens.length ? Math.max(...longestDriveLens) : null;
-  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
+  const threshold250 = 250;
   const drive250Plus = driveLens.filter(d => d > threshold250).length;
+  const scrambleRate = scrambleAttempts ? (scrambleSuccess / scrambleAttempts) * 100 : 0;
 
   return {
     roundId,
@@ -2284,7 +2601,18 @@ function calcMetricsForRound(roundId){
     drive250Plus,
     birdiesCount,
     bogeysCount,
-    doublesCount
+    doublesCount,
+    sgOtt,
+    sgApproach,
+    sgAround,
+    sgPutting,
+    sgTotal: sgOtt + sgApproach + sgAround + sgPutting,
+    sgPuttingExpected,
+    sgPuttingActual,
+    sgPuttingMissingLinks,
+    scrambleAttempts,
+    scrambleSuccess,
+    scrambleRate
   };
 }
 
@@ -2465,7 +2793,7 @@ function recomputeRound(){
           const nsh = orderedAll[ni];
           if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
           if (nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0) {
-            chipProximityDistances.push(Math.abs(Number(nsh.distanceToHole)));
+            chipProximityDistances.push(Math.abs(toCalcYards(Number(nsh.distanceToHole))));
           }
           break;
         }
@@ -2478,7 +2806,7 @@ function recomputeRound(){
           const nsh = orderedAll[ni];
           if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
           if (nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0) {
-            greensideBunkerProximityDistances.push(Math.abs(Number(nsh.distanceToHole)));
+            greensideBunkerProximityDistances.push(Math.abs(toCalcYards(Number(nsh.distanceToHole))));
           }
           break;
         }
@@ -2499,7 +2827,9 @@ function recomputeRound(){
       const shotTypeName = normalizeShotType(sh && sh.shotType);
       const isNonPutterClubShot = !!(shotTypeName && shotTypeName !== 'Putter' && !(sh.putts && Number(sh.putts) > 0));
       if (curRem != null && isNonPutterClubShot && prevRemaining != null){
-        const shotDist = Math.max(0, prevRemaining - curRem);
+        const prevRemainingYd = toCalcYards(prevRemaining);
+        const curRemYd = toCalcYards(curRem);
+        const shotDist = (prevRemainingYd != null && curRemYd != null) ? Math.max(0, prevRemainingYd - curRemYd) : null;
         if (isReasonableClubDistance(shotTypeName, shotDist, sh)){
           if (!clubDistances[shotTypeName]) clubDistances[shotTypeName] = [];
           clubDistances[shotTypeName].push(shotDist);
@@ -2521,8 +2851,8 @@ function recomputeRound(){
         driverAttempts++;
         if (isFairwayResult(firstDrive.result)) driverFairways++;
       }
-      const holeDistance = getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(hole.yard);
-      const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? Number(firstDrive.distanceToHole) : null;
+      const holeDistance = toCalcYards(getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(hole.yard));
+      const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? toCalcYards(Number(firstDrive.distanceToHole)) : null;
       if (shotRemaining != null){
         let d = null;
         if (holeDistance != null) {
@@ -2540,8 +2870,8 @@ function recomputeRound(){
   // compute longest and average from per-hole drive distances
   const driveLens = perHoleDriveDistances;
   
-  // count drives above 228m (or 250yd) using the selected unit
-  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
+  // all distance calculations are yard-based
+  const threshold250 = 250;
   const drive250PlusCount = driveLens.filter(d => d > threshold250).length;
 
   // compute GIR% and putt percentages and proximity avg
@@ -2550,17 +2880,52 @@ function recomputeRound(){
 
   // Display Total Strokes using computed per-hole strokes (includes penalties)
   const displayTotalStrokes = totalStrokes;
-  const avgDrive = driveLens.length ? Math.round((driveLens.reduce((a,b)=>a+b,0)/driveLens.length) * 10) / 10 : '-';
-  const longestDriveValue = longestDriveDistances.length ? Math.max(...longestDriveDistances) : '-';
+  const avgDriveYd = driveLens.length ? Math.round((driveLens.reduce((a,b)=>a+b,0)/driveLens.length) * 10) / 10 : null;
+  const longestDriveYd = longestDriveDistances.length ? Math.max(...longestDriveDistances) : null;
   const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 100) : 0;
   const onePuttPct = onGreenHoles ? Math.round((onePuttCount / onGreenHoles) * 100) : 0;
   const threePuttPct = onGreenHoles ? Math.round((threePuttCount / onGreenHoles) * 100) : 0;
   const driverFairPct = driverAttempts ? Math.round((driverFairways / driverAttempts) * 100) : 0;
-  const avgProximity = proximityDistances.length ? Math.round((proximityDistances.reduce((a,b)=>a+b,0)/proximityDistances.length) * 10) / 10 : '-';
-  const avgClubProximity = clubOnlyProximityDistances.length ? Math.round((clubOnlyProximityDistances.reduce((a,b)=>a+b,0)/clubOnlyProximityDistances.length) * 10) / 10 : '-';
-  const avgChipProximity = chipProximityDistances.length ? Math.round((chipProximityDistances.reduce((a,b)=>a+b,0)/chipProximityDistances.length) * 10) / 10 : '-';
-  const avgGreensideBunkerProximity = greensideBunkerProximityDistances.length ? Math.round((greensideBunkerProximityDistances.reduce((a,b)=>a+b,0)/greensideBunkerProximityDistances.length) * 10) / 10 : '-';
+  const avgProximityYd = proximityDistances.length ? Math.round((proximityDistances.reduce((a,b)=>a+b,0)/proximityDistances.length) * 10) / 10 : null;
+  const avgClubProximityYd = clubOnlyProximityDistances.length ? Math.round((clubOnlyProximityDistances.reduce((a,b)=>a+b,0)/clubOnlyProximityDistances.length) * 10) / 10 : null;
+  const avgChipProximityYd = chipProximityDistances.length ? Math.round((chipProximityDistances.reduce((a,b)=>a+b,0)/chipProximityDistances.length) * 10) / 10 : null;
+  const avgGreensideBunkerProximityYd = greensideBunkerProximityDistances.length ? Math.round((greensideBunkerProximityDistances.reduce((a,b)=>a+b,0)/greensideBunkerProximityDistances.length) * 10) / 10 : null;
   const chipWithin1 = chipProximityDistances.filter(d => d <= 1).length;
+
+  const avgDriveDisplay = avgDriveYd != null ? fromCalcYardsToDisplay(avgDriveYd) : null;
+  const longestDriveDisplay = longestDriveYd != null ? fromCalcYardsToDisplay(longestDriveYd) : null;
+  const avgProximityDisplay = avgProximityYd != null ? fromCalcYardsToDisplay(avgProximityYd) : null;
+  const avgClubProximityDisplay = avgClubProximityYd != null ? fromCalcYardsToDisplay(avgClubProximityYd) : null;
+  const avgChipProximityDisplay = avgChipProximityYd != null ? fromCalcYardsToDisplay(avgChipProximityYd) : null;
+  const avgGreensideBunkerProximityDisplay = avgGreensideBunkerProximityYd != null ? fromCalcYardsToDisplay(avgGreensideBunkerProximityYd) : null;
+
+  let sgOtt = 0;
+  let sgApproach = 0;
+  let sgAround = 0;
+  let sgPutting = 0;
+  let sgPuttingExpected = 0;
+  let sgPuttingActual = 0;
+  let sgPuttingMissingLinks = 0;
+  let scrambleAttempts = 0;
+  let scrambleSuccess = 0;
+  for (let i=1;i<=18;i++){
+    const parRef = Number((HOLES[i] && HOLES[i].par) || 4);
+    const roundGroups = getHoleShotGroups(i);
+    roundGroups.forEach((groupShots)=>{
+      const sgHole = computeSgAndScramblingForOrderedShots(groupShots, parRef, resolveGroupStartYard(i, groupShots));
+      sgOtt += Number(sgHole.sgOtt || 0);
+      sgApproach += Number(sgHole.sgApproach || 0);
+      sgAround += Number(sgHole.sgAround || 0);
+      sgPutting += Number(sgHole.sgPutting || 0);
+      sgPuttingExpected += Number(sgHole.sgPuttingExpected || 0);
+      sgPuttingActual += Number(sgHole.sgPuttingActual || 0);
+      sgPuttingMissingLinks += Number(sgHole.sgPuttingMissingLinks || 0);
+      scrambleAttempts += Number(sgHole.scrambleAttempt || 0);
+      scrambleSuccess += Number(sgHole.scrambleSuccess || 0);
+    });
+  }
+  const sgTotal = sgOtt + sgApproach + sgAround + sgPutting;
+  const scramblingRate = scrambleAttempts ? Math.round((scrambleSuccess / scrambleAttempts) * 100) : null;
 
   statTotalStrokes.textContent = displayTotalStrokes;
   statFairways.textContent = fairways;
@@ -2570,24 +2935,33 @@ function recomputeRound(){
   statThreePuttPct.textContent = `${threePuttPct}% (${threePuttCount} holes)`;
   statPenalties.textContent = penalties;
   if (statDrive250Label) {
-    statDrive250Label.textContent = DISTANCE_UNIT === 'm' ? '228m over' : '250yd over';
+    statDrive250Label.textContent = '250yd over';
   }
-  statLongestDrive.textContent = longestDriveValue === '-' ? '-' : `${longestDriveValue}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
-  statAvgDrive.textContent = avgDrive === '-' ? '-' : `${avgDrive}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  statLongestDrive.textContent = longestDriveDisplay == null ? '-' : `${longestDriveDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  statAvgDrive.textContent = avgDriveDisplay == null ? '-' : `${avgDriveDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statDrive250Plus.textContent = drive250PlusCount || 0;
   statBBD.textContent = `${birdiesCount} / ${bogeysCount} / ${doublesCount}`;
-  statProximity.textContent = avgProximity === '-' ? '-' : `${avgProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
-  statClubProximity.textContent = avgClubProximity === '-' ? '-' : `${avgClubProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  if (statSgOtt) statSgOtt.textContent = formatSgValue(sgOtt);
+  if (statSgApproach) statSgApproach.textContent = formatSgValue(sgApproach);
+  if (statSgAround) statSgAround.textContent = formatSgValue(sgAround);
+  if (statSgPutting) {
+    const missText = (Number(sgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(sgPuttingMissingLinks)}` : '';
+    statSgPutting.textContent = `${formatSgValue(sgPutting)} (Exp ${formatAvgValue(sgPuttingExpected)} / Act ${formatAvgValue(sgPuttingActual)}${missText})`;
+  }
+  if (statSgTotal) statSgTotal.textContent = formatSgValue(sgTotal);
+  if (statScramblingRate) statScramblingRate.textContent = scramblingRate == null ? '-' : `${scramblingRate}% (${scrambleSuccess}/${scrambleAttempts})`;
+  statProximity.textContent = avgProximityDisplay == null ? '-' : `${avgProximityDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+  statClubProximity.textContent = avgClubProximityDisplay == null ? '-' : `${avgClubProximityDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statDriverFairPct.textContent = `${driverFairPct}%`;
   if (statChipProximity) {
     if (chipProximityDistances.length === 0) { statChipProximity.textContent = '-'; }
     else {
       const withinLabel = DISTANCE_UNIT === 'm' ? 'within 1m' : 'within 1yd';
-      statChipProximity.textContent = `${avgChipProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}  (${withinLabel}: ${chipWithin1}/${chipProximityDistances.length})`;
+      statChipProximity.textContent = `${avgChipProximityDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}  (${withinLabel}: ${chipWithin1}/${chipProximityDistances.length})`;
     }
   }
   if (statGreensideBunkerProximity) {
-    statGreensideBunkerProximity.textContent = avgGreensideBunkerProximity === '-' ? '-' : `${avgGreensideBunkerProximity}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'} (${greensideBunkerProximityDistances.length} shots)`;
+    statGreensideBunkerProximity.textContent = avgGreensideBunkerProximityDisplay == null ? '-' : `${avgGreensideBunkerProximityDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'} (${greensideBunkerProximityDistances.length} shots)`;
   }
 
   let summaryTotalForHeader = displayTotalStrokes;
@@ -2606,12 +2980,15 @@ function recomputeRound(){
       const avgPutts = avgBy('totalPutts');
       const avgPenalties = avgBy('penalties');
       const totalGirCount = sumBy('gir');
+      const avgGirCount = avgBy('gir');
       const totalGirDenominator = sumBy('girDenominator');
       const pooledGirPct = totalGirDenominator ? (totalGirCount / totalGirDenominator) * 100 : 0;
       const totalOnePuttCount = sumBy('onePuttCount');
+      const avgOnePuttCount = avgBy('onePuttCount');
       const totalOnePuttDenominator = sumBy('onePuttDenominator');
       const pooledOnePuttPct = totalOnePuttDenominator ? (totalOnePuttCount / totalOnePuttDenominator) * 100 : 0;
       const totalThreePuttCount = sumBy('threePuttCount');
+      const avgThreePuttCount = avgBy('threePuttCount');
       const totalThreePuttDenominator = sumBy('threePuttDenominator');
       const pooledThreePuttPct = totalThreePuttDenominator ? (totalThreePuttCount / totalThreePuttDenominator) * 100 : 0;
       const totalDriverFairways = sumBy('driverFairways');
@@ -2626,18 +3003,42 @@ function recomputeRound(){
       const avgBogeys = avgBy('bogeysCount');
       const avgDoubles = avgBy('doublesCount');
       const avgPar = avgBy('totalPar');
+      const avgSgOtt = avgBy('sgOtt');
+      const avgSgApproach = avgBy('sgApproach');
+      const avgSgAround = avgBy('sgAround');
+      const avgSgPutting = avgBy('sgPutting');
+      const avgSgTotal = avgBy('sgTotal');
+      const avgSgPuttingExpected = avgBy('sgPuttingExpected');
+      const avgSgPuttingActual = avgBy('sgPuttingActual');
+      const avgSgPuttingMissingLinks = avgBy('sgPuttingMissingLinks');
+      const totalScrambleAttempts = sumBy('scrambleAttempts');
+      const totalScrambleSuccess = sumBy('scrambleSuccess');
+      const pooledScramblingRate = totalScrambleAttempts ? (totalScrambleSuccess / totalScrambleAttempts) * 100 : 0;
+      const avgScrambleAttempts = avgBy('scrambleAttempts');
+      const avgScrambleSuccess = avgBy('scrambleSuccess');
 
       statTotalStrokes.textContent = formatAvgValue(avgTotalStrokes);
-      statGIR.textContent = `${formatAvgValue(totalGirCount)} (${Math.round(pooledGirPct)}%)`;
+      statGIR.textContent = `${formatAvgValue(avgGirCount)} (${Math.round(pooledGirPct)}%)`;
       statPutts.textContent = formatAvgValue(avgPutts);
-      statOnePuttPct.textContent = `${Math.round(pooledOnePuttPct)}% (${formatAvgValue(totalOnePuttCount)} holes)`;
-      statThreePuttPct.textContent = `${Math.round(pooledThreePuttPct)}% (${formatAvgValue(totalThreePuttCount)} holes)`;
+      statOnePuttPct.textContent = `${Math.round(pooledOnePuttPct)}% (${formatAvgValue(avgOnePuttCount)} holes)`;
+      statThreePuttPct.textContent = `${Math.round(pooledThreePuttPct)}% (${formatAvgValue(avgThreePuttCount)} holes)`;
       statPenalties.textContent = formatAvgValue(avgPenalties);
       statDriverFairPct.textContent = `${Math.round(pooledDriverFairPct)}%`;
-      statAvgDrive.textContent = (pooledAvgDrive != null && !isNaN(Number(pooledAvgDrive))) ? `${formatAvgValue(pooledAvgDrive)}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}` : '-';
-      statLongestDrive.textContent = (avgLongestDrive != null && !isNaN(Number(avgLongestDrive))) ? `${formatAvgValue(avgLongestDrive)}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}` : '-';
+      const pooledAvgDriveDisplay = (pooledAvgDrive != null && !isNaN(Number(pooledAvgDrive))) ? fromCalcYardsToDisplay(Number(pooledAvgDrive)) : null;
+      const avgLongestDriveDisplay = (avgLongestDrive != null && !isNaN(Number(avgLongestDrive))) ? fromCalcYardsToDisplay(Number(avgLongestDrive)) : null;
+      statAvgDrive.textContent = pooledAvgDriveDisplay == null ? '-' : `${formatAvgValue(pooledAvgDriveDisplay)}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
+      statLongestDrive.textContent = avgLongestDriveDisplay == null ? '-' : `${formatAvgValue(avgLongestDriveDisplay)}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
       statDrive250Plus.textContent = formatAvgValue(avgDrive250Plus);
       statBBD.textContent = `${formatAvgValue(avgBirdies)} / ${formatAvgValue(avgBogeys)} / ${formatAvgValue(avgDoubles)}`;
+      if (statSgOtt) statSgOtt.textContent = formatSgValue(avgSgOtt);
+      if (statSgApproach) statSgApproach.textContent = formatSgValue(avgSgApproach);
+      if (statSgAround) statSgAround.textContent = formatSgValue(avgSgAround);
+      if (statSgPutting) {
+        const avgMissText = (Number(avgSgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(avgSgPuttingMissingLinks)}` : '';
+        statSgPutting.textContent = `${formatSgValue(avgSgPutting)} (Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText})`;
+      }
+      if (statSgTotal) statSgTotal.textContent = formatSgValue(avgSgTotal);
+      if (statScramblingRate) statScramblingRate.textContent = `${Math.round(pooledScramblingRate)}% (${formatAvgValue(avgScrambleSuccess)}/${formatAvgValue(avgScrambleAttempts)})`;
 
       summaryTotalForHeader = avgTotalStrokes;
       summaryParForHeader = avgPar;
@@ -2691,9 +3092,13 @@ function recomputeRound(){
         const count = clubCounts[club] || 0;
         const onGreen = clubOnGreen[club] || 0;
         const distances = clubDists[club] || [];
-        const avgDist = distances.length ? `${(Math.round((distances.reduce((a,b)=>a+b,0)/distances.length) * 10) / 10)}${unitSuffix}` : '-';
+        const avgDistYd = distances.length ? (Math.round((distances.reduce((a,b)=>a+b,0)/distances.length) * 10) / 10) : null;
+        const avgDistDisplay = avgDistYd != null ? fromCalcYardsToDisplay(avgDistYd) : null;
+        const avgDist = avgDistDisplay != null ? `${avgDistDisplay}${unitSuffix}` : '-';
         const onGreenPct = count ? `${Math.round((onGreen / count) * 100)}%` : '0%';
-        const proxAvg = (clubProx[club] || []).length ? `${(Math.round((clubProx[club].reduce((a,b)=>a+b,0)/clubProx[club].length) * 10) / 10)}${unitSuffix}` : '-';
+        const proxYd = (clubProx[club] || []).length ? (Math.round((clubProx[club].reduce((a,b)=>a+b,0)/clubProx[club].length) * 10) / 10) : null;
+        const proxDisplay = proxYd != null ? fromCalcYardsToDisplay(proxYd) : null;
+        const proxAvg = proxDisplay != null ? `${proxDisplay}${unitSuffix}` : '-';
         return {club, count, avgDist, onGreen, onGreenPct, proxAvg};
       });
       rows.sort((a,b)=>{
@@ -2727,7 +3132,9 @@ function recomputeRound(){
               const clubName = normalizeShotType(sh && sh.shotType);
               const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
               if (curRem != null && shouldCount && prevRemaining != null){
-                const shotDist = Math.max(0, prevRemaining - curRem);
+                const prevRemainingYd = toCalcYards(prevRemaining);
+                const curRemYd = toCalcYards(curRem);
+                const shotDist = (prevRemainingYd != null && curRemYd != null) ? Math.max(0, prevRemainingYd - curRemYd) : null;
                 if (isReasonableClubDistance(clubName, shotDist, sh)){
                   const bucket = getDistBucket(shotDist);
                   if (bucket){
@@ -2737,7 +3144,7 @@ function recomputeRound(){
                     if (isGreenResult(res)){
                       distStats[bucket].onGreen += 1;
                       if (sh.distanceToHole != null && sh.distanceToHole !== '' && !isNaN(Number(sh.distanceToHole)) && Number(sh.distanceToHole) > 0){
-                        distStats[bucket].proximities.push(Math.abs(Number(sh.distanceToHole)));
+                        distStats[bucket].proximities.push(Math.abs(toCalcYards(Number(sh.distanceToHole))));
                       }
                     }
                   }
@@ -2752,7 +3159,9 @@ function recomputeRound(){
           const count = stats.count || 0;
           const onGreen = stats.onGreen || 0;
           const onGreenPct = count ? `${Math.round((onGreen / count) * 100)}%` : '0%';
-          const proxAvg = stats.proximities.length ? `${(Math.round((stats.proximities.reduce((a,b)=>a+b,0)/stats.proximities.length) * 10) / 10)}${unitSuffix}` : '-';
+          const proxYd = stats.proximities.length ? (Math.round((stats.proximities.reduce((a,b)=>a+b,0)/stats.proximities.length) * 10) / 10) : null;
+          const proxDisplay = proxYd != null ? fromCalcYardsToDisplay(proxYd) : null;
+          const proxAvg = proxDisplay != null ? `${proxDisplay}${unitSuffix}` : '-';
           return {bucket, count, onGreen, onGreenPct, proxAvg};
         });
         let html = '<div style="display:flex; gap:20px; flex-wrap:wrap;">';
