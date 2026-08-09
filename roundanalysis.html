@@ -44,7 +44,7 @@
       <h3>관리 선수 목록</h3>
       <ul id="playerList"></ul>
     </div>
-    <iframe id="coachFrame" src="golf_rounddatanput(26.2.1).html"></iframe>
+    <iframe id="coachFrame" src="golf_rounddatanput(26.8.6f).html"></iframe>
   </div>
 
   <script>
@@ -61,7 +61,7 @@
       const encoded = params.get('supabase_session');
       const frame = document.getElementById('coachFrame');
       if(frame && encoded){
-        const base = frame.getAttribute('src') || 'golf_rounddatanput(26.2.1).html';
+        const base = frame.getAttribute('src') || 'golf_rounddatanput(26.8.6f).html';
         const sep = base.includes('?') ? '&' : '?';
         frame.src = base + sep + 'supabase_session=' + encoded;
       }

@@ -231,7 +231,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.5f</div>
+      <div class="tiny muted">버전 26.8.6f</div>
     </div>
   </header>
 
@@ -504,6 +504,13 @@
         <div id="clubDataPanel" class="hidden" style="margin-top:8px;">
           <!-- populated with non-Driver club stats table -->
         </div>
+      </div>
+      <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.15);">
+        <div id="btnToggleMissShotReport" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; font-weight:700; color:#f2f2f2; cursor:pointer; user-select:none;">
+          <span>Miss Shot Report</span>
+          <span style="font-size:12px; opacity:0.8;">▼</span>
+        </div>
+        <div id="missShotReportPanel" class="hidden" style="display:grid; gap:10px;"></div>
       </div>
 
     <div class="card-header mt8">
@@ -1291,6 +1298,8 @@ const statDriverFairPct = document.getElementById('statDriverFairPct');
 const clubStatsEl = document.getElementById('clubStats');
 const btnToggleClubData = document.getElementById('btnToggleClubData');
 const clubDataPanel = document.getElementById('clubDataPanel');
+const btnToggleMissShotReport = document.getElementById('btnToggleMissShotReport');
+const missShotReportPanel = document.getElementById('missShotReportPanel');
 const totalScoreLabel = document.getElementById('totalScoreLabel');
 const parDiffLabel = document.getElementById('parDiff');
 const summaryModeLabel = document.getElementById('summaryModeLabel');
@@ -1575,6 +1584,14 @@ if (btnToggleAll) btnToggleAll.addEventListener('click', ()=>{
 if (btnToggleClubData && clubDataPanel) btnToggleClubData.addEventListener('click', ()=>{
   clubDataPanel.classList.toggle('hidden');
 });
+if (btnToggleMissShotReport && missShotReportPanel) {
+  btnToggleMissShotReport.addEventListener('click', ()=>{
+    missShotReportPanel.classList.toggle('hidden');
+    const expanded = !missShotReportPanel.classList.contains('hidden');
+    btnToggleMissShotReport.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    btnToggleMissShotReport.style.opacity = expanded ? '1' : '0.85';
+  });
+}
 if (btnPrevHole) btnPrevHole.addEventListener('click', ()=>{
   if (singleHoleIndex>1) { singleHoleIndex--; renderHoles(); if (!showAllHoles) startHole(singleHoleIndex); }
 });
@@ -2736,6 +2753,373 @@ function formatAvgValue(value){
   return Number.isInteger(num) ? String(num) : (Math.round(num * 10) / 10).toFixed(1).replace(/\.0$/, '');
 }
 
+function getShotDistanceYd(sh){
+  if (!sh || sh.distanceToHole == null || sh.distanceToHole === '' || isNaN(Number(sh.distanceToHole))) return null;
+  return Math.abs(toCalcYards(Number(sh.distanceToHole)));
+}
+
+function isDriverWoodClub(clubName){
+  return ['Driver','Drive','3Wood','5Wood','Wood','Utility1','Utility2','Utility'].includes(clubName);
+}
+
+function isDriverWoodMissShot(sh){
+  if (!sh) return false;
+  const rKey = normResultKey((sh && sh.result) || '');
+  return rKey.indexOf('rough') >= 0 || rKey.indexOf('hazard') >= 0 || rKey.indexOf('ob') >= 0 || rKey.indexOf('out') >= 0 || rKey.indexOf('water') >= 0 || rKey.indexOf('penalty') >= 0;
+}
+
+function getMissShotCategory(sh, indexInHole){
+  const clubName = normalizeShotType(sh && sh.shotType);
+  const rKey = normResultKey((sh && sh.result) || '');
+  const lieKey = normResultKey((sh && sh.lie) || '');
+  const isShortGameCandidate =
+    rKey === 'aroundgreen' ||
+    rKey === 'aroundthegreen' ||
+    rKey === 'bunkergreenside' ||
+    rKey === 'greensidebunker' ||
+    rKey === 'chip' ||
+    rKey === 'pitch' ||
+    rKey === 'chipshot' ||
+    rKey === 'pitchshot' ||
+    lieKey === 'fringe' ||
+    lieKey === 'green' ||
+    lieKey === 'ongreen' ||
+    lieKey.indexOf('around') >= 0 ||
+    lieKey.indexOf('greenside') >= 0;
+  if (indexInHole === 1 && isDriverWoodClub(clubName)) return 'tee';
+  if (isShortGameCandidate) return 'shortgame';
+  if (isWedgeClub(clubName) && Number(sh.distanceToHole || 0) <= getWedgeChipThreshold()) return 'shortgame';
+  return 'approach';
+}
+
+function isSuccessShot(category, sh, distYd){
+  const rKey = normResultKey((sh && sh.result) || '');
+  if (category === 'tee') {
+    return isFairwayResult(sh.result) || isGreenResult(sh.result);
+  }
+  if (category === 'approach') {
+    return isGreenResult(sh.result);
+  }
+  if (category === 'shortgame') {
+    if (isGreenResult(sh.result)) return true;
+    return distYd != null && distYd <= 3;
+  }
+  return false;
+}
+
+function isMissShot(category, sh, distYd){
+  if (!sh) return false;
+  if (Number(sh.penalty || 0) > 0) return true;
+  const rKey = normResultKey((sh && sh.result) || '');
+  if (category === 'tee') {
+    if (isSuccessShot(category, sh, distYd)) return false;
+    return rKey.indexOf('rough') >= 0 || rKey.indexOf('bunker') >= 0 || rKey.indexOf('penalty') >= 0 || rKey.indexOf('hazard') >= 0 || rKey.indexOf('ob') >= 0 || rKey.indexOf('out') >= 0 || rKey.indexOf('water') >= 0;
+  }
+  if (category === 'approach') {
+    if (isSuccessShot(category, sh, distYd)) return false;
+    return rKey.indexOf('rough') >= 0 || rKey.indexOf('bunker') >= 0 || rKey.indexOf('around') >= 0 || rKey.indexOf('penalty') >= 0 || rKey.indexOf('hazard') >= 0 || rKey.indexOf('ob') >= 0 || rKey.indexOf('out') >= 0 || rKey.indexOf('water') >= 0;
+  }
+  if (category === 'shortgame') {
+    if (isSuccessShot(category, sh, distYd)) return false;
+    return rKey.indexOf('around') >= 0 || rKey.indexOf('bunker') >= 0 || rKey.indexOf('greenside') >= 0 || rKey.indexOf('penalty') >= 0 || rKey.indexOf('hazard') >= 0 || distYd != null && distYd > 3;
+  }
+  return false;
+}
+
+function isSevereMissShot(category, sh){
+  if (!sh) return false;
+  if (Number(sh.penalty || 0) > 0) return true;
+  const rKey = normResultKey((sh && sh.result) || '');
+  return rKey.indexOf('bunker') >= 0 || rKey.indexOf('greenside') >= 0 || rKey.indexOf('penalty') >= 0 || rKey.indexOf('hazard') >= 0 || rKey.indexOf('ob') >= 0 || rKey.indexOf('out') >= 0 || rKey.indexOf('water') >= 0;
+}
+
+function getMissShotDistanceBucket(distYd){
+  if (distYd == null || isNaN(Number(distYd))) return null;
+  const d = Number(distYd);
+  if (d <= 60) return '60y 이내';
+  if (d <= 100) return '100y 이내';
+  if (d <= 130) return '130y 이내';
+  if (d <= 150) return '150y 이내';
+  if (d <= 170) return '170y 이내';
+  if (d <= 200) return '200y 이내';
+  return '200y 초과';
+}
+
+function getDistanceMissThreshold(bucketKey){
+  switch (bucketKey) {
+    case '60y 이내':
+    case '100y 이내':
+      return 5;
+    case '130y 이내':
+      return 6;
+    case '150y 이내':
+      return 7;
+    case '170y 이내':
+      return 8;
+    case '200y 이내':
+      return 12;
+    default:
+      return null;
+  }
+}
+
+function getDistanceMissSummaryText(bucketKey){
+  const threshold = getDistanceMissThreshold(bucketKey);
+  if (threshold == null) return '거리감 미스 기준이 적용되지 않는 구간입니다.';
+  const displayBucket = bucketKey === '60y 이내' ? '60y 이하' : bucketKey === '100y 이내' ? '100y 이하' : bucketKey === '130y 이내' ? '100~130y' : bucketKey === '150y 이내' ? '130~150y' : bucketKey === '170y 이내' ? '150~170y' : bucketKey === '200y 이내' ? '170~200y' : bucketKey;
+  return `${displayBucket} 구간에서 거리감 미스율이 가장 높습니다. (핀 근접도 기준: ${threshold}야드 초과)`;
+}
+
+function buildMissShotReportData(){
+  const clubBuckets = {};
+  const distanceBuckets = {};
+  const missBreakdown = {};
+  const summary = {
+    teeAttempts: 0,
+    teeMisses: 0,
+    teeSevereMisses: 0,
+    approachAttempts: 0,
+    approachMisses: 0,
+    approachSevereMisses: 0,
+    shortGameAttempts: 0,
+    shortGameMisses: 0,
+    shortGameSevereMisses: 0
+  };
+  const distanceMissBuckets = {};
+
+  for (let holeIndex = 1; holeIndex <= 18; holeIndex++) {
+    const orderedShots = (shotsByHole[holeIndex] || []).slice().sort((a, b) => (Number(a.shotNumber) || 0) - (Number(b.shotNumber) || 0));
+    orderedShots.forEach((sh, idx) => {
+      if (!sh || !sh.shotType || normalizeShotType(sh.shotType) === 'Putter' || (sh.putts && Number(sh.putts) > 0)) return;
+      const category = getMissShotCategory(sh, idx + 1);
+      const distYd = getShotDistanceYd(sh);
+      const clubName = normalizeShotType(sh.shotType);
+      const bucket = clubName || 'Other';
+      if (!clubBuckets[bucket]) {
+        clubBuckets[bucket] = { count: 0, success: 0, miss: 0, severeMiss: 0, proxTotal: 0, proxCount: 0 };
+      }
+      const clubStat = clubBuckets[bucket];
+      clubStat.count += 1;
+      const isDriverWood = isDriverWoodClub(clubName);
+      let isSuccess = false;
+      let isMiss = false;
+      if (category === 'tee') {
+        summary.teeAttempts += 1;
+        isSuccess = isSuccessShot(category, sh, distYd);
+        isMiss = isMissShot(category, sh, distYd);
+        if (isSuccess) {
+          clubStat.success += 1;
+        } else if (isMiss) {
+          clubStat.miss += 1;
+          summary.teeMisses += 1;
+          if (isSevereMissShot(category, sh)) {
+            clubStat.severeMiss += 1;
+            summary.teeSevereMisses += 1;
+          }
+        }
+      } else if (category === 'approach') {
+        summary.approachAttempts += 1;
+        isSuccess = isSuccessShot(category, sh, distYd);
+        isMiss = isMissShot(category, sh, distYd);
+        if (isSuccess) {
+          clubStat.success += 1;
+        } else if (isMiss) {
+          clubStat.miss += 1;
+          summary.approachMisses += 1;
+          if (isSevereMissShot(category, sh)) {
+            clubStat.severeMiss += 1;
+            summary.approachSevereMisses += 1;
+          }
+        }
+      } else if (category === 'shortgame') {
+        summary.shortGameAttempts += 1;
+        isSuccess = isSuccessShot(category, sh, distYd);
+        isMiss = isMissShot(category, sh, distYd);
+        if (isSuccess) {
+          clubStat.success += 1;
+        } else if (isMiss) {
+          clubStat.miss += 1;
+          summary.shortGameMisses += 1;
+          if (isSevereMissShot(category, sh)) {
+            clubStat.severeMiss += 1;
+            summary.shortGameSevereMisses += 1;
+          }
+        }
+      }
+      if (!isDriverWood && distYd != null && category !== 'tee') {
+        clubStat.proxTotal += distYd;
+        clubStat.proxCount += 1;
+      }
+      if (category !== 'tee') {
+        const distBucket = getMissShotDistanceBucket(distYd);
+        if (distBucket) {
+          if (!distanceBuckets[distBucket]) {
+            distanceBuckets[distBucket] = { count: 0, success: 0, miss: 0, proxTotal: 0, proxCount: 0 };
+          }
+          const distStat = distanceBuckets[distBucket];
+          distStat.count += 1;
+          if (isSuccess) {
+            distStat.success += 1;
+          } else if (isMiss) {
+            distStat.miss += 1;
+          }
+          if (!isDriverWood && distYd != null) {
+            distStat.proxTotal += distYd;
+            distStat.proxCount += 1;
+          }
+        }
+        if (distBucket && !isDriverWood) {
+          if (!distanceMissBuckets[distBucket]) {
+            distanceMissBuckets[distBucket] = { count: 0, miss: 0 };
+          }
+          const distanceMissBucket = distanceMissBuckets[distBucket];
+          distanceMissBucket.count += 1;
+          const threshold = getDistanceMissThreshold(distBucket);
+          if (threshold != null && distYd != null && distYd > threshold) {
+            distanceMissBucket.miss += 1;
+          }
+        }
+      }
+      if (isMiss) {
+        const missKey = normResultKey((sh && sh.result) || '');
+        if (!missBreakdown[missKey || 'unknown']) missBreakdown[missKey || 'unknown'] = { label: (sh && sh.result) ? sh.result : 'Unknown', count: 0 };
+        missBreakdown[missKey || 'unknown'].count += 1;
+      }
+    });
+  }
+
+  const clubRows = Object.keys(clubBuckets).map((club) => {
+    const stat = clubBuckets[club];
+    const missRate = stat.count ? Math.round((stat.miss / stat.count) * 100) : 0;
+    const severeRate = stat.count ? Math.round((stat.severeMiss / stat.count) * 100) : 0;
+    const proxAvg = stat.proxCount ? Math.round((stat.proxTotal / stat.proxCount) * 10) / 10 : null;
+    const isDriverWood = isDriverWoodClub(club);
+    return { club, count: stat.count, missCount: stat.miss, successRate: 100 - missRate, missRate, severeRate, proxAvg: isDriverWood ? null : proxAvg };
+  }).sort((a, b) => (b.count - a.count) || a.club.localeCompare(b.club));
+
+  const distanceBucketOrder = ['60y 이내','100y 이내','130y 이내','150y 이내','170y 이내','200y 이내','200y 초과'];
+  const distanceRows = distanceBucketOrder
+    .filter((bucket) => distanceBuckets[bucket])
+    .map((bucket) => {
+      const stat = distanceBuckets[bucket];
+      const missRate = stat.count ? Math.round((stat.miss / stat.count) * 100) : 0;
+      const proxAvg = stat.proxCount ? Math.round((stat.proxTotal / stat.proxCount) * 10) / 10 : null;
+      return { bucket, count: stat.count, missCount: stat.miss, successRate: 100 - missRate, missRate, proxAvg };
+    });
+  if (!distanceRows.length) {
+    distanceBucketOrder.forEach((bucket) => {
+      distanceRows.push({ bucket, count: 0, missCount: 0, successRate: 0, missRate: 0, proxAvg: null });
+    });
+  }
+
+  const breakdownRows = Object.keys(missBreakdown)
+    .map((key) => ({
+      key,
+      label: missBreakdown[key].label,
+      count: missBreakdown[key].count
+    }))
+    .filter((row) => {
+      const normalized = normResultKey(row.key);
+      return normalized !== 'fairway' && normalized !== 'green' && normalized !== 'ongreen' && normalized !== 'inhole';
+    })
+    .sort((a, b) => b.count - a.count);
+
+  const distanceMissZone = Object.keys(distanceMissBuckets).reduce((best, key) => {
+    const stat = distanceMissBuckets[key];
+    const rate = stat.count ? stat.miss / stat.count : null;
+    if (rate == null) return best;
+    if (!best || rate > best.rate) return { key, rate };
+    return best;
+  }, null);
+
+  return {
+    summary,
+    clubRows,
+    distanceRows,
+    breakdownRows,
+    distanceMissZone
+  };
+}
+
+function renderMissShotReport(report){
+  const el = document.getElementById('missShotReportPanel');
+  if (!el) return;
+  if (!report || !report.summary) {
+    el.innerHTML = '<div class="tiny muted">No miss-shot data yet.</div>';
+    return;
+  }
+  const summary = report.summary;
+  const teeMissRate = summary.teeAttempts ? Math.round((summary.teeMisses / summary.teeAttempts) * 100) : 0;
+  const approachMissRate = summary.approachAttempts ? Math.round((summary.approachMisses / summary.approachAttempts) * 100) : 0;
+  const shortGameMissRate = summary.shortGameAttempts ? Math.round((summary.shortGameMisses / summary.shortGameAttempts) * 100) : 0;
+  const severeMissRate = (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts) ? Math.round(((summary.teeSevereMisses + summary.approachSevereMisses + summary.shortGameSevereMisses) / (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts)) * 100) : 0;
+  const distanceMissText = report.distanceMissZone ? getDistanceMissSummaryText(report.distanceMissZone.key) : 'No distance-miss data';
+  const cards = [];
+  cards.push(`
+    <div style="display:grid; gap:8px; grid-template-columns:repeat(2, minmax(0, 1fr));">
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
+        <div class="tiny muted">티샷 미스율</div>
+        <div style="font-size:16px; font-weight:800;">${teeMissRate}%</div>
+        <div class="tiny muted">${summary.teeAttempts} attempts / ${summary.teeMisses} misses</div>
+      </div>
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
+        <div class="tiny muted">어프로치 미스율</div>
+        <div style="font-size:16px; font-weight:800;">${approachMissRate}%</div>
+        <div class="tiny muted">${summary.approachAttempts} attempts / ${summary.approachMisses} misses</div>
+      </div>
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
+        <div class="tiny muted">숏게임 미스율</div>
+        <div style="font-size:16px; font-weight:800;">${shortGameMissRate}%</div>
+        <div class="tiny muted">${summary.shortGameAttempts} attempts / ${summary.shortGameMisses} misses</div>
+      </div>
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
+        <div class="tiny muted">치명적 미스율</div>
+        <div style="font-size:16px; font-weight:800;">${severeMissRate}%</div>
+        <div class="tiny muted">Penalty / Bunker / Hazard 포함</div>
+      </div>
+    </div>
+  `);
+  cards.push(`
+    <div style="padding:10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
+      <div class="tiny muted" style="margin-bottom:6px;">거리감 미스 구간</div>
+      <div style="font-weight:700;">${distanceMissText}</div>
+    </div>
+  `);
+  const totalBreakdownCount = report.breakdownRows.reduce((sum, row) => sum + row.count, 0);
+  cards.push(`
+    <div style="display:grid; gap:10px; grid-template-columns:repeat(2, minmax(0, 1fr));">
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
+        <div class="tiny muted" style="margin-bottom:6px;">클럽별 미스율</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr><th style="text-align:left; padding:4px 6px 4px 0;">Club</th><th style="text-align:right; padding:4px 6px;">Count</th><th style="text-align:right; padding:4px 6px;">Miss</th></tr></thead>
+          <tbody>
+            ${report.clubRows.slice(0, 8).map((row) => `<tr><td style="padding:3px 0;">${row.club}</td><td style="text-align:right; padding:4px 6px;">${row.count}</td><td style="text-align:right; padding:4px 6px;">${row.missCount} (${row.missRate}%)</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
+        <div class="tiny muted" style="margin-bottom:6px;">거리 구간별 미스율</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr><th style="text-align:left; padding:4px 6px 4px 0;">구간</th><th style="text-align:right; padding:4px 6px;">Count</th><th style="text-align:right; padding:4px 6px;">Miss</th></tr></thead>
+          <tbody>
+            ${report.distanceRows.map((row) => `<tr><td style="padding:3px 0;">${row.bucket}</td><td style="text-align:right; padding:4px 6px;">${row.count}</td><td style="text-align:right; padding:4px 6px;">${row.missCount} (${row.missRate}%)</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
+        <div class="tiny muted" style="margin-bottom:6px;">미스 유형 분포</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr><th style="text-align:left; padding:4px 0;">유형</th><th style="text-align:right; padding:4px 0;">Count</th></tr></thead>
+          <tbody>
+            ${report.breakdownRows.slice(0, 8).map((row) => `<tr><td style="padding:3px 0;">${row.label}</td><td style="text-align:right;">${row.count} (${totalBreakdownCount ? Math.round((row.count / totalBreakdownCount) * 100) : 0}%)</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  el.innerHTML = cards.join('');
+}
+
 function recomputeRound(){
   let totalStrokes = 0;
   let totalClubShots = 0;
@@ -3175,6 +3559,9 @@ function recomputeRound(){
       if (summaryModeLabel) summaryModeLabel.textContent = `평균모드 (${roundCount}경기)`;
     }
   }
+  const missShotReport = buildMissShotReportData();
+  renderMissShotReport(missShotReport);
+
   // club averages display (non-driver details are in clubDataPanel)
   if (clubStatsEl){
     clubStatsEl.innerHTML = '';
