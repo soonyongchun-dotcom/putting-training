@@ -724,6 +724,7 @@ function restoreRoundFromRemote(row){
   const payload = row.round_payload || {};
   const remoteSavedUnit = meta.distanceUnit || row.distance_unit || 'yd';
   const targetUnit = (remoteSavedUnit === 'm' || remoteSavedUnit === 'yd') ? remoteSavedUnit : (DISTANCE_UNIT === 'm' ? 'm' : 'yd');
+  const restoreRoundId = `server:${row.id}`;
   DISTANCE_UNIT = targetUnit;
   const holes = Array.isArray(payload.holes) ? payload.holes : [];
 
@@ -735,6 +736,11 @@ function restoreRoundFromRemote(row){
       return {
         hole: i,
         shotNumber: idx + 1,
+        roundShotNumber: idx + 1,
+        roundId: restoreRoundId,
+        roundPlayer: meta.player || row.player_name || row.player_id || '',
+        roundDate: meta.date || row.round_date || '',
+        roundCourse: meta.course || row.course || '',
         shotType: input.shotType || input.club || '',
         result: input.result || '',
         holeYardAtShot: holeData.yard != null && holeData.yard !== '' && !isNaN(Number(holeData.yard)) ? convertDistanceValue(Number(holeData.yard), remoteSavedUnit, targetUnit) : null,
@@ -745,7 +751,10 @@ function restoreRoundFromRemote(row){
         lie: input.lie || '',
         slope: input.slope || '',
         puttStartDistance: input.puttStartDistance != null && input.puttStartDistance !== '' && !isNaN(Number(input.puttStartDistance)) ? convertPuttStartDistanceValue(Number(input.puttStartDistance), remoteSavedUnit, targetUnit) : null,
-        timestamp: input.timestamp || ''
+        timestamp: input.timestamp || '',
+        parAtShot: holeData.par != null && !isNaN(Number(holeData.par)) ? Number(holeData.par) : 4,
+        sourceUnit: remoteSavedUnit,
+        targetUnit
       };
     });
 
@@ -2333,6 +2342,11 @@ function mapPuttLieToCategory(lie){
   return 'green';
 }
 
+function isStrictGreenPuttLie(lie){
+  const k = normResultKey(lie || '');
+  return k === 'green' || k === 'ongreen';
+}
+
 function getPgaExpectedStrokes(lieCategory, distanceCurrentUnit){
   if (lieCategory === 'hole') return 0;
   const dYd = toYardsFromCurrentUnit(distanceCurrentUnit);
@@ -2400,7 +2414,8 @@ function classifySgBucket(shot, startLieCategory, startDistanceCurrentUnit, hole
   const shotType = normalizeShotType(shot && shot.shotType);
   const startYd = toYardsFromCurrentUnit(startDistanceCurrentUnit);
   const startM = toMetersFromCurrentUnit(startDistanceCurrentUnit);
-  if (shotType === 'Putter' || startLieCategory === 'green') return 'putting';
+  if (startLieCategory === 'green') return 'putting';
+  if (shotType === 'Putter' && startLieCategory === 'around') return 'around';
   if (startLieCategory === 'tee' && Number(holePar || 4) >= 4) return 'ott';
   if (startLieCategory === 'around') return 'around';
   if (startLieCategory === 'sand') {
@@ -2459,6 +2474,22 @@ function resolveRawPuttStartDistance(puttShot){
   return null;
 }
 
+function resolveFirstOnGreenPuttFallbackDistance(orderedShots, puttShot){
+  if (!Array.isArray(orderedShots) || !puttShot) return null;
+  const puttIndex = orderedShots.indexOf(puttShot);
+  if (puttIndex < 0) return null;
+  for (let idx = puttIndex - 1; idx >= 0; idx--){
+    const shot = orderedShots[idx];
+    if (!shot || normalizeShotType(shot.shotType) === 'Putter') continue;
+    if (!isGreenResult(shot.result)) continue;
+    if (shot.distanceToHole != null && shot.distanceToHole !== '' && !isNaN(Number(shot.distanceToHole)) && Number(shot.distanceToHole) > 0) {
+      return Number(shot.distanceToHole);
+    }
+    break;
+  }
+  return null;
+}
+
 function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartYard){
   const shots = Array.isArray(orderedShots) ? orderedShots.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0)) : [];
   if (!shots.length) {
@@ -2513,9 +2544,11 @@ function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartY
     if (normResultKey(sh.result || '') === 'inhole') endLie = 'hole';
     else if (shotType === 'Putter' && endRemaining != null) endLie = 'green';
 
-    // Putts often miss reliable end-distance logging in field input.
-    // To avoid optimistic bias, putting SG is computed once per hole (below), not per putt shot.
-    if (shotType !== 'Putter'){
+    const isOnGreenPutter = shotType === 'Putter' && isStrictGreenPuttLie(sh.lie);
+
+    // On-green putts often miss reliable end-distance logging in field input.
+    // To avoid optimistic bias, SG putting is computed once per hole (below).
+    if (!isOnGreenPutter){
       const startExp = getExpectedStrokesByBaseline(startLie, startRemaining);
       const endExp = (endLie === 'hole') ? 0 : getExpectedStrokesByBaseline(endLie, endRemaining);
       if (startExp != null && endExp != null){
@@ -2538,18 +2571,28 @@ function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartY
 
   const puttingShots = shots.filter((sh)=>{
     if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
-    const lie = (sh.lie || '').toString().trim().toLowerCase();
-    return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
+    return isStrictGreenPuttLie(sh.lie);
   });
   if (puttingShots.length){
+    const firstPutt = puttingShots[0];
+    const firstRawStart = resolveRawPuttStartDistance(firstPutt);
+    const firstResolvedStart = firstRawStart != null ? firstRawStart : resolveFirstOnGreenPuttFallbackDistance(shots, firstPutt);
+    const firstNormStart = normalizeOnGreenPuttStartForSg(firstResolvedStart);
+    if (firstNormStart == null) {
+      sgPuttingMissingLinks += 1;
+    } else {
     let prevEndExp = null;
     for (let pIdx = 0; pIdx < puttingShots.length; pIdx++){
       const psh = puttingShots[pIdx];
-      const rawStart = resolveRawPuttStartDistance(psh);
+      const rawStart = pIdx === 0 ? firstResolvedStart : resolveRawPuttStartDistance(psh);
       const normStart = normalizeOnGreenPuttStartForSg(rawStart);
       let startExp = getExpectedStrokesByBaseline('green', normStart);
       if (startExp == null){
-        startExp = (prevEndExp != null) ? prevEndExp : 1.95;
+        if (prevEndExp == null) {
+          sgPuttingMissingLinks += 1;
+          break;
+        }
+        startExp = prevEndExp;
       }
 
       const isHoled = normResultKey(psh.result || '') === 'inhole';
@@ -2577,6 +2620,7 @@ function computeSgAndScramblingForOrderedShots(orderedShots, holePar, holeStartY
       prevEndExp = endExp;
       if (isHoled) prevEndExp = 0;
     }
+    }
   }
 
   return {
@@ -2602,7 +2646,7 @@ function calcMetricsForRound(roundId){
   let holesPlayed = 0;
   let onePuttCount = 0;
   let threePuttCount = 0;
-  let onGreenHoles = 0;
+  let onGreenPuttHoles = 0;
   let driverAttempts = 0;
   let driverFairways = 0;
   const driveLens = [];
@@ -2633,10 +2677,15 @@ function calcMetricsForRound(roundId){
     const onGreenPuttsOnHole = sArr.reduce((sum,sh)=>{
       if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return sum;
       const lie = (sh.lie || '').toString().trim().toLowerCase();
-      if (lie === 'ongreen' || lie === 'green' || lie === 'fringe') return sum + (Number(sh.putts) || 0);
+      if (isStrictGreenPuttLie(lie)) return sum + (Number(sh.putts) || 0);
       return sum;
     }, 0);
     totalPutts += onGreenPuttsOnHole;
+    if (onGreenPuttsOnHole > 0) {
+      onGreenPuttHoles++;
+      if (onGreenPuttsOnHole === 1) onePuttCount++;
+      if (onGreenPuttsOnHole >= 3) threePuttCount++;
+    }
 
     const clubShots = sArr.filter(sh=> normalizeShotType(sh && sh.shotType) && !(sh.putts && Number(sh.putts) > 0)).length;
     const penaltiesOnHole = sArr.reduce((sum,sh)=> sum + (Number(sh.penalty) || 0), 0);
@@ -2662,9 +2711,6 @@ function calcMetricsForRound(roundId){
     });
     if (approach){
       gir++;
-      onGreenHoles++;
-      if (onGreenPuttsOnHole === 1) onePuttCount++;
-      if (onGreenPuttsOnHole >= 3) threePuttCount++;
     }
 
     const firstDrive = sArr.find(sh => Number(sh.roundShotNumber != null ? sh.roundShotNumber : sh.shotNumber || 0) === 1 && ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
@@ -2695,8 +2741,8 @@ function calcMetricsForRound(roundId){
   }
 
   const girPct = holesPlayed ? (gir / holesPlayed) * 100 : 0;
-  const onePuttPct = onGreenHoles ? (onePuttCount / onGreenHoles) * 100 : 0;
-  const threePuttPct = onGreenHoles ? (threePuttCount / onGreenHoles) * 100 : 0;
+  const onePuttPct = onGreenPuttHoles ? (onePuttCount / onGreenPuttHoles) * 100 : 0;
+  const threePuttPct = onGreenPuttHoles ? (threePuttCount / onGreenPuttHoles) * 100 : 0;
   const driverFairPct = driverAttempts ? (driverFairways / driverAttempts) * 100 : 0;
   const avgDrive = driveLens.length ? (driveLens.reduce((a,b)=>a+b,0) / driveLens.length) : null;
   const driveDistanceSum = driveLens.reduce((a,b)=> a + Number(b || 0), 0);
@@ -2718,10 +2764,10 @@ function calcMetricsForRound(roundId){
     girDenominator: holesPlayed,
     onePuttCount,
     onePuttPct,
-    onePuttDenominator: onGreenHoles,
+    onePuttDenominator: onGreenPuttHoles,
     threePuttCount,
     threePuttPct,
-    threePuttDenominator: onGreenHoles,
+    threePuttDenominator: onGreenPuttHoles,
     driverFairways,
     driverAttempts,
     driverFairPct,
@@ -3144,7 +3190,7 @@ function recomputeRound(){
   let doublesCount = 0;
   const proximityDistances = [];
   const clubOnlyProximityDistances = [];
-  let onGreenHoles = 0;
+  let onGreenPuttHoles = 0;
   let onGreenPuttsTotal = 0;
   let driverAttempts = 0;
   let driverFairways = 0;
@@ -3168,8 +3214,7 @@ function recomputeRound(){
     const onGreenPuttsOnHole = sArr.reduce((sum,sh)=> {
       if (sh && normalizeShotType(sh.shotType) === 'Putter') {
         const lie = (sh.lie || '').toString().trim().toLowerCase();
-        const isOnGreen = (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
-        console.log(`[Hole ${i}] Putter shot: lie="${sh.lie}" -> normalized="${lie}" -> isOnGreen=${isOnGreen}, putts=${sh.putts}`);
+        const isOnGreen = isStrictGreenPuttLie(lie);
         if (isOnGreen) {
           return sum + (Number(sh.putts) || 0);
         }
@@ -3179,9 +3224,9 @@ function recomputeRound(){
     
     // track holes that had any on-green putts for statistics
     if (onGreenPuttsOnHole > 0) holesWithPutts++;
+    if (onGreenPuttsOnHole > 0) onGreenPuttHoles++;
     // accumulate total on-green putts
     totalPutts += onGreenPuttsOnHole;
-    console.log(`[Hole ${i}] onGreenPuttsOnHole=${onGreenPuttsOnHole}, totalPutts so far=${totalPutts}`);
     
     // count this hole as played if any shots were recorded
     if (sArr && sArr.length) holesPlayed++;
@@ -3246,19 +3291,18 @@ function recomputeRound(){
       // proximity: reflect larger value between green-hit remaining distance and first on-green putt start distance
       const proximityDist = getOnGreenProximityDistance(approach, sArr);
       if (proximityDist != null) proximityDistances.push(proximityDist);
-      // count on-green holes for statistics
-      onGreenHoles++;
       onGreenPuttsTotal += Number(onGreenPuttsOnHole || 0);
-      
-      // Collect 1-putt / 3+-putt distances: prefer recorded putter distance, fallback to approach distance
-      try{
+    }
+    
+    // Collect 1-putt / 3+-putt distances on any hole with a strict on-green putt.
+    try{
+      if (onGreenPuttsOnHole > 0){
+        const putterShot = sArr.find(sh=> {
+          if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
+          return isStrictGreenPuttLie(sh.lie);
+        });
         if (onGreenPuttsOnHole === 1){
           onePuttCount++;
-          const putterShot = sArr.find(sh=> {
-            if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
-            const lie = (sh.lie || '').toString().trim().toLowerCase();
-            return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
-          });
           let d = null;
           if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d = Math.abs(Number(putterShot.distanceToHole));
           else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d = Math.abs(Number(approach.distanceToHole));
@@ -3266,18 +3310,13 @@ function recomputeRound(){
         }
         if (onGreenPuttsOnHole >= 3){
           threePuttCount++;
-          const putterShot = sArr.find(sh=> {
-            if (!sh || normalizeShotType(sh.shotType) !== 'Putter') return false;
-            const lie = (sh.lie || '').toString().trim().toLowerCase();
-            return (lie === 'ongreen' || lie === 'green' || lie === 'fringe');
-          });
           let d3 = null;
           if (putterShot && putterShot.distanceToHole != null && !isNaN(Number(putterShot.distanceToHole))) d3 = Math.abs(Number(putterShot.distanceToHole));
           else if (approach && approach.distanceToHole != null && !isNaN(Number(approach.distanceToHole))) d3 = Math.abs(Number(approach.distanceToHole));
           if (d3 != null) threePutDistances.push(d3);
         }
-      }catch(e){}
-    }
+      }
+    }catch(e){}
     
 
     const orderedAll = sArr.slice().sort((a,b)=> (a.shotNumber||0) - (b.shotNumber||0));
@@ -3381,8 +3420,8 @@ function recomputeRound(){
   const avgDriveYd = driveLens.length ? Math.round((driveLens.reduce((a,b)=>a+b,0)/driveLens.length) * 10) / 10 : null;
   const longestDriveYd = longestDriveDistances.length ? Math.max(...longestDriveDistances) : null;
   const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 100) : 0;
-  const onePuttPct = onGreenHoles ? Math.round((onePuttCount / onGreenHoles) * 100) : 0;
-  const threePuttPct = onGreenHoles ? Math.round((threePuttCount / onGreenHoles) * 100) : 0;
+  const onePuttPct = onGreenPuttHoles ? Math.round((onePuttCount / onGreenPuttHoles) * 100) : 0;
+  const threePuttPct = onGreenPuttHoles ? Math.round((threePuttCount / onGreenPuttHoles) * 100) : 0;
   const driverFairPct = driverAttempts ? Math.round((driverFairways / driverAttempts) * 100) : 0;
   const avgProximityYd = proximityDistances.length ? Math.round((proximityDistances.reduce((a,b)=>a+b,0)/proximityDistances.length) * 10) / 10 : null;
   const avgClubProximityYd = clubOnlyProximityDistances.length ? Math.round((clubOnlyProximityDistances.reduce((a,b)=>a+b,0)/clubOnlyProximityDistances.length) * 10) / 10 : null;
