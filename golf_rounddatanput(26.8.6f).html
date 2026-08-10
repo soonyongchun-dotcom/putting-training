@@ -718,6 +718,15 @@ function getSelectedSyncedRounds(){
   return ids.map(id => map.get(id)).filter(Boolean);
 }
 
+function hasImportedRound(roundId){
+  if (!roundId) return false;
+  for (let i = 1; i <= 18; i++){
+    const arr = shotsByHole[i] || [];
+    if (arr.some((sh)=> sh && sh.roundId === roundId)) return true;
+  }
+  return false;
+}
+
 function restoreRoundFromRemote(row){
   if(!row || !row.id) return;
   const meta = row.round_meta || {};
@@ -812,7 +821,11 @@ function appendRoundFromRemote(row, options){
   }
 
   const holes = Array.isArray(payload.holes) ? payload.holes : [];
-  const importRoundId = `server:${row.id}:${Date.now()}`;
+  const importRoundId = `server:${row.id}`;
+  if (hasImportedRound(importRoundId)){
+    if (!silent) alert('같은 서버 라운드는 중복 누적할 수 없습니다.');
+    return { ok:false, reason:'duplicate-round', unit:targetUnit };
+  }
 
   for(let i=1;i<=18;i++){
     if(!HOLES[i]){
@@ -1079,6 +1092,11 @@ function isFairwayResult(r){
   return k === 'fairway' || k === 'fw';
 }
 
+function isGreensideBunkerResult(r){
+  const k = normResultKey(r);
+  return k === 'bunkergreenside' || k === 'greensidebunker';
+}
+
 function isValidDriveDistanceResult(r){
   const k = normResultKey(r);
   if (!k) return true;
@@ -1202,6 +1220,21 @@ function getOnGreenProximityDistance(approach, shots){
 function getApproachOnlyProximityDistance(approach){
   if (!approach || approach.distanceToHole == null || approach.distanceToHole === '' || isNaN(Number(approach.distanceToHole)) || Number(approach.distanceToHole) <= 0) return null;
   return Math.abs(toCalcYards(Number(approach.distanceToHole)));
+}
+
+function getShotRecordedProximityDistance(shot){
+  if (!shot || shot.distanceToHole == null || shot.distanceToHole === '' || isNaN(Number(shot.distanceToHole)) || Number(shot.distanceToHole) <= 0) return null;
+  return Math.abs(toCalcYards(Number(shot.distanceToHole)));
+}
+
+function getGreensideBunkerRecoveryProximityDistance(orderedShots, bunkerEntryIndex){
+  if (!Array.isArray(orderedShots) || bunkerEntryIndex == null || bunkerEntryIndex < 0) return null;
+  for (let idx = bunkerEntryIndex + 1; idx < orderedShots.length; idx++) {
+    const shot = orderedShots[idx];
+    if (!shot || normalizeShotType(shot.shotType) === 'Putter') break;
+    return getShotRecordedProximityDistance(shot);
+  }
+  return null;
 }
 
 // Returns club proximity for a single shot:
@@ -2261,7 +2294,7 @@ const PGA_SG_TABLE = {
   rough: [[20,2.35],[40,2.50],[60,2.64],[80,2.78],[100,2.91],[120,3.04],[140,3.16],[160,3.28],[180,3.39],[200,3.49],[220,3.59],[240,3.69],[260,3.78],[280,3.86],[300,3.94]],
   sand: [[10,2.45],[20,2.55],[30,2.65],[40,2.76],[60,2.94],[80,3.08],[100,3.22],[120,3.35],[140,3.47],[160,3.59],[180,3.70]],
   around: [[5,2.20],[10,2.35],[15,2.47],[20,2.58],[30,2.74],[40,2.89],[50,3.00]],
-  greenFt: [[1,1.00],[2,1.05],[3,1.13],[4,1.22],[5,1.31],[6,1.40],[8,1.56],[10,1.72],[15,1.95],[20,2.11],[25,2.23],[30,2.33],[40,2.50],[50,2.64],[60,2.75],[80,2.95]]
+  greenFt: [[1,1.00],[2,1.02],[3,1.07],[4,1.12],[5,1.18],[6,1.24],[8,1.37],[10,1.49],[15,1.72],[20,1.88],[25,2.00],[30,2.09],[40,2.24],[50,2.36],[60,2.46],[80,2.63]]
 };
 
 function convertAnchorYdToM(table){
@@ -2288,7 +2321,7 @@ const KLPGA_SG_TABLE = {
   rough: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.rough), 0.04, 0.07),
   sand: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.sand), 0.05, 0.06),
   around: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.around), 0.03, 0.04),
-  greenM: buildAdjustedExpectationTable(convertAnchorFtToM(PGA_SG_TABLE.greenFt), 0.01, 0.05)
+  greenM: buildAdjustedExpectationTable(convertAnchorFtToM(PGA_SG_TABLE.greenFt), 0.005, 0.03)
 };
 
 function interpolateExpected(table, distance){
@@ -3335,18 +3368,12 @@ function recomputeRound(){
           break;
         }
       }
-      if (rKey === 'bunkergreenside') {
+      if (isGreensideBunkerResult(sh.result)) {
         const remaining = orderedAll.length - si - 1;
         bunkerAttempts++;
         if (remaining <= 2) bunkerSaves++;
-        for (let ni = si + 1; ni < orderedAll.length; ni++) {
-          const nsh = orderedAll[ni];
-          if (!nsh || normalizeShotType(nsh.shotType) === 'Putter') break;
-          if (nsh.distanceToHole != null && nsh.distanceToHole !== '' && !isNaN(Number(nsh.distanceToHole)) && Number(nsh.distanceToHole) > 0) {
-            greensideBunkerProximityDistances.push(Math.abs(toCalcYards(Number(nsh.distanceToHole))));
-          }
-          break;
-        }
+        const bunkerProximity = getGreensideBunkerRecoveryProximityDistance(orderedAll, si);
+        if (bunkerProximity != null) greensideBunkerProximityDistances.push(bunkerProximity);
       }
     }
 
@@ -3585,7 +3612,7 @@ function recomputeRound(){
       if (statSgAround) statSgAround.textContent = formatSgValue(avgDisplaySgAround);
       if (statSgPutting) {
         const avgMissText = (Number(avgSgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(avgSgPuttingMissingLinks)}` : '';
-        statSgPutting.textContent = `${formatSgValue(avgDisplaySgPutting)} (Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText})`;
+        statSgPutting.textContent = `${formatSgValue(avgDisplaySgPutting)} (Round Avg Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText})`;
       }
       if (statPgaVsKlpga) {
         statPgaVsKlpga.textContent = '-';
@@ -3595,7 +3622,7 @@ function recomputeRound(){
 
       summaryTotalForHeader = avgTotalStrokes;
       summaryParForHeader = avgPar;
-      if (summaryModeLabel) summaryModeLabel.textContent = `평균모드 (${roundCount}경기)`;
+      if (summaryModeLabel) summaryModeLabel.textContent = `평균모드 (${roundCount}경기 · 경기당 평균)`;
     }
   }
   const missShotReport = buildMissShotReportData();
@@ -3906,17 +3933,11 @@ function buildSummaryElement(forPdf){
           break;
         }
       }
-      if (_rk === 'bunkergreenside'){ 
+      if (isGreensideBunkerResult(_sh.result)){ 
         _bAttempts++; 
         if (_ord.length - si - 1 <= 2) _bSaves++; 
-        for (let _ni = si + 1; _ni < _ord.length; _ni++) {
-          const _nsh = _ord[_ni];
-          if (!_nsh || normalizeShotType(_nsh.shotType) === 'Putter') break;
-          if (_nsh.distanceToHole != null && _nsh.distanceToHole !== '' && !isNaN(Number(_nsh.distanceToHole)) && Number(_nsh.distanceToHole) > 0) {
-            _greensideBunkerProxDists.push(Math.abs(Number(_nsh.distanceToHole)));
-          }
-          break;
-        }
+        const _bunkerProximity = getGreensideBunkerRecoveryProximityDistance(_ord, si);
+        if (_bunkerProximity != null) _greensideBunkerProxDists.push(_bunkerProximity);
       }
     }
   }
@@ -4965,8 +4986,8 @@ function processImportedCSV(rows, options){
   const courseMetaValue = firstRowLower.includes('course') ? firstRow[firstRowLower.indexOf('course') + 1] : '';
   const unitMetaValue = firstRowLower.includes('unit') ? firstRow[firstRowLower.indexOf('unit') + 1] : '';
   const normalizedUnitMeta = normalizeUnitToken(unitMetaValue);
-  const roundSeed = [dateMetaValue || '', courseMetaValue || '', playerMetaValue || ''].join('|') || String(Date.now());
-  const importRoundId = `import:${roundSeed}:${Date.now()}`;
+  const roundSeed = [dateMetaValue || '', courseMetaValue || '', playerMetaValue || ''].join('|');
+  const importRoundId = roundSeed ? `import:${roundSeed}` : `import:${Date.now()}`;
 
   if (playerMetaValue) {
     const playerEl = document.getElementById('playerName');
@@ -4983,6 +5004,10 @@ function processImportedCSV(rows, options){
   if (normalizedUnitMeta) savedUnit = normalizedUnitMeta;
 
   if (isAccumulate) {
+    if (roundSeed && hasImportedRound(importRoundId)) {
+      alert('같은 CSV 경기 데이터는 중복 누적할 수 없습니다.');
+      return;
+    }
     // In cumulative mode, keep a single app-wide target unit and require source-unit metadata.
     targetUnit = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
     if (!savedUnit) {
