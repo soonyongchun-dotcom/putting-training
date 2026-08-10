@@ -142,6 +142,7 @@
   .summary { gap:12px; }
   .stat { min-width:120px; padding:10px 12px; font-size:14px; }
   .stat strong { font-size:15px; color:var(--accent); display:block; margin-top:6px; }
+  .stat-note{font-size:0.92em; font-weight:600; opacity:0.78;}
   .muted{color:var(--muted);} 
   .danger{color:var(--danger);} 
   .ok{color:var(--ok);} 
@@ -551,7 +552,7 @@ const HOLES = []; // will contain 18 hole objects
 const shotsByHole = {}; // holeNumber -> array of shots
 let activeHole = null;
 let DISTANCE_UNIT = 'yd'; // 'yd' or 'm'
-let SG_BASELINE = 'pga'; // 'pga' or 'klpga'
+let SG_BASELINE = 'pga'; // 'pga' or 'lpga' or 'klpga'
 const STORAGE_KEY = 'golf_round_draft_v1';
 const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
 const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
@@ -2288,13 +2289,46 @@ function resolveGroupStartYard(holeNumber, groupShots){
 }
 
 // PGA 공개(요약) 기대타수 앵커를 사용한 SG 근사 계산
+const PUTTING_SG_LOOKUP = [
+  { yd: 1, ft: 3, m: 0.91, pga: 1.050, lpga: 1.052, klpga: 1.055 },
+  { yd: 2, ft: 6, m: 1.83, pga: 1.332, lpga: 1.350, klpga: 1.355 },
+  { yd: 3, ft: 9, m: 2.74, pga: 1.588, lpga: 1.620, klpga: 1.625 },
+  { yd: 4, ft: 12, m: 3.66, pga: 1.741, lpga: 1.770, klpga: 1.775 },
+  { yd: 5, ft: 15, m: 4.57, pga: 1.832, lpga: 1.855, klpga: 1.860 },
+  { yd: 6, ft: 18, m: 5.49, pga: 1.890, lpga: 1.910, klpga: 1.915 },
+  { yd: 7, ft: 21, m: 6.40, pga: 1.940, lpga: 1.960, klpga: 1.965 },
+  { yd: 8, ft: 24, m: 7.32, pga: 1.975, lpga: 1.990, klpga: 1.995 },
+  { yd: 9, ft: 27, m: 8.23, pga: 2.005, lpga: 2.018, klpga: 2.022 },
+  { yd: 10, ft: 30, m: 9.14, pga: 2.032, lpga: 2.040, klpga: 2.045 },
+  { yd: 11, ft: 33, m: 10.06, pga: 2.056, lpga: 2.065, klpga: 2.070 },
+  { yd: 12, ft: 36, m: 10.97, pga: 2.080, lpga: 2.090, klpga: 2.095 },
+  { yd: 13, ft: 39, m: 11.89, pga: 2.103, lpga: 2.113, klpga: 2.118 },
+  { yd: 14, ft: 42, m: 12.80, pga: 2.127, lpga: 2.137, klpga: 2.142 },
+  { yd: 15, ft: 45, m: 13.72, pga: 2.150, lpga: 2.160, klpga: 2.165 },
+  { yd: 20, ft: 60, m: 18.29, pga: 2.251, lpga: 2.255, klpga: 2.260 }
+];
+
 const PGA_SG_TABLE = {
   tee: [[80,2.95],[120,3.10],[160,3.30],[200,3.50],[240,3.72],[280,3.92],[320,4.10],[360,4.28],[400,4.44],[440,4.58],[480,4.72],[520,4.86],[560,5.00],[600,5.12]],
   fairway: [[20,2.20],[40,2.36],[60,2.50],[80,2.64],[100,2.77],[120,2.90],[140,3.02],[160,3.14],[180,3.25],[200,3.35],[220,3.45],[240,3.55],[260,3.64],[280,3.72],[300,3.80]],
   rough: [[20,2.35],[40,2.50],[60,2.64],[80,2.78],[100,2.91],[120,3.04],[140,3.16],[160,3.28],[180,3.39],[200,3.49],[220,3.59],[240,3.69],[260,3.78],[280,3.86],[300,3.94]],
   sand: [[10,2.45],[20,2.55],[30,2.65],[40,2.76],[60,2.94],[80,3.08],[100,3.22],[120,3.35],[140,3.47],[160,3.59],[180,3.70]],
   around: [[5,2.20],[10,2.35],[15,2.47],[20,2.58],[30,2.74],[40,2.89],[50,3.00]],
-  greenFt: [[1,1.00],[2,1.02],[3,1.07],[4,1.12],[5,1.18],[6,1.24],[8,1.37],[10,1.49],[15,1.72],[20,1.88],[25,2.00],[30,2.09],[40,2.24],[50,2.36],[60,2.46],[80,2.63]]
+  greenFt: PUTTING_SG_LOOKUP.map((row)=> [row.ft, row.pga])
+};
+
+const LPGA_PUTTING_SG_TABLE = {
+  greenFt: PUTTING_SG_LOOKUP.map((row)=> [row.ft, row.lpga]),
+  greenM: PUTTING_SG_LOOKUP.map((row)=> [row.m, row.lpga])
+};
+
+const LPGA_SG_TABLE = {
+  tee: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.tee), 0.02, 0.06),
+  fairway: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.fairway), 0.02, 0.05),
+  rough: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.rough), 0.03, 0.06),
+  sand: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.sand), 0.04, 0.05),
+  around: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.around), 0.02, 0.03),
+  greenM: LPGA_PUTTING_SG_TABLE.greenM
 };
 
 function convertAnchorYdToM(table){
@@ -2321,7 +2355,7 @@ const KLPGA_SG_TABLE = {
   rough: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.rough), 0.04, 0.07),
   sand: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.sand), 0.05, 0.06),
   around: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.around), 0.03, 0.04),
-  greenM: buildAdjustedExpectationTable(convertAnchorFtToM(PGA_SG_TABLE.greenFt), 0.005, 0.03)
+  greenM: PUTTING_SG_LOOKUP.map((row)=> [row.m, row.klpga])
 };
 
 function interpolateExpected(table, distance){
@@ -2418,10 +2452,29 @@ function getKlpgaExpectedStrokes(lieCategory, distanceCurrentUnit){
   return interpolateExpected(KLPGA_SG_TABLE.fairway, dM);
 }
 
+function getLpgaExpectedStrokes(lieCategory, distanceCurrentUnit){
+  if (lieCategory === 'hole') return 0;
+  const dM = toMetersFromCurrentUnit(distanceCurrentUnit);
+  if (dM == null) return null;
+  if (lieCategory === 'green'){
+    const greenDistM = Math.max(0.15, dM);
+    return interpolateExpected(LPGA_SG_TABLE.greenM, greenDistM);
+  }
+  if (lieCategory === 'tee') return interpolateExpected(LPGA_SG_TABLE.tee, dM);
+  if (lieCategory === 'rough') return interpolateExpected(LPGA_SG_TABLE.rough, dM);
+  if (lieCategory === 'sand') return interpolateExpected(LPGA_SG_TABLE.sand, dM);
+  if (lieCategory === 'around') return interpolateExpected(LPGA_SG_TABLE.around, dM);
+  if (lieCategory === 'recovery'){
+    const fairwayExp = interpolateExpected(LPGA_SG_TABLE.fairway, dM);
+    return fairwayExp != null ? fairwayExp + 0.25 : null;
+  }
+  return interpolateExpected(LPGA_SG_TABLE.fairway, dM);
+}
+
 function getExpectedStrokesByBaseline(lieCategory, distanceCurrentUnit){
-  return SG_BASELINE === 'klpga'
-    ? getKlpgaExpectedStrokes(lieCategory, distanceCurrentUnit)
-    : getPgaExpectedStrokes(lieCategory, distanceCurrentUnit);
+  if (SG_BASELINE === 'klpga') return getKlpgaExpectedStrokes(lieCategory, distanceCurrentUnit);
+  if (SG_BASELINE === 'lpga') return getLpgaExpectedStrokes(lieCategory, distanceCurrentUnit);
+  return getPgaExpectedStrokes(lieCategory, distanceCurrentUnit);
 }
 
 function resolveEndDistanceCurrentUnit(orderedShots, idx, shot, curRemaining){
@@ -2452,10 +2505,16 @@ function classifySgBucket(shot, startLieCategory, startDistanceCurrentUnit, hole
   if (startLieCategory === 'tee' && Number(holePar || 4) >= 4) return 'ott';
   if (startLieCategory === 'around') return 'around';
   if (startLieCategory === 'sand') {
-    if (SG_BASELINE === 'klpga' && startM != null && startM <= 41.15) return 'around';
-    if (SG_BASELINE !== 'klpga' && startYd != null && startYd <= 45) return 'around';
+    if ((SG_BASELINE === 'klpga' || SG_BASELINE === 'lpga') && startM != null && startM <= 41.15) return 'around';
+    if (SG_BASELINE === 'pga' && startYd != null && startYd <= 45) return 'around';
   }
   return 'approach';
+}
+
+function getSgBaselineMeta(){
+  if (SG_BASELINE === 'klpga') return { code: 'KLPGA', label: 'KLPGA / Meter Baseline' };
+  if (SG_BASELINE === 'lpga') return { code: 'LPGA', label: 'LPGA / Meter Baseline' };
+  return { code: 'PGA', label: 'PGA / Yard Baseline' };
 }
 
 function formatSgValue(value){
@@ -2465,18 +2524,22 @@ function formatSgValue(value){
   return `${sign}${n.toFixed(2)}`;
 }
 
+function formatStatWithNote(mainText, noteText){
+  if (!noteText) return String(mainText ?? '');
+  return `${String(mainText ?? '')} <span class="stat-note">(${String(noteText)})</span>`;
+}
+
 function getBaselineAdjustedSg(rawValue, bucket){
   return Number(rawValue || 0);
 }
 
 function refreshSgBaselineUi(){
+  const meta = getSgBaselineMeta();
   if (sgBaselineHeader) {
-    sgBaselineHeader.textContent = SG_BASELINE === 'klpga'
-      ? 'SG & Recovery Metrics (KLPGA / Meter Baseline)'
-      : 'SG & Recovery Metrics (PGA / Yard Baseline)';
+    sgBaselineHeader.textContent = `SG & Recovery Metrics (${meta.label})`;
   }
   if (btnToggleSgBaseline) {
-    btnToggleSgBaseline.textContent = SG_BASELINE === 'klpga' ? 'SG 기준: KLPGA' : 'SG 기준: PGA';
+    btnToggleSgBaseline.textContent = `SG 기준: ${meta.code}`;
   }
 }
 
@@ -3515,7 +3578,10 @@ function recomputeRound(){
   if (statSgAround) statSgAround.textContent = formatSgValue(displaySgAround);
   if (statSgPutting) {
     const missText = (Number(sgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(sgPuttingMissingLinks)}` : '';
-    statSgPutting.textContent = `${formatSgValue(displaySgPutting)} (Exp ${formatAvgValue(sgPuttingExpected)} / Act ${formatAvgValue(sgPuttingActual)}${missText})`;
+    statSgPutting.innerHTML = formatStatWithNote(
+      formatSgValue(displaySgPutting),
+      `Exp ${formatAvgValue(sgPuttingExpected)} / Act ${formatAvgValue(sgPuttingActual)}${missText}`
+    );
   }
   if (statPgaVsKlpga) {
     statPgaVsKlpga.textContent = '-';
@@ -3612,7 +3678,10 @@ function recomputeRound(){
       if (statSgAround) statSgAround.textContent = formatSgValue(avgDisplaySgAround);
       if (statSgPutting) {
         const avgMissText = (Number(avgSgPuttingMissingLinks || 0) > 0) ? ` · miss ${formatAvgValue(avgSgPuttingMissingLinks)}` : '';
-        statSgPutting.textContent = `${formatSgValue(avgDisplaySgPutting)} (Round Avg Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText})`;
+        statSgPutting.innerHTML = formatStatWithNote(
+          formatSgValue(avgDisplaySgPutting),
+          `Avg Exp ${formatAvgValue(avgSgPuttingExpected)} / Act ${formatAvgValue(avgSgPuttingActual)}${avgMissText}`
+        );
       }
       if (statPgaVsKlpga) {
         statPgaVsKlpga.textContent = '-';
@@ -4015,11 +4084,11 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Longest Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statLongestDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Avg Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statAvgDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Driver Fairway</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statDriverFairPct.textContent}</td></tr>
-      <tr><td colspan="2" style="padding:8px 10px;border:1px solid #f1f5f9;background:#f8fafc;font-weight:700;color:#0f172a;">SG &amp; Recovery Metrics (${SG_BASELINE === 'klpga' ? 'KLPGA / Meter Baseline' : 'PGA / Yard Baseline'})</td></tr>
+      <tr><td colspan="2" style="padding:8px 10px;border:1px solid #f1f5f9;background:#f8fafc;font-weight:700;color:#0f172a;">SG &amp; Recovery Metrics (${getSgBaselineMeta().label})</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Off-the-Tee</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgOtt.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Approach</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgApproach.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Around-the-Green</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgAround.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Putting</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgPutting.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Putting</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgPutting.innerHTML || statSgPutting.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG Total</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgTotal.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Scrambling Rate</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statScramblingRate.textContent}</td></tr>
     </tbody>`;
@@ -4639,7 +4708,9 @@ if (btnShowAllDataEl) btnShowAllDataEl.addEventListener('click', showSummaryPrev
 
 if (btnToggleSgBaseline) {
   btnToggleSgBaseline.addEventListener('click', ()=>{
-    SG_BASELINE = SG_BASELINE === 'klpga' ? 'pga' : 'klpga';
+    if (SG_BASELINE === 'pga') SG_BASELINE = 'lpga';
+    else if (SG_BASELINE === 'lpga') SG_BASELINE = 'klpga';
+    else SG_BASELINE = 'pga';
     refreshSgBaselineUi();
     recomputeRound();
   });
