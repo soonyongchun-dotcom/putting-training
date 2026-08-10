@@ -545,6 +545,7 @@
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script>
 /* ======= App State ======= */
@@ -3183,83 +3184,441 @@ function buildMissShotReportData(){
   };
 }
 
-function renderMissShotReport(report){
-  const el = document.getElementById('missShotReportPanel');
-  if (!el) return;
+function buildMissShotReportCardsHtml(report, forPdf){
   if (!report || !report.summary) {
-    el.innerHTML = '<div class="tiny muted">No miss-shot data yet.</div>';
-    return;
+    return '<div class="tiny muted">No miss-shot data yet.</div>';
   }
+
   const summary = report.summary;
   const teeMissRate = summary.teeAttempts ? Math.round((summary.teeMisses / summary.teeAttempts) * 100) : 0;
   const approachMissRate = summary.approachAttempts ? Math.round((summary.approachMisses / summary.approachAttempts) * 100) : 0;
   const shortGameMissRate = summary.shortGameAttempts ? Math.round((summary.shortGameMisses / summary.shortGameAttempts) * 100) : 0;
   const severeMissRate = (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts) ? Math.round(((summary.teeSevereMisses + summary.approachSevereMisses + summary.shortGameSevereMisses) / (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts)) * 100) : 0;
   const distanceMissText = report.distanceMissZone ? getDistanceMissSummaryText(report.distanceMissZone.key) : 'No distance-miss data';
+  const totalBreakdownCount = report.breakdownRows.reduce((sum, row) => sum + row.count, 0);
+  const cardStyle = forPdf
+    ? 'padding:8px 10px; border:1px solid #d7dde6; border-radius:8px; background:#f8fafc;'
+    : 'padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);';
+  const panelStyle = forPdf
+    ? 'padding:8px 10px; border:1px solid #d7dde6; border-radius:8px; background:#ffffff;'
+    : 'padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);';
+  const mutedCellStyle = forPdf ? 'color:#64748b;' : '';
+  const thLeft = forPdf ? 'text-align:left; padding:4px 6px 4px 0; color:#475569;' : 'text-align:left; padding:4px 6px 4px 0;';
+  const thRight = forPdf ? 'text-align:right; padding:4px 6px; color:#475569;' : 'text-align:right; padding:4px 6px;';
+  const tdLeft = forPdf ? 'padding:3px 0; color:#1f2937;' : 'padding:3px 0;';
+  const tdRight = forPdf ? 'text-align:right; padding:4px 6px; color:#1f2937;' : 'text-align:right; padding:4px 6px;';
+
   const cards = [];
   cards.push(`
     <div style="display:grid; gap:8px; grid-template-columns:repeat(2, minmax(0, 1fr));">
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
-        <div class="tiny muted">티샷 미스율</div>
-        <div style="font-size:16px; font-weight:800;">${teeMissRate}%</div>
-        <div class="tiny muted">${summary.teeAttempts} attempts / ${summary.teeMisses} misses</div>
+      <div style="${cardStyle}">
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>티샷 미스율</div>
+        <div style="font-size:16px; font-weight:800;${forPdf ? ' color:#0f172a;' : ''}">${teeMissRate}%</div>
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>${summary.teeAttempts} attempts / ${summary.teeMisses} misses</div>
       </div>
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
-        <div class="tiny muted">어프로치 미스율</div>
-        <div style="font-size:16px; font-weight:800;">${approachMissRate}%</div>
-        <div class="tiny muted">${summary.approachAttempts} attempts / ${summary.approachMisses} misses</div>
+      <div style="${cardStyle}">
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>어프로치 미스율</div>
+        <div style="font-size:16px; font-weight:800;${forPdf ? ' color:#0f172a;' : ''}">${approachMissRate}%</div>
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>${summary.approachAttempts} attempts / ${summary.approachMisses} misses</div>
       </div>
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
-        <div class="tiny muted">숏게임 미스율</div>
-        <div style="font-size:16px; font-weight:800;">${shortGameMissRate}%</div>
-        <div class="tiny muted">${summary.shortGameAttempts} attempts / ${summary.shortGameMisses} misses</div>
+      <div style="${cardStyle}">
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>숏게임 미스율</div>
+        <div style="font-size:16px; font-weight:800;${forPdf ? ' color:#0f172a;' : ''}">${shortGameMissRate}%</div>
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>${summary.shortGameAttempts} attempts / ${summary.shortGameMisses} misses</div>
       </div>
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.04);">
-        <div class="tiny muted">치명적 미스율</div>
-        <div style="font-size:16px; font-weight:800;">${severeMissRate}%</div>
-        <div class="tiny muted">Penalty / Bunker / Hazard 포함</div>
+      <div style="${cardStyle}">
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>치명적 미스율</div>
+        <div style="font-size:16px; font-weight:800;${forPdf ? ' color:#0f172a;' : ''}">${severeMissRate}%</div>
+        <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>Penalty / Bunker / Hazard 포함</div>
       </div>
     </div>
   `);
   cards.push(`
-    <div style="padding:10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
-      <div class="tiny muted" style="margin-bottom:6px;">거리감 미스 구간</div>
-      <div style="font-weight:700;">${distanceMissText}</div>
+    <div style="${panelStyle}">
+      <div class="tiny muted" style="margin-bottom:6px;${mutedCellStyle ? ' ' + mutedCellStyle : ''}">거리감 미스 구간</div>
+      <div style="font-weight:700;${forPdf ? ' color:#0f172a;' : ''}">${distanceMissText}</div>
     </div>
   `);
-  const totalBreakdownCount = report.breakdownRows.reduce((sum, row) => sum + row.count, 0);
   cards.push(`
     <div style="display:grid; gap:10px; grid-template-columns:repeat(2, minmax(0, 1fr));">
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
-        <div class="tiny muted" style="margin-bottom:6px;">클럽별 미스율</div>
+      <div style="${panelStyle}">
+        <div class="tiny muted" style="margin-bottom:6px;${mutedCellStyle ? ' ' + mutedCellStyle : ''}">클럽별 미스율</div>
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
-          <thead><tr><th style="text-align:left; padding:4px 6px 4px 0;">Club</th><th style="text-align:right; padding:4px 6px;">Count</th><th style="text-align:right; padding:4px 6px;">Miss</th></tr></thead>
+          <thead><tr><th style="${thLeft}">Club</th><th style="${thRight}">Count</th><th style="${thRight}">Miss</th></tr></thead>
           <tbody>
-            ${report.clubRows.slice(0, 8).map((row) => `<tr><td style="padding:3px 0;">${row.club}</td><td style="text-align:right; padding:4px 6px;">${row.count}</td><td style="text-align:right; padding:4px 6px;">${row.missCount} (${row.missRate}%)</td></tr>`).join('')}
+            ${report.clubRows.slice(0, 8).map((row) => `<tr><td style="${tdLeft}">${row.club}</td><td style="${tdRight}">${row.count}</td><td style="${tdRight}">${row.missCount} (${row.missRate}%)</td></tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
-        <div class="tiny muted" style="margin-bottom:6px;">거리 구간별 미스율</div>
+      <div style="${panelStyle}">
+        <div class="tiny muted" style="margin-bottom:6px;${mutedCellStyle ? ' ' + mutedCellStyle : ''}">거리 구간별 미스율</div>
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
-          <thead><tr><th style="text-align:left; padding:4px 6px 4px 0;">구간</th><th style="text-align:right; padding:4px 6px;">Count</th><th style="text-align:right; padding:4px 6px;">Miss</th></tr></thead>
+          <thead><tr><th style="${thLeft}">구간</th><th style="${thRight}">Count</th><th style="${thRight}">Miss</th></tr></thead>
           <tbody>
-            ${report.distanceRows.map((row) => `<tr><td style="padding:3px 0;">${row.bucket}</td><td style="text-align:right; padding:4px 6px;">${row.count}</td><td style="text-align:right; padding:4px 6px;">${row.missCount} (${row.missRate}%)</td></tr>`).join('')}
+            ${report.distanceRows.map((row) => `<tr><td style="${tdLeft}">${row.bucket}</td><td style="${tdRight}">${row.count}</td><td style="${tdRight}">${row.missCount} (${row.missRate}%)</td></tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <div style="padding:8px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(255,255,255,0.03);">
-        <div class="tiny muted" style="margin-bottom:6px;">미스 유형 분포</div>
+      <div style="${panelStyle}">
+        <div class="tiny muted" style="margin-bottom:6px;${mutedCellStyle ? ' ' + mutedCellStyle : ''}">미스 유형 분포</div>
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
-          <thead><tr><th style="text-align:left; padding:4px 0;">유형</th><th style="text-align:right; padding:4px 0;">Count</th></tr></thead>
+          <thead><tr><th style="${thLeft}">유형</th><th style="${thRight}">Count</th></tr></thead>
           <tbody>
-            ${report.breakdownRows.slice(0, 8).map((row) => `<tr><td style="padding:3px 0;">${row.label}</td><td style="text-align:right;">${row.count} (${totalBreakdownCount ? Math.round((row.count / totalBreakdownCount) * 100) : 0}%)</td></tr>`).join('')}
+            ${report.breakdownRows.slice(0, 8).map((row) => `<tr><td style="${tdLeft}">${row.label}</td><td style="${tdRight}">${row.count} (${totalBreakdownCount ? Math.round((row.count / totalBreakdownCount) * 100) : 0}%)</td></tr>`).join('')}
           </tbody>
         </table>
       </div>
     </div>
   `);
-  el.innerHTML = cards.join('');
+
+  if (!forPdf) {
+    cards.push(`
+      <div style="display:flex; justify-content:flex-end; gap:8px; padding-top:2px;">
+        <button class="btn ghost" id="btnExportMissShotPdf" type="button">Miss Shot PDF</button>
+      </div>
+    `);
+  }
+
+  return cards.join('');
+}
+
+let missShotPdfFontPromise = null;
+
+function arrayBufferToBase64(buffer){
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function ensureMissShotPdfFont(doc){
+  if (missShotPdfFontPromise) return missShotPdfFontPromise;
+
+  missShotPdfFontPromise = (async () => {
+    const fontSources = [
+      'https://raw.githubusercontent.com/google/fonts/main/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf',
+      'https://github.com/google/fonts/raw/main/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf'
+    ];
+
+    for (const fontUrl of fontSources) {
+      try {
+        const response = await fetch(fontUrl, { cache: 'force-cache' });
+        if (!response.ok) continue;
+        const buffer = await response.arrayBuffer();
+        const fontData = arrayBufferToBase64(buffer);
+        doc.addFileToVFS('NotoSansKR.ttf', fontData);
+        doc.addFont('NotoSansKR.ttf', 'NotoSansKR', 'normal');
+        doc.addFont('NotoSansKR.ttf', 'NotoSansKR', 'bold');
+        return true;
+      } catch (error) {
+        console.warn('Failed to load miss shot PDF font from', fontUrl, error);
+      }
+    }
+
+    return false;
+  })();
+
+  return missShotPdfFontPromise;
+}
+
+function renderMissShotReport(report){
+  const el = document.getElementById('missShotReportPanel');
+  if (!el) return;
+  el.innerHTML = buildMissShotReportCardsHtml(report, false);
+  const btnExportMissShotPdf = document.getElementById('btnExportMissShotPdf');
+  if (btnExportMissShotPdf) btnExportMissShotPdf.addEventListener('click', exportMissShotReportPDF);
+}
+
+function buildMissShotReportPdfElement(report){
+  const wrap = document.createElement('div');
+  wrap.style.fontFamily = 'Pretendard, Arial, Helvetica, sans-serif';
+  wrap.style.boxSizing = 'border-box';
+  wrap.style.maxWidth = '900px';
+  wrap.style.margin = '0 auto';
+  wrap.style.padding = '18px';
+  wrap.style.background = '#ffffff';
+  wrap.style.color = '#0f172a';
+
+  const header = document.createElement('div');
+  header.style.background = '#eef6ff';
+  header.style.border = '1px solid #d8e3f0';
+  header.style.padding = '12px 16px';
+  header.style.borderRadius = '10px';
+  const title = document.createElement('div');
+  title.style.fontSize = '20px';
+  title.style.fontWeight = '800';
+  title.style.color = '#0f172a';
+  title.textContent = 'Miss Shot Report';
+  const subtitle = document.createElement('div');
+  subtitle.style.marginTop = '6px';
+  subtitle.style.fontSize = '13px';
+  subtitle.style.fontWeight = '600';
+  subtitle.style.color = '#334155';
+  subtitle.textContent = `Player: ${(playerNameInput && playerNameInput.value) || ''} · Date: ${(roundDateInput && roundDateInput.value) || ''} · Course: ${(courseNameInput && courseNameInput.value) || ''}`;
+  header.appendChild(title);
+  header.appendChild(subtitle);
+  wrap.appendChild(header);
+
+  if (!report || !report.summary) {
+    const empty = document.createElement('div');
+    empty.style.marginTop = '14px';
+    empty.style.padding = '14px';
+    empty.style.border = '1px solid #d7dde6';
+    empty.style.borderRadius = '8px';
+    empty.style.background = '#f8fafc';
+    empty.textContent = 'No miss-shot data yet.';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const summary = report.summary;
+  const totalAttempts = summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts;
+  const totalMisses = summary.teeMisses + summary.approachMisses + summary.shortGameMisses;
+  const totalSevereMisses = summary.teeSevereMisses + summary.approachSevereMisses + summary.shortGameSevereMisses;
+  const overallMissRate = totalAttempts ? Math.round((totalMisses / totalAttempts) * 100) : 0;
+
+  const statGrid = document.createElement('div');
+  statGrid.style.display = 'grid';
+  statGrid.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+  statGrid.style.gap = '8px';
+  statGrid.style.marginTop = '14px';
+  statGrid.innerHTML = `
+    <div style="padding:10px 12px; border:1px solid #d7dde6; border-radius:8px; background:#f8fafc;">
+      <div style="font-size:12px; color:#64748b;">총 시도</div>
+      <div style="font-size:18px; font-weight:800; color:#0f172a;">${totalAttempts}</div>
+    </div>
+    <div style="padding:10px 12px; border:1px solid #d7dde6; border-radius:8px; background:#f8fafc;">
+      <div style="font-size:12px; color:#64748b;">총 미스</div>
+      <div style="font-size:18px; font-weight:800; color:#0f172a;">${totalMisses} (${overallMissRate}%)</div>
+    </div>
+    <div style="padding:10px 12px; border:1px solid #d7dde6; border-radius:8px; background:#f8fafc;">
+      <div style="font-size:12px; color:#64748b;">치명적 미스</div>
+      <div style="font-size:18px; font-weight:800; color:#0f172a;">${totalSevereMisses}</div>
+    </div>
+    <div style="padding:10px 12px; border:1px solid #d7dde6; border-radius:8px; background:#f8fafc;">
+      <div style="font-size:12px; color:#64748b;">가장 취약한 거리 구간</div>
+      <div style="font-size:14px; font-weight:700; color:#0f172a;">${report.distanceMissZone ? getDistanceMissSummaryText(report.distanceMissZone.key) : 'No distance-miss data'}</div>
+    </div>
+  `;
+  wrap.appendChild(statGrid);
+
+  const reportBody = document.createElement('div');
+  reportBody.style.marginTop = '14px';
+  reportBody.innerHTML = buildMissShotReportCardsHtml(report, true);
+  wrap.appendChild(reportBody);
+
+  wrap.querySelectorAll('*').forEach((node) => {
+    try {
+      node.style.color = '#0f172a';
+      node.style.lineHeight = '1.35';
+      if (node.tagName === 'TH') {
+        node.style.background = '#eef2f7';
+        node.style.color = '#334155';
+      }
+      if (node.tagName === 'TD') {
+        node.style.background = 'transparent';
+      }
+      if (node.classList && (node.classList.contains('tiny') || node.classList.contains('muted'))) {
+        node.style.color = '#64748b';
+      }
+    } catch (e) {}
+  });
+
+  return wrap;
+}
+
+async function exportMissShotReportPDF(){
+  const jsPdfCtor = window.jspdf && window.jspdf.jsPDF
+    ? window.jspdf.jsPDF
+    : (window.jsPDF || null);
+  if (!jsPdfCtor) {
+    alert('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.');
+    return;
+  }
+
+  const report = buildMissShotReportData();
+  const filename = `${getSummaryDownloadBaseName()}_missshot.pdf`;
+  const doc = new jsPdfCtor({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true });
+  const fontReady = await ensureMissShotPdfFont(doc);
+  if (!fontReady) {
+    alert('한글 PDF 폰트를 불러오지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해주세요.');
+    return;
+  }
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 36;
+  const marginTop = 40;
+  const marginBottom = 40;
+  const contentWidth = pageWidth - marginX * 2;
+  let y = marginTop;
+
+  const ensureSpace = (needed) => {
+    if (y + needed <= pageHeight - marginBottom) return;
+    doc.addPage();
+    y = marginTop;
+  };
+
+  const drawCard = (x, yTop, w, h, fill, stroke) => {
+    doc.setDrawColor(stroke[0], stroke[1], stroke[2]);
+    doc.setFillColor(fill[0], fill[1], fill[2]);
+    doc.roundedRect(x, yTop, w, h, 8, 8, 'FD');
+  };
+
+  const drawMetricCard = (x, yTop, w, h, label, value, subtext) => {
+    drawCard(x, yTop, w, h, [248, 250, 252], [215, 221, 230]);
+    doc.setFont('NotoSansKR', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x + 10, yTop + 16);
+    doc.setFont('NotoSansKR', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    const valueLines = doc.splitTextToSize(String(value), w - 20);
+    doc.text(valueLines, x + 10, yTop + 34);
+    doc.setFont('NotoSansKR', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(String(subtext), x + 10, yTop + h - 10);
+  };
+
+  const drawTablePanel = (x, yTop, w, title, headers, rows, widths) => {
+    const headerHeight = 22;
+    const rowBaseHeight = 18;
+    const rowHeights = rows.map((row) => {
+      const lineCounts = row.map((cell, index) => {
+        const cellText = doc.splitTextToSize(String(cell), widths[index] - 8);
+        return Array.isArray(cellText) ? cellText.length : 1;
+      });
+      return Math.max(rowBaseHeight, 18 + (Math.max(...lineCounts) - 1) * 10);
+    });
+    const panelHeight = 12 + 16 + 8 + headerHeight + rowHeights.reduce((sum, value) => sum + value, 0) + 12;
+    drawCard(x, yTop, w, panelHeight, [255, 255, 255], [215, 221, 230]);
+
+    doc.setFont('NotoSansKR', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(title, x + 10, yTop + 18);
+
+    let currentY = yTop + 30;
+    let currentX = x;
+    doc.setFont('NotoSansKR', 'bold');
+    doc.setFontSize(10);
+    headers.forEach((header, index) => {
+      doc.setDrawColor(215, 221, 230);
+      doc.setFillColor(238, 242, 247);
+      doc.rect(currentX, currentY, widths[index], headerHeight, 'FD');
+      doc.setTextColor(51, 65, 85);
+      const headerLines = doc.splitTextToSize(String(header), widths[index] - 8);
+      doc.text(headerLines, currentX + 4, currentY + 14);
+      currentX += widths[index];
+    });
+    currentY += headerHeight;
+
+    doc.setFont('NotoSansKR', 'normal');
+    doc.setTextColor(15, 23, 42);
+    rows.forEach((row, rowIndex) => {
+      currentX = x;
+      const rowHeight = rowHeights[rowIndex];
+      row.forEach((cell, index) => {
+        doc.setDrawColor(229, 231, 235);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(currentX, currentY, widths[index], rowHeight, 'FD');
+        const cellLines = doc.splitTextToSize(String(cell), widths[index] - 8);
+        doc.text(cellLines, currentX + 4, currentY + 12);
+        currentX += widths[index];
+      });
+      currentY += rowHeight;
+    });
+
+    return panelHeight;
+  };
+
+  const drawWideCard = (x, yTop, w, title, value) => {
+    const cardHeight = 54;
+    drawCard(x, yTop, w, cardHeight, [248, 250, 252], [215, 221, 230]);
+    doc.setDrawColor(215, 221, 230);
+    doc.setFont('NotoSansKR', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(title, x + 10, yTop + 16);
+    doc.setFont('NotoSansKR', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    const wrapped = doc.splitTextToSize(String(value), w - 20);
+    doc.text(wrapped, x + 10, yTop + 34);
+    return cardHeight;
+  };
+
+  if (!report || !report.summary) {
+    ensureSpace(40);
+    doc.setFont('NotoSansKR', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139);
+    doc.text('No miss-shot data yet.', marginX, y);
+    doc.save(filename);
+    return;
+  }
+
+  const summary = report.summary;
+  const teeMissRate = summary.teeAttempts ? Math.round((summary.teeMisses / summary.teeAttempts) * 100) : 0;
+  const approachMissRate = summary.approachAttempts ? Math.round((summary.approachMisses / summary.approachAttempts) * 100) : 0;
+  const shortGameMissRate = summary.shortGameAttempts ? Math.round((summary.shortGameMisses / summary.shortGameAttempts) * 100) : 0;
+  const severeMissRate = (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts) ? Math.round(((summary.teeSevereMisses + summary.approachSevereMisses + summary.shortGameSevereMisses) / (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts)) * 100) : 0;
+  const distanceMissText = report.distanceMissZone ? getDistanceMissSummaryText(report.distanceMissZone.key) : 'No distance-miss data';
+  const totalBreakdownCount = report.breakdownRows.reduce((sum, row) => sum + row.count, 0);
+  const reportPlayer = (playerNameInput && playerNameInput.value) || '';
+  const reportDate = (roundDateInput && roundDateInput.value) || '';
+  const reportCourse = (courseNameInput && courseNameInput.value) || '';
+  const generatedAt = new Date().toLocaleString('ko-KR', { hour12: false });
+
+  const headerBoxHeight = 82;
+  drawCard(marginX, y, contentWidth, headerBoxHeight, [238, 246, 255], [216, 227, 240]);
+  doc.setFont('NotoSansKR', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(15, 23, 42);
+  doc.text('미스샷 다운보고서', marginX + 14, y + 24);
+  doc.setFont('NotoSansKR', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(51, 65, 85);
+  const headerMeta = [
+    `Player: ${reportPlayer || '-'}`,
+    `Date: ${reportDate || '-'}`,
+    `Course: ${reportCourse || '-'}`,
+    `Generated: ${generatedAt}`
+  ].join('   |   ');
+  doc.text(doc.splitTextToSize(headerMeta, contentWidth - 28), marginX + 14, y + 46);
+  y += headerBoxHeight + 12;
+
+  const gap = 8;
+  const halfWidth = (contentWidth - gap) / 2;
+  const metricCardHeight = 64;
+  ensureSpace(metricCardHeight * 2 + 10);
+  drawMetricCard(marginX, y, halfWidth, metricCardHeight, '티샷 미스율', `${teeMissRate}%`, `${summary.teeAttempts} attempts / ${summary.teeMisses} misses`);
+  drawMetricCard(marginX + halfWidth + gap, y, halfWidth, metricCardHeight, '어프로치 미스율', `${approachMissRate}%`, `${summary.approachAttempts} attempts / ${summary.approachMisses} misses`);
+  drawMetricCard(marginX, y + metricCardHeight + 8, halfWidth, metricCardHeight, '숏게임 미스율', `${shortGameMissRate}%`, `${summary.shortGameAttempts} attempts / ${summary.shortGameMisses} misses`);
+  drawMetricCard(marginX + halfWidth + gap, y + metricCardHeight + 8, halfWidth, metricCardHeight, '치명적 미스율', `${severeMissRate}%`, 'Penalty / Bunker / Hazard 포함');
+  y += metricCardHeight * 2 + 18;
+
+  ensureSpace(74);
+  const distCardHeight = drawWideCard(marginX, y, contentWidth, '거리감 미스 구간', distanceMissText);
+  y += distCardHeight + 10;
+
+  const clubRows = report.clubRows.slice(0, 8).map((row) => [row.club, String(row.count), `${row.missCount} (${row.missRate}%)`]);
+  const distanceRows = report.distanceRows.map((row) => [row.bucket, String(row.count), `${row.missCount} (${row.missRate}%)`]);
+  const breakdownRows = report.breakdownRows.slice(0, 8).map((row) => [row.label, `${row.count} (${totalBreakdownCount ? Math.round((row.count / totalBreakdownCount) * 100) : 0}%)`]);
+
+  const firstRowY = y;
+  const clubHeight = drawTablePanel(marginX, firstRowY, halfWidth, '클럽별 미스율', ['Club', 'Count', 'Miss'], clubRows, [140, 60, 70]);
+  const distanceHeight = drawTablePanel(marginX + halfWidth + gap, firstRowY, halfWidth, '거리 구간별 미스율', ['구간', 'Count', 'Miss'], distanceRows, [110, 70, 90]);
+  y = firstRowY + Math.max(clubHeight, distanceHeight) + 12;
+
+  const breakdownHeight = drawTablePanel(marginX, y, halfWidth, '미스 유형 분포', ['유형', 'Count'], breakdownRows, [170, 70]);
+  y += breakdownHeight + 14;
+
+  doc.save(filename);
 }
 
 function recomputeRound(){
