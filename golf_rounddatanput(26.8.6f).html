@@ -232,7 +232,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.6f</div>
+      <div class="tiny muted">버전 26.8.7f</div>
     </div>
   </header>
 
@@ -489,6 +489,7 @@
       <div class="stat" style="white-space:nowrap;" title="클럽 기준: approach only / Club-only: approach only (no putt)">Avg Club Proximity: <strong id="statClubProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after chip shots (result: Around the Green)">Avg Chip Proximity: <strong id="statChipProximity">-</strong></div>
       <div class="stat" style="white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (result: Greenside Bunker)">Avg Greenside Bunker Proximity: <strong id="statGreensideBunkerProximity">-</strong></div>
+      <div class="stat">Scrambling Rate: <strong id="statScramblingRate">-</strong></div>
       <div style="flex:1 1 100%; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:space-between; gap:8px;" class="tiny muted">
         <span id="sgBaselineHeader">SG & Recovery Metrics (PGA / Yard Baseline)</span>
         <button class="btn ghost" id="btnToggleSgBaseline" style="min-width:auto; padding:6px 10px; font-size:12px;">SG 기준: PGA</button>
@@ -499,7 +500,6 @@
       <div class="stat">SG: Putting: <strong id="statSgPutting">-</strong></div>
       <div class="stat" id="statPgaVsKlpgaWrap" style="display:none;" title="KLPGA median SG (Putting) comparison">PGA vs KLPGA median: <strong id="statPgaVsKlpga">-</strong></div>
       <div class="stat">SG Total: <strong id="statSgTotal">-</strong></div>
-      <div class="stat">Scrambling Rate: <strong id="statScramblingRate">-</strong></div>
       <div id="clubStats" style="min-width:220px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       <div style="margin-top:6px;">
         <button class="btn ghost" id="btnToggleClubData">클럽데이터 (Club Data)</button>
@@ -4473,6 +4473,7 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Birdies / Bogeys / Doubles+</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statBBD.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${chipLabelLocal}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (Greenside Bunker result)">Avg Greenside Bunker Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${greensideBunkerLabelLocal}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Scrambling Rate</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statScramblingRate.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Longest Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statLongestDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Avg Drive</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statAvgDrive.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Driver Fairway</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statDriverFairPct.textContent}</td></tr>
@@ -4482,7 +4483,6 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Around-the-Green</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgAround.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG: Putting</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgPutting.innerHTML || statSgPutting.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">SG Total</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statSgTotal.textContent}</td></tr>
-      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Scrambling Rate</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statScramblingRate.textContent}</td></tr>
     </tbody>`;
   statsWrap.appendChild(summaryTable);
 
