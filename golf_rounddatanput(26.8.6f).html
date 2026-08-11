@@ -477,6 +477,7 @@
       <div class="stat">Driver Fairway%: <strong id="statDriverFairPct">-</strong></div>
       <div class="stat">GIR: <strong id="statGIRCompact">0</strong></div>
       <div class="stat">Total Putts: <strong id="statPutts">0</strong></div>
+      <div class="stat">Par-on Putts / Avg Putts: <strong id="statParOnPutts">0 / 0.00</strong></div>
       <div class="stat">1-Putt: <strong id="statOnePuttCompact">-</strong></div>
       <div class="stat">3-Putt: <strong id="statThreePuttCompact">-</strong></div>
       <div class="stat">Penalties: <strong id="statPenalties">0</strong></div>
@@ -961,6 +962,10 @@ function updateUnitLabels() {
   if (lbl) {
     lbl.textContent = DISTANCE_UNIT === 'm' ? 'Total Distance (m)' : 'Total Distance (yd)';
   }
+  const drive250Label = document.getElementById('statDrive250Label');
+  if (drive250Label) {
+    drive250Label.textContent = DISTANCE_UNIT === 'm' ? '228m over' : '250yd over';
+  }
   const unitSelect = document.getElementById('distanceUnit');
   if (unitSelect) {
     unitSelect.value = DISTANCE_UNIT === 'm' ? 'm' : 'yd';
@@ -1316,6 +1321,7 @@ const statFairways = document.getElementById('statFairways');
 const statGIR = document.getElementById('statGIRCompact');
 const statGIRPct = document.getElementById('statGIRPct');
 const statPutts = document.getElementById('statPutts');
+const statParOnPutts = document.getElementById('statParOnPutts');
 const statOnePuttPct = document.getElementById('statOnePuttCompact');
 const statThreePuttPct = document.getElementById('statThreePuttCompact');
 const statPenalties = document.getElementById('statPenalties');
@@ -2739,6 +2745,8 @@ function calcMetricsForRound(roundId){
   let totalPar = 0;
   let gir = 0;
   let totalPutts = 0;
+  let parOnPutts = 0;
+  let parOnPuttHoles = 0;
   let penalties = 0;
   let holesPlayed = 0;
   let onePuttCount = 0;
@@ -2808,6 +2816,10 @@ function calcMetricsForRound(roundId){
     });
     if (approach){
       gir++;
+      if (onGreenPuttsOnHole > 0) {
+        parOnPutts += onGreenPuttsOnHole;
+        parOnPuttHoles++;
+      }
     }
 
     const firstDrive = sArr.find(sh => Number(sh.roundShotNumber != null ? sh.roundShotNumber : sh.shotNumber || 0) === 1 && ['Driver','Drive'].includes(normalizeShotType(sh && sh.shotType)));
@@ -2838,6 +2850,7 @@ function calcMetricsForRound(roundId){
   }
 
   const girPct = holesPlayed ? (gir / holesPlayed) * 100 : 0;
+  const avgParOnPutts = parOnPuttHoles ? (parOnPutts / parOnPuttHoles) : 0;
   const onePuttPct = onGreenPuttHoles ? (onePuttCount / onGreenPuttHoles) * 100 : 0;
   const threePuttPct = onGreenPuttHoles ? (threePuttCount / onGreenPuttHoles) * 100 : 0;
   const driverFairPct = driverAttempts ? (driverFairways / driverAttempts) * 100 : 0;
@@ -2845,7 +2858,7 @@ function calcMetricsForRound(roundId){
   const driveDistanceSum = driveLens.reduce((a,b)=> a + Number(b || 0), 0);
   const driveDistanceCount = driveLens.length;
   const longestDrive = longestDriveLens.length ? Math.max(...longestDriveLens) : null;
-  const threshold250 = 250;
+  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
   const drive250Plus = driveLens.filter(d => d > threshold250).length;
   const scrambleRate = scrambleAttempts ? (scrambleSuccess / scrambleAttempts) * 100 : 0;
 
@@ -2855,6 +2868,9 @@ function calcMetricsForRound(roundId){
     totalPar,
     totalStrokes,
     totalPutts,
+    parOnPutts,
+    parOnPuttHoles,
+    avgParOnPutts,
     penalties,
     gir,
     girPct,
@@ -2894,6 +2910,11 @@ function formatAvgValue(value){
   if (value == null || value === '' || isNaN(Number(value))) return '-';
   const num = Number(value);
   return Number.isInteger(num) ? String(num) : (Math.round(num * 10) / 10).toFixed(1).replace(/\.0$/, '');
+}
+
+function formatTwoDecimalValue(value){
+  if (value == null || value === '' || isNaN(Number(value))) return '0.00';
+  return (Math.round(Number(value) * 100) / 100).toFixed(2);
 }
 
 function getShotDistanceYd(sh){
@@ -3640,6 +3661,8 @@ function recomputeRound(){
   const onePutDistances = [];
   const threePutDistances = [];
   let holesWithPutts = 0;
+  let parOnPutts = 0;
+  let parOnPuttHoles = 0;
   let birdiesCount = 0;
   let bogeysCount = 0;
   let doublesCount = 0;
@@ -3743,6 +3766,10 @@ function recomputeRound(){
     });
     if (approach){
       gir++;
+      if (onGreenPuttsOnHole > 0) {
+        parOnPutts += onGreenPuttsOnHole;
+        parOnPuttHoles++;
+      }
       // proximity: reflect larger value between green-hit remaining distance and first on-green putt start distance
       const proximityDist = getOnGreenProximityDistance(approach, sArr);
       if (proximityDist != null) proximityDistances.push(proximityDist);
@@ -3857,7 +3884,7 @@ function recomputeRound(){
   const driveLens = perHoleDriveDistances;
   
   // all distance calculations are yard-based
-  const threshold250 = 250;
+  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
   const drive250PlusCount = driveLens.filter(d => d > threshold250).length;
 
   // compute GIR% and putt percentages and proximity avg
@@ -3866,6 +3893,7 @@ function recomputeRound(){
 
   // Display Total Strokes using computed per-hole strokes (includes penalties)
   const displayTotalStrokes = totalStrokes;
+  const avgParOnPutts = parOnPuttHoles ? (parOnPutts / parOnPuttHoles) : 0;
   const avgDriveYd = driveLens.length ? Math.round((driveLens.reduce((a,b)=>a+b,0)/driveLens.length) * 10) / 10 : null;
   const longestDriveYd = longestDriveDistances.length ? Math.max(...longestDriveDistances) : null;
   const girPct = holesPlayed ? Math.round((gir / holesPlayed) * 100) : 0;
@@ -3917,11 +3945,12 @@ function recomputeRound(){
   statFairways.textContent = fairways;
   statGIR.textContent = `${gir} (${girPct}%)`;
   statPutts.textContent = totalPutts;
+  if (statParOnPutts) statParOnPutts.textContent = `${parOnPutts} / ${formatTwoDecimalValue(avgParOnPutts)}`;
   statOnePuttPct.textContent = `${onePuttPct}% (${onePuttCount} holes)`;
   statThreePuttPct.textContent = `${threePuttPct}% (${threePuttCount} holes)`;
   statPenalties.textContent = penalties;
   if (statDrive250Label) {
-    statDrive250Label.textContent = '250yd over';
+    statDrive250Label.textContent = DISTANCE_UNIT === 'm' ? '228m over' : '250yd over';
   }
   statLongestDrive.textContent = longestDriveDisplay == null ? '-' : `${longestDriveDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
   statAvgDrive.textContent = avgDriveDisplay == null ? '-' : `${avgDriveDisplay}${DISTANCE_UNIT === 'm' ? ' m' : ' yd'}`;
@@ -3975,6 +4004,8 @@ function recomputeRound(){
 
       const avgTotalStrokes = avgBy('totalStrokes');
       const avgPutts = avgBy('totalPutts');
+      const avgParOnPutts = avgBy('parOnPutts');
+      const avgParOnPuttsPerHole = avgBy('avgParOnPutts');
       const avgPenalties = avgBy('penalties');
       const totalGirCount = sumBy('gir');
       const avgGirCount = avgBy('gir');
@@ -4017,6 +4048,7 @@ function recomputeRound(){
       statTotalStrokes.textContent = formatAvgValue(avgTotalStrokes);
       statGIR.textContent = `${formatAvgValue(avgGirCount)} (${Math.round(pooledGirPct)}%)`;
       statPutts.textContent = formatAvgValue(avgPutts);
+      if (statParOnPutts) statParOnPutts.textContent = `${formatAvgValue(avgParOnPutts)} / ${formatTwoDecimalValue(avgParOnPuttsPerHole)}`;
       statOnePuttPct.textContent = `${Math.round(pooledOnePuttPct)}% (${formatAvgValue(avgOnePuttCount)} holes)`;
       statThreePuttPct.textContent = `${Math.round(pooledThreePuttPct)}% (${formatAvgValue(avgThreePuttCount)} holes)`;
       statPenalties.textContent = formatAvgValue(avgPenalties);
@@ -4437,6 +4469,7 @@ function buildSummaryElement(forPdf){
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">1-Putt</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statOnePuttPct.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">3-Putt</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statThreePuttPct.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Total Putts</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statPutts.textContent}</td></tr>
+      <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Par-on Putts / Avg</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statParOnPutts ? statParOnPutts.textContent : '-'}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9">Birdies / Bogeys / Doubles+</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${statBBD.textContent}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Avg distance to pin after chip shots (Around the Green result)">Avg Chip Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${chipLabelLocal}</td></tr>
       <tr><td style="padding:8px 10px;border:1px solid #f1f5f9; white-space:nowrap;" title="Avg distance to pin after greenside bunker shots (Greenside Bunker result)">Avg Greenside Bunker Proximity</td><td style="padding:8px 10px;text-align:right;border:1px solid #f1f5f9">${greensideBunkerLabelLocal}</td></tr>
@@ -5970,6 +6003,7 @@ window.addEventListener('beforeunload', saveDraft);
     if (!hasHoleData) return; // nothing meaningful to restore
 
     // Use a simple confirm dialog so user can choose to restore or start fresh
+    const ok = window.confirm('저장된 라운드 기록을 복구하시겠습니까?');
     if (ok){
       loadDraft();
     } else {
