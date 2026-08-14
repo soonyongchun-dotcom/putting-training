@@ -232,7 +232,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.8f</div>
+      <div class="tiny muted">버전 26.8.9f</div>
     </div>
   </header>
 
@@ -555,7 +555,7 @@ const shotsByHole = {}; // holeNumber -> array of shots
 let activeHole = null;
 let DISTANCE_UNIT = 'yd'; // 'yd' or 'm'
 let SG_BASELINE = 'pga'; // 'pga' or 'lpga' or 'klpga'
-const STORAGE_KEY = 'golf_round_draft_v1';
+const DRAFT_STORAGE_KEY_PREFIX = 'golf_round_draft_v2';
 const COACH_SHARED_ROUND_KEY = 'golf_round_coach_shared_v1';
 const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
@@ -584,6 +584,16 @@ function initSupabase(){
 function getStoredSession(){
   try{ return JSON.parse(localStorage.getItem('sytpt_session')||'null'); }catch(_){ return null; }
 }
+
+function getDraftStorageKey(){
+  const session = getStoredSession();
+  const isCoach = session && session.role === 'coach';
+  const selectedPlayerId = isCoach ? String(localStorage.getItem('sytpt_coach_selected_player') || '').trim() : '';
+  const scopeId = selectedPlayerId || (session && session.id ? normalizePlayerId(session.id) : 'unauthenticated');
+  return `${DRAFT_STORAGE_KEY_PREFIX}_${encodeURIComponent(scopeId)}`;
+}
+
+const STORAGE_KEY = getDraftStorageKey();
 
 function base64DecodeUnicode(value){
   const decoded = atob(value);
