@@ -2361,6 +2361,37 @@ function collectAccumulatedRoundMeta(){
   return { rounds, roundCount: rounds.length, players, courses, dates };
 }
 
+function getMissShotReportMeta(){
+  const roundMeta = collectAccumulatedRoundMeta();
+  const selectedRounds = getSelectedSyncedRounds();
+  const selectedPlayers = Array.from(new Set(selectedRounds
+    .map((row) => String((row && row.round_meta && row.round_meta.player) || (row && row.player_name) || (row && row.player_id) || '').trim())
+    .filter(Boolean)));
+  const selectedDates = Array.from(new Set(selectedRounds
+    .map((row) => String((row && row.round_meta && row.round_meta.date) || (row && row.round_date) || '').trim())
+    .filter(Boolean))).sort();
+  const selectedCourses = Array.from(new Set(selectedRounds
+    .map((row) => String((row && row.round_meta && row.round_meta.course) || (row && row.course) || '').trim())
+    .filter(Boolean)));
+  const isAccumulated = selectedRounds.length >= 2 || roundMeta.roundCount >= 2;
+  const players = selectedPlayers.length ? selectedPlayers : roundMeta.players;
+  const dates = selectedDates.length ? selectedDates : roundMeta.dates;
+  const courses = selectedCourses.length ? selectedCourses : roundMeta.courses;
+  return {
+    isAccumulated,
+    roundCount: selectedRounds.length || roundMeta.roundCount,
+    player: isAccumulated
+      ? (players.length ? players.join(', ') : `누적 ${selectedRounds.length || roundMeta.roundCount}경기`)
+      : (players.length ? players[0] : ((playerNameInput && playerNameInput.value) || '')),
+    date: isAccumulated
+      ? (dates.length ? (dates[0] === dates[dates.length - 1] ? dates[0] : `${dates[0]} ~ ${dates[dates.length - 1]}`) : `누적 ${selectedRounds.length || roundMeta.roundCount}경기`)
+      : (dates.length ? dates[0] : ((roundDateInput && roundDateInput.value) || '')),
+    course: isAccumulated
+      ? (courses.length ? courses.join(', ') : `누적 ${selectedRounds.length || roundMeta.roundCount}경기`)
+      : (courses.length ? courses[0] : ((courseNameInput && courseNameInput.value) || ''))
+  };
+}
+
 function sortShotsByRoundOrder(shots){
   return (shots || []).slice().sort((a,b)=>{
     const an = Number(a && (a.roundShotNumber != null ? a.roundShotNumber : a.shotNumber) || 0);
@@ -3038,6 +3069,10 @@ function isDriverWoodClub(clubName){
   return ['Driver','Drive','3Wood','5Wood','Wood','Utility1','Utility2','Utility'].includes(clubName);
 }
 
+function isDriverClub(clubName){
+  return ['Driver','Drive'].includes(clubName);
+}
+
 function isDriverWoodMissShot(sh){
   if (!sh) return false;
   const rKey = normResultKey((sh && sh.result) || '');
@@ -3161,7 +3196,9 @@ function buildMissShotReportData(){
     approachSevereMisses: 0,
     shortGameAttempts: 0,
     shortGameMisses: 0,
-    shortGameSevereMisses: 0
+    shortGameSevereMisses: 0,
+    sirAttempts: 0,
+    sirMisses: 0
   };
   const distanceMissBuckets = {};
 
@@ -3223,6 +3260,10 @@ function buildMissShotReportData(){
             summary.shortGameSevereMisses += 1;
           }
         }
+      }
+      if (!isDriverClub(clubName)) {
+        summary.sirAttempts += 1;
+        if (isMiss) summary.sirMisses += 1;
       }
       if (!isDriverWood && distYd != null && category !== 'tee') {
         clubStat.proxTotal += distYd;
@@ -3329,6 +3370,7 @@ function buildMissShotReportCardsHtml(report, forPdf){
   const approachMissRate = summary.approachAttempts ? Math.round((summary.approachMisses / summary.approachAttempts) * 100) : 0;
   const shortGameMissRate = summary.shortGameAttempts ? Math.round((summary.shortGameMisses / summary.shortGameAttempts) * 100) : 0;
   const severeMissRate = (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts) ? Math.round(((summary.teeSevereMisses + summary.approachSevereMisses + summary.shortGameSevereMisses) / (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts)) * 100) : 0;
+  const sirRate = summary.sirAttempts ? 100 - Math.round((summary.sirMisses / summary.sirAttempts) * 100) : 0;
   const distanceMissText = report.distanceMissZone ? getDistanceMissSummaryText(report.distanceMissZone.key) : 'No distance-miss data';
   const totalBreakdownCount = report.breakdownRows.reduce((sum, row) => sum + row.count, 0);
   const cardStyle = forPdf
@@ -3366,6 +3408,13 @@ function buildMissShotReportCardsHtml(report, forPdf){
         <div style="font-size:16px; font-weight:800;${forPdf ? ' color:#0f172a;' : ''}">${severeMissRate}%</div>
         <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>Penalty / Bunker / Hazard 포함</div>
       </div>
+    </div>
+  `);
+  cards.push(`
+    <div style="${panelStyle} border-color:${forPdf ? '#9cc2e5' : 'rgba(96,165,250,0.55)'}; background:${forPdf ? '#f0f7ff' : 'rgba(59,130,246,0.09)'};">
+      <div class="tiny muted" style="margin-bottom:6px;${mutedCellStyle ? ' ' + mutedCellStyle : ''}">SIR(Shot Impact Rate )</div>
+      <div style="font-size:20px; font-weight:800;${forPdf ? ' color:#0f172a;' : ''}">${sirRate}%</div>
+      <div class="tiny muted"${forPdf ? ' style="color:#64748b;"' : ''}>드라이버 제외 · ${summary.sirAttempts} attempts / ${summary.sirMisses} misses · 100% - 샷 미스율</div>
     </div>
   `);
   cards.push(`
@@ -3492,7 +3541,8 @@ function buildMissShotReportPdfElement(report){
   subtitle.style.fontSize = '13px';
   subtitle.style.fontWeight = '600';
   subtitle.style.color = '#334155';
-  subtitle.textContent = `Player: ${(playerNameInput && playerNameInput.value) || ''} · Date: ${(roundDateInput && roundDateInput.value) || ''} · Course: ${(courseNameInput && courseNameInput.value) || ''}`;
+  const reportMeta = getMissShotReportMeta();
+  subtitle.textContent = `Player: ${reportMeta.player} · Date: ${reportMeta.date} · Course: ${reportMeta.course}`;
   header.appendChild(title);
   header.appendChild(subtitle);
   wrap.appendChild(header);
@@ -3702,11 +3752,10 @@ async function exportMissShotReportPDF(){
   const approachMissRate = summary.approachAttempts ? Math.round((summary.approachMisses / summary.approachAttempts) * 100) : 0;
   const shortGameMissRate = summary.shortGameAttempts ? Math.round((summary.shortGameMisses / summary.shortGameAttempts) * 100) : 0;
   const severeMissRate = (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts) ? Math.round(((summary.teeSevereMisses + summary.approachSevereMisses + summary.shortGameSevereMisses) / (summary.teeAttempts + summary.approachAttempts + summary.shortGameAttempts)) * 100) : 0;
+  const sirRate = summary.sirAttempts ? 100 - Math.round((summary.sirMisses / summary.sirAttempts) * 100) : 0;
   const distanceMissText = report.distanceMissZone ? getDistanceMissSummaryText(report.distanceMissZone.key) : 'No distance-miss data';
   const totalBreakdownCount = report.breakdownRows.reduce((sum, row) => sum + row.count, 0);
-  const reportPlayer = (playerNameInput && playerNameInput.value) || '';
-  const reportDate = (roundDateInput && roundDateInput.value) || '';
-  const reportCourse = (courseNameInput && courseNameInput.value) || '';
+  const reportMeta = getMissShotReportMeta();
   const generatedAt = new Date().toLocaleString('ko-KR', { hour12: false });
 
   const headerBoxHeight = 82;
@@ -3719,9 +3768,9 @@ async function exportMissShotReportPDF(){
   doc.setFontSize(11);
   doc.setTextColor(51, 65, 85);
   const headerMeta = [
-    `Player: ${reportPlayer || '-'}`,
-    `Date: ${reportDate || '-'}`,
-    `Course: ${reportCourse || '-'}`,
+    `Player: ${reportMeta.player || '-'}`,
+    `Date: ${reportMeta.date || '-'}`,
+    `Course: ${reportMeta.course || '-'}`,
     `Generated: ${generatedAt}`
   ].join('   |   ');
   doc.text(doc.splitTextToSize(headerMeta, contentWidth - 28), marginX + 14, y + 46);
@@ -3736,6 +3785,10 @@ async function exportMissShotReportPDF(){
   drawMetricCard(marginX, y + metricCardHeight + 8, halfWidth, metricCardHeight, '숏게임 미스율', `${shortGameMissRate}%`, `${summary.shortGameAttempts} attempts / ${summary.shortGameMisses} misses`);
   drawMetricCard(marginX + halfWidth + gap, y + metricCardHeight + 8, halfWidth, metricCardHeight, '치명적 미스율', `${severeMissRate}%`, 'Penalty / Bunker / Hazard 포함');
   y += metricCardHeight * 2 + 18;
+
+  ensureSpace(74);
+  const sirCardHeight = drawWideCard(marginX, y, contentWidth, 'SIR(Shot Impact Rate )', `${sirRate}%`, `드라이버 제외 · ${summary.sirAttempts} attempts / ${summary.sirMisses} misses · 100% - 샷 미스율`);
+  y += sirCardHeight + 10;
 
   ensureSpace(74);
   const distCardHeight = drawWideCard(marginX, y, contentWidth, '거리감 미스 구간', distanceMissText);
@@ -4445,8 +4498,9 @@ function safeFileName(s){
 }
 
 function getSummaryDownloadBaseName(){
-  const playerPart = safeFileName((playerNameInput && playerNameInput.value) || 'round');
-  const datePart = (roundDateInput && roundDateInput.value) || new Date().toISOString().slice(0, 10);
+  const reportMeta = getMissShotReportMeta();
+  const playerPart = safeFileName(reportMeta.player || 'round');
+  const datePart = reportMeta.date || new Date().toISOString().slice(0, 10);
   const cleanDate = String(datePart).replace(/[^0-9]/g, '');
   return `${playerPart ? playerPart + '_' : ''}${cleanDate || 'round'}`;
 }
@@ -4526,22 +4580,16 @@ function buildSummaryElement(forPdf){
   hdr.style.justifyContent = 'space-between';
   hdr.style.alignItems = 'flex-start';
   hdr.style.gap = '12px';
-  const roundMeta = collectAccumulatedRoundMeta();
-  const isAccumulated = roundMeta.roundCount >= 2;
-  const playerText = isAccumulated
-    ? (roundMeta.players.length ? roundMeta.players.join(', ') : `누적 ${roundMeta.roundCount}경기`)
-    : (playerNameInput.value || '');
-  const dateText = isAccumulated
-    ? (roundMeta.dates.length ? (roundMeta.dates[0] === roundMeta.dates[roundMeta.dates.length - 1] ? roundMeta.dates[0] : `${roundMeta.dates[0]} ~ ${roundMeta.dates[roundMeta.dates.length - 1]}`) : `누적 ${roundMeta.roundCount}경기`)
-    : (roundDateInput.value || '');
-  const courseText = isAccumulated
-    ? (roundMeta.courses.length ? roundMeta.courses.join(', ') : `누적 ${roundMeta.roundCount}경기`)
-    : (courseNameInput.value || '');
+  const reportMeta = getMissShotReportMeta();
+  const isAccumulated = reportMeta.isAccumulated;
+  const playerText = reportMeta.player;
+  const dateText = reportMeta.date;
+  const courseText = reportMeta.course;
   const metaStr = isAccumulated
-    ? `누적 경기: ${roundMeta.roundCount} · Player: ${playerText} · Date: ${dateText} · Course: ${courseText} · Unit: ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`
+    ? `누적 경기: ${reportMeta.roundCount} · Player: ${playerText} · Date: ${dateText} · Course: ${courseText} · Unit: ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`
     : `Player: ${playerText} · Date: ${dateText} · Course: ${courseText} · Par: ${document.getElementById('roundPar').value || ''} · Total Distance: ${document.getElementById('roundYard').value || ''} ${DISTANCE_UNIT === 'm' ? 'm' : 'yd'} · Weather: ${document.getElementById('roundWeather').value || ''}`;
   const left = document.createElement('div');
-  left.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">Performance Summary${isAccumulated ? ` (누적 ${roundMeta.roundCount}경기)` : ''}</div><div style="font-size:13px; line-height:1.4;">${metaStr}</div>`;
+  left.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">Performance Summary${isAccumulated ? ` (누적 ${reportMeta.roundCount}경기)` : ''}</div><div style="font-size:13px; line-height:1.4;">${metaStr}</div>`;
   left.style.maxWidth = '640px';
   const right = document.createElement('div');
   right.style.fontFamily = "Georgia, 'Times New Roman', serif";
