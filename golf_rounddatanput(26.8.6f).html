@@ -1161,6 +1161,11 @@ function isGreensideBunkerResult(r){
   return k === 'bunkergreenside' || k === 'greensidebunker';
 }
 
+function isFairwayBunkerResult(r){
+  const k = normResultKey(r);
+  return k === 'bunkerfairway' || k === 'fairwaybunker';
+}
+
 function isValidDriveDistanceResult(r){
   const k = normResultKey(r);
   if (!k) return true;
@@ -1172,15 +1177,16 @@ function isValidDriveDistanceResult(r){
   return true;
 }
 
-function shouldCountClubShot(sh){
+function shouldCountClubShot(sh, options = {}){
   if (!sh) return false;
+  const includeFairwayTrouble = options.includeFairwayTrouble === true;
   const clubName = normalizeShotType(sh && sh.shotType);
   if (!clubName || clubName === 'Putter' || (sh.putts && Number(sh.putts) > 0)) return false;
   if (clubName === 'Driver' && !isFairwayResult(sh.result)) return false;
   const rKey = normResultKey(sh.result || '');
   const lieKey = normResultKey(sh.lie || '');
   if (rKey === 'lay' || rKey === 'layup' || rKey === 'bunker' || rKey === 'bunkers' || rKey === 'hazard' || rKey === 'hazards' || rKey === 'outofbounds' || rKey === 'ob' || rKey === 'water' || rKey === 'penalty') return false;
-  if (rKey.indexOf('rough') >= 0) return false;
+  if (!includeFairwayTrouble && (rKey.indexOf('rough') >= 0 || isFairwayBunkerResult(rKey))) return false;
   if (rKey.indexOf('aroundgreen') >= 0) return false;
   if (rKey.indexOf('bunkergreenside') >= 0 || rKey.indexOf('greensidebunker') >= 0) return false;
   // Exclude greenside chip/pitch shots from club distance averages.
@@ -4663,7 +4669,7 @@ function buildSummaryElement(forPdf){
       let prevRemaining = resolveGroupStartYard(i, ordered);
       ordered.forEach(sh => {
         const curRem = getSafeRemainingDistance(sh);
-        const shouldCount = shouldCountClubShot(sh);
+        const shouldCount = shouldCountClubShot(sh, {includeFairwayTrouble: true});
         const clubName = normalizeShotType(sh && sh.shotType);
         const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
         if (curRem != null && shouldCount && prevRemaining != null){
