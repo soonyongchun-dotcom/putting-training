@@ -1140,13 +1140,13 @@ function getSafeRemainingDistance(sh){
   return v;
 }
 
-// A shot note mentioning "핀오버"/"pin over" means the ball flew past the pin,
+// A shot note mentioning "핀오버"/"pin over"/"over" means the ball flew past the pin,
 // so its recorded distanceToHole is an overshoot, not a remaining distance.
 function isPinOverShot(sh){
   const note = (sh && sh.note) ? String(sh.note) : '';
   if (!note) return false;
   const normalized = note.toLowerCase().replace(/\s+/g, '');
-  return normalized.indexOf('핀오버') >= 0 || normalized.indexOf('pinover') >= 0;
+  return normalized.indexOf('핀오버') >= 0 || normalized.indexOf('pinover') >= 0 || normalized.indexOf('over') >= 0;
 }
 
 // For pin-over shots the ball traveled past the hole, so the shot's actual
