@@ -232,7 +232,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.7f</div>
+      <div class="tiny muted">버전 26.8.8f</div>
     </div>
   </header>
 
@@ -561,12 +561,19 @@ const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
 let sb = null;
 let syncedRoundsCache = [];
+let supabaseSessionRestorePromise = null;
 
 function initSupabase(){
   if(sb || typeof supabase === 'undefined') return;
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   try{
     sb.auth.onAuthStateChange((event, session) => {
+      if(event === 'INITIAL_SESSION'){
+        restoreSupabaseSessionFromUrl().then(() => {
+          if(syncedRoundSelect) populateSyncedRoundSelect();
+        });
+        return;
+      }
       if(syncedRoundSelect) populateSyncedRoundSelect();
     });
   }catch(e){
@@ -576,6 +583,56 @@ function initSupabase(){
 
 function getStoredSession(){
   try{ return JSON.parse(localStorage.getItem('sytpt_session')||'null'); }catch(_){ return null; }
+}
+
+function base64DecodeUnicode(value){
+  const decoded = atob(value);
+  const percentEncoded = Array.from(decoded).map(ch => '%' + ch.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+  return decodeURIComponent(percentEncoded);
+}
+
+function getSupabaseSessionFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('supabase_session');
+  if(!encoded) return null;
+  try{
+    return JSON.parse(base64DecodeUnicode(decodeURIComponent(encoded)));
+  }catch(e){
+    console.warn('Invalid supabase_session URL parameter', e);
+    return null;
+  }
+}
+
+function normalizeSupabaseSession(session){
+  if(!session || typeof session !== 'object') return null;
+  if(session.data && typeof session.data === 'object') session = session.data.session || session.data;
+  if(session.session && typeof session.session === 'object') session = session.session;
+  return session.user && session.access_token && session.refresh_token ? session : null;
+}
+
+function restoreSupabaseSessionFromUrl(){
+  if(supabaseSessionRestorePromise) return supabaseSessionRestorePromise;
+  supabaseSessionRestorePromise = (async () => {
+    const session = normalizeSupabaseSession(getSupabaseSessionFromUrl());
+    if(!session) return false;
+    initSupabase();
+    if(!sb) return false;
+    try{
+      const { error } = await sb.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      });
+      if(error){
+        console.warn('Supabase session restore failed', error);
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.warn('Supabase session restore failed', e);
+      return false;
+    }
+  })();
+  return supabaseSessionRestorePromise;
 }
 
 function normalizePlayerId(value){
@@ -1149,11 +1206,19 @@ function isPinOverShot(sh){
   return normalized.indexOf('핀오버') >= 0 || normalized.indexOf('pinover') >= 0 || normalized.indexOf('over') >= 0;
 }
 
+function isNoteShotMiss(sh){
+  const note = (sh && sh.note) ? String(sh.note) : '';
+  if (!note) return false;
+  const normalized = note.replace(/\s+/g, '');
+  return normalized.indexOf('탑볼') >= 0 || normalized.indexOf('뒷땅') >= 0;
+}
+
 // For pin-over shots the ball traveled past the hole, so the shot's actual
 // distance is the base distance to the hole plus the overshoot (proximity) distance
 // instead of the usual (prev remaining - current remaining) subtraction.
 function computeShotTravelDistance(prevRemaining, curRemaining, sh){
   if (prevRemaining == null || curRemaining == null) return null;
+  if (isNoteShotMiss(sh)) return null;
   if (isPinOverShot(sh)) return prevRemaining + curRemaining;
   return Math.max(0, prevRemaining - curRemaining);
 }
@@ -1630,7 +1695,7 @@ if (btnBatchAccumulateSyncedRounds) btnBatchAccumulateSyncedRounds.addEventListe
     alert('서버 라운드 일괄 누적 실패: 단위 정보가 없는 라운드가 포함되어 있습니다.');
   }
 });
-if (syncedRoundSelect) populateSyncedRoundSelect();
+if (syncedRoundSelect) restoreSupabaseSessionFromUrl().then(() => populateSyncedRoundSelect());
 const btnDeleteSyncedRound = document.getElementById('btnDeleteSyncedRound');
 if(btnDeleteSyncedRound) btnDeleteSyncedRound.addEventListener('click', deleteSelectedSyncedRound);
 
@@ -2975,6 +3040,7 @@ function getMissShotCategory(sh, indexInHole){
 }
 
 function isSuccessShot(category, sh, distYd){
+  if (isNoteShotMiss(sh)) return false;
   const rKey = normResultKey((sh && sh.result) || '');
   if (category === 'tee') {
     return isFairwayResult(sh.result) || isGreenResult(sh.result);
@@ -2991,6 +3057,7 @@ function isSuccessShot(category, sh, distYd){
 
 function isMissShot(category, sh, distYd){
   if (!sh) return false;
+  if (isNoteShotMiss(sh)) return true;
   if (Number(sh.penalty || 0) > 0) return true;
   const rKey = normResultKey((sh && sh.result) || '');
   if (category === 'tee') {
@@ -3880,11 +3947,11 @@ function recomputeRound(){
       // consider driver attempts for par 4/5 holes (tee shots)
       if (hole.par >= 4) {
         driverAttempts++;
-        if (isFairwayResult(firstDrive.result)) driverFairways++;
+        if (isFairwayResult(firstDrive.result) && !isNoteShotMiss(firstDrive)) driverFairways++;
       }
       const holeDistance = toCalcYards(getNumericYard(firstDrive.holeYardAtShot) != null ? getNumericYard(firstDrive.holeYardAtShot) : getNumericYard(hole.yard));
       const shotRemaining = (firstDrive.distanceToHole != null && firstDrive.distanceToHole !== '' && !isNaN(Number(firstDrive.distanceToHole))) ? toCalcYards(Number(firstDrive.distanceToHole)) : null;
-      if (shotRemaining != null){
+      if (shotRemaining != null && !isNoteShotMiss(firstDrive)){
         let d = null;
         if (holeDistance != null) {
           d = Math.max(0, holeDistance - shotRemaining);
@@ -5305,6 +5372,7 @@ async function checkAuthOnLoad(){
   initSupabase();
   if(!sb) return;
   try{
+    await restoreSupabaseSessionFromUrl();
     const authRes = await sb.auth.getSession();
     const authSession = authRes && (authRes.data ? authRes.data.session : authRes.session);
     const banner = document.getElementById('authStatusBanner');
