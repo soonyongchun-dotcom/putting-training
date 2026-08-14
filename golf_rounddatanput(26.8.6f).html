@@ -1140,6 +1140,24 @@ function getSafeRemainingDistance(sh){
   return v;
 }
 
+// A shot note mentioning "핀오버"/"pin over" means the ball flew past the pin,
+// so its recorded distanceToHole is an overshoot, not a remaining distance.
+function isPinOverShot(sh){
+  const note = (sh && sh.note) ? String(sh.note) : '';
+  if (!note) return false;
+  const normalized = note.toLowerCase().replace(/\s+/g, '');
+  return normalized.indexOf('핀오버') >= 0 || normalized.indexOf('pinover') >= 0;
+}
+
+// For pin-over shots the ball traveled past the hole, so the shot's actual
+// distance is the base distance to the hole plus the overshoot (proximity) distance
+// instead of the usual (prev remaining - current remaining) subtraction.
+function computeShotTravelDistance(prevRemaining, curRemaining, sh){
+  if (prevRemaining == null || curRemaining == null) return null;
+  if (isPinOverShot(sh)) return prevRemaining + curRemaining;
+  return Math.max(0, prevRemaining - curRemaining);
+}
+
 function getClubMaxDistance(clubName){
   const ydCaps = {
     Driver: 360,
@@ -3842,7 +3860,7 @@ function recomputeRound(){
       if (curRem != null && isNonPutterClubShot && prevRemaining != null){
         const prevRemainingYd = toCalcYards(prevRemaining);
         const curRemYd = toCalcYards(curRem);
-        const shotDist = (prevRemainingYd != null && curRemYd != null) ? Math.max(0, prevRemainingYd - curRemYd) : null;
+        const shotDist = computeShotTravelDistance(prevRemainingYd, curRemYd, sh);
         if (isReasonableClubDistance(shotTypeName, shotDist, sh)){
           if (!clubDistances[shotTypeName]) clubDistances[shotTypeName] = [];
           clubDistances[shotTypeName].push(shotDist);
@@ -4111,7 +4129,7 @@ function recomputeRound(){
             if (shouldCount){
               clubCounts[clubName] = (clubCounts[clubName] || 0) + 1;
               if (curRem != null && prevRemaining != null){
-                const shotDist = Math.max(0, prevRemaining - curRem);
+                const shotDist = computeShotTravelDistance(prevRemaining, curRem, sh);
                 if (isReasonableClubDistance(clubName, shotDist, sh)){
                   if (!clubDists[clubName]) clubDists[clubName] = [];
                   clubDists[clubName].push(shotDist);
@@ -4177,7 +4195,7 @@ function recomputeRound(){
               if (curRem != null && shouldCount && prevRemaining != null){
                 const prevRemainingYd = toCalcYards(prevRemaining);
                 const curRemYd = toCalcYards(curRem);
-                const shotDist = (prevRemainingYd != null && curRemYd != null) ? Math.max(0, prevRemainingYd - curRemYd) : null;
+                const shotDist = computeShotTravelDistance(prevRemainingYd, curRemYd, sh);
                 if (isReasonableClubDistance(clubName, shotDist, sh)){
                   const bucket = getDistBucket(shotDist);
                   if (bucket){
@@ -4504,7 +4522,7 @@ function buildSummaryElement(forPdf){
         }
         const curRem = getSafeRemainingDistance(sh);
         if (curRem != null && shouldCount && prevRemaining != null){
-          const shotDist = Math.max(0, prevRemaining - curRem);
+          const shotDist = computeShotTravelDistance(prevRemaining, curRem, sh);
           if (isReasonableClubDistance(clubName, shotDist, sh)){
             if (!clubDists[clubName]) clubDists[clubName] = [];
             clubDists[clubName].push(shotDist);
@@ -4582,7 +4600,7 @@ function buildSummaryElement(forPdf){
         const clubName = normalizeShotType(sh && sh.shotType);
         const isNonPutterClubShot = !!(clubName && clubName !== 'Putter' && !(sh && sh.putts && Number(sh.putts) > 0));
         if (curRem != null && shouldCount && prevRemaining != null){
-          const shotDist = Math.max(0, prevRemaining - curRem);
+          const shotDist = computeShotTravelDistance(prevRemaining, curRem, sh);
           if (isReasonableClubDistance(clubName, shotDist, sh)){
             const bucket = getDistBucket(shotDist);
             if (bucket){
@@ -5188,7 +5206,7 @@ function exportCSV(){
         }
         const curRem = getSafeRemainingDistance(sh);
         if (curRem != null && shouldCount && prevRemaining != null){
-          const shotDist = Math.max(0, prevRemaining - curRem);
+          const shotDist = computeShotTravelDistance(prevRemaining, curRem, sh);
           if (isReasonableClubDistance(clubName, shotDist, sh)){
             if (!clubDists[clubName]) clubDists[clubName] = [];
             clubDists[clubName].push(shotDist);
@@ -5760,7 +5778,7 @@ if (btnExportXLSX) btnExportXLSX.addEventListener('click', ()=>{
         }
         const curRem = getSafeRemainingDistance(sh);
         if (curRem != null && shouldCount && prevRemaining != null) {
-          const shotDist = Math.max(0, prevRemaining - curRem);
+          const shotDist = computeShotTravelDistance(prevRemaining, curRem, sh);
           if (isReasonableClubDistance(clubName, shotDist, sh)){
             if (!clubDists[clubName]) clubDists[clubName] = [];
             clubDists[clubName].push(shotDist);
