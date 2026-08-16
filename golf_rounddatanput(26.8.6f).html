@@ -1166,9 +1166,14 @@ function isFairwayResult(r){
   return k === 'fairway' || k === 'fw';
 }
 
+function isAroundGreenResultKey(k){
+  const key = String(k || '').toLowerCase();
+  return key.indexOf('around') >= 0 && key.indexOf('green') >= 0;
+}
+
 function isGreensideBunkerResult(r){
   const k = normResultKey(r);
-  return k === 'bunkergreenside' || k === 'greensidebunker';
+  return k === 'bunkergreenside' || k === 'greensidebunker' || k.indexOf('greenside') >= 0 || (k.indexOf('bunker') >= 0 && k.indexOf('green') >= 0);
 }
 
 function isFairwayBunkerResult(r){
@@ -1275,8 +1280,8 @@ function getWedgeChipThreshold(){
 function isChipLikeClubShot(sh, clubName, shotDist){
   const rKey = normResultKey((sh && sh.result) || '');
   const lieKey = normResultKey((sh && sh.lie) || '');
-  if (rKey.indexOf('aroundgreen') >= 0) return true;
-  if (rKey.indexOf('bunkergreenside') >= 0 || rKey.indexOf('greensidebunker') >= 0) return true;
+  if (isAroundGreenResultKey(rKey)) return true;
+  if (isGreensideBunkerResult(rKey)) return true;
   if (lieKey === 'fringe' || lieKey === 'green' || lieKey === 'ongreen') return true;
   if (lieKey.indexOf('around') >= 0 || lieKey.indexOf('greenside') >= 0) return true;
   // Even when lie/result is not tagged, very short wedge segments are usually chips.
@@ -1554,6 +1559,7 @@ function renderHoles(){
         holeMetaSmall.textContent = `Par ${HOLES[idx].par} · ${formatDistance(HOLES[idx].yard)}`;
       }
       recomputeRound();
+      try{ saveDraft(); }catch(e){}
     });
   });
   document.querySelectorAll('.hole-yard').forEach(el=>{
@@ -1563,6 +1569,7 @@ function renderHoles(){
       if (activeHole === idx){
         holeMetaSmall.textContent = `Par ${HOLES[idx].par} · ${formatDistance(HOLES[idx].yard)}`;
       }
+      try{ saveDraft(); }catch(e){}
     });
   });
   document.querySelectorAll('.hole-score').forEach(el=>{
@@ -1586,6 +1593,7 @@ function renderHoles(){
   if (btnNextHole) btnNextHole.disabled = (singleHoleIndex >= 18);
   // update course total yard display
   updateCourseYard();
+  try{ saveDraft(); }catch(e){}
 }
 renderHoles();
 syncDistanceUnitButtons();
@@ -2134,14 +2142,17 @@ function startEditShot(index){
     try{ if (distanceToHoleEl) distanceToHoleEl.closest('label').style.display = 'none'; }catch(e){}
     if (puttLieEl) puttLieEl.value = s.lie || 'OnGreen';
     if (puttSlopeEl) puttSlopeEl.value = s.slope || 'Flat';
+    if (puttStartDistEl) puttStartDistEl.value = (s.puttStartDistance != null && s.puttStartDistance !== '' ? s.puttStartDistance : '');
+    if (puttStrokeCountEl) puttStrokeCountEl.textContent = Number(s.putts || 1);
     puttStrokeCount = Number(s.putts || 1);
-    if (puttStrokeCountEl) puttStrokeCountEl.textContent = puttStrokeCount;
     // ensure club selects are cleared
     if (shotTypeWoodEl) shotTypeWoodEl.value = '';
     if (shotTypeIronEl) shotTypeIronEl.value = '';
   } else {
     setShotTypeSelect(s.shotType || '');
     if (shotResultEl) shotResultEl.value = s.result || '';
+    if (distanceToHoleEl) distanceToHoleEl.value = (s.distanceToHole != null && s.distanceToHole !== '' && !isNaN(Number(s.distanceToHole))) ? Number(s.distanceToHole) : '';
+    if (penaltyFlagEl) penaltyFlagEl.value = Number(s.penalty || 0);
     if (shotNoteEl) shotNoteEl.value = s.note || '';
   }
   editingShotIndex = index;
@@ -2162,6 +2173,7 @@ function updateShot(){
     holeYardAtShot: getNumericYard(HOLES[activeHole] && HOLES[activeHole].yard),
     shotType: getShotTypeValue() || hiddenSelectedClub,
     result: shotResultEl.value,
+    distanceToHole: (distanceToHoleEl && distanceToHoleEl.value !== '' && !isNaN(Number(distanceToHoleEl.value))) ? Number(distanceToHoleEl.value) : null,
     penalty: Number(penaltyFlagEl.value) || 0,
     note: shotNoteEl.value || ''
   };
@@ -3933,10 +3945,9 @@ function recomputeRound(){
     });
     if (approach){
       gir++;
-      if (onGreenPuttsOnHole > 0) {
-        parOnPutts += onGreenPuttsOnHole;
-        parOnPuttHoles++;
-      }
+      // Every GIR hole contributes to the denominator so the displayed average matches the total putts on GIR holes.
+      parOnPuttHoles++;
+      parOnPutts += onGreenPuttsOnHole;
       // proximity: reflect larger value between green-hit remaining distance and first on-green putt start distance
       const proximityDist = getOnGreenProximityDistance(approach, sArr);
       if (proximityDist != null) proximityDistances.push(proximityDist);
@@ -3973,7 +3984,7 @@ function recomputeRound(){
       const sh = orderedAll[si];
       if (!sh) continue;
       const rKey = normResultKey(sh.result || '');
-      if (rKey === 'aroundgreen') {
+      if (isAroundGreenResultKey(rKey)) {
         chipTotal++;
         for (let ni = si + 1; ni < orderedAll.length; ni++) {
           const nsh = orderedAll[ni];
@@ -6065,13 +6076,16 @@ function loadDraft(){
     }
     if (draft.shots){
       for (const k in draft.shots){
-        try{ 
-          // normalize penalty values to numeric (support older boolean/string values)
-          if (Array.isArray(shotsByHole[k])){
-            for (let si=0; si<shotsByHole[k].length; si++){
-              try{ const sh = shotsByHole[k][si]; sh.penalty = Number(sh.penalty) || 0; if (sh.hasOwnProperty('lie')) delete sh.lie; }catch(e){}
-            }
-          }
+        try{
+          const restored = Array.isArray(draft.shots[k]) ? draft.shots[k].map((sh)=>{
+            if (!sh || typeof sh !== 'object') return sh;
+            const copy = Object.assign({}, sh);
+            copy.penalty = Number(copy.penalty) || 0;
+            if (copy.hasOwnProperty('lie')) copy.lie = String(copy.lie || '');
+            return copy;
+          }) : [];
+          shotsByHole[k] = restored;
+          if (HOLES[k]) HOLES[k].shots = restored;
         }catch(e){}
       }
     }
