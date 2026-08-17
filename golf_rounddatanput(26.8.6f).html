@@ -232,7 +232,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="tiny muted">Tip: Click a hole number to open the shot entry.</div>
-      <div class="tiny muted">버전 26.8.9f</div>
+      <div class="tiny muted">버전 26.8.10f</div>
     </div>
   </header>
 
@@ -2465,11 +2465,13 @@ const PUTTING_SG_LOOKUP = [
 ];
 
 const PGA_SG_TABLE = {
-  tee: [[80,2.95],[120,3.10],[160,3.30],[200,3.50],[240,3.72],[280,3.92],[320,4.10],[360,4.28],[400,4.44],[440,4.58],[480,4.72],[520,4.86],[560,5.00],[600,5.12]],
-  fairway: [[20,2.20],[40,2.36],[60,2.50],[80,2.64],[100,2.77],[120,2.90],[140,3.02],[160,3.14],[180,3.25],[200,3.35],[220,3.45],[240,3.55],[260,3.64],[280,3.72],[300,3.80]],
-  rough: [[20,2.35],[40,2.50],[60,2.64],[80,2.78],[100,2.91],[120,3.04],[140,3.16],[160,3.28],[180,3.39],[200,3.49],[220,3.59],[240,3.69],[260,3.78],[280,3.86],[300,3.94]],
-  sand: [[10,2.45],[20,2.55],[30,2.65],[40,2.76],[60,2.94],[80,3.08],[100,3.22],[120,3.35],[140,3.47],[160,3.59],[180,3.70]],
-  around: [[5,2.20],[10,2.35],[15,2.47],[20,2.58],[30,2.74],[40,2.89],[50,3.00]],
+  tee: [[50,2.55],[80,2.72],[100,2.80],[120,2.88],[140,2.94],[160,2.99],[180,3.05],[200,3.12],[250,3.33],[300,3.62],[350,3.85],[400,4.05]],
+  fairway: [[50,2.55],[80,2.72],[100,2.80],[120,2.88],[140,2.94],[160,2.99],[180,3.05],[200,3.12],[250,3.33],[300,3.62],[350,3.85],[400,4.05]],
+  rough: [[50,2.55],[80,2.72],[100,2.80],[120,2.88],[140,2.94],[160,2.99],[180,3.05],[200,3.12],[250,3.33],[300,3.62],[350,3.85],[400,4.05]],
+  sand: [[50,2.55],[80,2.72],[100,2.80],[120,2.88],[140,2.94],[160,2.99],[180,3.05],[200,3.12],[250,3.33],[300,3.62],[350,3.85],[400,4.05]],
+  around: [[10,2.28],[20,2.38],[30,2.43]],
+  aroundRough: [[10,2.45],[20,2.52],[30,2.60]],
+  aroundSand: [[10,2.48],[20,2.55],[30,2.65]],
   greenFt: PUTTING_SG_LOOKUP.map((row)=> [row.ft, row.pga])
 };
 
@@ -2479,11 +2481,13 @@ const LPGA_PUTTING_SG_TABLE = {
 };
 
 const LPGA_SG_TABLE = {
-  tee: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.tee), 0.02, 0.06),
-  fairway: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.fairway), 0.02, 0.05),
-  rough: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.rough), 0.03, 0.06),
-  sand: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.sand), 0.04, 0.05),
-  around: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.around), 0.02, 0.03),
+  tee: [[50,2.58],[80,2.74],[100,2.82],[120,2.91],[140,2.98],[160,3.05],[180,3.13],[200,3.22],[250,3.49],[300,3.82],[350,4.08],[400,4.30]],
+  fairway: [[50,2.58],[80,2.74],[100,2.82],[120,2.91],[140,2.98],[160,3.05],[180,3.13],[200,3.22],[250,3.49],[300,3.82],[350,4.08],[400,4.30]],
+  rough: [[50,2.58],[80,2.74],[100,2.82],[120,2.91],[140,2.98],[160,3.05],[180,3.13],[200,3.22],[250,3.49],[300,3.82],[350,4.08],[400,4.30]],
+  sand: [[50,2.58],[80,2.74],[100,2.82],[120,2.91],[140,2.98],[160,3.05],[180,3.13],[200,3.22],[250,3.49],[300,3.82],[350,4.08],[400,4.30]],
+  around: [[10,2.30],[20,2.41],[30,2.46]],
+  aroundRough: [[10,2.48],[20,2.58],[30,2.66]],
+  aroundSand: [[10,2.55],[20,2.65],[30,2.75]],
   greenM: LPGA_PUTTING_SG_TABLE.greenM
 };
 
@@ -2506,11 +2510,13 @@ function buildAdjustedExpectationTable(table, baseOffset, distanceOffset){
 }
 
 const KLPGA_SG_TABLE = {
-  tee: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.tee), 0.03, 0.08),
-  fairway: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.fairway), 0.03, 0.06),
-  rough: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.rough), 0.04, 0.07),
-  sand: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.sand), 0.05, 0.06),
-  around: buildAdjustedExpectationTable(convertAnchorYdToM(PGA_SG_TABLE.around), 0.03, 0.04),
+  tee: [[50,2.60],[80,2.75],[100,2.83],[120,2.92],[140,2.99],[160,3.06],[180,3.14],[200,3.23],[250,3.50],[300,3.84],[350,4.10],[400,4.32]],
+  fairway: [[50,2.60],[80,2.75],[100,2.83],[120,2.92],[140,2.99],[160,3.06],[180,3.14],[200,3.23],[250,3.50],[300,3.84],[350,4.10],[400,4.32]],
+  rough: [[50,2.60],[80,2.75],[100,2.83],[120,2.92],[140,2.99],[160,3.06],[180,3.14],[200,3.23],[250,3.50],[300,3.84],[350,4.10],[400,4.32]],
+  sand: [[50,2.60],[80,2.75],[100,2.83],[120,2.92],[140,2.99],[160,3.06],[180,3.14],[200,3.23],[250,3.50],[300,3.84],[350,4.10],[400,4.32]],
+  around: [[10,2.32],[20,2.43],[30,2.48]],
+  aroundRough: [[10,2.50],[20,2.60],[30,2.68]],
+  aroundSand: [[10,2.58],[20,2.68],[30,2.78]],
   greenM: PUTTING_SG_LOOKUP.map((row)=> [row.m, row.klpga])
 };
 
@@ -2579,8 +2585,8 @@ function getPgaExpectedStrokes(lieCategory, distanceCurrentUnit){
     return interpolateExpected(PGA_SG_TABLE.greenFt, dFt);
   }
   if (lieCategory === 'tee') return interpolateExpected(PGA_SG_TABLE.tee, dYd);
-  if (lieCategory === 'rough') return interpolateExpected(PGA_SG_TABLE.rough, dYd);
-  if (lieCategory === 'sand') return interpolateExpected(PGA_SG_TABLE.sand, dYd);
+  if (lieCategory === 'rough') return interpolateExpected(dYd <= 30 ? PGA_SG_TABLE.aroundRough : PGA_SG_TABLE.rough, dYd);
+  if (lieCategory === 'sand') return interpolateExpected(dYd <= 30 ? PGA_SG_TABLE.aroundSand : PGA_SG_TABLE.sand, dYd);
   if (lieCategory === 'around') return interpolateExpected(PGA_SG_TABLE.around, dYd);
   if (lieCategory === 'recovery'){
     const fairwayExp = interpolateExpected(PGA_SG_TABLE.fairway, dYd);
@@ -2591,40 +2597,40 @@ function getPgaExpectedStrokes(lieCategory, distanceCurrentUnit){
 
 function getKlpgaExpectedStrokes(lieCategory, distanceCurrentUnit){
   if (lieCategory === 'hole') return 0;
-  const dM = toMetersFromCurrentUnit(distanceCurrentUnit);
-  if (dM == null) return null;
+  const dYd = toYardsFromCurrentUnit(distanceCurrentUnit);
+  if (dYd == null) return null;
   if (lieCategory === 'green'){
-    const greenDistM = Math.max(0.15, dM);
+    const greenDistM = Math.max(0.15, dYd * 0.9144);
     return interpolateExpected(KLPGA_SG_TABLE.greenM, greenDistM);
   }
-  if (lieCategory === 'tee') return interpolateExpected(KLPGA_SG_TABLE.tee, dM);
-  if (lieCategory === 'rough') return interpolateExpected(KLPGA_SG_TABLE.rough, dM);
-  if (lieCategory === 'sand') return interpolateExpected(KLPGA_SG_TABLE.sand, dM);
-  if (lieCategory === 'around') return interpolateExpected(KLPGA_SG_TABLE.around, dM);
+  if (lieCategory === 'tee') return interpolateExpected(KLPGA_SG_TABLE.tee, dYd);
+  if (lieCategory === 'rough') return interpolateExpected(dYd <= 30 ? KLPGA_SG_TABLE.aroundRough : KLPGA_SG_TABLE.rough, dYd);
+  if (lieCategory === 'sand') return interpolateExpected(dYd <= 30 ? KLPGA_SG_TABLE.aroundSand : KLPGA_SG_TABLE.sand, dYd);
+  if (lieCategory === 'around') return interpolateExpected(KLPGA_SG_TABLE.around, dYd);
   if (lieCategory === 'recovery'){
-    const fairwayExp = interpolateExpected(KLPGA_SG_TABLE.fairway, dM);
+    const fairwayExp = interpolateExpected(KLPGA_SG_TABLE.fairway, dYd);
     return fairwayExp != null ? fairwayExp + 0.25 : null;
   }
-  return interpolateExpected(KLPGA_SG_TABLE.fairway, dM);
+  return interpolateExpected(KLPGA_SG_TABLE.fairway, dYd);
 }
 
 function getLpgaExpectedStrokes(lieCategory, distanceCurrentUnit){
   if (lieCategory === 'hole') return 0;
-  const dM = toMetersFromCurrentUnit(distanceCurrentUnit);
-  if (dM == null) return null;
+  const dYd = toYardsFromCurrentUnit(distanceCurrentUnit);
+  if (dYd == null) return null;
   if (lieCategory === 'green'){
-    const greenDistM = Math.max(0.15, dM);
+    const greenDistM = Math.max(0.15, dYd * 0.9144);
     return interpolateExpected(LPGA_SG_TABLE.greenM, greenDistM);
   }
-  if (lieCategory === 'tee') return interpolateExpected(LPGA_SG_TABLE.tee, dM);
-  if (lieCategory === 'rough') return interpolateExpected(LPGA_SG_TABLE.rough, dM);
-  if (lieCategory === 'sand') return interpolateExpected(LPGA_SG_TABLE.sand, dM);
-  if (lieCategory === 'around') return interpolateExpected(LPGA_SG_TABLE.around, dM);
+  if (lieCategory === 'tee') return interpolateExpected(LPGA_SG_TABLE.tee, dYd);
+  if (lieCategory === 'rough') return interpolateExpected(dYd <= 30 ? LPGA_SG_TABLE.aroundRough : LPGA_SG_TABLE.rough, dYd);
+  if (lieCategory === 'sand') return interpolateExpected(dYd <= 30 ? LPGA_SG_TABLE.aroundSand : LPGA_SG_TABLE.sand, dYd);
+  if (lieCategory === 'around') return interpolateExpected(LPGA_SG_TABLE.around, dYd);
   if (lieCategory === 'recovery'){
-    const fairwayExp = interpolateExpected(LPGA_SG_TABLE.fairway, dM);
+    const fairwayExp = interpolateExpected(LPGA_SG_TABLE.fairway, dYd);
     return fairwayExp != null ? fairwayExp + 0.25 : null;
   }
-  return interpolateExpected(LPGA_SG_TABLE.fairway, dM);
+  return interpolateExpected(LPGA_SG_TABLE.fairway, dYd);
 }
 
 function getExpectedStrokesByBaseline(lieCategory, distanceCurrentUnit){
@@ -2660,16 +2666,16 @@ function classifySgBucket(shot, startLieCategory, startDistanceCurrentUnit, hole
   if (shotType === 'Putter' && startLieCategory === 'around') return 'around';
   if (startLieCategory === 'tee' && Number(holePar || 4) >= 4) return 'ott';
   if (startLieCategory === 'around') return 'around';
+  if ((startLieCategory === 'rough' || startLieCategory === 'sand') && startYd != null && startYd <= 30) return 'around';
   if (startLieCategory === 'sand') {
-    if ((SG_BASELINE === 'klpga' || SG_BASELINE === 'lpga') && startM != null && startM <= 41.15) return 'around';
-    if (SG_BASELINE === 'pga' && startYd != null && startYd <= 45) return 'around';
+    if (startYd != null && startYd <= 30) return 'around';
   }
   return 'approach';
 }
 
 function getSgBaselineMeta(){
-  if (SG_BASELINE === 'klpga') return { code: 'KLPGA', label: 'KLPGA / Meter Baseline' };
-  if (SG_BASELINE === 'lpga') return { code: 'LPGA', label: 'LPGA / Meter Baseline' };
+  if (SG_BASELINE === 'klpga') return { code: 'KLPGA', label: 'KLPGA / Yard Baseline' };
+  if (SG_BASELINE === 'lpga') return { code: 'LPGA', label: 'LPGA / Yard Baseline' };
   return { code: 'PGA', label: 'PGA / Yard Baseline' };
 }
 
