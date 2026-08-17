@@ -834,6 +834,7 @@
     let lastDirectiveReadAtProbeAt = 0;
     let realtimeChannel = null;
     let realtimePollingTimer = null;
+    let realtimeSubscriptionEnabled = false;
     let dashboardCoachRenderSeq = 0;
     let commCountsRenderSeq = 0;
     let coachDirectiveRenderSeq = 0;
@@ -2988,14 +2989,28 @@
     }
 
     function startRealtimePolling(){
-      if(realtimePollingTimer) return;
+      if(!realtimeSubscriptionEnabled || realtimePollingTimer) return;
       console.warn('Realtime 연결이 불안정해 폴링 모드로 전환합니다.');
       realtimePollingTimer = setInterval(function(){
         refreshAllViewsForRealtime();
       }, 30000);
     }
 
+    function stopRealtimeSubscriptions(){
+      realtimeSubscriptionEnabled = false;
+      if(realtimePollingTimer){
+        clearInterval(realtimePollingTimer);
+        realtimePollingTimer = null;
+      }
+      if(realtimeChannel){
+        var channelToRemove = realtimeChannel;
+        realtimeChannel = null;
+        sb.removeChannel(channelToRemove);
+      }
+    }
+
     function setupRealtimeSubscriptions(){
+      realtimeSubscriptionEnabled = true;
       if(realtimeChannel) return;
       realtimeChannel = sb.channel('sytpt-realtime')
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_messages'},function(){
@@ -3020,6 +3035,7 @@
           renderMissionCardsForActivePlayer();renderCoachCompletedMissionList();renderPlayerViewContext();renderCoachKPIs();
         })
         .subscribe(function(status){
+          if(!realtimeSubscriptionEnabled) return;
           if(status==='CHANNEL_ERROR' || status==='TIMED_OUT'){
             if(realtimeChannel){
               var channelToRemove = realtimeChannel;
@@ -3862,17 +3878,20 @@
         }
       }catch(e){}
 
-      setupRealtimeSubscriptions();
       await syncLocalSessionWithAuth();
+      if(getSession()) setupRealtimeSubscriptions();
       sb.auth.onAuthStateChange(function(event, session){
         if(event==='SIGNED_OUT' || !session){
+          stopRealtimeSubscriptions();
           clearSession();
           applySessionUI();
           return;
         }
         syncLocalSessionWithAuth().then(function(){
+          if(getSession()) setupRealtimeSubscriptions();
           applySessionUI();
         }).catch(function(){
+          stopRealtimeSubscriptions();
           clearSession();
           applySessionUI();
         });

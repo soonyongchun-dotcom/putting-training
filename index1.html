@@ -709,7 +709,7 @@ textarea{
   <!-- 저장 및 내보내기 -->
   <div class="section hidden" id="exportSection">
     <div class="section-title">저장 및 내보내기</div>
-    <button type="button" class="btn" id="btnExportCSV">CSV 파일로 저장</button>
+    <button type="button" class="btn" id="btnExportCSV" disabled title="Player Dashboard에서 로그인한 뒤 이 페이지를 다시 여세요.">로그인 세션 없음</button>
     <button type="button" class="btn btn-secondary" id="btnReset">새 라운드 시작</button>
   </div>
 </div>
@@ -798,6 +798,38 @@ let loggedInUserId = null;
 let loggedInUserEmail = null;
 let supabaseClient = null;
 let lastRoundSyncIssue = '';
+let isRoundSaving = false;
+
+function setRoundSaveAvailability(canSave){
+  if(!btnExportCSV) return;
+  if(isRoundSaving) return;
+  btnExportCSV.disabled = !canSave;
+  btnExportCSV.textContent = canSave ? 'CSV 파일로 저장' : '로그인 세션 없음';
+  btnExportCSV.title = canSave ? '' : 'Player Dashboard에서 로그인한 뒤 이 페이지를 다시 여세요.';
+}
+
+async function refreshRoundSaveAvailability(){
+  const sb = initSupabaseClient();
+  if(!sb){
+    setRoundSaveAvailability(false);
+    return false;
+  }
+  try{
+    const authRes = await sb.auth.getSession();
+    const session = authRes?.data?.session || authRes?.session || null;
+    if(session && session.user && session.access_token){
+      restoredAuthSession = session;
+      loggedInUserId = getAuthPlayerId(session) || null;
+      loggedInUserEmail = session.user.email || null;
+      setRoundSaveAvailability(true);
+      return true;
+    }
+  }catch(e){
+    console.warn('Failed to verify Supabase session for round save', e);
+  }
+  setRoundSaveAvailability(false);
+  return false;
+}
 
 const authMemStore = (function(){
   var store = {};
@@ -1192,102 +1224,15 @@ async function saveRoundToSupabase(){
       source: 'index1_quick_record'
     };
 
-    // 기존 row 조회 (player_id + round_date + course 기준)
-    // on_conflict 방식 대신 select→patch/post 방식으로 중복 생성 방지
-    const selectUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds`
-      + `?player_id=eq.${encodeURIComponent(row.player_id)}`
-      + `&round_date=eq.${encodeURIComponent(row.round_date)}`
-      + `&course=eq.${encodeURIComponent(row.course)}`
-      + `&select=id,exported_at`
-      + `&order=exported_at.desc`;
-    const selectRes = await fetch(selectUrl, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
-        'Accept': 'application/json'
-      }
-    });
-    let existingId = null;
-    let duplicateIds = [];
-    if(selectRes.ok){
-      try{
-        const rows = await selectRes.json();
-        if(Array.isArray(rows) && rows.length > 0){
-          const matchedRows = rows.filter(function(existingRow){
-            return buildRoundIdentity(existingRow && existingRow.player_id, existingRow && existingRow.round_date, existingRow && existingRow.course) === buildRoundIdentity(row.player_id, row.round_date, row.course);
-          });
-          if(matchedRows.length > 0){
-            existingId = matchedRows[0].id;
-            duplicateIds = matchedRows.slice(1).map(function(existingRow){ return existingRow && existingRow.id; }).filter(Boolean);
-          }
-        }
-      }catch(_){}
-    }
-
-    let response;
-    if(existingId){
-      // 기존 row 업데이트 (PATCH)
-      const patchUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?id=eq.${encodeURIComponent(existingId)}`;
-      response = await fetch(patchUrl, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(row)
-      });
-
-      if(response.ok && duplicateIds.length){
-        const deleteFilter = duplicateIds.map(function(id){ return 'id.eq.' + id; }).join(',');
-        const deleteUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds?or=(${deleteFilter})`;
-        const deleteRes = await fetch(deleteUrl, {
-          method: 'DELETE',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
-            'Prefer': 'return=minimal'
-          }
-        });
-        if(!deleteRes.ok){
-          console.warn('Duplicate round cleanup failed', {
-            status: deleteRes.status,
-            statusText: deleteRes.statusText,
-            duplicateIds
-          });
-        }
-      }
-    } else {
-      // 신규 row 삽입 (POST)
-      const insertUrl = `${SUPABASE_URL}/rest/v1/sytpt_player_rounds`;
-      response = await fetch(insertUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${resolvedAuthSession.access_token}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify([row])
-      });
-    }
-
-    const errorBody = await response.text();
-    if(!response.ok){
-      const shortBody = String(errorBody || '').slice(0, 240);
-      console.warn('Supabase round sync failed', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorBody,
-        existingId,
-        row
-      });
-      lastRoundSyncIssue = `서버 저장 실패 (${response.status} ${response.statusText})${shortBody ? ': ' + shortBody : ''}`;
+    const {error} = await sbClient
+      .from('sytpt_player_rounds')
+      .upsert(row, {onConflict:'player_id,round_date,course'});
+    if(error){
+      console.warn('Supabase round sync failed', {error, row});
+      lastRoundSyncIssue = `서버 저장 실패: ${error.message || '알 수 없는 오류'}`;
       return false;
     }
-    console.log('Round synced to Supabase', { row, existingId, method: existingId ? 'PATCH' : 'POST' });
+    console.log('Round synced to Supabase', {row, method:'UPSERT'});
     return true;
   }catch(e){
     console.error('saveRoundToSupabase exception', e);
@@ -1876,6 +1821,11 @@ btnNextHole.addEventListener('click', ()=>{
 // 수정 버튼 (현재 홀 수정)
 // CSV 내보내기 (원본 분석 파일과 호환되는 형식)
 btnExportCSV.addEventListener('click', async ()=>{
+  if(isRoundSaving || btnExportCSV.disabled) return;
+  isRoundSaving = true;
+  btnExportCSV.disabled = true;
+  btnExportCSV.textContent = '서버에 저장 중...';
+  try{
   const lines = [];
   
   // 헤더
@@ -1962,6 +1912,12 @@ btnExportCSV.addEventListener('click', async ()=>{
   const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
   const filename = `golf_quick_${roundData.date || new Date().toISOString().slice(0,10)}.csv`;
   
+  // 서버 동기화 시도
+  const syncSuccess = await saveRoundToSupabase();
+  if(!syncSuccess){
+    console.warn('서버 동기화가 실패했습니다. 코치 포털에 데이터가 반영되지 않을 수 있습니다.', lastRoundSyncIssue);
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -1973,12 +1929,6 @@ btnExportCSV.addEventListener('click', async ()=>{
     a.remove();
   }, 100);
   
-  // 서버 동기화 시도
-  const syncSuccess = await saveRoundToSupabase();
-  if(!syncSuccess){
-    console.warn('서버 동기화가 실패했습니다. 코치 포털에 데이터가 반영되지 않을 수 있습니다.', lastRoundSyncIssue);
-  }
-  
   // 저장 성공 메시지와 함께 통계 정보 표시
   const holesWithData = roundData.holes.filter(h => h.shots && h.shots.some(s => s && (s.club || s.shotType))).length;
   let message = `CSV 파일이 저장되었습니다!\n\n총 ${holesWithData}개 홀, ${totalShotsCount}개 샷 기록`;
@@ -1989,6 +1939,10 @@ btnExportCSV.addEventListener('click', async ()=>{
     message += '\n\n✅ 서버에 저장되었습니다. 코치 포털에서 확인할 수 있습니다.';
   }
   alert(message);
+  }finally{
+    isRoundSaving = false;
+    await refreshRoundSaveAvailability();
+  }
 });
 
 // 새 라운드
@@ -2088,6 +2042,7 @@ function checkAndRestorePreviousData(){
 // DOM이 준비되면 이전 데이터 및 URL 세션 복원
 async function initPage(){
   await restoreSessionFromUrl();
+  await refreshRoundSaveAvailability();
   initShotPanels();
   checkAndRestorePreviousData();
 }
