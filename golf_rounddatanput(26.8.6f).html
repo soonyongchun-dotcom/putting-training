@@ -2663,7 +2663,7 @@ function classifySgBucket(shot, startLieCategory, startDistanceCurrentUnit, hole
   const startYd = toYardsFromCurrentUnit(startDistanceCurrentUnit);
   const startM = toMetersFromCurrentUnit(startDistanceCurrentUnit);
   if (startLieCategory === 'green') return 'putting';
-  if (shotType === 'Putter' && startLieCategory === 'around') return 'around';
+  if (shotType === 'Putter' && startLieCategory === 'around') return null;
   if (startLieCategory === 'tee' && Number(holePar || 4) >= 4) return 'ott';
   if (startLieCategory === 'around') return 'around';
   if ((startLieCategory === 'rough' || startLieCategory === 'sand') && startYd != null && startYd <= 30) return 'around';
