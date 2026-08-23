@@ -832,7 +832,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.8.1f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.8.2f</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -992,7 +992,7 @@
       <div class="analysis-metric" id="analysisFrontTiming"
            data-tooltip="어깨→손목→클럽헤드 꺾임 각도 (팔-샤프트 각)&#10;◎ 90° = 완전 코킹(래그) — 클럽이 수직으로 세워짐&#10;◎ 180° = 완전 릴리즈 — 팔+샤프트 일직선&#10;어드레스: 140~170° 일반 / 다운스윙: 90~120° 이상적">주요 각도: -</div>
       <div class="analysis-metric" id="analysisFrontAcceleration"
-           data-tooltip="키 보정 계수 (골퍼 키 기반 정규화 인수)&#10;• 영상 내 키 대비 보정 배율 (%)&#10;• 컴팩트 지수·반경 등 거리 지표의 키 독립 정규화에 사용&#10;◎ 100% = 기준값 / 높을수록 키가 크게 측정됨">키 보정: -</div>
+           data-tooltip="키 입력 참고값 (현재 점수 계산에는 미사용)&#10;• 거리 지표(컴팩트 지수·반경 비율)는 어드레스 실측 반경 대비 비율로 정규화되어&#10;  신장 입력값과 무관하게 화면 줌/카메라 거리에 자동 대응합니다&#10;◎ 100% = 170cm 기준 (참고 표시용)">키 보정: -</div>
       <div class="analysis-metric" id="analysisFrontTransfer"
            data-tooltip="반경 비율 (최대 반경 / 어드레스 기준 비율)&#10;• 어드레스(F1A) 기준 최대 반경이 얼마나 변했는지&#10;◎ F3 지면반력: 비율 증가 = 하체 신장 = 좋음&#10;◎ F4 임팩트: 비율 높을수록 레버 확장 = 클럽헤드 속도↑">반경 비율: -</div>
       <div class="analysis-metric" id="analysisFrontImpact"
@@ -1212,6 +1212,32 @@
     return Math.max(min, Math.min(max, value));
   }
 
+  // 0~1 구간에서 부드럽게(S자 곡선) 전이 — 경계 부근 기울기가 0이라 미세 입력오차에 덜 민감
+  function smoothstep01(t) {
+    t = clamp(t, 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+
+  // 각도 등 노이즈에 민감한 지표용 완만 점수화: |value| <= deadzone 이면 만점,
+  // |value| >= fullPenalty 이면 0점, 그 사이는 smoothstep으로 완만하게 감점
+  // (기존의 뚝뚝 끊기는 선형 clamp 대비 클릭 좌표 오차 1~2° 수준에는 점수가 거의 변하지 않음)
+  function bandScore(absValue, deadzone, fullPenalty) {
+    if (absValue <= deadzone) return 1;
+    if (absValue >= fullPenalty) return 0;
+    return 1 - smoothstep01((absValue - deadzone) / (fullPenalty - deadzone));
+  }
+
+  // 표시/최종 점수의 가짜 정밀도를 제거하기 위한 구간(밴드) 반올림
+  function roundToStep(value, step) {
+    return Math.round(value / step) * step;
+  }
+
+  // 단조 증가형 각도 지표(값이 클수록 좋음)의 완만한 램프 점수화 — smoothstep으로 경계 근처 민감도 완화
+  function rampScore(value, lowEdge, highEdge) {
+    if (highEdge === lowEdge) return value >= highEdge ? 1 : 0;
+    return smoothstep01((value - lowEdge) / (highEdge - lowEdge));
+  }
+
   let guideView = null;
   let guideStep = 0;
   let selectedSegment = 'frame1';
@@ -1274,21 +1300,18 @@
     return clamp(heightCm / 170, 0.7, 1.4);
   }
 
-  function computeExpectedSpan(heightScale) {
-    return 0.55 * heightScale;
-  }
-
   function applyProjectionNormalization(result, baselineResult) {
     if (!baselineResult || !baselineResult.rawRadiusProxy) return;
-    const heightScale = getHeightScale();
-    const expectedSpan = computeExpectedSpan(heightScale);
-    const scale = baselineResult.rawRadiusProxy ? expectedSpan / baselineResult.rawRadiusProxy : 1;
+    // 신장 입력 대신 어드레스(baseline) 프레임 자체의 실측 반경을 기준자(=1.0)로 사용
+    // → 화면 줌/카메라 거리와 무관하며, 신장 입력 오류·누락에도 영향받지 않는 비율 정규화
+    const baselineSpan = baselineResult.rawRadiusProxy;
+    const scale = 1 / baselineSpan;
     result.projectionScale = scale;
     result.radiusProxy = result.rawRadiusProxy * scale;
     result.momentProxy = result.rawMomentProxy * scale;
-    result.accelerationScore = computeArcCompactScore(result.momentProxy, heightScale);
-    result.transferScore = computeTransferScore(result.radiusProxy, result.angleDeg, heightScale);
-    result.impactScore = computeImpactScore(result.radiusProxy, result.angleDeg, heightScale);
+    result.accelerationScore = computeArcCompactScore(result.momentProxy);
+    result.transferScore = computeTransferScore(result.radiusProxy, result.angleDeg);
+    result.impactScore = computeImpactScore(result.radiusProxy, result.angleDeg);
     result.motionScore = (result.accelerationScore + result.transferScore + result.impactScore) / 3;
     // 어드레스(baselineFrontResult) 대비 집중도·반경 비율 — 로데이터 표시용
     result.momentRatioPct = baselineResult.rawMomentProxy > 0
@@ -1297,7 +1320,7 @@
       ? (result.rawRadiusProxy / baselineResult.rawRadiusProxy * 100) : null;
     // pelvisNormX, c7NormX, rMaxNorm 은 이미 0-1 정규화 좌표 기반값이므로
     // projectionScale 적용 불필요 (적용 시 1 초과 → 133% 등 이상값 발생)
-    result.summary += ` 보정계수: ${scale.toFixed(3)} (기준 프레임 기반, 키 보정 ${Math.round(heightScale * 100)}%).`;
+    result.summary += ` 보정기준: 어드레스 실측 반경 대비 비율 정규화 적용(신장 입력 미사용).`;
   }
 
   function getGuideMessage() {
@@ -1650,18 +1673,19 @@
   }
 
   // 아크 집중도: 랜드마크가 중심에 밀집할수록 고점수 (= 스윙 컴팩트성)
-  function computeArcCompactScore(avgDistFromCenter, heightScale) {
-    return clamp((1 - avgDistFromCenter / (0.45 * heightScale)) * 10, 0, 10);
+  // momentRatio/radiusRatio: 어드레스 실측 반경 대비 비율(무차원) — 신장 입력과 무관
+  function computeArcCompactScore(momentRatio) {
+    return clamp((1 - (0.55 / 0.45) * momentRatio) * 10, 0, 10);
   }
 
-  function computeTransferScore(maxSpan, angleDeg, heightScale) {
-    const radiusFactor = clamp(maxSpan / (0.55 * heightScale), 0, 1);
+  function computeTransferScore(radiusRatio, angleDeg) {
+    const radiusFactor = clamp(radiusRatio, 0, 1);
     const timingFactor = clamp((angleDeg - 45) / 45, 0, 1);
     return clamp((radiusFactor * 0.6 + timingFactor * 0.4) * 10, 0, 10);
   }
 
-  function computeImpactScore(maxSpan, angleDeg, heightScale) {
-    const radiusFactor = clamp(maxSpan / (0.55 * heightScale), 0, 1);
+  function computeImpactScore(radiusRatio, angleDeg) {
+    const radiusFactor = clamp(radiusRatio, 0, 1);
     const timingFactor = clamp((angleDeg - 35) / 55, 0, 1);
     return clamp((radiusFactor * 0.7 + timingFactor * 0.3) * 10, 0, 10);
   }
@@ -1851,17 +1875,18 @@
     // P6(허리높이) 시점에 코킹이 유지된 스윙은 샤프트가 세워져 있고, 평행에 가까울수록 조기 릴리즈(캐스팅)를 의미
     const idealShaftMin = 50;
     const shaftErr = hasMetric(fm.shaftAngleB)
-      ? clamp((idealShaftMin - fm.shaftAngleB) / idealShaftMin, 0, 1) * 100
+      ? rampScore(idealShaftMin - fm.shaftAngleB, 0, idealShaftMin) * 100
       : 100;
     let lagErr = 100;
     if (hasMetric(fm.lagAngleB)) {
-      lagErr = fm.lagAngleB < 70 ? clamp((70 - fm.lagAngleB) / 70, 0, 1) * 100
-             : fm.lagAngleB > 110 ? clamp((fm.lagAngleB - 110) / 70, 0, 1) * 100
+      lagErr = fm.lagAngleB < 70 ? rampScore(70 - fm.lagAngleB, 0, 70) * 100
+             : fm.lagAngleB > 110 ? rampScore(fm.lagAngleB - 110, 0, 70) * 100
              : 0;
     }
     const sHead = 0.6 * lagErr + 0.4 * shaftErr;
 
-    const score100 = clamp(100 - (0.30 * sHand + 0.25 * sC7 + 0.25 * sPelvis + 0.20 * sHead), 0, 100);
+    // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 1점 단위로 반올림
+    const score100 = roundToStep(clamp(100 - (0.30 * sHand + 0.25 * sC7 + 0.25 * sPelvis + 0.20 * sHead), 0, 100), 1);
     const grade = score100 >= 90 ? 'A - Tour Pro Level'
                 : score100 >= 80 ? 'B - Advanced'
                 : score100 >= 70 ? 'C - Intermediate'
@@ -1893,21 +1918,21 @@
     let score = 0;
 
     if (segment === 'frame1') {
-      // 척추각도 유지: 백스윙 탑 - 어드레스 차이가 ±5° 이내면 만점
+      // 척추각도 유지: 허용오차대 ±6° 이내 만점, ±22° 이상 0점 (완만한 감점 구간으로 클릭오차 흡수)
       const spineDelta = deltaResult.fm && hasMetric(deltaResult.fm.spineAngleDelta) ? Math.abs(deltaResult.fm.spineAngleDelta) : null;
-      const spineScore = spineDelta != null ? (spineDelta <= 5 ? 1 : clamp(1 - (spineDelta - 5) / 10, 0, 1)) : null;
-      // X-Factor: -60° = 0점, -150° 이하 = 만점 (선형 보간)
+      const spineScore = spineDelta != null ? bandScore(spineDelta, 6, 22) : null;
+      // X-Factor: -60° = 0점, -150° 이하 = 만점 (완만한 램프)
       const xfDelta = deltaResult.fm && hasMetric(deltaResult.fm.xFactorDelta) ? deltaResult.fm.xFactorDelta : null;
-      const xfScore = xfDelta != null ? clamp((-xfDelta - 60) / 90, 0, 1) : null;
+      const xfScore = xfDelta != null ? rampScore(-xfDelta, 60, 150) : null;
       score = combineMetricScores([
         { value: spineScore, weight: 0.60 },
         { value: xfScore, weight: 0.40 },
       ]);
 
     } else if (segment === 'frame2') {
-      // 래깅각도: -100° 이하 = 10점, 10° 간격 1점씩 선형 감점
+      // 래깅각도: -100° 이하 = 10점, 완만한 램프로 선형 감점 대비 경계 민감도 완화
       const lagDelta = deltaResult.fm && hasMetric(deltaResult.fm.laggingAngleDelta) ? deltaResult.fm.laggingAngleDelta : null;
-      const lagScore = lagDelta != null ? clamp(-lagDelta / 100, 0, 1) : null;
+      const lagScore = lagDelta != null ? rampScore(-lagDelta, 0, 100) : null;
       // 코어(골반) 좌측 이동: 양수 delta = 목표방향 이동 = 좋음
       // 몸통 참조거리 정규화 기준: +0.35(몸통의 35% 이동) = 만점
       const coreDelta = deltaResult.fm && hasMetric(deltaResult.fm.pelvisLateralDelta) ? deltaResult.fm.pelvisLateralDelta : null;
@@ -1919,9 +1944,10 @@
 
     } else if (segment === 'frame3') {
       // 수직신장각: 증가할수록 고점수 (타겟: ≥160° 만점)
+      // 음(-)의 방향(굽어짐) 감점 폭을 20°→40°로 넓혀 클릭오차에 의한 급격한 점수 하락 완화
       const keDelta = deltaResult.fm && hasMetric(deltaResult.fm.kneeExtDelta) ? deltaResult.fm.kneeExtDelta : null;
-      const keScore = keDelta != null ? (keDelta >= 160 ? 1 : keDelta >= 0 ? clamp(keDelta / 160, 0, 1)
-                                                        : clamp(1 + keDelta / 20, 0, 1)) : null;
+      const keScore = keDelta != null ? (keDelta >= 160 ? 1 : keDelta >= 0 ? rampScore(keDelta, 0, 160)
+                                                        : rampScore(keDelta, -40, 0)) : null;
       // 축 고정: C7 수평 이동 비율이 작을수록 고점수 (허용 ±10%)
       const swayPct = deltaResult.fm && hasMetric(deltaResult.fm.c7SwayPercent) ? Math.abs(deltaResult.fm.c7SwayPercent) : null;
       const swayScore = swayPct != null ? clamp(1 - swayPct / 10, 0, 1) : null;
@@ -1948,20 +1974,21 @@
         : null;
 
       // 1차 지표: 팔-샤프트 정렬 개선 (+100° 이상 = 만점)
+      // 음(-)의 방향 감점 폭을 30°→60°로 넓혀 완만하게 처리
       const asDelta = deltaResult.fm && hasMetric(deltaResult.fm.armShaftDelta) ? deltaResult.fm.armShaftDelta : null;
       const asScore = asDelta != null ? (asDelta >= 100 ? 1
-                    : asDelta >= 0  ? 0.5 + 0.5 * (asDelta / 100)
-                    : clamp(0.5 + asDelta / 30, 0, 1)) : null;
-      // 2차 지표: r_max 확장 (+0.3 이상 = 만점)
+                    : asDelta >= 0  ? 0.5 + 0.5 * smoothstep01(asDelta / 100)
+                    : rampScore(asDelta, -60, 0) * 0.5) : null;
+      // 2차 지표: r_max 확장 (+0.3 이상 = 만점, 비율 지표라 폭 유지)
       const rDelta = deltaResult.fm && hasMetric(deltaResult.fm.rMaxNormDelta) ? deltaResult.fm.rMaxNormDelta : null;
       const rScore = rDelta != null ? (rDelta >= 0.3 ? 1
-                   : rDelta >= 0    ? 0.5 + 0.5 * (rDelta / 0.3)
-                   : clamp(0.5 + rDelta / 0.3, 0, 1)) : null;
-      // 3차 지표: 측면 기울기 (+100° 이상 = 만점)
+                   : rDelta >= 0    ? 0.5 + 0.5 * smoothstep01(rDelta / 0.3)
+                   : rampScore(rDelta, -0.3, 0) * 0.5) : null;
+      // 3차 지표(측면 기울기, 각도): 음(-)의 방향 감점 폭을 15°→40°로 넓힘
       const leanDelta = deltaResult.fm && hasMetric(deltaResult.fm.lateralLeanDelta) ? deltaResult.fm.lateralLeanDelta : null;
       const leanScore = leanDelta != null ? (leanDelta >= 100 ? 1
-                      : leanDelta >= 0 ? 0.5 + 0.5 * (leanDelta / 100)
-                      : clamp(0.5 + leanDelta / 15, 0, 1)) : null;
+                      : leanDelta >= 0 ? 0.5 + 0.5 * smoothstep01(leanDelta / 100)
+                      : rampScore(leanDelta, -40, 0) * 0.5) : null;
       score = combineMetricScores([
         { value: arcCoreScore,  weight: 0.70 },
         { value: asScore,       weight: 0.10 },
@@ -1974,7 +2001,8 @@
       const rep = (deltaResult.fm && deltaResult.fm._consistency) || computeConsistencyReport(deltaResult.fm || {});
       score = rep.score100 / 10;
     }
-    return clamp(score, 0, 10);
+    // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 0.5점 단위로 반올림
+    return roundToStep(clamp(score, 0, 10), 0.5);
   }
 
   function createDeltaResult(frontResult, sideResult, segment = 'frame1') {
@@ -2169,14 +2197,12 @@
     result.canvasHeight = canvasHeight;
     result.frameMetrics = computeFrameMetrics(points, lines, selectedSegment, heightScale, canvasHeight, videoAspect);
 
-    result.accelerationScore = computeArcCompactScore(avgDistFromCenter, heightScale);
-    result.transferScore = computeTransferScore(maxSpan, angleDeg, heightScale);
-    result.impactScore = computeImpactScore(maxSpan, angleDeg, heightScale);
-    result.motionScore = (result.accelerationScore + result.transferScore + result.impactScore) / 3;
+    // accelerationScore/transferScore/impactScore는 어드레스 기준 비율이 필요하므로
+    // applyProjectionNormalization()에서 baseline과 함께 재계산됨 (여기서는 0으로 초기화만)
 
     const frameName = { frame1: 'Frame1(척추축)', frame2: 'Frame2(래깅)', frame3: 'Frame3(지면반력)', frame4: 'Frame4(임팩트)', frame5: 'Frame5(일관성)' }[selectedSegment] || '';
     const fmSummary = buildFrameMetricSummary(result.frameMetrics, selectedSegment);
-    result.summary = `[${frameName}] ${fmSummary} 키보정: ${Math.round(heightScale * 100)}%`;
+    result.summary = `[${frameName}] ${fmSummary}`;
     result.detail = `컴팩트 지수raw: ${avgDistFromCenter.toFixed(3)}, 최대반경: ${maxSpan.toFixed(3)}, 주각도: ${angleDeg.toFixed(1)}°`;
     return result;
   }
