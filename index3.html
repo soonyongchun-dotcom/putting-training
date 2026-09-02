@@ -1655,6 +1655,106 @@
       return String(v||'').trim().toLowerCase();
     }
     function getApprovedPlayers(users){ return users.filter(u=>u.role==='player'&&normalizeApprovalStatus(u.approvalStatus)==='approved'); }
+    // 홀별 샷 기록으로부터 해당 라운드의 스코어-파 차이를 계산 (오버파 양수, 언더파 음수)
+    // 우선순위: 수동 입력 스코어 > 입력도구가 이미 집계한 computedStrokes(퍼팅수 포함) > 샷 목록 직접 합산
+    // par는 입력앱이 사용자가 지정한 라운드 전체 파(round_meta.roundPar/par)를 우선 신뢰하고, 없으면 홀별 par 합산으로 대체
+    function computeRoundDiffToPar(payload,meta){
+      var holes=Array.isArray(payload&&payload.holes)?payload.holes:[];
+      var score=0,par=0,played=false;
+      var explicitPar=Number(meta&&(meta.roundPar||meta.par))||0;
+      holes.forEach(function(h){
+        if(!h) return;
+        var strokes=null;
+        var shots=Array.isArray(h.shots)?h.shots:[];
+        var validShots=shots.filter(function(s){return s&&(s.club||s.shotType);});
+        if(h.manualScore&&h.score!=null&&h.score!==''){
+          strokes=Number(h.score);
+        }else if(h.computedStrokes){
+          // computedStrokes는 원본 입력앱이 퍼팅(shot.putts 합산)/벌타까지 반영해 미리 계산한 값이므로 우선 신뢰
+          strokes=Number(h.computedStrokes);
+        }else if(validShots.length){
+          // 퍼터 샷의 putts 필드가 2 이상이면 한 항목이 여러 스트로크를 의미
+          strokes=validShots.reduce(function(acc,shot){
+            var puttsCount=Number(shot.putts)||0;
+            var units=puttsCount>1?puttsCount:1;
+            return acc+units+(Number(shot.penalty)||0);
+          },0);
+        }
+        if(strokes==null||isNaN(strokes)||strokes<=0) return;
+        played=true;
+        score+=strokes;
+        if(!explicitPar) par+=Number(h.par)||4;
+      });
+      if(explicitPar) par=explicitPar;
+      return played?{score:score,par:par,diff:score-par}:null;
+    }
+    // player_id 표기 차이(공백/대소문자)로 인한 매칭 누락을 막기 위한 정규화 키
+    function normalizeRoundPlayerKey(v){ return String(v||'').trim().toLowerCase(); }
+    // 여러 선수의 최근 라운드 스코어-파 차이를 한 번에 조회 (최신순 배열)
+    async function getRecentRoundDiffsMap(playerIds){
+      var map={};
+      if(!playerIds||!playerIds.length) return map;
+      var idIndex={};
+      playerIds.forEach(function(id){ idIndex[normalizeRoundPlayerKey(id)]=id; });
+      try{
+        var {data,error}=await sb.from('sytpt_player_rounds')
+          .select('player_id,round_date,round_payload,round_meta,exported_at')
+          .order('round_date',{ascending:false})
+          .order('exported_at',{ascending:false})
+          .limit(1000);
+        if(error||!data) return map;
+        // 같은 날짜에 코스명 표기 차이 등으로 중복 저장된 라운드가 있어도 한 경기로만 집계 (최신 저장분 우선)
+        var seenDates={};
+        data.forEach(function(row){
+          var realId=idIndex[normalizeRoundPlayerKey(row.player_id)];
+          if(!realId) return;
+          var dateKey=realId+'|'+String(row.round_date||'');
+          if(seenDates[dateKey]) return;
+          seenDates[dateKey]=true;
+          var diffInfo=computeRoundDiffToPar(row.round_payload,row.round_meta);
+          if(!diffInfo) return;
+          if(!map[realId]) map[realId]=[];
+          map[realId].push(diffInfo.diff);
+        });
+      }catch(e){ console.warn('getRecentRoundDiffsMap failed', e); }
+      return map;
+    }
+    // 경기력 = 최근 3경기의 (80 - 스코어파차이) 평균 (오버파면 80-오버파, 언더파면 80+언더파)
+    // 최근 3경기 연속 언더파면 최종값에 +5%p 가산
+    function computePerformanceFromDiffs(diffs){
+      if(!diffs||!diffs.length) return null;
+      var recent=diffs.slice(0,3);
+      var sum=recent.reduce(function(acc,d){return acc+(80-d);},0);
+      var avg=sum/recent.length;
+      var underStreak=0;
+      for(var i=0;i<diffs.length;i++){
+        if(diffs[i]<0) underStreak++;
+        else break;
+      }
+      if(underStreak>=3) avg+=5;
+      return Math.round(Math.max(0,Math.min(100,avg)));
+    }
+    // 위험도 = 미션과 무관하게 최근 라운드의 오버파 빈도로 판정 (데이터 없으면 경기력과 동일하게 '-')
+    // 심각: 3연속 오버파 / 최근 4경기중 3번 / 최근 3경기중 2번, 주의: 2연속 오버파 / 최근 4경기중 2번
+    // 경기력 %가 최종 판정을 보정: 80% 이하는 무조건 심각, 80% 초과면 심각 판정을 주의로 완화
+    function computeRiskFromDiffs(diffs,perf){
+      if(!diffs||!diffs.length) return '-';
+      var streak=0;
+      for(var i=0;i<diffs.length;i++){
+        if(diffs[i]>0) streak++;
+        else break;
+      }
+      var last3=diffs.slice(0,3);
+      var last4=diffs.slice(0,4);
+      var overIn3=last3.filter(function(d){return d>0;}).length;
+      var overIn4=last4.filter(function(d){return d>0;}).length;
+      var risk=(streak>=3||overIn4>=3||overIn3>=2)?'심각':(streak===2||overIn4>=2)?'주의':'정상';
+      if(perf!=null){
+        if(perf<=80) return '심각';
+        if(risk==='심각') return '주의';
+      }
+      return risk;
+    }
     function getActivePlayerForView(users){
       const session=getSession(); if(!session) return null;
       if(session.role==='coach'){
@@ -2600,14 +2700,15 @@
       if(countRoot) countRoot.textContent=ap.length+'명';
       if(!tableRoot) return;
       if(!ap.length){tableRoot.innerHTML='<tr><td colspan="6" class="muted">승인된 선수가 아직 없습니다.</td></tr>';return;}
+      const diffsMap=await getRecentRoundDiffsMap(ap.map(function(p){return p.id;}));
       tableRoot.innerHTML=ap.map(function(player){
-        var risk=player.riskLevel||'정상';
-        var rc=risk==='높음'?'risk-high':risk==='주의'?'risk-mid':'';
+        var diffs=diffsMap[player.id]||[];
+        var perf=computePerformanceFromDiffs(diffs);
+        var risk=computeRiskFromDiffs(diffs,perf);
+        var rc=(risk==='심각'||risk==='높음')?'risk-high':risk==='주의'?'risk-mid':'';
         var rowC=player.id===selectedId?'selected':'';
         var status=player.approvalStatus==='approved'?'승인 완료':player.approvalStatus==='inactive'?'비활성화':player.approvalStatus==='pending'?'승인 대기':(player.statusLabel||'승인 완료');
-        var perfVal = player.performanceLevel!=null ? player.performanceLevel : '';
-        if(lastPerformanceEdit && player.id===lastPerformanceEdit.id) perfVal = lastPerformanceEdit.val;
-        var perfCell = '<td><div style="display:flex;align-items:center;"><input type="number" class="perf-input" data-player-id="'+escapeHtml(player.id)+'" value="'+escapeHtml(String(perfVal))+'" min="0" max="100" style="width:52px"><span style="margin-left:4px">%</span></div></td>';
+        var perfCell='<td>'+(perf!=null?escapeHtml(String(perf))+'%':'<span class="muted">-</span>')+'</td>';
         return '<tr class="'+rowC+'" data-player-id="'+escapeHtml(player.id)+'"><td>'+escapeHtml(player.name)+'</td><td>'+escapeHtml(player.todayCompletion||'0%')+'</td>'+perfCell+'<td class="'+rc+'">'+escapeHtml(risk)+'</td><td>'+escapeHtml(status)+'</td><td><button class="btn btn-amber deactivate-btn" data-player-id="'+escapeHtml(player.id)+'" style="padding:6px 10px">승인 취소</button></td></tr>';
       }).join('');
       tableRoot.querySelectorAll('.deactivate-btn').forEach(function(btn){btn.addEventListener('click',async function(){
@@ -2630,31 +2731,11 @@
         renderCoachAthleteBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachMatchBoard();renderPlayerViewContext();renderCoachKPIs();
       });});
       tableRoot.querySelectorAll('tr[data-player-id]').forEach(function(row){row.addEventListener('click',function(e){
-        if(e.target.closest('.deactivate-btn')||e.target.closest('.perf-input')) return;
+        if(e.target.closest('.deactivate-btn')) return;
         setCoachSelectedPlayerId(row.dataset.playerId);
         setCommLastRead(row.dataset.playerId);
         renderCoachAthleteBoard();renderPlayerViewContext();
       });});
-      tableRoot.querySelectorAll('.perf-input').forEach(function(input){
-        input.addEventListener('change',async function(){
-          var pid=input.getAttribute('data-player-id');
-          var val=parseInt(input.value,10);
-          if(isNaN(val)||val<0) val=0;
-          if(val>100) val=100;
-          input.value=val;
-          var res=await sb.from('sytpt_users').update({performance_level:val}).eq('id',pid).select('id,performance_level').maybeSingle();
-          if(res.error){
-            alert('경기력 수준 저장 중 오류가 발생했습니다. '+(res.error.message||''));
-            return;
-          }
-          lastPerformanceEdit={id:pid,val:val};
-          const active=getActivePlayerForView(await getUsers());
-          if(active&&active.id===pid){
-            var rr=document.getElementById('playerViewPerformance');
-            if(rr) rr.textContent=formatRiskWithPerformance(active.riskLevel,val);
-          }
-        });
-      });
     }
     async function renderCoachMatchBoard(){
       const root=document.getElementById('coachMatchBoard'); if(!root) return;
@@ -3018,6 +3099,10 @@
           messagesCache = [];
           lastMessagesFetch = 0;
           renderPlayerMessageThread();renderDashboardCoachMessages();renderCoachInboxDynamic();renderCommCounts();renderReplyStatus();renderCoachKPIs();
+        })
+        .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_player_rounds'},function(){
+          // 새 라운드 데이터가 올라오면 경기력/위험도를 즉시 재산정
+          renderCoachAthleteBoard();renderPlayerViewContext();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
           // Clear cache to ensure new coach directives show up immediately
