@@ -605,12 +605,36 @@
   }
   .analysis-score-block {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    align-items: stretch;
     gap: 10px;
     padding: 10px 12px;
     background: rgba(255,255,255,0.05);
     border-radius: 10px;
+  }
+  .analysis-score-group {
+    flex: 1.6 1 360px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+  }
+  .analysis-score-group-consistency {
+    flex: 0.8 1 190px;
+    border-color: rgba(255, 203, 76, 0.35);
+    background: rgba(255, 203, 76, 0.06);
+  }
+  .analysis-score-group-title {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #9eb0d8;
+  }
+  .analysis-distance-score-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
   }
   .analysis-score-items {
     display: flex;
@@ -655,8 +679,10 @@
   .analysis-f5-score-box {
     flex: 0 0 108px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
+    gap: 0 0.3em;
     text-align: center;
     font-size: 0.95rem;
     font-weight: 800;
@@ -667,6 +693,7 @@
     border-radius: 10px;
     padding: 8px;
   }
+  .analysis-f5-score-part { white-space: nowrap; }
   .analysis-b-section {
     margin-top: 8px;
     border-top: 1px solid rgba(255,255,255,0.2);
@@ -710,6 +737,11 @@
     padding: 6px 10px;
     border-radius: 8px;
     white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .analysis-score-group,
+    .analysis-score-group-consistency { flex-basis: 100%; }
+    .analysis-score-average { margin-left: auto; }
   }
   .analysis-metric {
     font-size: 0.92rem;
@@ -859,7 +891,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.9.1f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.9.2f</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1097,14 +1129,21 @@
     </div>
     <div class="analysis-summary" id="analysisSummary"></div>
     <div class="analysis-score-block" id="analysisSegmentScores">
-      <div class="analysis-score-items">
-        <span class="analysis-score-item" id="analysisSegmentScoreF1">F1: -</span>
-        <span class="analysis-score-item" id="analysisSegmentScoreF2">F2: -</span>
-        <span class="analysis-score-item" id="analysisSegmentScoreF3">F3: -</span>
-        <span class="analysis-score-item" id="analysisSegmentScoreF4">F4: -</span>
-        <span class="analysis-score-item" id="analysisSegmentScoreF5">F5: -</span>
+      <div class="analysis-score-group">
+        <div class="analysis-distance-score-row">
+          <div class="analysis-score-items">
+            <span class="analysis-score-item" id="analysisSegmentScoreF1">F1: -</span>
+            <span class="analysis-score-item" id="analysisSegmentScoreF2">F2: -</span>
+            <span class="analysis-score-item" id="analysisSegmentScoreF3">F3: -</span>
+            <span class="analysis-score-item" id="analysisSegmentScoreF4">F4: -</span>
+          </div>
+          <span class="analysis-score-average" id="analysisSegmentAverage">비거리 모션 평균: -</span>
+        </div>
       </div>
-      <span class="analysis-score-average" id="analysisSegmentAverage">평균: -</span>
+      <div class="analysis-score-group analysis-score-group-consistency">
+        <span class="analysis-score-group-title">일관성 모션 점수</span>
+        <span class="analysis-score-item" id="analysisSegmentScoreF5">F5: - / 100</span>
+      </div>
     </div>
   </div>
 </div>
@@ -2034,6 +2073,8 @@
       // frame5: 일관성 리포트 (100점 만점) — computeConsistencyReport 결과를 /10으로 환산
       const rep = (deltaResult.fm && deltaResult.fm._consistency) || computeConsistencyReport(deltaResult.fm || {});
       score = rep.score100 / 10;
+      // F5는 100점 만점의 정수 원점수를 그대로 표시해야 카드/요약 값이 일치한다.
+      return clamp(score, 0, 10);
     }
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 0.5점 단위로 반올림
     return roundToStep(clamp(score, 0, 10), 0.5);
@@ -2064,7 +2105,7 @@
       //   어드레스(A): 두 어깨가 비슷한 x → 어깨선이 카메라 방향(수평폭 작음)
       //   백스윙탑(B): 오른어깨 x 증가, 왼어깨 x 감소 → 수평폭 증가 = 회전 증가
       // xFactorDeg = -atan2(dy, dx): 오른어깨↑·왼어깨↓ 또는 수평폭 증가 → 양수
-      // xFactorDelta = B의 각도 - A의 각도 → 회전이 많을수록 큰 양수
+      // xFactorDelta = B의 각도 - A의 각도 → 정상 코일일수록 큰 음수
       fm.xFactorDelta = computeMetricDelta(fmA.xFactorDeg, fmB.xFactorDeg);
       if (fm.xFactorDelta != null) {
         fm._dbgSwA = fmA.shoulderHorzWidth; fm._dbgSwB = fmB.shoulderHorzWidth;
@@ -2355,7 +2396,7 @@
     if (scoreEl) {
       if (segment === 'frame5' && fm._consistency) {
         const rep = fm._consistency;
-        scoreEl.textContent = `종합점수: ${rep.score100.toFixed(1)} / 100 (${rep.grade})`;
+        scoreEl.innerHTML = `<span class="analysis-f5-score-part">종합점수: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">(${rep.grade})</span>`;
       } else {
         scoreEl.textContent = `점수: ${deltaResult.segmentScore.toFixed(1)}`;
       }
@@ -2477,7 +2518,7 @@
       const xf  = fm.xFactorDelta;
       lines.push(`${bold('F1 백스윙탑 — 축 고정과 꼬임')}`);
       lines.push(`척추각도 변화 ${deg(spd)} — ${spd != null && Math.abs(spd) <= 5 ? hl('축 유지 우수 (≤5°)', true) : spd != null && Math.abs(spd) <= 15 ? hl('축 이탈 경미 (≤15°)', false) : hl('축 이탈 심각 (>15°)', false)}`);
-      lines.push(`X-Factor(어깨회전) ${deg(xf)} — ${xf != null && xf >= 50 ? hl('충분한 코일 (≥50°)', true) : xf != null && xf >= 30 ? hl('보통 (30~50°)', false) : hl('코일 부족 (<30°)', false)}`);
+      lines.push(`X-Factor(어깨회전) ${deg(xf)} — ${xf != null && xf <= -150 ? hl('충분한 코일 (≤-150°)', true) : xf != null && xf <= -60 ? hl('보통 (-60~-150°)', false) : hl('코일 부족 (>-60°)', false)}`);
       lines.push(`어드레스 레버: ${raw(aR)} → 백스윙탑 레버: ${raw(bR)}. ${bR < aR ? hl('탑에서 팔이 접혀 각속도 증폭 준비', true) : hl('탑에서 레버 유지', false)}`);
     }
     else if (segment === 'frame2') {
@@ -2567,7 +2608,7 @@
       const { frame5, ...restScores } = segmentScoreHistory;
       const scores = Object.values(restScores).filter(v => v !== null);
       const avg = scores.length ? scores.reduce((sum, v) => sum + v, 0) / scores.length : 0;
-      analysisSegmentAverage.textContent = scores.length ? `평균: ${avg.toFixed(1)}` : '평균: -';
+      analysisSegmentAverage.textContent = scores.length ? `비거리 모션 평균: ${avg.toFixed(1)}` : '비거리 모션 평균: -';
     }
   }
 
@@ -2575,7 +2616,7 @@
     if (!analysisSummary) return;
     if (!deltaResult) {
       analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 선택 프레임에 맞는 랜드마크를 찍으면 지표가 업데이트됩니다.';
-      if (analysisSegmentAverage) analysisSegmentAverage.textContent = '평균: -';
+      if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 평균: -';
       return;
     }
     analysisSummary.textContent = '';
@@ -2602,6 +2643,8 @@
     clone.style.border = '1px solid #cccccc';
     clone.style.boxShadow = 'none';
     clone.querySelectorAll('button').forEach(btn => btn.remove());
+    const narrativeBlock = clone.querySelector('#swingNarrativeBlock');
+    if (narrativeBlock && narrativeBlock.innerHTML.trim()) narrativeBlock.style.display = 'block';
     clone.querySelectorAll('*').forEach(el => {
       el.style.color = '#000000';
       el.style.background = '#ffffff';
@@ -2612,10 +2655,25 @@
 
     try {
       const canvas = await html2canvas(clone, { scale: 1, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       const imgWidth = pageWidth - 80;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      doc.addImage(imgData, 'JPEG', 40, 40, imgWidth, imgHeight);
+      const pageHeight = doc.internal.pageSize.getHeight() - 80;
+      const sourcePageHeight = Math.floor((pageHeight * canvas.width) / imgWidth);
+
+      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
+        const sourceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        pageCanvas.getContext('2d').drawImage(
+          canvas, 0, sourceY, canvas.width, sourceHeight,
+          0, 0, canvas.width, sourceHeight
+        );
+        if (sourceY > 0) doc.addPage();
+        doc.addImage(
+          pageCanvas.toDataURL('image/jpeg', 0.75),
+          'JPEG', 40, 40, imgWidth, (sourceHeight * imgWidth) / canvas.width
+        );
+      }
     } catch (error) {
       console.warn('PDF 생성 중 오류가 발생했습니다.', error);
       alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
@@ -2648,7 +2706,7 @@
     if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = 'F3: -';
     if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = 'F4: -';
     if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = 'F5: -';
-    if (analysisSegmentAverage) analysisSegmentAverage.textContent = '평균: -';
+    if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 평균: -';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
     frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null };
     if (analysisFrontDetail) analysisFrontDetail.innerHTML = '';
