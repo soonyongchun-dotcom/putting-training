@@ -640,6 +640,33 @@
   .analysis-segment-compare-card .analysis-metric {
     margin-bottom: 4px;
   }
+  #analysisDeltaCardF5 {
+    flex: 1 1 320px;
+  }
+  .analysis-f5-body {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .analysis-f5-metrics {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .analysis-f5-score-box {
+    flex: 0 0 108px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.35;
+    color: #ffe27a;
+    background: rgba(255, 216, 108, 0.12);
+    border: 1px solid rgba(255, 216, 108, 0.4);
+    border-radius: 10px;
+    padding: 8px;
+  }
   .analysis-b-section {
     margin-top: 8px;
     border-top: 1px solid rgba(255,255,255,0.2);
@@ -832,7 +859,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.8.2f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver26.9.1f</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1044,16 +1071,20 @@
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF5">
           <div class="analysis-segment-compare-title">Frame 5 &#8212; 일관성 리포트 (P1&#8594;P6, 100점)</div>
-          <div class="analysis-metric" id="analysisDeltaCardF5Score"
-               data-tooltip="종합 일관성 점수 (100점 만점)&#10;Score = 100 &#8722; (W1&#183;S_hand + W2&#183;S_C7 + W3&#183;S_pelvis + W4&#183;S_head)&#10;가중치: 손 30% | C7 25% | 골반 25% | 클럽헤드 20%&#10;90+: A(Tour Pro) | 80~89: B(Advanced) | 70~79: C(Intermediate) | &lt;70: D(Needs Improvement)">점수: -</div>
-          <div class="analysis-metric" id="analysisDeltaCardF5HandOffset"
-               data-tooltip="pt1 손 중심점(Hand Center) 평가 &#8212; 가중치 30%&#10;어드레스(P1) 대비 P6(허리높이) 손 위치의 수평/수직 이동 비율&#10;이상 영역: 척추선 기준 좌우 오프셋 변화 10~100%(트레일사이드), 손 높이는 골반선 부근 이하(허용폭 60%)&#10;영역을 벗어난 오차만큼 감점">pt1 손위치: -</div>
-          <div class="analysis-metric" id="analysisDeltaCardF5C7"
-               data-tooltip="pt2 C7 경추점(C7 Spine Node) 평가 &#8212; 가중치 25%&#10;어드레스 척추선 고정축 기준 좌우 스웨이 50% + 상하 라이즈(얼리 익스텐션) 50%&#10;스웨이: 방향 무관 변위량, &#8804;35%까지 허용&#10;라이즈: 오직 “일어서는” 방향(양수)만 감점, 척추각 유지/추가 숙임(음수)은 정상 범위">pt2 C7축: -</div>
-          <div class="analysis-metric" id="analysisDeltaCardF5Pelvis"
-               data-tooltip="pt3 골반 중심점(Pelvis Center) 평가 &#8212; 가중치 25%&#10;어드레스(P1) 대비 P6 골반 중심의 타깃 방향 수평 이동량 (척추 길이 대비 비율 근사)&#10;이상 범위: 15~25% 이동&#10;부족(배치기/체중 뒤남음) 또는 과도(스웨이/슬라이딩) 시 오차만큼 감점">pt3 골반이동: -</div>
-          <div class="analysis-metric" id="analysisDeltaCardF5ClubHead"
-               data-tooltip="pt4 클럽 헤드(Club Head) 평가 &#8212; 가중치 20%&#10;래깅각(C7&#8594;손 vs 손&#8594;클럽헤드, 이상 70~110&#176;) 60% + 샤프트 각도 40%&#10;P6(허리높이)에서 코킹이 유지되면 샤프트는 세워져 있어야 하므로(이상 &#8805;50&#176;) 지면과 평행(0&#176;)에 가까울수록 조기 릴리즈(캐스팅)로 감점">pt4 클럽헤드: -</div>
+          <div class="analysis-f5-body">
+            <div class="analysis-f5-metrics">
+              <div class="analysis-metric" id="analysisDeltaCardF5HandOffset"
+                   data-tooltip="pt1 손 중심점(Hand Center) 평가 &#8212; 가중치 30%&#10;어드레스(P1) 대비 P6(허리높이) 손 위치의 수평/수직 이동 비율 — 척추 길이 대비 비율로 정규화되어 영상 크기·촬영거리·체형(키) 차이와 무관하게 상대비교 가능&#10;이상 영역: 척추선 기준 좌우 오프셋 변화 10~100%(트레일사이드), 손 높이는 골반선 부근 이하(허용폭 70%)&#10;영역을 벗어난 오차만큼 감점">pt1 손위치: -</div>
+              <div class="analysis-metric" id="analysisDeltaCardF5C7"
+                   data-tooltip="pt2 C7 경추점(C7 Spine Node) 평가 &#8212; 가중치 25%&#10;어드레스 척추선 고정축 기준 좌우 스웨이 50% + 상하 라이즈(얼리 익스텐션) 50%&#10;스웨이: 방향 무관 변위량, &#8804;35%까지 허용&#10;라이즈: 오직 “일어서는” 방향(양수)만 감점, 척추각 유지/추가 숙임(음수)은 정상 범위">pt2 C7축: -</div>
+              <div class="analysis-metric" id="analysisDeltaCardF5Pelvis"
+                   data-tooltip="pt3 골반 중심점(Pelvis Center) 평가 &#8212; 가중치 25%&#10;어드레스(P1) 대비 P6 골반 중심의 타깃 방향 수평 이동량 (척추 길이 대비 비율, 영상 종횡비 보정 완료)&#10;이상 범위: 20~30% 이동&#10;부족(배치기/체중 뒤남음) 또는 과도(스웨이/슬라이딩) 시 오차만큼 감점">pt3 골반이동: -</div>
+              <div class="analysis-metric" id="analysisDeltaCardF5ClubHead"
+                   data-tooltip="pt4 클럽 헤드(Club Head) 평가 &#8212; 가중치 20%&#10;래깅각(C7&#8594;손 vs 손&#8594;클럽헤드, 이상 70~110&#176;) 60% + 샤프트 각도 40%&#10;P6(허리높이)에서 코킹이 유지되면 샤프트는 세워져 있어야 하므로(이상 &#8805;50&#176;) 지면과 평행(0&#176;)에 가까울수록 조기 릴리즈(캐스팅)로 감점">pt4 클럽헤드: -</div>
+            </div>
+            <div class="analysis-f5-score-box" id="analysisDeltaCardF5Score"
+                 data-tooltip="종합 일관성 점수 (100점 만점)&#10;Score = 100 &#8722; (W1&#183;S_hand + W2&#183;S_C7 + W3&#183;S_pelvis + W4&#183;S_head)&#10;가중치: 손 30% | C7 25% | 골반 25% | 클럽헤드 20%&#10;90+: A(Tour Pro) | 80~89: B(Advanced) | 70~79: C(Intermediate) | &lt;70: D(Needs Improvement)">점수: -</div>
+          </div>
         </div>
       </div>
       <div class="analysis-b-row" id="analysisBRow">
@@ -1274,8 +1305,9 @@
   };
   function getAutoPointType(points) {
     const types = FRAME_POINT_TYPES[selectedSegment] || FRAME_POINT_TYPES.frame1;
-    if (points.length < types.length) return types[points.length];
-    return null;
+    // 배열 길이가 아닌 "아직 찍히지 않은 타입"을 기준으로 다음 순서를 판단
+    // (중간 포인트를 개별 삭제해도 순서가 어긋나지 않도록)
+    return types.find(type => !points.some(p => p.type === type)) || null;
   }
 
   function getFramePointLabel(frameId, idx) {
@@ -1794,24 +1826,26 @@
       const h3 = points.find(p => p.type === 'pelvis');     // pt3
       const h4 = points.find(p => p.type === 'clubHead');   // pt4
       if (h1 && h2 && h3) {
-        // 척추선(C7→골반중심) 길이를 스케일 기준으로 사용 — zoom·키 독립 정규화
-        const spineLen = Math.hypot(h3.x - h2.x, h3.y - h2.y);
+        // x좌표에 ar(가로/세로 비율) 보정 적용 → 영상 크기/비율(16:9, 9:16 등)에 따른 좌우 왜곡 제거
+        const h1x = h1.x * ar, h2x = h2.x * ar, h3x = h3.x * ar;
+        // 척추선(C7→골반중심) 길이를 스케일 기준으로 사용 — zoom·키(체형) 독립 정규화
+        const spineLen = Math.hypot(h3x - h2x, h3.y - h2.y);
         m.spineLen5 = spineLen;
         if (spineLen > 0.0005) {
-          const ux = (h3.x - h2.x) / spineLen;
+          const ux = (h3x - h2x) / spineLen;
           const uy = (h3.y - h2.y) / spineLen;
-          const vx = h1.x - h2.x;
+          const vx = h1x - h2x;
           const vy = h1.y - h2.y;
-          // 척추선 방향(along) 및 수직(offset) 성분 — 몸통 길이 대비 비율
+          // 척추선 방향(along) 및 수직(offset) 성분 — 몸통 길이 대비 비율(영상 크기·체형 보정 완료)
           m.handAlongRatio  = (vx * ux + vy * uy) / spineLen;
           m.handOffsetRatio = (vx * uy - vy * ux) / spineLen;
         }
         // 척추 기울기 (수직 기준) — 축 안정성 참고용
-        m.spineAngleDeg5 = Math.abs(Math.atan2(h3.x - h2.x, Math.abs(h3.y - h2.y)) * 180 / Math.PI);
-        // pt1/pt2/pt3 좌표 원본 보관 — P1↔P6 간 고정 기준축(어드레스 척추선) 재투영 및 직선 변위 계산용
-        m.handX = h1.x; m.handY = h1.y;
-        m.c7X = h2.x; m.c7Y = h2.y;
-        m.pelvisX = h3.x; m.pelvisY = h3.y;
+        m.spineAngleDeg5 = Math.abs(Math.atan2(h3x - h2x, Math.abs(h3.y - h2.y)) * 180 / Math.PI);
+        // pt1/pt2/pt3 좌표 보관(ar 보정 적용) — P1↔P6 간 고정 기준축(어드레스 척추선) 재투영 및 직선 변위 계산용
+        m.handX = h1x; m.handY = h1.y;
+        m.c7X = h2x; m.c7Y = h2.y;
+        m.pelvisX = h3x; m.pelvisY = h3.y;
       }
       if (h1 && h4) {
         // pt4 샤프트 각도: 손(pt1)→클럽헤드(pt4) 벡터가 지면(수평)과 이루는 각도 (0°=평행)
@@ -1849,8 +1883,8 @@
                   : 0;
     }
     const alongVal = hasMetric(fm.handAlongDelta) ? fm.handAlongDelta : null;
-    // 손이 P1 대비 오히려 위로(골반선 위) 올라간 경우만 감점 — P6 정의상 대체로 골반선 이하 도달 (허용폭 0.6)
-    const dHandAlong = alongVal != null ? clamp(alongVal < 0 ? -alongVal / 0.6 : 0, 0, 1) : 1;
+    // 손이 P1 대비 오히려 위로(골반선 위) 올라간 경우만 감점 — P6 정의상 대체로 골반선 이하 도달 (허용폭 0.7, 완화 적용)
+    const dHandAlong = alongVal != null ? clamp(alongVal < 0 ? -alongVal / 0.7 : 0, 0, 1) : 1;
     const sHand = clamp(0.6 * dHandOffset + 0.4 * dHandAlong, 0, 1) * 100;
 
     // ② S_C7(25%): 어드레스 척추선 고정축 기준 좌우 스웨이 50% + 상하 라이즈(얼리 익스텐션) 50%
@@ -1861,12 +1895,12 @@
     const dC7Rise = riseVal != null ? clamp(riseVal > 0 ? riseVal / 0.30 : 0, 0, 1) * 100 : 100;
     const sC7 = 0.5 * dC7Sway + 0.5 * dC7Rise;
 
-    // ③ S_pelvis(25%): P1→P6 골반 중심 타깃 방향 이동 비율 — 이상 범위 15~25%
+    // ③ S_pelvis(25%): P1→P6 골반 중심 타깃 방향 이동 비율 — 이상 범위 20~30%
     const pelvisAbs = hasMetric(fm.pelvisShiftRatio) ? Math.abs(fm.pelvisShiftRatio) : null;
     let sPelvis = 100;
     if (pelvisAbs != null) {
-      sPelvis = pelvisAbs < 0.15 ? clamp((0.15 - pelvisAbs) / 0.15, 0, 1) * 100
-              : pelvisAbs > 0.25 ? clamp((pelvisAbs - 0.25) / 0.25, 0, 1) * 100
+      sPelvis = pelvisAbs < 0.20 ? clamp((0.20 - pelvisAbs) / 0.20, 0, 1) * 100
+              : pelvisAbs > 0.30 ? clamp((pelvisAbs - 0.30) / 0.30, 0, 1) * 100
               : 0;
     }
 
@@ -2369,7 +2403,7 @@
       const rep = fm._consistency || {};
       if (analysisDeltaCardF5HandOffset) analysisDeltaCardF5HandOffset.textContent =
         fm.handOffsetDelta != null
-          ? `손이탈 ${formatPercent(fm.handOffsetDelta * 100)}(몸통대비) → 감점 ${hasMetric(rep.sHand) ? rep.sHand.toFixed(0) : '-'}점(30%)`
+          ? `손이탈 ${formatPercent(fm.handOffsetDelta * 100)}(몸통대비, 영상비율 보정) → 감점 ${hasMetric(rep.sHand) ? rep.sHand.toFixed(0) : '-'}점(30%)`
           : 'pt1 손위치: 데이터 부족';
       if (analysisDeltaCardF5C7) analysisDeltaCardF5C7.textContent =
         fm.c7DisplacementRatio != null
@@ -2377,7 +2411,7 @@
           : 'pt2 C7축: 데이터 부족';
       if (analysisDeltaCardF5Pelvis) analysisDeltaCardF5Pelvis.textContent =
         fm.pelvisShiftRatio != null
-          ? `골반이동 ${formatPercent(fm.pelvisShiftRatio * 100)}(이상 15~25%) → 감점 ${hasMetric(rep.sPelvis) ? rep.sPelvis.toFixed(0) : '-'}점(25%)`
+          ? `골반이동 ${formatPercent(fm.pelvisShiftRatio * 100)}(이상 20~30%) → 감점 ${hasMetric(rep.sPelvis) ? rep.sPelvis.toFixed(0) : '-'}점(25%)`
           : 'pt3 골반이동: 데이터 부족';
       if (analysisDeltaCardF5ClubHead) analysisDeltaCardF5ClubHead.textContent =
         (fm.shaftAngleB != null || fm.lagAngleB != null)
@@ -2489,7 +2523,7 @@
       const risePct = fm.c7RiseRatio != null ? (fm.c7RiseRatio * 100).toFixed(1) : null;
       lines.push(`pt2 C7 스웨이 ${swayPct != null ? swayPct + '%' : '—'}(≤35%) / 라이즈 ${risePct != null ? risePct + '%' : '—'}(일어서는 방향만 감점, ≤30%) — 감점 ${rep.sC7.toFixed(0)}점 (가중치 25%)`);
       const pelvPct = fm.pelvisShiftRatio != null ? (fm.pelvisShiftRatio * 100).toFixed(1) : null;
-      lines.push(`pt3 골반 타깃방향 이동 ${pelvPct != null ? pelvPct + '%' : '—'} (이상 15~25%) — 감점 ${rep.sPelvis.toFixed(0)}점 (가중치 25%)`);
+      lines.push(`pt3 골반 타깃방향 이동 ${pelvPct != null ? pelvPct + '%' : '—'} (이상 20~30%) — 감점 ${rep.sPelvis.toFixed(0)}점 (가중치 25%)`);
       const shaftTxt = fm.shaftAngleB != null ? fm.shaftAngleB.toFixed(1) + '°' : '—';
       const lagTxt   = fm.lagAngleB   != null ? fm.lagAngleB.toFixed(1)   + '°' : '—';
       lines.push(`pt4 래깅각 ${lagTxt}(이상 70~110°) / 샤프트각 ${shaftTxt}(이상 ≥50°, 세워질수록 코킹 유지) — 감점 ${rep.sHead.toFixed(0)}점 (가중치 20%)`);
@@ -2681,6 +2715,9 @@
   let lastTapTime = 0;
   let lastTapView = null;
   let lastTapPos = null;
+  let longPressTimer = null;
+  let longPressTriggered = false;
+  const LONG_PRESS_MS = 500;
 
   const STORAGE_KEY = 'gsap_logged_in';
   const ADMIN_HASH = '3e486d3b54a67521a2e0849299b9c3e270247a6ed37c43770dc913eea5b118e8';
@@ -3380,6 +3417,7 @@
       if(dx*dx + dy*dy < threshold*threshold){
         points.splice(i,1);
         drawOverlay(ctx, points, lines, canvas, video, zoom);
+        if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
         return true;
       }
     }
@@ -3400,13 +3438,21 @@
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
     // 아직 추가해야 할 점 타입이 남아 있으면 삭제 시도 없이 바로 추가
-    // (순서대로 점을 찍을 때 인근 기존 점이 실수로 삭제되는 문제 방지)
+    // (다음 점을 옆에 찍을 때 이전 점이 실수로 삭제되는 문제 방지 — 개별 삭제는 우클릭/롱프레스로 수행)
     const nextType = getAutoPointType(points);
     if (!nextType) {
-      // 모든 점이 다 찍힌 상태: 가까운 점/라인 클릭 시 삭제
       if(deletePoint(points, lines, pos, ctx, canvas, video, zoom)) return;
     }
     addPoint(points, lines, pos, ctx, canvas, video, zoom);
+  }
+
+  function onCanvasContextMenu(event, points, lines, ctx, canvas, video, zoomGetter){
+    event.preventDefault();
+    const zoom = zoomGetter();
+    const pos = getNormalizedCoords(event, canvas, video, zoom);
+    if(!pos) return;
+    // 우클릭(또는 롱프레스)으로 특정 점/라인을 선택적으로 삭제 — 순서와 무관하게 언제든 가능
+    deletePoint(points, lines, pos, ctx, canvas, video, zoom);
   }
 
   function startPointer(event, points, lines, ctx, canvas, video, zoomGetter, view){
@@ -3416,6 +3462,14 @@
     if(!pos) return;
     activePointer = { points, lines, ctx, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
     pointerIsDragging = false;
+    longPressTriggered = false;
+    clearTimeout(longPressTimer);
+    // 롱프레스(터치)로 근처 점/라인을 선택적으로 삭제 — 데스크톱은 우클릭으로도 가능
+    longPressTimer = setTimeout(() => {
+      if(!activePointer || pointerIsDragging) return;
+      longPressTriggered = true;
+      deletePoint(points, lines, pos, ctx, canvas, video, zoom);
+    }, LONG_PRESS_MS);
     canvas.setPointerCapture(event.pointerId);
   }
 
@@ -3429,6 +3483,7 @@
     const dy = pos.y - startPos.y;
     const dist = Math.hypot(dx, dy);
     if(dist > 0.01){
+      clearTimeout(longPressTimer);
       pointerIsDragging = true;
       activePointer.currentPos = pos;
       drawOverlay(ctx, points, lines, canvas, video, zoom, { start: startPos, end: pos });
@@ -3436,8 +3491,16 @@
   }
 
   function endPointer(event){
+    clearTimeout(longPressTimer);
     if(!activePointer) return;
     const { points, lines, ctx, canvas, video, zoomGetter, view, startPos, currentPos } = activePointer;
+    if(longPressTriggered){
+      longPressTriggered = false;
+      activePointer = null;
+      pointerIsDragging = false;
+      if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+      return;
+    }
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     const endPos = (pos && pointerIsDragging) ? pos : currentPos;
@@ -3479,12 +3542,14 @@
   frontCanvas.addEventListener('pointerup', endPointer);
   frontCanvas.addEventListener('pointercancel', endPointer);
   frontCanvas.addEventListener('pointerleave', endPointer);
+  frontCanvas.addEventListener('contextmenu', e => onCanvasContextMenu(e, frontPoints, frontLines, frontCtx, frontCanvas, frontVideo, () => frontZoom));
 
   sideCanvas.addEventListener('pointerdown', e => startPointer(e, sidePoints, sideLines, sideCtx, sideCanvas, sideVideo, () => sideZoom, 'side'));
   sideCanvas.addEventListener('pointermove', movePointer);
   sideCanvas.addEventListener('pointerup', endPointer);
   sideCanvas.addEventListener('pointercancel', endPointer);
   sideCanvas.addEventListener('pointerleave', endPointer);
+  sideCanvas.addEventListener('contextmenu', e => onCanvasContextMenu(e, sidePoints, sideLines, sideCtx, sideCanvas, sideVideo, () => sideZoom));
 
   function checkButtonsEnabled(){
     playPauseBothBtn.disabled = !(frontVideo.src && sideVideo.src);
