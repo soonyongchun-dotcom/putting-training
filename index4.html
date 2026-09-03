@@ -2230,6 +2230,7 @@
       momentProxy: 0,
       radiusProxy: 0,
       angleDeg: 0,
+      angleLabel: '주요 각도',
     };
 
     const items = normalizePointsAndLines(points, lines);
@@ -2271,6 +2272,10 @@
       ? activeVideo.videoWidth / activeVideo.videoHeight : 16 / 9;
     result.canvasHeight = canvasHeight;
     result.frameMetrics = computeFrameMetrics(points, lines, selectedSegment, heightScale, canvasHeight, videoAspect);
+    if (selectedSegment === 'frame5') {
+      result.angleDeg = result.frameMetrics.lagAngleDeg5 ?? 0;
+      result.angleLabel = '래깅각';
+    }
 
     // accelerationScore/transferScore/impactScore는 어드레스 기준 비율이 필요하므로
     // applyProjectionNormalization()에서 baseline과 함께 재계산됨 (여기서는 0으로 초기화만)
@@ -2356,7 +2361,7 @@
     const impactScore = Number.isFinite(result.impactScore) ? result.impactScore : 0;
     momentEl.textContent = `컴팩트 지수: ${momentProxy.toFixed(3)}`;
     radiusEl.textContent = `최대 반경: ${radiusProxy.toFixed(3)}`;
-    timingEl.textContent = `주요 각도: ${angleDeg.toFixed(1)}°`;
+    timingEl.textContent = `${result.angleLabel || '주요 각도'}: ${angleDeg.toFixed(1)}°`;
     // 키 보정: heightScale 기반 — 타이틀 우측 태그 업데이트
     const hsVal = Number.isFinite(result.heightScale) ? result.heightScale : null;
     const heightCmVal = analysisHeightInput ? parseFloat(analysisHeightInput.value) : NaN;
