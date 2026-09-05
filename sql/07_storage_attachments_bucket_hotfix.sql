@@ -20,12 +20,12 @@ for select
 to public
 using (bucket_id = 'attachments');
 
--- Write: authenticated users can upload into attachments bucket
+-- Write: this app uses the anonymous client, so allow uploads into attachments.
  drop policy if exists attachments_authenticated_insert on storage.objects;
 create policy attachments_authenticated_insert
 on storage.objects
 for insert
-to authenticated
+to anon, authenticated
 with check (bucket_id = 'attachments');
 
 -- Optional maintenance permissions for authenticated users

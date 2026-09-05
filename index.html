@@ -409,6 +409,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .mission-result-table th { background:#eef4ff; color:#1f4db8; }
 .mission-result-table td { background:#fff; }
 .mission-result-input { width:100%; min-width:110px; border:1px solid #c7d4ee; border-radius:6px; padding:5px 6px; box-sizing:border-box; font-size:12px; }
+.mission-result-table th .mission-result-input { margin:0; min-width:110px; color:#1f2937; background:#fff; font-weight:normal; }
 .mission-formula-cell { background:#eef2ff; color:#334155; font-weight:600; }
 .mission-field-picker { margin-top:8px; border:1px solid #d7e0f2; border-radius:8px; padding:8px; background:#fff; }
 .mission-field-picker-list { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:6px; }
@@ -833,8 +834,23 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
           <div class="field" style="grid-column: 1 / -1;" id="missionExcelUploadField">
               <label for="missionExcelInput">Mission Excel Upload (.xlsx, .xls, .csv)</label>
               <input type="file" id="missionExcelInput" accept=".xlsx,.xls,.csv" multiple>
+              <div class="form-grid" style="margin-top:4px;">
+                  <div class="field">
+                      <label for="missionUploadTitle">미션 제목</label>
+                      <input type="text" id="missionUploadTitle" placeholder="예: 퍼팅 경마 미션 1-1">
+                  </div>
+                  <div class="field">
+                      <label for="missionUploadDueDate">미션 기한</label>
+                      <input type="date" id="missionUploadDueDate">
+                  </div>
+                  <div class="field" style="grid-column: 1 / -1;">
+                      <label for="missionUploadDetail">미션내용</label>
+                      <textarea id="missionUploadDetail" class="mission-textarea" placeholder="예: 20구 중 16구 이상 성공 / 실패 시 루틴 체크"></textarea>
+                  </div>
+              </div>
               <div id="pendingMissionUploadPreview"></div>
               <button id="registerUploadedMissionBtn" type="button" class="secondary-btn" style="display:none;">업로드 미션등록</button>
+              <div class="result" id="pendingMissionUploadResult"></div>
           </div>
       </div>
 
@@ -858,6 +874,10 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
   </div>
 
   <div class="mission-section-title" id="missionTaskTitle">수행미션</div>
+  <div class="section-action-row">
+      <button id="refreshMissionFilesBtn" type="button" class="secondary-btn">🔄 미션 새로고침</button>
+      <span id="refreshMissionFilesResult" style="font-size:12px; color:#3d5fa1;"></span>
+  </div>
   <div class="mission-file-list" id="missionFileList"></div>
 
   <div class="mission-work" id="missionWorkArea" style="display:none;">
@@ -1115,10 +1135,11 @@ class CloudStateService {
         return this.getSyncKeys().includes(String(key || ""));
     }
 
-    async init() {
+    async init(existingClient) {
         if (!this.isConfigured()) return;
 
-        this.client = window.supabase.createClient(this.config.supabaseUrl, this.config.supabaseAnonKey);
+        // 동일 storage key로 GoTrueClient가 중복 생성되는 것을 방지하기 위해 기존 클라이언트를 재사용한다
+        this.client = existingClient || window.supabase.createClient(this.config.supabaseUrl, this.config.supabaseAnonKey);
         await this.pullFromCloud();
         this.enabled = true;
     }
@@ -1638,7 +1659,13 @@ class SheetFormulaEvaluator {
     getCellValue(row, col) {
         const raw = (this.grid[row] || [])[col];
         if (raw === undefined || raw === null || raw === "") return "";
-        const num = Number(raw);
+        const text = String(raw).trim();
+        const normalizedNumber = text.replace(/,/g, "");
+        if (/^-?\d+(?:\.\d+)?%$/.test(normalizedNumber)) {
+            const percentValue = Number(normalizedNumber.slice(0, -1));
+            return Number.isNaN(percentValue) ? raw : percentValue / 100;
+        }
+        const num = Number(normalizedNumber);
         return Number.isNaN(num) ? raw : num;
     }
 
@@ -1660,16 +1687,24 @@ class SheetFormulaEvaluator {
     }
 
     tokenize(expr) {
-        const pattern = /"[^"]*"|\$?[A-Za-z]+\$?\d+:\$?[A-Za-z]+\$?\d+|\$?[A-Za-z]+\$?\d+|[A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|<>|<=|>=|[+\-*/^(),=<>]/g;
+        const pattern = /"[^"]*"|\$?[A-Za-z]+\$?\d+:\$?[A-Za-z]+\$?\d+|\$?[A-Za-z]+\$?\d+|[A-Za-z_][A-Za-z0-9_.]*|\d+(?:\.\d+)?|\.\d+|<>|<=|>=|[+\-*/^&%(),=<>]/g;
         return String(expr).match(pattern) || [];
     }
 
     evaluate(formula) {
-        const expr = String(formula || "").replace(/^=/, "");
+        const expr = String(formula || "")
+            .replace(/^=/, "")
+            .replace(/(?:'[^']+'|[A-Za-z0-9_가-힣 ]+)!/g, "")
+            .replace(/_xlfn\./gi, "")
+            .replace(/\bIFERROR\s*\(/gi, "IFNA(")
+            .replace(/;/g, ",")
+            .replace(/\bTRUE\b/gi, "1")
+            .replace(/\bFALSE\b/gi, "0");
         this.tokens = this.tokenize(expr);
         this.pos = 0;
         try {
-            return this.parseExpression();
+            const value = this.parseExpression();
+            return this.pos < this.tokens.length ? "#ERR" : value;
         } catch (error) {
             return "#ERR";
         }
@@ -1679,7 +1714,17 @@ class SheetFormulaEvaluator {
     next() { const token = this.tokens[this.pos]; this.pos += 1; return token; }
     expect(token) { if (this.next() !== token) throw new Error(`Expected ${token}`); }
 
-    parseExpression() { return this.parseComparison(); }
+    parseExpression() { return this.parseConcat(); }
+
+    parseConcat() {
+        let left = this.parseComparison();
+        while (this.peek() === "&") {
+            this.next();
+            const right = this.parseComparison();
+            left = String(left ?? "") + String(right ?? "");
+        }
+        return left;
+    }
 
     parseComparison() {
         let left = this.parseAdditive();
@@ -1742,9 +1787,14 @@ class SheetFormulaEvaluator {
             this.next();
             return token.slice(1, -1);
         }
-        if (/^\d+\.?\d*$/.test(token)) {
+        if (/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(token)) {
             this.next();
-            return Number(token);
+            let value = Number(token);
+            if (this.peek() === "%") {
+                this.next();
+                value /= 100;
+            }
+            return value;
         }
         if (/^\$?[A-Za-z]+\$?\d+:\$?[A-Za-z]+\$?\d+$/.test(token)) {
             this.next();
@@ -1756,7 +1806,7 @@ class SheetFormulaEvaluator {
             const ref = SheetFormulaEvaluator.parseCellRef(token);
             return this.getCellValue(ref.row, ref.col);
         }
-        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(token)) {
+        if (/^[A-Za-z_][A-Za-z0-9_.]*$/.test(token)) {
             const name = token.toUpperCase();
             this.next();
             this.expect("(");
@@ -1783,10 +1833,29 @@ class SheetFormulaEvaluator {
         return values;
     }
 
+    matchesCriterion(value, criterion) {
+        const text = String(criterion ?? "").trim();
+        const match = /^(<>|<=|>=|=|<|>)(.*)$/.exec(text);
+        const op = match ? match[1] : "=";
+        const rhsRaw = match ? match[2] : text;
+        const leftNumber = Number(value);
+        const rightNumber = Number(rhsRaw);
+        const numeric = !Number.isNaN(leftNumber) && !Number.isNaN(rightNumber);
+        const left = numeric ? leftNumber : String(value ?? "");
+        const right = numeric ? rightNumber : rhsRaw;
+        if (!numeric && /[*?]/.test(String(right))) {
+            const escaped = String(right).replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
+            const matched = new RegExp(`^${escaped}$`).test(String(left));
+            return op === "<>" ? !matched : matched;
+        }
+        return this.applyComparison(op, left, right);
+    }
+
     callFunction(name, args) {
         const numericValues = () => this.flattenArgs(args).map((v) => Number(v)).filter((v) => !Number.isNaN(v));
         switch (name) {
             case "SUM": return numericValues().reduce((a, b) => a + b, 0);
+            case "PRODUCT": return numericValues().reduce((a, b) => a * b, 1);
             case "AVERAGE": {
                 const values = numericValues();
                 return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
@@ -1801,15 +1870,76 @@ class SheetFormulaEvaluator {
             }
             case "COUNT": return numericValues().length;
             case "COUNTA": return this.flattenArgs(args).filter((v) => v !== "" && v !== undefined && v !== null).length;
+            case "COUNTBLANK": return this.flattenArgs(args).filter((v) => v === "" || v === undefined || v === null).length;
+            case "COUNTIF": {
+                const range = args[0] && typeof args[0] === "object" && Array.isArray(args[0].__range) ? args[0].__range : [args[0]];
+                return range.filter((value) => this.matchesCriterion(value, args[1])).length;
+            }
+            case "COUNTIFS": {
+                const primaryRange = args[0] && typeof args[0] === "object" && Array.isArray(args[0].__range) ? args[0].__range : [args[0]];
+                return primaryRange.filter((_, index) => {
+                    for (let i = 0; i < args.length; i += 2) {
+                        const range = args[i] && typeof args[i] === "object" && Array.isArray(args[i].__range) ? args[i].__range : [args[i]];
+                        if (!this.matchesCriterion(range[index], args[i + 1])) return false;
+                    }
+                    return true;
+                }).length;
+            }
+            case "SUMIF": {
+                const range = args[0] && typeof args[0] === "object" && Array.isArray(args[0].__range) ? args[0].__range : [args[0]];
+                const sumRange = args[2] && typeof args[2] === "object" && Array.isArray(args[2].__range) ? args[2].__range : range;
+                return range.reduce((sum, value, index) => this.matchesCriterion(value, args[1]) ? sum + (Number(sumRange[index]) || 0) : sum, 0);
+            }
+            case "SUMIFS": {
+                const sumRange = args[0] && typeof args[0] === "object" && Array.isArray(args[0].__range) ? args[0].__range : [args[0]];
+                return sumRange.reduce((sum, value, index) => {
+                    for (let i = 1; i < args.length; i += 2) {
+                        const range = args[i] && typeof args[i] === "object" && Array.isArray(args[i].__range) ? args[i].__range : [args[i]];
+                        if (!this.matchesCriterion(range[index], args[i + 1])) return sum;
+                    }
+                    return sum + (Number(value) || 0);
+                }, 0);
+            }
+            case "AVERAGEIF": {
+                const range = args[0] && typeof args[0] === "object" && Array.isArray(args[0].__range) ? args[0].__range : [args[0]];
+                const avgRange = args[2] && typeof args[2] === "object" && Array.isArray(args[2].__range) ? args[2].__range : range;
+                const values = range.map((value, index) => this.matchesCriterion(value, args[1]) ? Number(avgRange[index]) : NaN).filter((v) => !Number.isNaN(v));
+                return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+            }
             case "ROUND": {
                 const factor = Math.pow(10, Number(args[1]) || 0);
                 return Math.round((Number(args[0]) || 0) * factor) / factor;
             }
+            case "ROUNDUP": {
+                const factor = Math.pow(10, Number(args[1]) || 0);
+                return Math.ceil((Number(args[0]) || 0) * factor) / factor;
+            }
+            case "ROUNDDOWN": {
+                const factor = Math.pow(10, Number(args[1]) || 0);
+                return Math.floor((Number(args[0]) || 0) * factor) / factor;
+            }
             case "IF": return args[0] ? args[1] : (args[2] !== undefined ? args[2] : "");
+            case "IFNA": return (args[0] === "#ERR" || args[0] === "#NAME?" || args[0] === undefined || args[0] === null) ? (args[1] ?? "") : args[0];
             case "AND": return this.flattenArgs(args).every((v) => !!v);
             case "OR": return this.flattenArgs(args).some((v) => !!v);
             case "NOT": return !args[0];
             case "ABS": return Math.abs(Number(args[0]) || 0);
+            case "INT": return Math.floor(Number(args[0]) || 0);
+            case "MOD": return (Number(args[0]) || 0) % (Number(args[1]) || 1);
+            case "POWER": return Math.pow(Number(args[0]) || 0, Number(args[1]) || 0);
+            case "SQRT": return Math.sqrt(Number(args[0]) || 0);
+            case "VALUE": return Number(args[0]) || 0;
+            case "LEN": return String(args[0] ?? "").length;
+            case "LEFT": return String(args[0] ?? "").slice(0, Number(args[1]) || 1);
+            case "RIGHT": {
+                const text = String(args[0] ?? "");
+                const count = Number(args[1]) || 1;
+                return text.slice(Math.max(0, text.length - count));
+            }
+            case "MID": return String(args[0] ?? "").slice(Math.max(0, (Number(args[1]) || 1) - 1), Math.max(0, (Number(args[1]) || 1) - 1) + (Number(args[2]) || 1));
+            case "CONCAT":
+            case "CONCATENATE": return this.flattenArgs(args).map((v) => String(v ?? "")).join("");
+            case "TEXT": return String(args[0] ?? "");
             default: return "#NAME?";
         }
     }
@@ -1834,7 +1964,8 @@ class SheetFormulaEvaluator {
     recalcAll(formulas) {
         const keys = Object.keys(formulas || {});
         if (!keys.length) return this.grid;
-        for (let pass = 0; pass < 6; pass += 1) {
+        const passCount = Math.max(8, keys.length + 2);
+        for (let pass = 0; pass < passCount; pass += 1) {
             keys.forEach((key) => {
                 const [rowStr, colStr] = key.split(",");
                 const row = Number(rowStr);
@@ -1891,6 +2022,7 @@ class MissionRecord {
         this.apexCommit = payload.apexCommit ?? "";
         this.missType = payload.missType ?? "none";
         this.missionFileName = payload.missionFileName ?? "";
+        this.missionFileId = payload.missionFileId ?? "";
         this.missionTitle = payload.missionTitle ?? "";
         this.missionResponse = payload.missionResponse ?? "";
         this.missionActorRole = payload.missionActorRole ?? "player";
@@ -1899,10 +2031,13 @@ class MissionRecord {
         this.missionMessageType = payload.missionMessageType ?? "feedback";
         this.missionSourceRows = Array.isArray(payload.missionSourceRows) ? payload.missionSourceRows : null;
         this.missionSourceFormulas = payload.missionSourceFormulas && typeof payload.missionSourceFormulas === "object" ? payload.missionSourceFormulas : null;
+        this.missionSourceMerges = Array.isArray(payload.missionSourceMerges) ? payload.missionSourceMerges : null;
         this.missionInputColumns = Array.isArray(payload.missionInputColumns) ? payload.missionInputColumns : null;
         this.missionInputCells = Array.isArray(payload.missionInputCells) ? payload.missionInputCells : null;
         this.missionInputMode = payload.missionInputMode || "column";
         this.missionInputHeaderRow = Number.isInteger(payload.missionInputHeaderRow) ? payload.missionInputHeaderRow : null;
+        this.missionDueDate = payload.missionDueDate ?? payload.dueDate ?? "";
+        this.missionAssignedAt = payload.missionAssignedAt ?? payload.assignedAt ?? "";
         this.score = payload.score ?? 0;
     }
 }
@@ -3089,6 +3224,9 @@ class PuttingTrainingApp {
             setText("label[for='missionDirectTitle']", this.t("missionDirectTitleLabel"));
             setText("label[for='missionDirectItem']", this.t("missionDirectItemLabel"));
             setText("label[for='missionDirectDueDate']", this.t("missionDirectDueDateLabel"));
+            setText("label[for='missionUploadTitle']", this.t("missionDirectTitleLabel"));
+            setText("label[for='missionUploadDueDate']", this.t("missionDirectDueDateLabel"));
+            setText("label[for='missionUploadDetail']", this.t("missionDirectItemLabel"));
             setText("label[for='missionMessageType']", this.t("missionTypeLabel"));
             setText("label[for='missionTargetPlayer']", this.t("missionTargetLabel"));
             setText("#missionBroadcastLabel", this.t("missionBroadcastAllLabel"));
@@ -3103,6 +3241,8 @@ class PuttingTrainingApp {
             setPlaceholder("#registerPlayerPass", this.t("registerPlayerPassPh"));
             setPlaceholder("#missionDirectTitle", this.t("missionDirectTitlePh"));
             setPlaceholder("#missionDirectItem", this.t("missionDirectItemPh"));
+            setPlaceholder("#missionUploadTitle", this.language === "en" ? "e.g., Putting race mission 1-1" : "예: 퍼팅 경마 미션 1-1");
+            setPlaceholder("#missionUploadDetail", this.t("missionDirectItemPh"));
             setPlaceholder("#missionTargetPlayer", this.language === "en" ? "e.g., Jeon Sunyong" : "예: 전순용");
             setText("#registerPlayerBtn", this.t("registerPlayerBtn"));
             setText("#saveMissionInputBtn", this.t("missionSendBtn"));
@@ -3278,10 +3418,10 @@ class PuttingTrainingApp {
         return role === "coach" ? this.t("roleCoach") : this.t("rolePlayer");
     }
 
-    getPeerName(actorName, actorRole) {
+    getPeerName(actorName, actorRole, missionTargetPlayer = "") {
         // 대화 방향 표시: 선수가 보낸 기록은 '선수 → 지도자'로, 그 외에는 저장된 대상 선수명 사용
         if (actorRole === "coach") {
-            const target = String(this.session?.playerName || "").trim();
+            const target = String(missionTargetPlayer || "").trim() || String(this.session?.playerName || "").trim();
             return target || actorName;
         }
         return RUNTIME_COACH_CONFIG.coachName || this.t("roleCoach");
@@ -3335,7 +3475,7 @@ class PuttingTrainingApp {
             missionBroadcastAll.checked = false;
         }
         if (directField) {
-            directField.style.display = isCoach ? "grid" : "none";
+            directField.style.display = "none";
         }
         if (filterWrap) {
             filterWrap.style.display = isCoach ? "grid" : "none";
@@ -3409,6 +3549,7 @@ class PuttingTrainingApp {
         const targetScopePlayer = this.isCoachMode() ? selectedCoachPlayer : me;
 
         return (this.coachMissionFiles || []).filter((file) => {
+            if (!this.isCoachMode() && file?.sourceType === "direct") return false;
             if (this.isCoachMode() && !selectedCoachPlayer) return true;
 
             if (!targetScopePlayer) return true;
@@ -4215,6 +4356,35 @@ class PuttingTrainingApp {
         storageSetItem(APP_CONFIG.COACH_MISSIONS_KEY, JSON.stringify(this.coachMissionFiles));
     }
 
+    // 코치가 미션을 배정한 뒤 선수 화면이 열려 있는 동안에는 자동 갱신되지 않으므로 수동 동기화 버튼을 제공한다
+    async refreshCoachMissionFilesFromCloud() {
+        const resultEl = document.getElementById("refreshMissionFilesResult");
+        const btn = document.getElementById("refreshMissionFilesBtn");
+        if (btn) btn.disabled = true;
+        if (resultEl) resultEl.textContent = "동기화 중…";
+        try {
+            if (CLOUD_STATE_SERVICE && CLOUD_STATE_SERVICE.enabled) {
+                await CLOUD_STATE_SERVICE.pullFromCloud();
+            }
+            this.coachMissionFiles = JSON.parse(storageGetItem(APP_CONFIG.COACH_MISSIONS_KEY)) || [];
+            this.missionResultUploads = JSON.parse(storageGetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY)) || [];
+            this.records = this.storageService.getRecords();
+            this.expandedMissionFileId = "";
+            this.renderCoachMissionFiles();
+            this.renderMissionWorkArea();
+            this.renderMissionEntryList();
+            if (resultEl) {
+                resultEl.textContent = (CLOUD_STATE_SERVICE && CLOUD_STATE_SERVICE.enabled)
+                    ? `✅ 최신 미션 반영 완료 (${new Date().toLocaleTimeString()})`
+                    : "⚠️ 클라우드 미연결 (로컬 데이터만 확인됩니다)";
+            }
+        } catch (e) {
+            if (resultEl) resultEl.textContent = "❌ 새로고침 실패: " + e.message;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
     getMissionFileDateKey(file) {
         const iso = String(file?.uploadedAtISO || "").trim();
         if (iso && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
@@ -4306,6 +4476,12 @@ class PuttingTrainingApp {
             }
         }
 
+            filesToRender = filesToRender.slice().sort((a, b) => {
+                const aTime = Date.parse(a?.uploadedAtISO || a?.uploadedAt || "") || 0;
+                const bTime = Date.parse(b?.uploadedAtISO || b?.uploadedAt || "") || 0;
+                return bTime - aTime;
+            });
+
         if (!filesToRender.length) {
             target.innerHTML = `<div class="distance-empty">${this.t("noMissionFiles")}</div>`;
             document.getElementById("missionWorkArea").style.display = "none";
@@ -4332,25 +4508,25 @@ class PuttingTrainingApp {
             const targets = this.getMissionFileTargetPlayers(file);
             const targetText = targets.length ? targets.join(", ") : this.t("coachPlayerAll");
             const missions = (file.missions && file.missions.length) ? file.missions : [{ title: file.fileName, detail: "" }];
-            const firstTitle = this.getMissionFileDisplayTitle(file);
-            const titleText = firstTitle;
+            const meta = this.getMissionFileDisplayMeta(file);
+            const titleText = meta.title;
             const isOpen = this.expandedMissionFileId === file.id;
-            const assignedDate = String(file.assignedAt || this.getMissionFileDateKey(file) || "").slice(0, 10);
-            const dueDate = String(file.dueDate || "").trim();
+            const assignedDate = meta.assignedDate;
+            const dueDate = meta.dueDate;
             // 선수 모드: 제목 / 미션기한 / 배정일자 중심으로 표시, 코치 모드: 배정 선수 표시
             const headerMetaHtml = isCoach
                 ? `<span class="mission-card-targets">${esc(this.t("missionCardTargets", { players: targetText }))}</span>`
                 : `<span class="mission-card-targets">${esc(`${this.t("missionDueDateLabel")}: ${dueDate || this.t("missionDueDateEmpty")} · ${this.t("missionAssignedLabel")}: ${assignedDate || "-"}`)}</span>`;
+            const missionDetailText = this.getMissionFileDisplayDetail(file);
             const bodyMissions = sourceRows.length > 1 && !this.isDirectMissionFile({ ...file, sourceRows })
-                ? ""
+                ? (missionDetailText ? `<div class="mission-card-detail"><b>${esc(titleText)}</b><br>${esc(missionDetailText)}</div>` : "")
                 : missions.map((mission) => `
                     <div class="mission-card-detail"><b>${esc(mission.title || "-")}</b>${mission.detail ? `<br>${esc(mission.detail)}` : ""}</div>
                 `).join("");
             const playerResultHtml = !isCoach ? (() => {
                 const rows = sourceRows;
-                const hasTable = rows.length > 1;
                 let tableHtml = "";
-                if (hasTable && !this.isDirectMissionFile({ ...file, sourceRows: rows })) {
+                    if (rows.length > 0) {
                     const maxCols = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
                     const normRows = rows.map((row) => {
                         const cells = Array.isArray(row) ? row.slice(0, maxCols) : [];
@@ -4361,18 +4537,27 @@ class PuttingTrainingApp {
                     const inputHeaderRow = inputLayout.headerRow;
                     const headerCells = normRows[inputHeaderRow] || normRows[0];
                     const formulasForFile = this.getMissionSourceFormulas(file);
+                    const mergeMaps = this.getMissionMergeRenderMaps(file);
                     const fullTableHtml = normRows.map((row, rowIndex) => {
                         const cellsHtml = row.map((cell, columnIndex) => {
+                            const cellKey = `${rowIndex},${columnIndex}`;
+                            if (mergeMaps.skip.has(cellKey)) return "";
+                            const span = mergeMaps.spans.get(cellKey);
+                            const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
+                            const isEditable = this.isMissionCellEditable(file, rowIndex, columnIndex);
                             if (rowIndex === inputHeaderRow) {
-                                return `<th>${esc(String(cell || "").trim() || "-")}</th>`;
+                                if (isEditable) {
+                                    return `<th${spanAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></th>`;
+                                }
+                                return `<th${spanAttrs}>${esc(String(cell || "").trim() || "-")}</th>`;
                             }
-                            if (this.isMissionCellEditable(file, rowIndex, columnIndex)) {
-                                return `<td><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" placeholder="${esc(this.t("missionResultTextPh"))}"></td>`;
+                            if (isEditable) {
+                                return `<td${spanAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></td>`;
                             }
                             if (formulasForFile[`${rowIndex},${columnIndex}`]) {
-                                return `<td class="mission-formula-cell" data-row-index="${rowIndex}" data-column-index="${columnIndex}">${esc(cell)}</td>`;
+                                return `<td${spanAttrs} class="mission-formula-cell" data-row-index="${rowIndex}" data-column-index="${columnIndex}">${esc(cell)}</td>`;
                             }
-                            return `<td>${esc(cell)}</td>`;
+                            return `<td${spanAttrs}>${esc(cell)}</td>`;
                         }).join("");
                         return `<tr>${cellsHtml}</tr>`;
                     }).join("");
@@ -4380,12 +4565,15 @@ class PuttingTrainingApp {
                 }
                 return `
                 <div class="mission-result-form">
-                    <div class="small" style="font-weight:bold;">${this.t("missionResultFormTitle")}</div>
+                    <div class="row" style="justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                        <div class="small" style="font-weight:bold;">${this.t("missionResultFormTitle")}</div>
+                            <button type="button" class="secondary-btn" data-open-mission-form="${esc(file.id)}">${esc(this.language === "en" ? "Result Record Form" : "수행결과기록양식")}</button>
+                    </div>
                     <div class="row" style="margin-top:4px; align-items:center; flex-wrap:wrap;">
                         <span class="small">${this.t("missionResultDateLabel")}</span>
                         <input type="date" class="mission-result-date" value="${esc(this.session.sessionDate || assignedDate || "")}">
                     </div>
-                    ${tableHtml}
+                        ${tableHtml ? `<div class="mission-input-table-wrap" data-input-table-wrap="${esc(file.id)}" style="display:none;">${tableHtml}</div>` : ""}
                     <textarea class="mission-textarea mission-result-text" style="margin-top:6px;" placeholder="${esc(this.t("missionInputPh"))}"></textarea>
                     <div class="mission-card-actions">
                         <button type="button" data-result-save="${esc(file.id)}">${this.t("missionResultSaveBtn")}</button>
@@ -4449,6 +4637,34 @@ class PuttingTrainingApp {
                 this.saveMissionResultEntry(btn.dataset.resultSave);
             });
         });
+            listTarget.querySelectorAll("[data-toggle-input-table]").forEach((btn) => {
+                btn.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    const wrap = listTarget.querySelector(`[data-input-table-wrap="${btn.dataset.toggleInputTable}"]`);
+                    if (!wrap) return;
+                    wrap.style.display = wrap.style.display === "none" ? "block" : "none";
+                });
+            });
+                listTarget.querySelectorAll("[data-open-mission-form]").forEach((btn) => {
+                    btn.addEventListener("click", (event) => {
+                        event.stopPropagation();
+                        const file = filesToRender.find((item) => item.id === btn.dataset.openMissionForm);
+                        const card = btn.closest(".mission-card");
+                        const tableWrap = card?.querySelector(".mission-input-table-wrap");
+                        const note = card?.querySelector(".mission-result-note");
+
+                        if (tableWrap) {
+                            tableWrap.style.display = "block";
+                            tableWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        }
+                        if (!tableWrap && note) {
+                                note.style.color = "#b45309";
+                                note.textContent = this.language === "en"
+                                    ? "No coach-assigned result form is available for this mission."
+                                    : "이 미션에는 코치가 배정한 수행결과 기록양식이 없습니다.";
+                        }
+                    });
+                });
 
         if (!isCoach) {
             // 수식 셀은 입력값 변경 즉시 재계산해 실제 점수산정 결과를 보여준다
@@ -4457,25 +4673,19 @@ class PuttingTrainingApp {
                 const cardFormulas = cardFile ? this.getMissionSourceFormulas(cardFile) : {};
                 if (!cardFile || !Object.keys(cardFormulas).length) return;
                 const recalcCard = () => {
-                    const grid = this.getMissionSourceRows(cardFile).map((row) => (Array.isArray(row) ? row.slice() : []));
-                    cardEl.querySelectorAll(".mission-result-input").forEach((input) => {
-                        const r = Number(input.dataset.rowIndex);
-                        const c = Number(input.dataset.columnIndex);
-                        if (!grid[r]) grid[r] = [];
-                        grid[r][c] = input.value;
-                    });
-                    const evaluator = new SheetFormulaEvaluator(grid);
-                    evaluator.recalcAll(cardFormulas);
+                    const { grid } = this.buildMissionResultGrid(cardFile, cardEl);
                     cardEl.querySelectorAll(".mission-formula-cell").forEach((cellEl) => {
                         const r = Number(cellEl.dataset.rowIndex);
                         const c = Number(cellEl.dataset.columnIndex);
-                        const value = evaluator.getCellValue(r, c);
+                        const value = (grid[r] || [])[c] ?? "";
                         cellEl.textContent = value === "" ? "" : String(value);
                     });
                 };
                 cardEl.querySelectorAll(".mission-result-input").forEach((input) => {
                     input.addEventListener("input", recalcCard);
+                    input.addEventListener("change", recalcCard);
                 });
+                recalcCard();
             });
         }
     }
@@ -4491,7 +4701,42 @@ class PuttingTrainingApp {
         this.renderMissionWorkArea();
     }
 
+    getMissionFileDisplayMeta(file) {
+        return {
+            title: this.getMissionFileDisplayTitle(file),
+            dueDate: this.getMissionFileDueDate(file),
+            assignedDate: this.getMissionFileAssignedDate(file)
+        };
+    }
+
+    getMissionFileRelatedRecords(file) {
+        return this.records.filter((item) => item.mission === "COACH_MISSION" && this.isSameMissionSource(item, file));
+    }
+
+    getMissionSourceField(file, keys) {
+        const rows = this.getMissionSourceRows(file);
+        if (!Array.isArray(rows) || rows.length < 2) return "";
+        for (let rowIndex = 0; rowIndex < rows.length - 1; rowIndex += 1) {
+            const headerRow = Array.isArray(rows[rowIndex]) ? rows[rowIndex] : [];
+            const dataRow = Array.isArray(rows[rowIndex + 1]) ? rows[rowIndex + 1] : [];
+            const index = headerRow.findIndex((cell) => keys.includes(String(cell || "").trim().toLowerCase().replace(/\s+/g, "")));
+            if (index >= 0) {
+                const value = String(dataRow[index] || "").trim();
+                if (value) return value;
+            }
+        }
+        return "";
+    }
+
     getMissionFileDisplayTitle(file) {
+        const assignedTitle = String(file?.missionTitle || "").trim();
+        if (assignedTitle) return assignedTitle;
+        const plainTitle = String(file?.title || file?.name || "").trim();
+        if (plainTitle) return plainTitle;
+        const recordTitle = this.getMissionFileRelatedRecords(file).map((item) => String(item.missionTitle || "").trim()).find(Boolean);
+        if (recordTitle) return recordTitle;
+        const sourceTitle = this.getMissionSourceField(file, ["missiontitle", "title", "미션제목", "미션명", "제목"]);
+        if (sourceTitle) return sourceTitle;
         const rows = Array.isArray(file?.sourceRows) ? file.sourceRows : [];
         if (rows.length > 1) {
             const headers = Array.isArray(rows[0]) ? rows[0] : [];
@@ -4505,6 +4750,46 @@ class PuttingTrainingApp {
 
         const missions = Array.isArray(file?.missions) ? file.missions : [];
         return String(missions[0]?.title || this.t("uploadedMissionTitle")).trim();
+    }
+
+    getMissionFileDisplayDetail(file) {
+        const direct = String(file?.missionDetail || "").trim();
+        if (direct) return direct;
+        const missions = Array.isArray(file?.missions) ? file.missions : [];
+        const missionDetail = String(missions[0]?.detail || "").trim();
+        if (missionDetail) return missionDetail;
+        const recordDetail = this.getMissionFileRelatedRecords(file)
+            .filter((item) => String(item.missionMessageType || "") === "mission")
+            .map((item) => String(item.missionResponse || "").trim())
+            .find(Boolean);
+        if (recordDetail) return recordDetail;
+        const uploadDetail = (this.missionResultUploads || [])
+            .filter((item) => this.isSameMissionSource(item, file))
+            .map((item) => String(item.missionDetail || item.detail || "").trim())
+            .find(Boolean);
+        return uploadDetail || "";
+    }
+
+    getMissionFileDueDate(file) {
+        const direct = String(file?.dueDate || file?.missionDueDate || "").trim();
+        if (direct) return direct.slice(0, 10);
+        const recordDue = this.getMissionFileRelatedRecords(file).map((item) => String(item.missionDueDate || item.dueDate || "").trim()).find(Boolean);
+        if (recordDue) return recordDue.slice(0, 10);
+        const uploadDue = (this.missionResultUploads || [])
+            .filter((item) => this.isSameMissionSource(item, file))
+            .map((item) => String(item.dueDate || item.missionDueDate || "").trim())
+            .find(Boolean);
+        if (uploadDue) return uploadDue.slice(0, 10);
+        const sourceDue = this.getMissionSourceField(file, ["missionduedate", "duedate", "due", "deadline", "기한", "미션기한"]);
+        return sourceDue ? sourceDue.slice(0, 10) : "";
+    }
+
+    getMissionFileAssignedDate(file) {
+        const direct = String(file?.assignedAt || file?.missionAssignedAt || "").trim();
+        if (direct) return direct.slice(0, 10);
+        const recordAssigned = this.getMissionFileRelatedRecords(file).map((item) => String(item.missionAssignedAt || item.assignedAt || "").trim()).find(Boolean);
+        if (recordAssigned) return recordAssigned.slice(0, 10);
+        return String(this.getMissionFileDateKey(file) || "").slice(0, 10);
     }
 
     getMissionInputLayout(file) {
@@ -4536,7 +4821,7 @@ class PuttingTrainingApp {
         if (Array.isArray(file?.sourceRows) && file.sourceRows.length) return file.sourceRows;
         const record = this.records.find((item) => (
             item.mission === "COACH_MISSION" &&
-            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             Array.isArray(item.missionSourceRows) && item.missionSourceRows.length
         ));
         if (Array.isArray(record?.missionSourceRows)) {
@@ -4545,7 +4830,7 @@ class PuttingTrainingApp {
             return file.sourceRows;
         }
         const upload = this.missionResultUploads.find((item) => (
-            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             Array.isArray(item.missionSourceRows) && item.missionSourceRows.length
         ));
         if (Array.isArray(upload?.missionSourceRows)) {
@@ -4556,11 +4841,64 @@ class PuttingTrainingApp {
         return [];
     }
 
+    getMissionSourceMerges(file) {
+        if (Array.isArray(file?.sourceMerges) && file.sourceMerges.length) return file.sourceMerges;
+        const record = this.records.find((item) => (
+            item.mission === "COACH_MISSION" &&
+            this.isSameMissionSource(item, file) &&
+            Array.isArray(item.missionSourceMerges) && item.missionSourceMerges.length
+        ));
+        if (Array.isArray(record?.missionSourceMerges)) {
+            file.sourceMerges = record.missionSourceMerges;
+            return file.sourceMerges;
+        }
+        const upload = this.missionResultUploads.find((item) => (
+            this.isSameMissionSource(item, file) &&
+            Array.isArray(item.missionSourceMerges) && item.missionSourceMerges.length
+        ));
+        if (Array.isArray(upload?.missionSourceMerges)) {
+            file.sourceMerges = upload.missionSourceMerges;
+            return file.sourceMerges;
+        }
+        return [];
+    }
+
+    getMissionMergeRenderMaps(file) {
+        const spans = new Map();
+        const skip = new Set();
+        this.getMissionSourceMerges(file).forEach((merge) => {
+            const start = merge?.s || {};
+            const end = merge?.e || {};
+            const startRow = Number(start.r);
+            const startCol = Number(start.c);
+            const endRow = Number(end.r);
+            const endCol = Number(end.c);
+            if (![startRow, startCol, endRow, endCol].every(Number.isInteger)) return;
+            const rowspan = Math.max(1, endRow - startRow + 1);
+            const colspan = Math.max(1, endCol - startCol + 1);
+            if (rowspan === 1 && colspan === 1) return;
+            spans.set(`${startRow},${startCol}`, { rowspan, colspan });
+            for (let row = startRow; row <= endRow; row += 1) {
+                for (let col = startCol; col <= endCol; col += 1) {
+                    if (row !== startRow || col !== startCol) skip.add(`${row},${col}`);
+                }
+            }
+        });
+        return { spans, skip };
+    }
+
+    isSameMissionSource(item, file) {
+        const fileId = String(file?.id || "").trim();
+        const itemId = String(item?.missionFileId || item?.missionId || "").trim();
+        if (fileId && itemId) return fileId === itemId;
+        return String(item?.missionFileName || item?.fileName || "").trim() === String(file?.fileName || "").trim();
+    }
+
     getMissionSourceFormulas(file) {
         if (file?.sourceFormulas && Object.keys(file.sourceFormulas).length) return file.sourceFormulas;
         const record = this.records.find((item) => (
             item.mission === "COACH_MISSION" &&
-            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             item.missionSourceFormulas && Object.keys(item.missionSourceFormulas).length
         ));
         if (record?.missionSourceFormulas) {
@@ -4568,7 +4906,7 @@ class PuttingTrainingApp {
             return file.sourceFormulas;
         }
         const upload = this.missionResultUploads.find((item) => (
-            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             item.missionSourceFormulas && Object.keys(item.missionSourceFormulas).length
         ));
         if (upload?.missionSourceFormulas) {
@@ -4582,7 +4920,7 @@ class PuttingTrainingApp {
         if (Array.isArray(file?.inputColumns) && file.inputColumns.length) return file.inputColumns;
         const record = this.records.find((item) => (
             item.mission === "COACH_MISSION" &&
-            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             Array.isArray(item.missionInputColumns) && item.missionInputColumns.length
         ));
         if (Array.isArray(record?.missionInputColumns)) {
@@ -4590,7 +4928,7 @@ class PuttingTrainingApp {
             return file.inputColumns;
         }
         const upload = this.missionResultUploads.find((item) => (
-            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             Array.isArray(item.missionInputColumns) && item.missionInputColumns.length
         ));
         if (Array.isArray(upload?.missionInputColumns)) {
@@ -4604,7 +4942,7 @@ class PuttingTrainingApp {
         if (Array.isArray(file?.inputCells) && file.inputCells.length) return file.inputCells;
         const record = this.records.find((item) => (
             item.mission === "COACH_MISSION" &&
-            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             Array.isArray(item.missionInputCells) && item.missionInputCells.length
         ));
         if (Array.isArray(record?.missionInputCells)) {
@@ -4612,7 +4950,7 @@ class PuttingTrainingApp {
             return file.inputCells;
         }
         const upload = this.missionResultUploads.find((item) => (
-            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             Array.isArray(item.missionInputCells) && item.missionInputCells.length
         ));
         if (Array.isArray(upload?.missionInputCells)) {
@@ -4626,7 +4964,7 @@ class PuttingTrainingApp {
         if (file?.inputMode) return file.inputMode;
         const record = this.records.find((item) => (
             item.mission === "COACH_MISSION" &&
-            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             item.missionInputMode
         ));
         if (record?.missionInputMode) {
@@ -4634,7 +4972,7 @@ class PuttingTrainingApp {
             return file.inputMode;
         }
         const upload = this.missionResultUploads.find((item) => (
-            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            this.isSameMissionSource(item, file) &&
             item.missionInputMode
         ));
         if (upload?.missionInputMode) {
@@ -4647,13 +4985,144 @@ class PuttingTrainingApp {
     // 수식 셈은 자동계산되므로 항상 입력 불가
     isMissionCellEditable(file, rowIndex, columnIndex) {
         const layout = this.getMissionInputLayout(file);
-        if (rowIndex <= layout.headerRow) return false;
         const formulas = this.getMissionSourceFormulas(file);
         if (formulas[`${rowIndex},${columnIndex}`]) return false;
         if (this.getMissionInputMode(file) === "cell") {
             return this.getMissionInputCells(file).includes(`${rowIndex},${columnIndex}`);
         }
+        if (rowIndex <= layout.headerRow) return false;
         return this.getMissionInputColumns(file).includes(columnIndex);
+    }
+
+    buildMissionResultGrid(file, card) {
+        const grid = this.getMissionSourceRows(file).map((row) => (Array.isArray(row) ? row.slice() : []));
+        const formulas = this.getMissionSourceFormulas(file);
+        const inputs = card ? Array.from(card.querySelectorAll(".mission-result-input")) : [];
+        const entries = inputs.map((input) => ({
+            rowIdx: Number(input.dataset.rowIndex || 0),
+            columnIdx: Number(input.dataset.columnIndex || 0),
+            value: String(input.value || "").trim()
+        }));
+        entries.forEach(({ rowIdx, columnIdx, value }) => {
+            if (!grid[rowIdx]) grid[rowIdx] = [];
+            grid[rowIdx][columnIdx] = value;
+        });
+        const evaluator = new SheetFormulaEvaluator(grid);
+        evaluator.recalcAll(formulas);
+        this.recalcPuttingRaceMissionGrid(evaluator.grid);
+        return { grid: evaluator.grid, formulas, entries };
+    }
+
+    normalizeSheetLabel(value) {
+        return String(value ?? "").replace(/\s+/g, "").toLowerCase();
+    }
+
+    toSheetNumber(value) {
+        const text = String(value ?? "").trim().replace(/,/g, "");
+        if (!text) return 0;
+        const percentMatch = /^(-?\d+(?:\.\d+)?)%$/.exec(text);
+        if (percentMatch) return (Number(percentMatch[1]) || 0) / 100;
+        const numeric = Number(text.replace(/[^0-9.-]/g, ""));
+        return Number.isFinite(numeric) ? numeric : 0;
+    }
+
+    formatSheetNumber(value) {
+        const numeric = Number(value) || 0;
+        return Number.isInteger(numeric) ? String(numeric) : String(Number(numeric.toFixed(2)));
+    }
+
+    findSheetHeaderIndex(headers, candidates) {
+        const normalizedCandidates = candidates.map((item) => this.normalizeSheetLabel(item));
+        return headers.findIndex((cell) => {
+            const label = this.normalizeSheetLabel(cell);
+            return normalizedCandidates.some((candidate) => label.includes(candidate));
+        });
+    }
+
+    findSheetCell(grid, candidates) {
+        const normalizedCandidates = candidates.map((item) => this.normalizeSheetLabel(item));
+        for (let rowIndex = 0; rowIndex < grid.length; rowIndex += 1) {
+            const row = Array.isArray(grid[rowIndex]) ? grid[rowIndex] : [];
+            for (let columnIndex = 0; columnIndex < row.length; columnIndex += 1) {
+                const label = this.normalizeSheetLabel(row[columnIndex]);
+                if (normalizedCandidates.some((candidate) => label.includes(candidate))) {
+                    return { rowIndex, columnIndex };
+                }
+            }
+        }
+        return null;
+    }
+
+    setSheetValueAfterLabel(grid, candidates, value) {
+        const found = this.findSheetCell(grid, candidates);
+        if (!found) return false;
+        if (!grid[found.rowIndex]) grid[found.rowIndex] = [];
+        grid[found.rowIndex][found.columnIndex + 1] = value;
+        return true;
+    }
+
+    recalcPuttingRaceMissionGrid(grid) {
+        if (!Array.isArray(grid) || !grid.length) return;
+        const allText = grid.map((row) => (Array.isArray(row) ? row : []).join(" ")).join(" ");
+        if (!/퍼팅\s*경마|단계별\s*퍼팅|실패\s*횟수|감점\s*단가|차감\s*점수/.test(allText)) return;
+
+        const layout = this.getMissionInputLayout({ sourceRows: grid });
+        const headers = Array.isArray(grid[layout.headerRow]) ? grid[layout.headerRow] : [];
+        const phaseCol = this.findSheetHeaderIndex(headers, ["단계", "phase"]);
+        const criteriaCol = this.findSheetHeaderIndex(headers, ["성공 기준", "criteria"]);
+        const failCol = this.findSheetHeaderIndex(headers, ["실패 횟수", "fail"]);
+        const unitCol = this.findSheetHeaderIndex(headers, ["감점 단가", "penalty"]);
+        const deductionCol = this.findSheetHeaderIndex(headers, ["차감 점수", "deduction"]);
+        const statusCol = this.findSheetHeaderIndex(headers, ["달성 상태", "status"]);
+        if (phaseCol < 0 || failCol < 0 || unitCol < 0 || deductionCol < 0) return;
+
+        let stage1Penalty = 0;
+        let stage2Penalty = 0;
+        let timePenalty = 0;
+
+        for (let rowIndex = layout.headerRow + 1; rowIndex < grid.length; rowIndex += 1) {
+            const row = Array.isArray(grid[rowIndex]) ? grid[rowIndex] : [];
+            const phaseText = String(row[phaseCol] || "").trim();
+            if (!phaseText) continue;
+            const failValue = this.toSheetNumber(row[failCol]);
+            const unitValue = this.toSheetNumber(row[unitCol]);
+            if (!failValue && !unitValue && !/(1단계|2단계|시간)/.test(phaseText)) continue;
+
+            let deduction = failValue * unitValue;
+            if (/시간/.test(phaseText)) {
+                const criteriaText = String(row[criteriaCol] || "");
+                const statusText = String(row[statusCol] || "");
+                const minuteLimitMatch = /(\d+(?:\.\d+)?)\s*분/.exec(criteriaText);
+                const secondLimitMatch = /(\d+(?:\.\d+)?)\s*초/.exec(criteriaText);
+                const overMinuteMatch = /(\d+(?:\.\d+)?)\s*분\s*초과/.exec(statusText);
+                if (overMinuteMatch) {
+                    deduction = (Number(overMinuteMatch[1]) || 0) * unitValue;
+                } else if (minuteLimitMatch && failValue > Number(minuteLimitMatch[1])) {
+                    deduction = (failValue - Number(minuteLimitMatch[1])) * unitValue;
+                } else if (secondLimitMatch && failValue > Number(secondLimitMatch[1])) {
+                    deduction = ((failValue - Number(secondLimitMatch[1])) / 60) * unitValue;
+                } else {
+                    deduction = 0;
+                }
+                timePenalty += deduction;
+            } else if (/1\s*단계|1단계|전진/.test(phaseText)) {
+                stage1Penalty += deduction;
+            } else if (/2\s*단계|2단계|회수/.test(phaseText)) {
+                stage2Penalty += deduction;
+            }
+            row[deductionCol] = this.formatSheetNumber(deduction);
+        }
+
+        const baselineCell = this.findSheetCell(grid, ["기본 점수", "baseline"]);
+        const baseline = baselineCell ? this.toSheetNumber((grid[baselineCell.rowIndex] || [])[baselineCell.columnIndex + 1]) || 100 : 100;
+        const totalScore = Math.max(0, baseline - stage1Penalty - stage2Penalty - timePenalty);
+        const passFail = totalScore >= 80 ? "Pass (성공)" : "Fail (실패)";
+
+        this.setSheetValueAfterLabel(grid, ["1단계(전진) 감점 합계", "1단계감점합계", "전진감점합계"], this.formatSheetNumber(stage1Penalty));
+        this.setSheetValueAfterLabel(grid, ["2단계(회수) 감점 합계", "2단계감점합계", "회수감점합계"], this.formatSheetNumber(stage2Penalty));
+        this.setSheetValueAfterLabel(grid, ["시간 초과 감점", "시간초과감점"], this.formatSheetNumber(timePenalty));
+        this.setSheetValueAfterLabel(grid, ["수행 총점", "total score"], this.formatSheetNumber(totalScore));
+        this.setSheetValueAfterLabel(grid, ["미션 성공/실패 여부", "성공/실패", "pass/fail"], passFail);
     }
 
     renderMissionWorkArea() {
@@ -4729,9 +5198,7 @@ class PuttingTrainingApp {
             ? `<div class="small" style="margin-top:2px; color:#4a649e;">${this.t("missionTargetPlayersLine", { players: targetPlayers.join(", ") })}</div>`
             : "";
         meta.innerHTML = `${missionDesc}${targetLine}`;
-        if (this.isCoachMode()) {
-            this.renderMissionSourcePreview(file);
-        } else if (preview) {
+        if (preview) {
             preview.innerHTML = "";
         }
         const targetInput = document.getElementById("missionTargetPlayer");
@@ -4772,24 +5239,38 @@ class PuttingTrainingApp {
 
         const headerCells = normalizedRows[0];
         const bodyRows = normalizedRows.slice(1);
+        const mergeMaps = this.getMissionMergeRenderMaps(file);
         const missionItemColIndex = headerCells.findIndex((cell) => {
             const key = String(cell || "").trim().toLowerCase();
             return key === "missionitem" || key === "미션내용";
         });
 
         const headerHtml = headerCells.map((cell, idx) => {
+            const cellKey = `0,${idx}`;
+            if (mergeMaps.skip.has(cellKey)) return "";
+            const span = mergeMaps.spans.get(cellKey);
+            const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
             const text = String(cell || "").trim() || `Column ${idx + 1}`;
-            return `<th>${escapeHtml(text)}</th>`;
+            return `<th${spanAttrs}>${escapeHtml(text)}</th>`;
         }).join("");
 
         const bodyHtml = bodyRows.length
-            ? bodyRows.map((row) => `<tr>${row.map((cell, idx) => {
+            ? bodyRows.map((row, bodyIndex) => `<tr>${row.map((cell, idx) => {
+                const rowIndex = bodyIndex + 1;
+                const cellKey = `${rowIndex},${idx}`;
+                if (mergeMaps.skip.has(cellKey)) return "";
+                const span = mergeMaps.spans.get(cellKey);
+                const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                 const className = idx === missionItemColIndex ? " class=\"mission-item-cell\"" : "";
-                return `<td${className}>${escapeHtml(cell)}</td>`;
+                return `<td${spanAttrs}${className}>${escapeHtml(cell)}</td>`;
             }).join("")}</tr>`).join("")
             : `<tr>${headerCells.map((cell, idx) => {
+                const cellKey = `0,${idx}`;
+                if (mergeMaps.skip.has(cellKey)) return "";
+                const span = mergeMaps.spans.get(cellKey);
+                const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                 const className = idx === missionItemColIndex ? " class=\"mission-item-cell\"" : "";
-                return `<td${className}>${escapeHtml(cell)}</td>`;
+                return `<td${spanAttrs}${className}>${escapeHtml(cell)}</td>`;
             }).join("")}</tr>`;
 
         target.innerHTML = `
@@ -4801,6 +5282,40 @@ class PuttingTrainingApp {
                 </table>
             </div>
         `;
+    }
+
+    escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    renderMissionResultTable(rows) {
+        if (!Array.isArray(rows) || !rows.length) return "";
+        const escapeHtml = (value) => String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        const maxCols = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+        if (!maxCols) return "";
+        const normalizedRows = rows.map((row) => {
+            const cells = Array.isArray(row) ? row.slice(0, maxCols) : [];
+            while (cells.length < maxCols) cells.push("");
+            return cells;
+        });
+        const headerRow = normalizedRows[0] || [];
+        const headerHtml = headerRow.map((cell, index) =>
+            `<th>${escapeHtml(String(cell ?? "").trim() || `Column ${index + 1}`)}</th>`
+        ).join("");
+        const bodyHtml = normalizedRows.slice(1).map((row) =>
+            `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`
+        ).join("");
+        return `<div class="mission-source-preview-title">저장된 수행 결과 양식</div><div class="mission-source-preview-wrap"><table class="distance-table"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
     }
 
     renderMissionEntryList() {
@@ -4864,7 +5379,7 @@ class PuttingTrainingApp {
         target.innerHTML = uniqueRows.map((row, index) => {
             const actorRole = row.missionActorRole || "player";
             const actorName = row.missionActorName || row.playerName || "-";
-            const targetPlayer = this.getPeerName(actorName, actorRole);
+            const targetPlayer = this.getPeerName(actorName, actorRole, row.missionTargetPlayer);
             const roleLabel = this.getRoleLabel(actorRole);
             const messageType = row.missionMessageType || "feedback";
             const typeLabel = this.getMessageTypeLabel(messageType);
@@ -4881,14 +5396,23 @@ class PuttingTrainingApp {
                     ? `<span class="mission-status resolved">${this.t("questionResolved")}</span>`
                     : `<span class="mission-status pending">${this.t("questionPending")}</span>`;
             }
+            const resultTableHtml = messageType === "result"
+                ? this.renderMissionResultTable(row.missionSourceRows)
+                : "";
+            const resultMemo = messageType === "result"
+                ? String(row.missionResponse || "").split("\n메모:")[1]?.trim() || ""
+                : "";
+            const responseHtml = messageType === "result"
+                ? `${resultTableHtml}${resultMemo ? `<div class="mission-line" style="margin-top:6px;"><b>메모:</b> ${this.escapeHtml(resultMemo)}</div>` : ""}`
+                : `<div class="mission-line">${this.escapeHtml(row.missionResponse || "")}</div>`;
             return `
             <div class="mission-bubble ${actorRole === "coach" ? "coach" : "player"}">
                 <div class="mission-bubble-head">
                     <span class="mission-badge">${roleLabel}</span>
-                    <span class="mission-time">${row.date || ""}</span>
+                    <span class="mission-time">${this.escapeHtml(row.date || "")}</span>
                 </div>
-                <div class="mission-line type">${typeLabel} · ${actorName} → ${targetPlayer}${questionStatusHtml}</div>
-                <div class="mission-line">${row.missionResponse || ""}</div>
+                <div class="mission-line type">${this.escapeHtml(`${typeLabel} · ${actorName} → ${targetPlayer}`)}${questionStatusHtml}</div>
+                ${responseHtml || `<div class="mission-line">${this.escapeHtml(row.missionResponse || "")}</div>`}
             </div>
             `;
         }).join("");
@@ -4994,15 +5518,37 @@ class PuttingTrainingApp {
 
     async registerUploadedMissions() {
         if (!this.isCoachMode() || !this.pendingMissionFiles.length) return;
-        const resultTarget = document.getElementById("missionSaveResult");
+        const resultTarget = document.getElementById("pendingMissionUploadResult");
         const targetPlayers = this.getSelectedMissionTargetPlayers();
+        const uploadTitle = String(document.getElementById("missionUploadTitle")?.value || "").trim();
+        const uploadDueDate = String(document.getElementById("missionUploadDueDate")?.value || "").trim();
+        const uploadDetail = String(document.getElementById("missionUploadDetail")?.value || "").trim();
         if (!targetPlayers.length) {
             resultTarget.textContent = this.t("needTargetPlayer");
             return;
         }
 
         for (const file of this.pendingMissionFiles) {
+            if (uploadTitle) {
+                const detail = uploadDetail || (Array.isArray(file.missions) && file.missions.length ? file.missions[0].detail || "" : "");
+                file.missionTitle = uploadTitle;
+                file.missions = [{ title: uploadTitle, detail }];
+            } else if (uploadDetail) {
+                const title = this.getMissionFileDisplayTitle(file);
+                file.missions = [{ title, detail: uploadDetail }];
+            }
+            file.missionDetail = uploadDetail || file.missionDetail || file.missions?.[0]?.detail || "";
+            file.dueDate = uploadDueDate;
+            file.assignedAt = file.assignedAt || new Date().toISOString().slice(0, 10);
+            if (file.sourceType !== "upload" || !file.sourceFile) {
+                resultTarget.textContent = `업로드 원본 파일이 없습니다: ${file.fileName}. 파일 업로드 버튼으로 다시 선택하세요.`;
+                return;
+            }
             const rows = Array.isArray(file.sourceRows) ? file.sourceRows : [];
+            if (rows.length < 2) {
+                resultTarget.textContent = `원본 미션 파일을 읽지 못했습니다: ${file.fileName}. 엑셀 파일을 다시 선택하세요.`;
+                return;
+            }
             const layout = this.getMissionInputLayout(file);
             file.inputHeaderRow = layout.headerRow;
             const columnCount = layout.headers.length;
@@ -5025,6 +5571,10 @@ class PuttingTrainingApp {
             file.targetPlayers = targetPlayers.slice();
             file.targetPlayer = targetPlayers[0];
             const storageInfo = await uploadMissionFileToStorage(file.sourceFile);
+                if (!storageInfo?.url) {
+                    resultTarget.textContent = "원본 엑셀 파일 저장에 실패했습니다. 스토리지 설정을 확인한 뒤 다시 등록하세요.";
+                    return;
+                }
             file.fileUrl = storageInfo?.url || "";
             file.storageBucket = storageInfo?.bucket || "";
             file.storagePath = storageInfo?.path || "";
@@ -5039,31 +5589,45 @@ class PuttingTrainingApp {
                     playerName: this.session.playerName,
                     sessionDate: this.session.sessionDate,
                     missionFileName: file.fileName,
+                    missionFileId: file.id,
                     missionTitle: this.getMissionFileDisplayTitle(file),
-                    missionResponse: "",
+                    missionResponse: file.missionDetail || file.missions?.[0]?.detail || "",
                     missionActorRole: "coach",
                     missionActorName: this.session.playerName,
                     missionTargetPlayer: targetPlayer,
                     missionMessageType: "mission",
                     missionSourceRows: file.sourceRows,
                     missionSourceFormulas: file.sourceFormulas || null,
+                    missionSourceMerges: file.sourceMerges || null,
                     missionInputColumns: file.inputColumns,
                     missionInputCells: file.inputCells,
                     missionInputMode: file.inputMode,
                     missionInputHeaderRow: file.inputHeaderRow,
+                    missionDueDate: file.dueDate,
+                    missionAssignedAt: file.assignedAt,
                     score: ""
                 }));
             });
             const existingUpload = this.missionResultUploads.findIndex((item) => item.fileName === file.fileName);
             const metadata = {
+                missionFileId: file.id,
                 fileName: file.fileName,
                 missionDefinition: true,
+                sourceType: file.sourceType,
+                fileUrl: file.fileUrl,
+                storageBucket: file.storageBucket,
+                storagePath: file.storagePath,
                 missionSourceRows: file.sourceRows,
                 missionSourceFormulas: file.sourceFormulas || null,
+                missionSourceMerges: file.sourceMerges || null,
                 missionInputColumns: file.inputColumns,
                 missionInputCells: file.inputCells,
                 missionInputMode: file.inputMode,
                 missionInputHeaderRow: file.inputHeaderRow,
+                missionTitle: this.getMissionFileDisplayTitle(file),
+                missionDetail: file.missionDetail || file.missions?.[0]?.detail || "",
+                dueDate: file.dueDate,
+                assignedAt: file.assignedAt,
                 uploadedAt: new Date().toLocaleString()
             };
             if (existingUpload >= 0) this.missionResultUploads[existingUpload] = { ...this.missionResultUploads[existingUpload], ...metadata };
@@ -5071,6 +5635,12 @@ class PuttingTrainingApp {
         });
         this.pendingMissionFiles = [];
         this.pendingMissionFileIndex = 0;
+        const uploadTitleInput = document.getElementById("missionUploadTitle");
+        const uploadDueDateInput = document.getElementById("missionUploadDueDate");
+        const uploadDetailInput = document.getElementById("missionUploadDetail");
+        if (uploadTitleInput) uploadTitleInput.value = "";
+        if (uploadDueDateInput) uploadDueDateInput.value = "";
+        if (uploadDetailInput) uploadDetailInput.value = "";
         this.storageService.saveRecords(this.records);
         this.saveCoachMissionFiles();
         this.saveMissionResultUploads();
@@ -5087,6 +5657,10 @@ class PuttingTrainingApp {
         let missions = [];
         let sourceRows = [];
         let sourceFormulas = {};
+        let sourceMerges = [];
+        const uploadTitle = String(document.getElementById("missionUploadTitle")?.value || "").trim();
+        const uploadDueDate = String(document.getElementById("missionUploadDueDate")?.value || "").trim();
+        const uploadDetail = String(document.getElementById("missionUploadDetail")?.value || "").trim();
         const parsedTargets = this.isCoachMode() ? this.getSelectedMissionTargetPlayers() : [];
         const targetPlayer = parsedTargets[0] || String(document.getElementById("missionTargetPlayer")?.value || this.getSelectedCoachPlayer() || "").trim();
         try {
@@ -5095,30 +5669,32 @@ class PuttingTrainingApp {
                 const workbook = window.XLSX.read(buffer, { type: "array" });
                 const firstSheetName = workbook.SheetNames[0];
                 const sheet = workbook.Sheets[firstSheetName];
-                const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-                sourceRows = Array.isArray(rows) ? rows : [];
-
                 if (sheet && sheet["!ref"]) {
                     const range = window.XLSX.utils.decode_range(sheet["!ref"]);
+                    const rows = [];
                     for (let r = range.s.r; r <= range.e.r; r += 1) {
+                        const row = [];
                         for (let c = range.s.c; c <= range.e.c; c += 1) {
                             const cell = sheet[window.XLSX.utils.encode_cell({ r, c })];
                             if (cell && cell.f) {
-                                sourceFormulas[`${r},${c}`] = cell.f;
+                                sourceFormulas[`${r - range.s.r},${c - range.s.c}`] = cell.f;
                             }
+                            row.push(cell ? (cell.w ?? cell.v ?? "") : "");
                         }
+                        rows.push(row);
                     }
+                    sourceRows = rows;
+                    sourceMerges = Array.isArray(sheet["!merges"])
+                        ? sheet["!merges"].map((merge) => ({
+                            s: { r: merge.s.r - range.s.r, c: merge.s.c - range.s.c },
+                            e: { r: merge.e.r - range.s.r, c: merge.e.c - range.s.c }
+                        }))
+                        : [];
                 }
-
-                missions = rows
-                    .map(row => ({
-                        title: String(row[0] || "").trim(),
-                        detail: String(row[1] || "").trim()
-                    }))
-                    .filter(row => row.title);
             }
         } catch (error) {
-            missions = [];
+            sourceRows = [];
+            sourceMerges = [];
         }
 
         if (!sourceRows.length && String(file.name || "").toLowerCase().endsWith(".csv")) {
@@ -5128,6 +5704,23 @@ class PuttingTrainingApp {
             } catch (error) {
                 sourceRows = [];
             }
+        }
+
+        // 헤더 행 없이 데이터 한 줄만 업로드된 경우에도 표(엑셀 원본) 형태로 표시되도록 헤더를 자동 생성한다
+        if (sourceRows.length === 1) {
+            const columnCount = Array.isArray(sourceRows[0]) ? sourceRows[0].length : 0;
+            const syntheticHeader = Array.from({ length: columnCount }, (_, index) => `Column ${index + 1}`);
+            const shiftedFormulas = {};
+            Object.keys(sourceFormulas).forEach((key) => {
+                const [r, c] = key.split(",").map(Number);
+                shiftedFormulas[`${r + 1},${c}`] = sourceFormulas[key];
+            });
+            sourceRows = [syntheticHeader, sourceRows[0]];
+            sourceFormulas = shiftedFormulas;
+            sourceMerges = sourceMerges.map((merge) => ({
+                s: { r: Number(merge?.s?.r || 0) + 1, c: Number(merge?.s?.c || 0) },
+                e: { r: Number(merge?.e?.r || 0) + 1, c: Number(merge?.e?.c || 0) }
+            }));
         }
 
         if (sourceRows.length > 1) {
@@ -5141,7 +5734,13 @@ class PuttingTrainingApp {
         }
 
         // 파일명은 미션 제목으로 사용하지 않는다. 원본 표가 제목과 내용을 결정한다.
-        if (!missions.length) {
+        if (uploadTitle) {
+            missions = [{ title: uploadTitle, detail: uploadDetail || missions[0]?.detail || "" }];
+        } else if (uploadDetail && missions.length) {
+            missions = [{ title: missions[0].title || this.t("uploadedMissionTitle"), detail: uploadDetail }];
+        } else if (uploadDetail) {
+            missions = [{ title: this.t("uploadedMissionTitle"), detail: uploadDetail }];
+        } else if (!missions.length) {
             missions = [{ title: this.t("uploadedMissionTitle"), detail: "" }];
         }
 
@@ -5151,11 +5750,14 @@ class PuttingTrainingApp {
             uploadedAt: new Date().toLocaleString(),
             uploadedAtISO: new Date().toISOString(),
             assignedAt: new Date().toISOString().slice(0, 10),
-            dueDate: "",
+            dueDate: uploadDueDate,
+            missionTitle: uploadTitle,
+            missionDetail: uploadDetail,
             sourceType: "upload",
             missions,
             sourceRows,
             sourceFormulas,
+            sourceMerges,
             targetPlayer,
             targetPlayers: parsedTargets,
             inputMode: "column",
@@ -5222,6 +5824,8 @@ class PuttingTrainingApp {
                 missionActorName: this.session.playerName,
                 missionTargetPlayer: targetName,
                 missionMessageType: "mission",
+                missionDueDate: dueDate,
+                missionAssignedAt: missionFile.assignedAt,
                 score: ""
             }));
         });
@@ -5260,7 +5864,8 @@ class PuttingTrainingApp {
         this.pendingMissionFiles = parsed;
         this.pendingMissionFileIndex = 0;
         this.renderPendingMissionUploadPreview();
-        const resultTarget = document.getElementById("missionSaveResult");
+        this.updateCoachRoleUI();
+        const resultTarget = document.getElementById("pendingMissionUploadResult");
         if (resultTarget) resultTarget.textContent = "원본 파일을 확인하고 입력 허용 필드를 선택한 뒤 업로드 미션등록을 눌러주세요.";
         event.target.value = "";
     }
@@ -5350,6 +5955,23 @@ class PuttingTrainingApp {
             : this.t("coachDeleteOnly");
     }
 
+    downloadMissionResultGrid(file, grid, resultDate) {
+        const safeName = String(file?.fileName || "mission")
+            .replace(/\.[^.]+$/, "")
+            .replace(/[\\/:*?"<>|\s]+/g, "_");
+        const datePart = String(resultDate || new Date().toISOString().slice(0, 10)).replace(/[^0-9-]/g, "_");
+        const csv = (Array.isArray(grid) ? grid : [])
+            .map((row) => (Array.isArray(row) ? row : []).map((cell) => this.csvEscape(cell)).join(","))
+            .join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${safeName}_result_${datePart}.csv`;
+        link.click();
+        setTimeout(() => window.URL.revokeObjectURL(url), 0);
+    }
+
     saveMissionResultEntry(fileId) {
         // 선수 모드: 카드 내 양식(원본 표 행별 입력 + 메모)으로 수행 결과를 기록하면 records에 저장되어 클라우드 동기화로 코치에게도 공유된다.
         if (this.isCoachMode()) return;
@@ -5361,7 +5983,7 @@ class PuttingTrainingApp {
         const textEl = card?.querySelector(".mission-result-text");
         const noteEl = card?.querySelector(".mission-result-note");
         const resultDate = String(dateEl?.value || "").trim();
-        const freeText = String(textEl?.value || "").trim();
+                const freeText = String(textEl?.value || "").trim();
 
         // 원본 양식(표)이 있으면 행별 입력값을 우선 수집
         const rows = this.getMissionSourceRows(file);
@@ -5382,42 +6004,27 @@ class PuttingTrainingApp {
             return;
         }
 
-        // 수식이 포함된 양식은 입력값을 반영해 재계산한 결과를 함께 저장해 실제 점수산정에 반영한다.
-        let finalGrid = rows.map((row) => (Array.isArray(row) ? row.slice() : []));
-        let computedFormulaText = "";
-        if (Object.keys(formulas).length) {
-            rowResults.forEach(({ rowIdx, columnIdx, value }) => {
-                if (!finalGrid[rowIdx]) finalGrid[rowIdx] = [];
-                finalGrid[rowIdx][columnIdx] = value;
-            });
-            const evaluator = new SheetFormulaEvaluator(finalGrid);
-            evaluator.recalcAll(formulas);
-            finalGrid = evaluator.grid;
-            computedFormulaText = Object.keys(formulas).map((key) => {
-                const [r, c] = key.split(",").map(Number);
-                const label = headerCells[c] || `Col${c + 1}`;
-                const value = evaluator.getCellValue(r, c);
-                return `${label}(자동계산)=${value}`;
-            }).join(", ");
-        }
+        // 화면과 동일한 계산 그리드를 저장해 원본 양식의 최신 점수/상태를 코치에게 전달한다.
+        const calculated = this.buildMissionResultGrid(file, card);
+        const finalGrid = calculated.grid;
+        const computedFormulaText = Object.keys(formulas).map((key) => {
+            const [r, c] = key.split(",").map(Number);
+            const label = headerCells[c] || `Col${c + 1}`;
+            const value = (finalGrid[r] || [])[c] ?? "";
+            return `${label}(자동계산)=${value}`;
+        }).join(", ");
 
-        const responseText = rowResults.length
-            ? rowResults.map((entry) => {
-                const rowCells = rows[entry.rowIdx] || [];
-                const rowLabel = headerCells
-                    .map((head, idx) => `${head}=${String(rowCells[idx] ?? "").trim()}`)
-                    .filter((part) => !/=-?$/.test(part))
-                    .join(", ");
-                const fieldLabel = headerCells[entry.columnIdx] || `Column ${entry.columnIdx + 1}`;
-                return `${rowLabel || `#${entry.rowIdx + 1}`} | ${fieldLabel} → ${entry.value}`;
-            }).join("\n") + (computedFormulaText ? `\n${computedFormulaText}` : "") + (freeText ? `\n${freeText}` : "")
-            : freeText;
+        const formText = finalGrid
+            .map((row) => (Array.isArray(row) ? row : []).map((cell) => String(cell ?? "")).join("\t"))
+            .join("\n");
+        const responseText = freeText ? `${formText}\n메모: ${freeText}` : formText;
 
         this.records.push(new MissionRecord({
             mission: "COACH_MISSION",
             playerName: this.session.playerName,
             sessionDate: resultDate || this.session.sessionDate,
             missionFileName: file.fileName,
+            missionFileId: file.id,
             missionTitle: this.getMissionFileDisplayTitle(file),
             missionResponse: responseText,
             missionActorRole: "player",
@@ -5426,13 +6033,17 @@ class PuttingTrainingApp {
             missionMessageType: "result",
             missionSourceRows: finalGrid,
             missionSourceFormulas: formulas,
+            missionSourceMerges: this.getMissionSourceMerges(file),
             missionInputColumns: this.getMissionInputColumns(file),
             missionInputCells: this.getMissionInputCells(file),
             missionInputMode: this.getMissionInputMode(file),
             missionInputHeaderRow: inputLayout.headerRow,
+            missionDueDate: this.getMissionFileDueDate(file),
+            missionAssignedAt: this.getMissionFileAssignedDate(file),
             score: ""
         }));
         this.storageService.saveRecords(this.records);
+        this.downloadMissionResultGrid(file, finalGrid, resultDate || this.session.sessionDate);
 
         inputEls.forEach((input) => { input.value = ""; });
         if (textEl) textEl.value = "";
@@ -5496,6 +6107,8 @@ class PuttingTrainingApp {
                 missionActorName: this.session.playerName,
                 missionTargetPlayer: targetName,
                 missionMessageType: "mission",
+                missionDueDate: this.getMissionFileDueDate(file),
+                missionAssignedAt: this.getMissionFileAssignedDate(file),
                 score: ""
             }));
         });
@@ -6124,6 +6737,8 @@ class PuttingTrainingApp {
             document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
             document.getElementById("pendingPlayerList").addEventListener("click", (event) => this.handlePendingPlayerAction(event));
             document.getElementById("syncPlayerDataBtn").addEventListener("click", () => this.syncPlayerData());
+            const refreshMissionFilesBtn = document.getElementById("refreshMissionFilesBtn");
+            if (refreshMissionFilesBtn) refreshMissionFilesBtn.addEventListener("click", () => this.refreshCoachMissionFilesFromCloud());
             document.getElementById("playerDataUploadList").addEventListener("click", (event) => {
                 const row = event.target?.closest("[data-file-name]");
                 if (!row) return;
@@ -6783,7 +7398,7 @@ class PuttingTrainingApp {
 
 (async () => {
     CLOUD_STATE_SERVICE = new CloudStateService(DEPLOY_CONFIG);
-    await CLOUD_STATE_SERVICE.init();
+    await CLOUD_STATE_SERVICE.init(sb);
 
     // Supabase에서 코치 자격증명 로드 (소스코드에 평문 노출 방지)
     if (CLOUD_STATE_SERVICE.client) {
