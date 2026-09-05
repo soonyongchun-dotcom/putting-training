@@ -189,9 +189,11 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .login-tab.active { color:#1f4db8; border-bottom-color:#1f4db8; background:#eef4ff; }
 .login-tab:hover:not(.active) { background:#f2f5ff; color:#2d55c4; }
 .session-info { margin-bottom:10px; color:#3c5b97; font-weight:bold; }
-.app-version { display:inline-block; margin-left:8px; padding:1px 8px; border:1px solid #c7d4ee; border-radius:999px; background:#eef4ff; color:#4a649e; font-size:11px; font-weight:bold; vertical-align:middle; }
+.app-title { position:relative; display:inline-block; padding-right:82px; margin-right:4px; }
+.app-version { position:absolute; top:-8px; right:0; display:inline-block; padding:1px 8px; border:1px solid #c7d4ee; border-radius:999px; background:#eef4ff; color:#4a649e; font-size:11px; font-weight:bold; line-height:1.4; white-space:nowrap; }
 .top-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .top-actions { display:flex; align-items:center; gap:8px; }
+.icon-btn { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; padding:0; font-size:18px; line-height:1; }
 .secondary-btn { background:#8aa2d8; }
 .secondary-btn:disabled { background:#b8c6e6; cursor:not-allowed; }
 #uploadMissionResultBtn.secondary-btn:not(:disabled) { background:#4f73c8; }
@@ -525,7 +527,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="top-bar">
     <div>
-        <h1>SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26. 9. 1f</span></h1>
+        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.2f</span></h1>
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
@@ -533,8 +535,8 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
             <option value="ko">한국어</option>
             <option value="en">English</option>
         </select>
-        <button id="newStartButton" class="secondary-btn" type="button">새로 시작</button>
-        <button id="logoutButton" class="secondary-btn" type="button">로그아웃</button>
+        <button id="newStartButton" class="secondary-btn icon-btn" type="button" aria-label="새로 시작" title="새로 시작">↻</button>
+        <button id="logoutButton" class="secondary-btn icon-btn" type="button" aria-label="로그아웃" title="로그아웃">⏻</button>
     </div>
 </div>
 <div class="small">큰 블럭을 먼저 선택하고, 선택된 섹션에서 세부 내용을 입력하세요.</div>
@@ -3004,8 +3006,18 @@ class PuttingTrainingApp {
         setText('label[for="loginPasscode"]', this.t("loginPass"));
         setPlaceholder("#loginPasscode", this.t("loginPassPh"));
         setText("#loginButton", this.t("loginEnter"));
-        setText("#newStartButton", this.t("newStart"));
-        setText("#logoutButton", this.t("logout"));
+        const newStartButton = document.getElementById("newStartButton");
+        if (newStartButton) {
+            newStartButton.textContent = "↻";
+            newStartButton.title = this.t("newStart");
+            newStartButton.setAttribute("aria-label", this.t("newStart"));
+        }
+        const logoutButton = document.getElementById("logoutButton");
+        if (logoutButton) {
+            logoutButton.textContent = "⏻";
+            logoutButton.title = this.t("logout");
+            logoutButton.setAttribute("aria-label", this.t("logout"));
+        }
         const rolePlayerOption = document.querySelector('#loginRole option[value="player"]');
         const roleCoachOption = document.querySelector('#loginRole option[value="coach"]');
         if (rolePlayerOption) rolePlayerOption.textContent = this.t("rolePlayer");
