@@ -189,6 +189,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .login-tab.active { color:#1f4db8; border-bottom-color:#1f4db8; background:#eef4ff; }
 .login-tab:hover:not(.active) { background:#f2f5ff; color:#2d55c4; }
 .session-info { margin-bottom:10px; color:#3c5b97; font-weight:bold; }
+.app-version { display:inline-block; margin-left:8px; padding:1px 8px; border:1px solid #c7d4ee; border-radius:999px; background:#eef4ff; color:#4a649e; font-size:11px; font-weight:bold; vertical-align:middle; }
 .top-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .top-actions { display:flex; align-items:center; gap:8px; }
 .secondary-btn { background:#8aa2d8; }
@@ -204,7 +205,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .distance-empty { margin-top:8px; color:#667; font-size:13px; }
 .speed-subtable { margin-bottom:18px; }
 .speed-subtable-title { font-weight:bold; font-size:13px; color:#1f4db8; margin-bottom:4px; padding-left:2px; }
-.mission-file-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.mission-file-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
 .mission-file-btn {
     border:1px solid #bfcff1;
     background:#eef4ff;
@@ -385,6 +386,51 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .broadcast-inline input[type="checkbox"] {
     margin:0;
 }
+.mission-target-toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:4px; }
+.mission-target-list { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:6px; max-height:140px; overflow-y:auto; border:1px solid #d7e0f2; border-radius:8px; padding:8px; background:#fff; }
+.mission-target-item { display:inline-flex; align-items:center; gap:5px; font-size:13px; color:#2f3f66; white-space:nowrap; }
+.mission-target-item input[type="checkbox"] { margin:0; }
+.mission-target-count { font-size:12px; color:#4a649e; }
+.mission-card { border:1px solid #d7e0f2; border-radius:10px; background:#fff; overflow:hidden; }
+.mission-card-head { width:100%; display:flex; align-items:center; gap:8px; padding:8px 10px; margin:0; background:#eef4ff; border:none; border-radius:0; text-align:left; cursor:pointer; }
+.mission-card-head.active { background:#d7e6ff; }
+.mission-card-title { font-weight:bold; font-size:13px; color:#204a9b; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mission-card-targets { font-size:11px; color:#4a649e; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mission-card-toggle { font-size:11px; color:#4a649e; white-space:nowrap; }
+.mission-card-body { display:none; padding:10px; border-top:1px dashed #d6e0f3; }
+.mission-card-body.open { display:block; }
+.mission-card-detail { white-space:pre-wrap; font-size:12px; color:#324a82; margin-bottom:6px; line-height:1.4; }
+.mission-card-actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.mission-reassign-list { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:4px; }
+.mission-result-form { margin-top:8px; border-top:1px dashed #d6e0f3; padding-top:8px; overflow-x:auto; }
+.mission-result-form input[type="date"] { margin:0 0 0 6px; }
+.mission-result-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:12px; }
+.mission-result-table th, .mission-result-table td { border:1px solid #d7e0f2; padding:4px 6px; text-align:center; }
+.mission-result-table th { background:#eef4ff; color:#1f4db8; }
+.mission-result-table td { background:#fff; }
+.mission-result-input { width:100%; min-width:110px; border:1px solid #c7d4ee; border-radius:6px; padding:5px 6px; box-sizing:border-box; font-size:12px; }
+.mission-formula-cell { background:#eef2ff; color:#334155; font-weight:600; }
+.mission-field-picker { margin-top:8px; border:1px solid #d7e0f2; border-radius:8px; padding:8px; background:#fff; }
+.mission-field-picker-list { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:6px; }
+.mission-field-picker-item { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:#2f3f66; }
+.mission-upload-preview { margin-top:8px; overflow:auto; }
+.mission-upload-preview .distance-table,
+.mission-result-table {
+    width:max-content;
+    min-width:100%;
+    table-layout:auto;
+}
+.mission-upload-preview .distance-table th,
+.mission-upload-preview .distance-table td,
+.mission-result-table th,
+.mission-result-table td {
+    white-space:nowrap;
+    vertical-align:top;
+}
+.mission-upload-preview .distance-table td,
+.mission-upload-preview .distance-table th {
+    min-width:110px;
+}
 .section-action-row { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 /* 선수 관리 섹션 */
 .players-section-title { font-size:14px; font-weight:700; color:#1f4db8; border-bottom:2px solid #d7e0f2; padding-bottom:6px; margin:14px 0 10px; }
@@ -478,7 +524,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="top-bar">
     <div>
-        <h1>SY Putting Training System - Green Mission</h1>
+        <h1>SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26. 9. 1f</span></h1>
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
@@ -769,24 +815,26 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
     <div class="coach-role-note" id="coachRoleNote"></div>
 
-  <div class="coach-group" id="coachPlayerManageGroup">
-      <div class="mission-section-title" id="coachPlayerManageTitle">선수 선택</div>
-
-      <div class="form-grid" id="coachPlayerFilterWrap" style="margin-top:6px; display:none;">
-          <div class="field" style="grid-column: 1 / -1;">
-              <label for="coachPlayerFilter">선수 선택</label>
-              <select id="coachPlayerFilter"></select>
-          </div>
-      </div>
-  </div>
-
   <div class="coach-group" id="coachMissionManageGroup">
       <div class="mission-section-title" id="coachMissionManageTitle">미션 등록/배포</div>
+
+      <div class="form-grid" id="missionTargetPickerWrap" style="margin-top:6px;">
+          <div class="field" style="grid-column: 1 / -1;">
+              <label id="missionTargetPickerLabel">배포 대상 선수</label>
+              <div class="mission-target-toolbar">
+                  <label class="broadcast-inline"><input type="checkbox" id="missionTargetSelectAll"><span id="missionTargetSelectAllLabel">전체 선택</span></label>
+                  <span class="mission-target-count" id="missionTargetSelectedCount"></span>
+              </div>
+              <div class="mission-target-list" id="missionTargetPlayerList"></div>
+          </div>
+      </div>
 
       <div class="form-grid">
           <div class="field" style="grid-column: 1 / -1;" id="missionExcelUploadField">
               <label for="missionExcelInput">Mission Excel Upload (.xlsx, .xls, .csv)</label>
               <input type="file" id="missionExcelInput" accept=".xlsx,.xls,.csv" multiple>
+              <div id="pendingMissionUploadPreview"></div>
+              <button id="registerUploadedMissionBtn" type="button" class="secondary-btn" style="display:none;">업로드 미션등록</button>
           </div>
       </div>
 
@@ -799,6 +847,10 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
               <label for="missionDirectItem">미션내용</label>
               <textarea id="missionDirectItem" class="mission-textarea" placeholder="예: 20구 중 16구 이상 홀인\n미스 시 루틴 재점검"></textarea>
           </div>
+          <div class="field">
+              <label for="missionDirectDueDate">미션 기한</label>
+              <input type="date" id="missionDirectDueDate">
+          </div>
           <div class="field" style="grid-column: 1 / -1;">
               <button id="saveMissionDirectBtn" type="button" class="secondary-btn">미션등록</button>
           </div>
@@ -809,25 +861,6 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
   <div class="mission-file-list" id="missionFileList"></div>
 
   <div class="mission-work" id="missionWorkArea" style="display:none;">
-      <div class="mission-section-title" id="coachResultManageTitle">선수 결과 관리</div>
-      <div class="mission-transfer" id="missionTransferBox">
-          <div class="form-grid">
-              <div class="field" style="grid-column: 1 / -1;" id="missionResultUploadField">
-                  <label for="missionResultCsvInput">미션 결과 데이터 업로드 (CSV)</label>
-                  <input type="file" id="missionResultCsvInput" accept=".csv">
-              </div>
-              <div class="field" style="grid-column: 1 / -1;">
-                  <label for="missionResultDownloadFile">다운로드 대상 파일</label>
-                  <select id="missionResultDownloadFile"></select>
-              </div>
-          </div>
-          <div class="row" style="margin-top:4px;">
-              <button id="uploadMissionResultBtn" type="button" class="secondary-btn">미션결과 업로드</button>
-              <button id="downloadMissionResultBtn" type="button" class="secondary-btn">미션결과 다운로드</button>
-          </div>
-          <div class="mission-upload-list" id="missionResultUploadList"></div>
-      </div>
-
       <div class="mission-section-title" id="coachConversationTitle">선수 대화/피드백</div>
       <div class="form-grid">
           <div class="field">
@@ -859,7 +892,6 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
             </div>
       <div class="mission-toolbar">
                         <button id="saveMissionInputBtn" type="button">전송</button>
-            <button id="deleteMissionFileBtn" class="secondary-btn" type="button">선택 파일 삭제</button>
       </div>
       <div class="result" id="missionSaveResult"></div>
   </div>
@@ -1187,7 +1219,7 @@ const UI_I18N = {
         missionDesc: "미션 설명: {{detail}}",
         missionDescEmpty: "미션 설명 없음",
         missionDescFromSource: "미션 설명은 아래 원본 미션 파일 내용에서 확인하세요.",
-        downloadOriginalFile: "원본 파일 다운로드",
+        uploadedMissionTitle: "업로드 미션",
         missionSourcePreviewTitle: "원본 미션 파일 내용",
         missionSourcePreviewEmpty: "표시할 원본 파일 데이터가 없습니다.",
         noMissionFiles: "업로드된 미션 파일이 없습니다.",
@@ -1250,7 +1282,7 @@ const UI_I18N = {
         missionResultSelectPlaceholder: "파일 선택",
         needMissionResultDownloadFile: "다운로드할 파일을 선택하세요.",
         missionResultDownloadedAs: "미션 결과 파일 다운로드 완료: {{fileName}} ({{count}}건)",
-        missionTaskTitleCoach: "등록된 미션 파일",
+        missionTaskTitleCoach: "등록된 미션",
         missionTaskTitlePlayer: "수행미션",
         missionDateFilterLabel: "날짜 선택",
         missionDateFilterLabelPlayer: "날짜 선택",
@@ -1267,6 +1299,31 @@ const UI_I18N = {
         noPlayersForBroadcast: "전체공지 대상 선수가 없습니다.",
         coachPlayerFilterLabel: "선수 선택",
         coachPlayerAll: "전체 선수",
+        missionTargetPickerLabel: "배포 대상 선수",
+        missionTargetSelectAllLabel: "전체 선택",
+        missionTargetSelectedCount: "선택 {{count}}/{{total}}명",
+        missionTargetPlayersLine: "배포 대상: {{players}}",
+        missionDirectSavedMulti: "미션 등록 완료: {{count}}명 ({{players}}) / {{title}}",
+        missionMultiTargetPrefix: "공동미션",
+        missionCardTargets: "배정: {{players}}",
+        missionCardExpand: "펼치기",
+        missionCardCollapse: "접기",
+        missionReassignApply: "재배정 적용",
+        missionDeleteBtn: "미션 삭제",
+        missionReassigned: "재배정 완료: {{players}}",
+        missionDirectDueDateLabel: "미션 기한",
+        missionDueDateLabel: "기한",
+        missionDueDateEmpty: "미지정",
+        missionAssignedLabel: "배정일",
+        missionResultFormTitle: "수행 결과 기록",
+        missionResultDateLabel: "수행 일자",
+        missionResultTextPh: "예: 20구 중 17구 홀인 / 3세트 수행 완료",
+        missionResultSaveBtn: "결과 저장",
+        missionResultSaved: "수행 결과가 저장되어 코치와 공유되었습니다.",
+        missionResultSavedRows: "수행 결과 {{count}}행이 저장되어 코치와 공유되었습니다.",
+        missionTypeResult: "수행결과",
+        missionResultColumn: "수행 결과",
+        missionResultNoData: "기록할 결과를 입력하세요.",
         navExportCoachTitle: "7) 데이터",
         navExportCoachDesc: "CSV 내보내기",
         navExportPlayerTitle: "7) 데이터관리",
@@ -1346,7 +1403,7 @@ const UI_I18N = {
         missionDesc: "Mission Description: {{detail}}",
         missionDescEmpty: "No mission description",
         missionDescFromSource: "See mission details in the source mission file table below.",
-        downloadOriginalFile: "Download original file",
+        uploadedMissionTitle: "Uploaded mission",
         missionSourcePreviewTitle: "Original Mission File Content",
         missionSourcePreviewEmpty: "No source file data to display.",
         noMissionFiles: "No uploaded mission files.",
@@ -1409,7 +1466,7 @@ const UI_I18N = {
         missionResultSelectPlaceholder: "Select a file",
         needMissionResultDownloadFile: "Please select a file to download.",
         missionResultDownloadedAs: "Downloaded mission result file: {{fileName}} ({{count}} rows)",
-        missionTaskTitleCoach: "Registered Mission Files",
+        missionTaskTitleCoach: "Registered Missions",
         missionTaskTitlePlayer: "Assigned Missions",
         missionDateFilterLabel: "Date",
         missionDateFilterLabelPlayer: "Date",
@@ -1426,6 +1483,31 @@ const UI_I18N = {
         noPlayersForBroadcast: "No players available for broadcast.",
         coachPlayerFilterLabel: "Player",
         coachPlayerAll: "All Players",
+        missionTargetPickerLabel: "Target Players",
+        missionTargetSelectAllLabel: "Select All",
+        missionTargetSelectedCount: "Selected {{count}}/{{total}}",
+        missionTargetPlayersLine: "Assigned to: {{players}}",
+        missionDirectSavedMulti: "Mission saved for {{count}} player(s) ({{players}}) / {{title}}",
+        missionMultiTargetPrefix: "GroupMission",
+        missionCardTargets: "Assigned: {{players}}",
+        missionCardExpand: "Expand",
+        missionCardCollapse: "Collapse",
+        missionReassignApply: "Apply Reassignment",
+        missionDeleteBtn: "Delete Mission",
+        missionReassigned: "Reassigned: {{players}}",
+        missionDirectDueDateLabel: "Due Date",
+        missionDueDateLabel: "Due",
+        missionDueDateEmpty: "Not set",
+        missionAssignedLabel: "Assigned",
+        missionResultFormTitle: "Record Mission Result",
+        missionResultDateLabel: "Date performed",
+        missionResultTextPh: "e.g., 17/20 holed / completed 3 sets",
+        missionResultSaveBtn: "Save Result",
+        missionResultSaved: "Result saved and shared with your coach.",
+        missionResultSavedRows: "Saved {{count}} result row(s) and shared with your coach.",
+        missionTypeResult: "Result",
+        missionResultColumn: "Result",
+        missionResultNoData: "Please enter a result to record.",
         navExportCoachTitle: "7) Data",
         navExportCoachDesc: "CSV export",
         navExportPlayerTitle: "7) Data Management",
@@ -1533,6 +1615,239 @@ function parseSlopeLevelOrNull(value) {
     return normalizeSlopeLevel(numeric);
 }
 
+// 업로드된 미션 엑셀의 수식(SUM/IF/ROUND 등)을 안전하게(eval 없이) 재계산하기 위한 최소 수식 엔진
+class SheetFormulaEvaluator {
+    constructor(grid) {
+        this.grid = grid || [];
+    }
+
+    static colLettersToIndex(letters) {
+        let col = 0;
+        for (let i = 0; i < letters.length; i += 1) {
+            col = col * 26 + (letters.charCodeAt(i) - 64);
+        }
+        return col - 1;
+    }
+
+    static parseCellRef(ref) {
+        const match = /^\$?([A-Za-z]+)\$?(\d+)$/.exec(ref);
+        if (!match) return null;
+        return { row: parseInt(match[2], 10) - 1, col: SheetFormulaEvaluator.colLettersToIndex(match[1].toUpperCase()) };
+    }
+
+    getCellValue(row, col) {
+        const raw = (this.grid[row] || [])[col];
+        if (raw === undefined || raw === null || raw === "") return "";
+        const num = Number(raw);
+        return Number.isNaN(num) ? raw : num;
+    }
+
+    getRangeValues(startRef, endRef) {
+        const start = SheetFormulaEvaluator.parseCellRef(startRef);
+        const end = SheetFormulaEvaluator.parseCellRef(endRef);
+        if (!start || !end) return [];
+        const rowFrom = Math.min(start.row, end.row);
+        const rowTo = Math.max(start.row, end.row);
+        const colFrom = Math.min(start.col, end.col);
+        const colTo = Math.max(start.col, end.col);
+        const values = [];
+        for (let r = rowFrom; r <= rowTo; r += 1) {
+            for (let c = colFrom; c <= colTo; c += 1) {
+                values.push(this.getCellValue(r, c));
+            }
+        }
+        return values;
+    }
+
+    tokenize(expr) {
+        const pattern = /"[^"]*"|\$?[A-Za-z]+\$?\d+:\$?[A-Za-z]+\$?\d+|\$?[A-Za-z]+\$?\d+|[A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|<>|<=|>=|[+\-*/^(),=<>]/g;
+        return String(expr).match(pattern) || [];
+    }
+
+    evaluate(formula) {
+        const expr = String(formula || "").replace(/^=/, "");
+        this.tokens = this.tokenize(expr);
+        this.pos = 0;
+        try {
+            return this.parseExpression();
+        } catch (error) {
+            return "#ERR";
+        }
+    }
+
+    peek() { return this.tokens[this.pos]; }
+    next() { const token = this.tokens[this.pos]; this.pos += 1; return token; }
+    expect(token) { if (this.next() !== token) throw new Error(`Expected ${token}`); }
+
+    parseExpression() { return this.parseComparison(); }
+
+    parseComparison() {
+        let left = this.parseAdditive();
+        while (["=", "<>", "<", ">", "<=", ">="].includes(this.peek())) {
+            const op = this.next();
+            const right = this.parseAdditive();
+            left = this.applyComparison(op, left, right);
+        }
+        return left;
+    }
+
+    parseAdditive() {
+        let left = this.parseMultiplicative();
+        while (this.peek() === "+" || this.peek() === "-") {
+            const op = this.next();
+            const right = this.parseMultiplicative();
+            left = op === "+" ? (Number(left) || 0) + (Number(right) || 0) : (Number(left) || 0) - (Number(right) || 0);
+        }
+        return left;
+    }
+
+    parseMultiplicative() {
+        let left = this.parseUnary();
+        while (this.peek() === "*" || this.peek() === "/") {
+            const op = this.next();
+            const right = this.parseUnary();
+            left = op === "*" ? (Number(left) || 0) * (Number(right) || 0) : (Number(left) || 0) / (Number(right) || 1);
+        }
+        return left;
+    }
+
+    parseUnary() {
+        if (this.peek() === "-") {
+            this.next();
+            return -(Number(this.parseUnary()) || 0);
+        }
+        return this.parsePower();
+    }
+
+    parsePower() {
+        let left = this.parsePrimary();
+        while (this.peek() === "^") {
+            this.next();
+            const right = this.parsePrimary();
+            left = Math.pow(Number(left) || 0, Number(right) || 0);
+        }
+        return left;
+    }
+
+    parsePrimary() {
+        const token = this.peek();
+        if (token === undefined) throw new Error("Unexpected end of formula");
+        if (token === "(") {
+            this.next();
+            const value = this.parseExpression();
+            this.expect(")");
+            return value;
+        }
+        if (/^".*"$/.test(token)) {
+            this.next();
+            return token.slice(1, -1);
+        }
+        if (/^\d+\.?\d*$/.test(token)) {
+            this.next();
+            return Number(token);
+        }
+        if (/^\$?[A-Za-z]+\$?\d+:\$?[A-Za-z]+\$?\d+$/.test(token)) {
+            this.next();
+            const [startRef, endRef] = token.split(":");
+            return { __range: this.getRangeValues(startRef, endRef) };
+        }
+        if (/^\$?[A-Za-z]+\$?\d+$/.test(token)) {
+            this.next();
+            const ref = SheetFormulaEvaluator.parseCellRef(token);
+            return this.getCellValue(ref.row, ref.col);
+        }
+        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(token)) {
+            const name = token.toUpperCase();
+            this.next();
+            this.expect("(");
+            const args = [];
+            if (this.peek() !== ")") {
+                args.push(this.parseExpression());
+                while (this.peek() === ",") {
+                    this.next();
+                    args.push(this.parseExpression());
+                }
+            }
+            this.expect(")");
+            return this.callFunction(name, args);
+        }
+        throw new Error(`Unexpected token: ${token}`);
+    }
+
+    flattenArgs(args) {
+        const values = [];
+        args.forEach((arg) => {
+            if (arg && typeof arg === "object" && Array.isArray(arg.__range)) values.push(...arg.__range);
+            else values.push(arg);
+        });
+        return values;
+    }
+
+    callFunction(name, args) {
+        const numericValues = () => this.flattenArgs(args).map((v) => Number(v)).filter((v) => !Number.isNaN(v));
+        switch (name) {
+            case "SUM": return numericValues().reduce((a, b) => a + b, 0);
+            case "AVERAGE": {
+                const values = numericValues();
+                return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+            }
+            case "MAX": {
+                const values = numericValues();
+                return values.length ? Math.max(...values) : 0;
+            }
+            case "MIN": {
+                const values = numericValues();
+                return values.length ? Math.min(...values) : 0;
+            }
+            case "COUNT": return numericValues().length;
+            case "COUNTA": return this.flattenArgs(args).filter((v) => v !== "" && v !== undefined && v !== null).length;
+            case "ROUND": {
+                const factor = Math.pow(10, Number(args[1]) || 0);
+                return Math.round((Number(args[0]) || 0) * factor) / factor;
+            }
+            case "IF": return args[0] ? args[1] : (args[2] !== undefined ? args[2] : "");
+            case "AND": return this.flattenArgs(args).every((v) => !!v);
+            case "OR": return this.flattenArgs(args).some((v) => !!v);
+            case "NOT": return !args[0];
+            case "ABS": return Math.abs(Number(args[0]) || 0);
+            default: return "#NAME?";
+        }
+    }
+
+    applyComparison(op, left, right) {
+        const l = Number(left);
+        const r = Number(right);
+        const bothNumeric = !Number.isNaN(l) && !Number.isNaN(r);
+        const a = bothNumeric ? l : left;
+        const b = bothNumeric ? r : right;
+        switch (op) {
+            case "=": return a === b;
+            case "<>": return a !== b;
+            case "<": return a < b;
+            case ">": return a > b;
+            case "<=": return a <= b;
+            case ">=": return a >= b;
+            default: return false;
+        }
+    }
+
+    recalcAll(formulas) {
+        const keys = Object.keys(formulas || {});
+        if (!keys.length) return this.grid;
+        for (let pass = 0; pass < 6; pass += 1) {
+            keys.forEach((key) => {
+                const [rowStr, colStr] = key.split(",");
+                const row = Number(rowStr);
+                const col = Number(colStr);
+                const value = this.evaluate(formulas[key]);
+                if (!this.grid[row]) this.grid[row] = [];
+                this.grid[row][col] = value === true ? "TRUE" : value === false ? "FALSE" : value;
+            });
+        }
+        return this.grid;
+    }
+}
+
 class MissionRecord {
     constructor(payload) {
         this.date = payload.date || new Date().toLocaleString();
@@ -1582,6 +1897,12 @@ class MissionRecord {
         this.missionActorName = payload.missionActorName ?? this.playerName;
         this.missionTargetPlayer = payload.missionTargetPlayer ?? this.playerName;
         this.missionMessageType = payload.missionMessageType ?? "feedback";
+        this.missionSourceRows = Array.isArray(payload.missionSourceRows) ? payload.missionSourceRows : null;
+        this.missionSourceFormulas = payload.missionSourceFormulas && typeof payload.missionSourceFormulas === "object" ? payload.missionSourceFormulas : null;
+        this.missionInputColumns = Array.isArray(payload.missionInputColumns) ? payload.missionInputColumns : null;
+        this.missionInputCells = Array.isArray(payload.missionInputCells) ? payload.missionInputCells : null;
+        this.missionInputMode = payload.missionInputMode || "column";
+        this.missionInputHeaderRow = Number.isInteger(payload.missionInputHeaderRow) ? payload.missionInputHeaderRow : null;
         this.score = payload.score ?? 0;
     }
 }
@@ -2428,7 +2749,11 @@ class PuttingTrainingApp {
         this.registeredPlayers = this.loadRegisteredPlayers();
         this.pendingPlayers = this.loadPendingPlayers();
         this.activeMissionFileId = null;
+        this.expandedMissionFileId = "";
         this.coachSelectedPlayer = "";
+        this.missionTargetSelection = new Set();
+        this.pendingMissionFiles = [];
+        this.pendingMissionFileIndex = 0;
         this.selectedPlayerMissionDate = "";
         this.selectedMissionDateByScope = {};
         this.selectedMissionResultFile = "";
@@ -2763,9 +3088,12 @@ class PuttingTrainingApp {
             setText("label[for='missionInputText']", this.t("missionInputLabel"));
             setText("label[for='missionDirectTitle']", this.t("missionDirectTitleLabel"));
             setText("label[for='missionDirectItem']", this.t("missionDirectItemLabel"));
+            setText("label[for='missionDirectDueDate']", this.t("missionDirectDueDateLabel"));
             setText("label[for='missionMessageType']", this.t("missionTypeLabel"));
             setText("label[for='missionTargetPlayer']", this.t("missionTargetLabel"));
             setText("#missionBroadcastLabel", this.t("missionBroadcastAllLabel"));
+            setText("#missionTargetPickerLabel", this.t("missionTargetPickerLabel"));
+            setText("#missionTargetSelectAllLabel", this.t("missionTargetSelectAllLabel"));
             setText("label[for='missionExcelInput']", this.language === "en" ? "Mission File Upload (.xlsx, .xls, .csv)" : "미션 파일 업로드 (.xlsx, .xls, .csv)");
             setText("label[for='missionResultCsvInput']", this.t("missionResultFileLabel"));
             setText("label[for='missionResultDownloadFile']", this.t("missionResultDownloadTargetLabel"));
@@ -2950,9 +3278,19 @@ class PuttingTrainingApp {
         return role === "coach" ? this.t("roleCoach") : this.t("rolePlayer");
     }
 
+    getPeerName(actorName, actorRole) {
+        // 대화 방향 표시: 선수가 보낸 기록은 '선수 → 지도자'로, 그 외에는 저장된 대상 선수명 사용
+        if (actorRole === "coach") {
+            const target = String(this.session?.playerName || "").trim();
+            return target || actorName;
+        }
+        return RUNTIME_COACH_CONFIG.coachName || this.t("roleCoach");
+    }
+
     getMessageTypeLabel(type) {
         if (type === "mission") return this.t("missionTypeMission");
         if (type === "question") return this.t("missionTypeQuestion");
+        if (type === "result") return this.t("missionTypeResult");
         return this.t("missionTypeFeedback");
     }
 
@@ -2982,6 +3320,10 @@ class PuttingTrainingApp {
         }
         if (uploadField) {
             uploadField.style.display = isCoach ? "block" : "none";
+        }
+        const registerUploadedMissionBtn = document.getElementById("registerUploadedMissionBtn");
+        if (registerUploadedMissionBtn) {
+            registerUploadedMissionBtn.style.display = isCoach && this.pendingMissionFiles.length ? "inline-block" : "none";
         }
         if (missionResultUploadField) {
             missionResultUploadField.style.display = isCoach ? "none" : "block";
@@ -3067,20 +3409,13 @@ class PuttingTrainingApp {
         const targetScopePlayer = this.isCoachMode() ? selectedCoachPlayer : me;
 
         return (this.coachMissionFiles || []).filter((file) => {
-            const targetPlayer = String(file?.targetPlayer || "").trim();
             if (this.isCoachMode() && !selectedCoachPlayer) return true;
 
             if (!targetScopePlayer) return true;
-            if (targetPlayer === targetScopePlayer) return true;
 
-            if (!targetPlayer) {
-                const hasPlayerRecord = this.records.some((record) => (
-                    record.mission === "COACH_MISSION"
-                    && String(record.missionFileName || "").trim() === String(file?.fileName || "").trim()
-                    && String(record.missionTargetPlayer || "").trim() === targetScopePlayer
-                ));
-                return hasPlayerRecord;
-            }
+            const targetPlayers = this.getMissionFileTargetPlayers(file);
+            // 배정 대상이 명시된 파일은 명단 기준으로만 노출 (재배정 시 제외된 선수에게 숨김)
+            if (targetPlayers.length) return targetPlayers.includes(targetScopePlayer);
 
             const hasPlayerRecord = this.records.some((record) => (
                 record.mission === "COACH_MISSION"
@@ -3095,7 +3430,7 @@ class PuttingTrainingApp {
         const target = document.getElementById("playerDataUploadList");
         if (!target) return;
         const esc = v => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-        const rows = (this.missionResultUploads || []).slice().reverse().slice(0, 30);
+        const rows = (this.missionResultUploads || []).filter((item) => !item.missionDefinition).slice().reverse().slice(0, 30);
         if (!rows.length) {
             target.innerHTML = `<div class="mission-thread-empty">전송된 데이터가 없습니다.</div>`;
             return;
@@ -3167,6 +3502,7 @@ class PuttingTrainingApp {
     getVisibleMissionResultUploads() {
         const selectedCoachPlayer = this.getSelectedCoachPlayer();
         const filtered = (this.missionResultUploads || []).filter((item) => {
+            if (item.missionDefinition) return false;
             if (!this.isCoachMode() || !selectedCoachPlayer) return true;
             const uploadedBy = String(item.uploadedBy || "").trim();
             const fileName = String(item.fileName || "").trim();
@@ -3408,10 +3744,16 @@ class PuttingTrainingApp {
             removedRecordCount = beforeRecordCount - this.records.length;
 
             const beforeMissionFileCount = this.coachMissionFiles.length;
-            this.coachMissionFiles = this.coachMissionFiles.filter((file) => {
-                const targetPlayer = String(file?.targetPlayer || "").trim();
-                return targetPlayer !== playerName;
-            });
+            this.coachMissionFiles = this.coachMissionFiles
+                .map((file) => {
+                    const targets = this.getMissionFileTargetPlayers(file);
+                    if (!targets.includes(playerName)) return { file, remove: false };
+                    const remaining = targets.filter((name) => name !== playerName);
+                    if (!remaining.length) return { file, remove: true };
+                    return { file: { ...file, targetPlayers: remaining, targetPlayer: remaining[0] }, remove: false };
+                })
+                .filter((entry) => !entry.remove)
+                .map((entry) => entry.file);
             removedMissionFileCount = beforeMissionFileCount - this.coachMissionFiles.length;
 
             const beforeUploadCount = this.missionResultUploads.length;
@@ -3588,7 +3930,83 @@ class PuttingTrainingApp {
         return selected;
     }
 
+    getMissionFileTargetPlayers(file) {
+        const list = Array.isArray(file?.targetPlayers) ? file.targetPlayers : [];
+        const normalized = list.map((value) => String(value || "").trim()).filter(Boolean);
+        if (normalized.length) return normalized;
+        const single = String(file?.targetPlayer || "").trim();
+        return single ? [single] : [];
+    }
+
+    getSelectedMissionTargetPlayers() {
+        const managed = this.getManagedPlayers();
+        const selected = this.missionTargetSelection
+            ? Array.from(this.missionTargetSelection).filter((name) => managed.includes(name))
+            : [];
+        if (selected.length) return selected;
+        const typed = String(document.getElementById("missionTargetPlayer")?.value || "").trim();
+        if (typed) return [typed];
+        const filterPlayer = this.getSelectedCoachPlayer();
+        if (filterPlayer) return [filterPlayer];
+        return managed.slice();
+    }
+
+    renderMissionTargetPicker() {
+        const list = document.getElementById("missionTargetPlayerList");
+        if (!list) return;
+        if (!this.missionTargetSelection) this.missionTargetSelection = new Set();
+        const players = this.getManagedPlayers();
+        const valid = new Set(players);
+        Array.from(this.missionTargetSelection).forEach((name) => {
+            if (!valid.has(name)) this.missionTargetSelection.delete(name);
+        });
+
+        const esc = (value) => String(value)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+        if (!players.length) {
+            list.innerHTML = `<div class="mission-thread-empty">${this.t("noRegisteredPlayers")}</div>`;
+        } else {
+            list.innerHTML = players.map((name) => `
+                <label class="mission-target-item">
+                    <input type="checkbox" class="mission-target-check" value="${esc(name)}" ${this.missionTargetSelection.has(name) ? "checked" : ""}>
+                    <span>${esc(name)}</span>
+                </label>
+            `).join("");
+            list.querySelectorAll(".mission-target-check").forEach((box) => {
+                box.addEventListener("change", () => {
+                    const name = String(box.value || "").trim();
+                    if (!name) return;
+                    if (box.checked) this.missionTargetSelection.add(name);
+                    else this.missionTargetSelection.delete(name);
+                    this.syncMissionTargetPickerUI();
+                });
+            });
+        }
+        this.syncMissionTargetPickerUI();
+    }
+
+    syncMissionTargetPickerUI() {
+        const allBox = document.getElementById("missionTargetSelectAll");
+        const countEl = document.getElementById("missionTargetSelectedCount");
+        const players = this.getManagedPlayers();
+        const selectedCount = this.missionTargetSelection ? this.missionTargetSelection.size : 0;
+        if (allBox) {
+            allBox.checked = players.length > 0 && selectedCount === players.length;
+            allBox.indeterminate = selectedCount > 0 && selectedCount < players.length;
+        }
+        if (countEl) {
+            countEl.textContent = players.length
+                ? this.t("missionTargetSelectedCount", { count: selectedCount, total: players.length })
+                : "";
+        }
+    }
+
     populateCoachPlayerFilter() {
+        // 배포 대상 피커는 선수 선택 드롭다운 유무와 관계없이 항상 갱신
+        this.renderMissionTargetPicker();
+
         const select = document.getElementById("coachPlayerFilter");
         if (!select) return;
 
@@ -3734,6 +4152,9 @@ class PuttingTrainingApp {
     }
 
     renderMissionResultUploadList() {
+        this.renderPlayerDataList();
+        this.renderMissionResultDownloadOptions();
+
         const target = document.getElementById("missionResultUploadList");
         if (!target) return;
 
@@ -3741,9 +4162,6 @@ class PuttingTrainingApp {
             .slice()
             .reverse()
             .slice(0, 20);
-
-        this.renderMissionResultDownloadOptions();
-        this.renderPlayerDataList();
 
         if (!rows.length) {
             target.innerHTML = `<div class="mission-thread-empty">${this.t("noMissionResultUploads")}</div>`;
@@ -3881,6 +4299,7 @@ class PuttingTrainingApp {
                     const nextDate = String(event.target?.value || "").trim();
                     this.selectedMissionDateByScope[dateScopeKey] = nextDate;
                     this.selectedPlayerMissionDate = nextDate;
+                    this.expandedMissionFileId = "";
                     this.renderCoachMissionFiles();
                     this.renderMissionWorkArea();
                 });
@@ -3893,31 +4312,348 @@ class PuttingTrainingApp {
             return;
         }
 
-        if (!filesToRender.some(file => file.id === this.activeMissionFileId)) {
-            this.activeMissionFileId = filesToRender[0].id;
+        if (this.expandedMissionFileId === "") {
+            this.expandedMissionFileId = filesToRender[0].id;
+        } else if (this.expandedMissionFileId && !filesToRender.some(file => file.id === this.expandedMissionFileId)) {
+            this.expandedMissionFileId = null;
         }
+        this.activeMissionFileId = this.expandedMissionFileId || null;
 
         const listTarget = useDateFilter ? target.querySelector("#missionScopedFileList") : target;
         if (!listTarget) return;
 
-        listTarget.innerHTML = filesToRender.map(file => `
-            <button type="button" class="mission-file-btn ${file.id === this.activeMissionFileId ? "active" : ""}" data-file-id="${file.id}">
-                ${file.fileName} (${(file.missions || []).length})
-            </button>
-        `).join("");
+        const managedPlayers = isCoach ? this.getManagedPlayers() : [];
+        const esc = (value) => String(value ?? "")
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-        listTarget.querySelectorAll(".mission-file-btn").forEach(button => {
-            button.addEventListener("click", () => {
-                this.selectMissionFile(button.dataset.fileId);
+        listTarget.innerHTML = filesToRender.map(file => {
+            const sourceRows = this.getMissionSourceRows(file);
+            const targets = this.getMissionFileTargetPlayers(file);
+            const targetText = targets.length ? targets.join(", ") : this.t("coachPlayerAll");
+            const missions = (file.missions && file.missions.length) ? file.missions : [{ title: file.fileName, detail: "" }];
+            const firstTitle = this.getMissionFileDisplayTitle(file);
+            const titleText = firstTitle;
+            const isOpen = this.expandedMissionFileId === file.id;
+            const assignedDate = String(file.assignedAt || this.getMissionFileDateKey(file) || "").slice(0, 10);
+            const dueDate = String(file.dueDate || "").trim();
+            // 선수 모드: 제목 / 미션기한 / 배정일자 중심으로 표시, 코치 모드: 배정 선수 표시
+            const headerMetaHtml = isCoach
+                ? `<span class="mission-card-targets">${esc(this.t("missionCardTargets", { players: targetText }))}</span>`
+                : `<span class="mission-card-targets">${esc(`${this.t("missionDueDateLabel")}: ${dueDate || this.t("missionDueDateEmpty")} · ${this.t("missionAssignedLabel")}: ${assignedDate || "-"}`)}</span>`;
+            const bodyMissions = sourceRows.length > 1 && !this.isDirectMissionFile({ ...file, sourceRows })
+                ? ""
+                : missions.map((mission) => `
+                    <div class="mission-card-detail"><b>${esc(mission.title || "-")}</b>${mission.detail ? `<br>${esc(mission.detail)}` : ""}</div>
+                `).join("");
+            const playerResultHtml = !isCoach ? (() => {
+                const rows = sourceRows;
+                const hasTable = rows.length > 1;
+                let tableHtml = "";
+                if (hasTable && !this.isDirectMissionFile({ ...file, sourceRows: rows })) {
+                    const maxCols = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+                    const normRows = rows.map((row) => {
+                        const cells = Array.isArray(row) ? row.slice(0, maxCols) : [];
+                        while (cells.length < maxCols) cells.push("");
+                        return cells;
+                    });
+                    const inputLayout = this.getMissionInputLayout({ ...file, sourceRows: rows });
+                    const inputHeaderRow = inputLayout.headerRow;
+                    const headerCells = normRows[inputHeaderRow] || normRows[0];
+                    const formulasForFile = this.getMissionSourceFormulas(file);
+                    const fullTableHtml = normRows.map((row, rowIndex) => {
+                        const cellsHtml = row.map((cell, columnIndex) => {
+                            if (rowIndex === inputHeaderRow) {
+                                return `<th>${esc(String(cell || "").trim() || "-")}</th>`;
+                            }
+                            if (this.isMissionCellEditable(file, rowIndex, columnIndex)) {
+                                return `<td><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" placeholder="${esc(this.t("missionResultTextPh"))}"></td>`;
+                            }
+                            if (formulasForFile[`${rowIndex},${columnIndex}`]) {
+                                return `<td class="mission-formula-cell" data-row-index="${rowIndex}" data-column-index="${columnIndex}">${esc(cell)}</td>`;
+                            }
+                            return `<td>${esc(cell)}</td>`;
+                        }).join("");
+                        return `<tr>${cellsHtml}</tr>`;
+                    }).join("");
+                    tableHtml = `<table class="mission-result-table"><tbody>${fullTableHtml}</tbody></table>`;
+                }
+                return `
+                <div class="mission-result-form">
+                    <div class="small" style="font-weight:bold;">${this.t("missionResultFormTitle")}</div>
+                    <div class="row" style="margin-top:4px; align-items:center; flex-wrap:wrap;">
+                        <span class="small">${this.t("missionResultDateLabel")}</span>
+                        <input type="date" class="mission-result-date" value="${esc(this.session.sessionDate || assignedDate || "")}">
+                    </div>
+                    ${tableHtml}
+                    <textarea class="mission-textarea mission-result-text" style="margin-top:6px;" placeholder="${esc(this.t("missionInputPh"))}"></textarea>
+                    <div class="mission-card-actions">
+                        <button type="button" data-result-save="${esc(file.id)}">${this.t("missionResultSaveBtn")}</button>
+                    </div>
+                    <div class="small mission-result-note" style="margin-top:4px;"></div>
+                </div>
+                `;
+            })() : "";
+            const reassignHtml = isCoach ? `
+                <div class="small" style="margin-top:6px; font-weight:bold;">${this.t("missionTargetPickerLabel")}</div>
+                <div class="mission-reassign-list">
+                    ${managedPlayers.map((name) => `
+                        <label class="mission-target-item">
+                            <input type="checkbox" class="mission-reassign-check" value="${esc(name)}" ${targets.includes(name) ? "checked" : ""}>
+                            <span>${esc(name)}</span>
+                        </label>
+                    `).join("")}
+                </div>
+                <div class="mission-card-actions">
+                    <button type="button" class="secondary-btn" data-reassign-file="${esc(file.id)}">${this.t("missionReassignApply")}</button>
+                    <button type="button" class="secondary-btn" data-delete-file="${esc(file.id)}">${this.t("missionDeleteBtn")}</button>
+                </div>
+            ` : "";
+            return `
+                <div class="mission-card" data-file-id="${esc(file.id)}">
+                    <button type="button" class="mission-card-head ${isOpen ? "active" : ""}" data-file-id="${esc(file.id)}">
+                        <span class="mission-card-title">${esc(titleText)}</span>
+                        ${headerMetaHtml}
+                        <span class="mission-card-toggle">${isOpen ? "▴ " + this.t("missionCardCollapse") : "▾ " + this.t("missionCardExpand")}</span>
+                    </button>
+                    <div class="mission-card-body ${isOpen ? "open" : ""}">
+                        ${bodyMissions}
+                        <div class="small" style="color:#6b7ea8;">${esc(file.uploadedAt || "")}</div>
+                        ${playerResultHtml}
+                        ${reassignHtml}
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        listTarget.querySelectorAll(".mission-card-head").forEach((head) => {
+            head.addEventListener("click", () => {
+                this.selectMissionFile(head.dataset.fileId);
             });
         });
+        listTarget.querySelectorAll("[data-reassign-file]").forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                this.reassignMissionFile(btn.dataset.reassignFile);
+            });
+        });
+        listTarget.querySelectorAll("[data-delete-file]").forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                this.deleteMissionFileById(btn.dataset.deleteFile);
+            });
+        });
+        listTarget.querySelectorAll("[data-result-save]").forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                this.saveMissionResultEntry(btn.dataset.resultSave);
+            });
+        });
+
+        if (!isCoach) {
+            // 수식 셀은 입력값 변경 즉시 재계산해 실제 점수산정 결과를 보여준다
+            listTarget.querySelectorAll(".mission-card[data-file-id]").forEach((cardEl) => {
+                const cardFile = filesToRender.find((item) => item.id === cardEl.dataset.fileId);
+                const cardFormulas = cardFile ? this.getMissionSourceFormulas(cardFile) : {};
+                if (!cardFile || !Object.keys(cardFormulas).length) return;
+                const recalcCard = () => {
+                    const grid = this.getMissionSourceRows(cardFile).map((row) => (Array.isArray(row) ? row.slice() : []));
+                    cardEl.querySelectorAll(".mission-result-input").forEach((input) => {
+                        const r = Number(input.dataset.rowIndex);
+                        const c = Number(input.dataset.columnIndex);
+                        if (!grid[r]) grid[r] = [];
+                        grid[r][c] = input.value;
+                    });
+                    const evaluator = new SheetFormulaEvaluator(grid);
+                    evaluator.recalcAll(cardFormulas);
+                    cardEl.querySelectorAll(".mission-formula-cell").forEach((cellEl) => {
+                        const r = Number(cellEl.dataset.rowIndex);
+                        const c = Number(cellEl.dataset.columnIndex);
+                        const value = evaluator.getCellValue(r, c);
+                        cellEl.textContent = value === "" ? "" : String(value);
+                    });
+                };
+                cardEl.querySelectorAll(".mission-result-input").forEach((input) => {
+                    input.addEventListener("input", recalcCard);
+                });
+            });
+        }
     }
 
     selectMissionFile(fileId) {
-        this.activeMissionFileId = fileId;
+        if (this.expandedMissionFileId === fileId) {
+            this.expandedMissionFileId = null;
+        } else {
+            this.expandedMissionFileId = fileId;
+        }
+        this.activeMissionFileId = this.expandedMissionFileId;
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
-        this.updateCoachRoleUI();
+    }
+
+    getMissionFileDisplayTitle(file) {
+        const rows = Array.isArray(file?.sourceRows) ? file.sourceRows : [];
+        if (rows.length > 1) {
+            const headers = Array.isArray(rows[0]) ? rows[0] : [];
+            const titleIndex = headers.findIndex((cell) => [
+                "missiontitle", "mission title", "title", "미션제목", "미션 제목"
+            ].includes(String(cell || "").trim().toLowerCase()));
+            const firstDataRow = Array.isArray(rows[1]) ? rows[1] : [];
+            const title = String(firstDataRow[titleIndex >= 0 ? titleIndex : 0] || "").trim();
+            if (title) return title;
+        }
+
+        const missions = Array.isArray(file?.missions) ? file.missions : [];
+        return String(missions[0]?.title || this.t("uploadedMissionTitle")).trim();
+    }
+
+    getMissionInputLayout(file) {
+        const rows = Array.isArray(file?.sourceRows) ? file.sourceRows : [];
+        if (!rows.length) return { headerRow: 0, headers: [] };
+
+        const headerTokens = ["단계", "phase", "목표 위치", "성공 기준", "실패 횟수", "감점 단가", "차감 점수", "달성 상태"];
+        let headerRow = rows.findIndex((row) => {
+            const text = (Array.isArray(row) ? row : []).map((cell) => String(cell || "").trim().toLowerCase()).join("|");
+            return headerTokens.filter((token) => text.includes(token)).length >= 3;
+        });
+        if (headerRow < 0) headerRow = rows.findIndex((row) => Array.isArray(row) && row.filter((cell) => String(cell || "").trim()).length >= 3);
+        if (headerRow < 0) headerRow = 0;
+
+        const headers = Array.isArray(rows[headerRow]) ? rows[headerRow] : [];
+        return { headerRow, headers };
+    }
+
+    isDirectMissionFile(file) {
+        if (file?.sourceType === "direct") return true;
+        if (file?.sourceType === "upload") return false;
+        if (Array.isArray(file?.sourceRows) && file.sourceRows.length > 2) return false;
+        const firstRow = Array.isArray(file?.sourceRows?.[0]) ? file.sourceRows[0] : [];
+        const keys = firstRow.map((cell) => String(cell || "").trim().toLowerCase());
+        return keys.includes("missiontitle") && keys.includes("missionitem");
+    }
+
+    getMissionSourceRows(file) {
+        if (Array.isArray(file?.sourceRows) && file.sourceRows.length) return file.sourceRows;
+        const record = this.records.find((item) => (
+            item.mission === "COACH_MISSION" &&
+            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            Array.isArray(item.missionSourceRows) && item.missionSourceRows.length
+        ));
+        if (Array.isArray(record?.missionSourceRows)) {
+            file.sourceRows = record.missionSourceRows;
+            file.sourceType = file.sourceType || "upload";
+            return file.sourceRows;
+        }
+        const upload = this.missionResultUploads.find((item) => (
+            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            Array.isArray(item.missionSourceRows) && item.missionSourceRows.length
+        ));
+        if (Array.isArray(upload?.missionSourceRows)) {
+            file.sourceRows = upload.missionSourceRows;
+            file.sourceType = file.sourceType || "upload";
+            return file.sourceRows;
+        }
+        return [];
+    }
+
+    getMissionSourceFormulas(file) {
+        if (file?.sourceFormulas && Object.keys(file.sourceFormulas).length) return file.sourceFormulas;
+        const record = this.records.find((item) => (
+            item.mission === "COACH_MISSION" &&
+            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            item.missionSourceFormulas && Object.keys(item.missionSourceFormulas).length
+        ));
+        if (record?.missionSourceFormulas) {
+            file.sourceFormulas = record.missionSourceFormulas;
+            return file.sourceFormulas;
+        }
+        const upload = this.missionResultUploads.find((item) => (
+            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            item.missionSourceFormulas && Object.keys(item.missionSourceFormulas).length
+        ));
+        if (upload?.missionSourceFormulas) {
+            file.sourceFormulas = upload.missionSourceFormulas;
+            return file.sourceFormulas;
+        }
+        return {};
+    }
+
+    getMissionInputColumns(file) {
+        if (Array.isArray(file?.inputColumns) && file.inputColumns.length) return file.inputColumns;
+        const record = this.records.find((item) => (
+            item.mission === "COACH_MISSION" &&
+            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            Array.isArray(item.missionInputColumns) && item.missionInputColumns.length
+        ));
+        if (Array.isArray(record?.missionInputColumns)) {
+            file.inputColumns = record.missionInputColumns;
+            return file.inputColumns;
+        }
+        const upload = this.missionResultUploads.find((item) => (
+            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            Array.isArray(item.missionInputColumns) && item.missionInputColumns.length
+        ));
+        if (Array.isArray(upload?.missionInputColumns)) {
+            file.inputColumns = upload.missionInputColumns;
+            return file.inputColumns;
+        }
+        return [];
+    }
+
+    getMissionInputCells(file) {
+        if (Array.isArray(file?.inputCells) && file.inputCells.length) return file.inputCells;
+        const record = this.records.find((item) => (
+            item.mission === "COACH_MISSION" &&
+            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            Array.isArray(item.missionInputCells) && item.missionInputCells.length
+        ));
+        if (Array.isArray(record?.missionInputCells)) {
+            file.inputCells = record.missionInputCells;
+            return file.inputCells;
+        }
+        const upload = this.missionResultUploads.find((item) => (
+            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            Array.isArray(item.missionInputCells) && item.missionInputCells.length
+        ));
+        if (Array.isArray(upload?.missionInputCells)) {
+            file.inputCells = upload.missionInputCells;
+            return file.inputCells;
+        }
+        return [];
+    }
+
+    getMissionInputMode(file) {
+        if (file?.inputMode) return file.inputMode;
+        const record = this.records.find((item) => (
+            item.mission === "COACH_MISSION" &&
+            String(item.missionFileName || "").trim() === String(file?.fileName || "").trim() &&
+            item.missionInputMode
+        ));
+        if (record?.missionInputMode) {
+            file.inputMode = record.missionInputMode;
+            return file.inputMode;
+        }
+        const upload = this.missionResultUploads.find((item) => (
+            String(item.fileName || "").trim() === String(file?.fileName || "").trim() &&
+            item.missionInputMode
+        ));
+        if (upload?.missionInputMode) {
+            file.inputMode = upload.missionInputMode;
+            return file.inputMode;
+        }
+        return "column";
+    }
+
+    // 수식 셈은 자동계산되므로 항상 입력 불가
+    isMissionCellEditable(file, rowIndex, columnIndex) {
+        const layout = this.getMissionInputLayout(file);
+        if (rowIndex <= layout.headerRow) return false;
+        const formulas = this.getMissionSourceFormulas(file);
+        if (formulas[`${rowIndex},${columnIndex}`]) return false;
+        if (this.getMissionInputMode(file) === "cell") {
+            return this.getMissionInputCells(file).includes(`${rowIndex},${columnIndex}`);
+        }
+        return this.getMissionInputColumns(file).includes(columnIndex);
     }
 
     renderMissionWorkArea() {
@@ -3929,6 +4665,14 @@ class PuttingTrainingApp {
         const isCoach = this.isCoachMode();
         const selectedCoachPlayer = this.getSelectedCoachPlayer();
         const useDateFilter = !isCoach || !!selectedCoachPlayer;
+
+        if (!isCoach) {
+            workArea.style.display = "none";
+            if (select) select.innerHTML = "";
+            if (meta) meta.textContent = "";
+            if (preview) preview.innerHTML = "";
+            return;
+        }
 
         let scopedFiles = visibleFiles;
         if (useDateFilter && visibleFiles.length) {
@@ -3958,7 +4702,7 @@ class PuttingTrainingApp {
                 .map((item) => item.file);
         }
 
-        const file = scopedFiles.find(item => item.id === this.activeMissionFileId);
+        const file = scopedFiles.find(item => item.id === this.expandedMissionFileId);
 
         if (!file) {
             workArea.style.display = "none";
@@ -3980,12 +4724,16 @@ class PuttingTrainingApp {
             ? (hasSourceRows ? this.t("missionDescFromSource") : this.t("missionDesc", { detail: selectedMission.detail }))
             : this.t("missionDescEmpty");
 
-        const downloadLink = file?.fileUrl
-            ? `<a href="${file.fileUrl}" target="_blank" rel="noopener" style="display:inline-block; margin-top:4px; font-size:0.9em;">${this.t("downloadOriginalFile")}</a>`
+        const targetPlayers = this.getMissionFileTargetPlayers(file);
+        const targetLine = targetPlayers.length
+            ? `<div class="small" style="margin-top:2px; color:#4a649e;">${this.t("missionTargetPlayersLine", { players: targetPlayers.join(", ") })}</div>`
             : "";
-
-        meta.innerHTML = `${missionDesc}${downloadLink ? "<br/>" + downloadLink : ""}`;
-        this.renderMissionSourcePreview(file);
+        meta.innerHTML = `${missionDesc}${targetLine}`;
+        if (this.isCoachMode()) {
+            this.renderMissionSourcePreview(file);
+        } else if (preview) {
+            preview.innerHTML = "";
+        }
         const targetInput = document.getElementById("missionTargetPlayer");
         if (targetInput && !this.isCoachMode()) {
             targetInput.value = this.session.playerName || "";
@@ -4116,7 +4864,7 @@ class PuttingTrainingApp {
         target.innerHTML = uniqueRows.map((row, index) => {
             const actorRole = row.missionActorRole || "player";
             const actorName = row.missionActorName || row.playerName || "-";
-            const targetPlayer = row.missionTargetPlayer || "-";
+            const targetPlayer = this.getPeerName(actorName, actorRole);
             const roleLabel = this.getRoleLabel(actorRole);
             const messageType = row.missionMessageType || "feedback";
             const typeLabel = this.getMessageTypeLabel(messageType);
@@ -4147,10 +4895,200 @@ class PuttingTrainingApp {
         target.scrollTop = target.scrollHeight;
     }
 
+    renderPendingMissionUploadPreview() {
+        const target = document.getElementById("pendingMissionUploadPreview");
+        if (!target) return;
+        if (!this.pendingMissionFiles.length) {
+            target.innerHTML = "";
+            return;
+        }
+
+        const file = this.pendingMissionFiles[this.pendingMissionFileIndex] || this.pendingMissionFiles[0];
+        const rows = Array.isArray(file.sourceRows) ? file.sourceRows : [];
+        const layout = this.getMissionInputLayout(file);
+        file.inputHeaderRow = layout.headerRow;
+        const headers = layout.headers;
+        const formulas = file.sourceFormulas || {};
+        const maxColumns = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), headers.length);
+        const esc = (value) => String(value ?? "")
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+        if (!file.inputMode) file.inputMode = "column";
+        if (!Array.isArray(file.inputColumns)) file.inputColumns = [];
+        if (!Array.isArray(file.inputCells)) file.inputCells = [];
+
+        const modeToggleHtml = `
+            <div class="row" style="margin:6px 0; gap:14px;">
+                <label class="broadcast-inline"><input type="radio" name="missionInputModeRadio" value="column" ${file.inputMode === "column" ? "checked" : ""}><span>열 전체 선택</span></label>
+                <label class="broadcast-inline"><input type="radio" name="missionInputModeRadio" value="cell" ${file.inputMode === "cell" ? "checked" : ""}><span>개별 셀 선택</span></label>
+            </div>
+        `;
+
+        const columnFieldOptions = headers.map((header, index) => `
+            <label class="mission-field-picker-item">
+                <input type="checkbox" class="mission-input-column-check" data-column-index="${index}" ${file.inputColumns.includes(index) ? "checked" : ""}>
+                <span>${esc(String(header || `Column ${index + 1}`))}</span>
+            </label>
+        `).join("");
+
+        const previewRows = rows.map((row, rowIndex) => {
+            const cells = Array.isArray(row) ? row : [];
+            const isDataRow = rowIndex > layout.headerRow;
+            const tds = Array.from({ length: maxColumns }, (_, columnIndex) => {
+                const hasFormula = !!formulas[`${rowIndex},${columnIndex}`];
+                const cellText = esc(cells[columnIndex] || "");
+                if (hasFormula && isDataRow) {
+                    return `<td style="background:#eef2ff; color:#5b6f9f;" title="수식 셀(자동계산, 선택 불가)">${cellText || "(수식)"}</td>`;
+                }
+                if (file.inputMode === "cell" && isDataRow) {
+                    const key = `${rowIndex},${columnIndex}`;
+                    const checked = file.inputCells.includes(key) ? "checked" : "";
+                    return `<td style="background:#fff8dc;"><label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${cellText}</label></td>`;
+                }
+                const highlight = file.inputMode === "column" && isDataRow && file.inputColumns.includes(columnIndex);
+                return `<td${highlight ? " style=\"background:#fff8dc;\"" : ""}>${cellText}</td>`;
+            }).join("");
+            return `<tr>${tds}</tr>`;
+        }).join("");
+
+        target.innerHTML = `
+            <div class="small" style="margin-top:8px; font-weight:bold;">${esc(file.fileName)} 입력 허용 필드 선택</div>
+            ${modeToggleHtml}
+            <div class="mission-field-picker" style="${file.inputMode === "column" ? "" : "display:none;"}"><div class="mission-field-picker-list">${columnFieldOptions || "표 헤더가 없습니다."}</div></div>
+            <div class="small" style="${file.inputMode === "cell" ? "" : "display:none;"} margin:4px 0; color:#5b6f9f;">표에서 선수가 입력할 셀을 개별적으로 체크하세요. (파란 배경: 수식 셀 - 자동계산, 선택 불가)</div>
+            <div class="mission-upload-preview"><table class="distance-table"><tbody>${previewRows}</tbody></table></div>
+        `;
+
+        target.querySelectorAll('input[name="missionInputModeRadio"]').forEach((radio) => {
+            radio.addEventListener("change", () => {
+                if (radio.checked) {
+                    file.inputMode = radio.value;
+                    this.renderPendingMissionUploadPreview();
+                }
+            });
+        });
+
+        target.querySelectorAll(".mission-input-column-check").forEach((checkbox) => {
+            checkbox.addEventListener("change", () => {
+                const columnIndex = Number(checkbox.dataset.columnIndex);
+                file.inputColumns = Array.from(target.querySelectorAll(".mission-input-column-check:checked"))
+                    .map((item) => Number(item.dataset.columnIndex))
+                    .filter(Number.isInteger);
+                if (file.inputColumns.includes(columnIndex)) {
+                    file.inputColumns = Array.from(new Set(file.inputColumns));
+                }
+                this.renderPendingMissionUploadPreview();
+            });
+        });
+
+        target.querySelectorAll(".mission-input-cell-check").forEach((checkbox) => {
+            checkbox.addEventListener("change", () => {
+                const key = `${checkbox.dataset.rowIndex},${checkbox.dataset.columnIndex}`;
+                const set = new Set(file.inputCells);
+                if (checkbox.checked) set.add(key); else set.delete(key);
+                file.inputCells = Array.from(set);
+            });
+        });
+    }
+
+    async registerUploadedMissions() {
+        if (!this.isCoachMode() || !this.pendingMissionFiles.length) return;
+        const resultTarget = document.getElementById("missionSaveResult");
+        const targetPlayers = this.getSelectedMissionTargetPlayers();
+        if (!targetPlayers.length) {
+            resultTarget.textContent = this.t("needTargetPlayer");
+            return;
+        }
+
+        for (const file of this.pendingMissionFiles) {
+            const rows = Array.isArray(file.sourceRows) ? file.sourceRows : [];
+            const layout = this.getMissionInputLayout(file);
+            file.inputHeaderRow = layout.headerRow;
+            const columnCount = layout.headers.length;
+            if (!file.inputMode) file.inputMode = "column";
+            if (file.inputMode === "cell") {
+                file.inputCells = Array.from(new Set(file.inputCells || []));
+                if (!file.inputCells.length) {
+                    resultTarget.textContent = "선수가 기록할 셀을 하나 이상 선택하세요.";
+                    return;
+                }
+                file.inputColumns = [];
+            } else {
+                file.inputColumns = Array.from(new Set((file.inputColumns || []).filter((index) => index >= 0 && index < columnCount)));
+                if (!file.inputColumns.length) {
+                    resultTarget.textContent = "선수가 기록할 필드를 하나 이상 선택하세요.";
+                    return;
+                }
+                file.inputCells = [];
+            }
+            file.targetPlayers = targetPlayers.slice();
+            file.targetPlayer = targetPlayers[0];
+            const storageInfo = await uploadMissionFileToStorage(file.sourceFile);
+            file.fileUrl = storageInfo?.url || "";
+            file.storageBucket = storageInfo?.bucket || "";
+            file.storagePath = storageInfo?.path || "";
+            delete file.sourceFile;
+        }
+
+        this.coachMissionFiles = [...this.coachMissionFiles, ...this.pendingMissionFiles];
+        this.pendingMissionFiles.forEach((file) => {
+            targetPlayers.forEach((targetPlayer) => {
+                this.records.push(new MissionRecord({
+                    mission: "COACH_MISSION",
+                    playerName: this.session.playerName,
+                    sessionDate: this.session.sessionDate,
+                    missionFileName: file.fileName,
+                    missionTitle: this.getMissionFileDisplayTitle(file),
+                    missionResponse: "",
+                    missionActorRole: "coach",
+                    missionActorName: this.session.playerName,
+                    missionTargetPlayer: targetPlayer,
+                    missionMessageType: "mission",
+                    missionSourceRows: file.sourceRows,
+                    missionSourceFormulas: file.sourceFormulas || null,
+                    missionInputColumns: file.inputColumns,
+                    missionInputCells: file.inputCells,
+                    missionInputMode: file.inputMode,
+                    missionInputHeaderRow: file.inputHeaderRow,
+                    score: ""
+                }));
+            });
+            const existingUpload = this.missionResultUploads.findIndex((item) => item.fileName === file.fileName);
+            const metadata = {
+                fileName: file.fileName,
+                missionDefinition: true,
+                missionSourceRows: file.sourceRows,
+                missionSourceFormulas: file.sourceFormulas || null,
+                missionInputColumns: file.inputColumns,
+                missionInputCells: file.inputCells,
+                missionInputMode: file.inputMode,
+                missionInputHeaderRow: file.inputHeaderRow,
+                uploadedAt: new Date().toLocaleString()
+            };
+            if (existingUpload >= 0) this.missionResultUploads[existingUpload] = { ...this.missionResultUploads[existingUpload], ...metadata };
+            else this.missionResultUploads.push(metadata);
+        });
+        this.pendingMissionFiles = [];
+        this.pendingMissionFileIndex = 0;
+        this.storageService.saveRecords(this.records);
+        this.saveCoachMissionFiles();
+        this.saveMissionResultUploads();
+        this.expandedMissionFileId = this.coachMissionFiles[this.coachMissionFiles.length - 1]?.id || "";
+        this.activeMissionFileId = this.expandedMissionFileId || null;
+        this.renderPendingMissionUploadPreview();
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+        resultTarget.textContent = "업로드 미션이 등록되어 선수에게 배정되었습니다.";
+        this.updateCoachRoleUI();
+    }
+
     async parseMissionFile(file) {
         let missions = [];
         let sourceRows = [];
-        const targetPlayer = String(document.getElementById("missionTargetPlayer")?.value || this.getSelectedCoachPlayer() || "").trim();
+        let sourceFormulas = {};
+        const parsedTargets = this.isCoachMode() ? this.getSelectedMissionTargetPlayers() : [];
+        const targetPlayer = parsedTargets[0] || String(document.getElementById("missionTargetPlayer")?.value || this.getSelectedCoachPlayer() || "").trim();
         try {
             if (window.XLSX) {
                 const buffer = await file.arrayBuffer();
@@ -4159,6 +5097,18 @@ class PuttingTrainingApp {
                 const sheet = workbook.Sheets[firstSheetName];
                 const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
                 sourceRows = Array.isArray(rows) ? rows : [];
+
+                if (sheet && sheet["!ref"]) {
+                    const range = window.XLSX.utils.decode_range(sheet["!ref"]);
+                    for (let r = range.s.r; r <= range.e.r; r += 1) {
+                        for (let c = range.s.c; c <= range.e.c; c += 1) {
+                            const cell = sheet[window.XLSX.utils.encode_cell({ r, c })];
+                            if (cell && cell.f) {
+                                sourceFormulas[`${r},${c}`] = cell.f;
+                            }
+                        }
+                    }
+                }
 
                 missions = rows
                     .map(row => ({
@@ -4180,24 +5130,38 @@ class PuttingTrainingApp {
             }
         }
 
-        if (!missions.length) {
-            missions = [{ title: file.name, detail: "" }];
+        if (sourceRows.length > 1) {
+            const dataRows = sourceRows.slice(1);
+            missions = dataRows
+                .map(row => ({
+                    title: String(row[0] || "").trim(),
+                    detail: String(row[1] || "").trim()
+                }))
+                .filter(row => row.title || row.detail);
         }
 
-        // Try uploading the mission file to Supabase Storage so it can be retrieved later.
-        const storageInfo = await uploadMissionFileToStorage(file);
+        // 파일명은 미션 제목으로 사용하지 않는다. 원본 표가 제목과 내용을 결정한다.
+        if (!missions.length) {
+            missions = [{ title: this.t("uploadedMissionTitle"), detail: "" }];
+        }
 
         return {
             id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             fileName: file.name,
             uploadedAt: new Date().toLocaleString(),
             uploadedAtISO: new Date().toISOString(),
+            assignedAt: new Date().toISOString().slice(0, 10),
+            dueDate: "",
+            sourceType: "upload",
             missions,
             sourceRows,
+            sourceFormulas,
             targetPlayer,
-            fileUrl: storageInfo?.url || "",
-            storageBucket: storageInfo?.bucket || "",
-            storagePath: storageInfo?.path || ""
+            targetPlayers: parsedTargets,
+            inputMode: "column",
+            inputColumns: [],
+            inputCells: [],
+            sourceFile: file
         };
     }
 
@@ -4206,13 +5170,10 @@ class PuttingTrainingApp {
 
         const title = String(document.getElementById("missionDirectTitle")?.value || "").trim();
         const item = String(document.getElementById("missionDirectItem")?.value || "").trim();
-        const targetPlayer = String(document.getElementById("missionTargetPlayer")?.value || this.getSelectedCoachPlayer() || "").trim();
+        const dueDate = String(document.getElementById("missionDirectDueDate")?.value || "").trim();
+        const targetPlayers = this.getSelectedMissionTargetPlayers();
         const resultTarget = document.getElementById("missionSaveResult");
 
-        if (!targetPlayer) {
-            resultTarget.textContent = this.t("needTargetPlayer");
-            return;
-        }
         if (!title) {
             resultTarget.textContent = this.t("needMissionDirectTitle");
             return;
@@ -4221,27 +5182,64 @@ class PuttingTrainingApp {
             resultTarget.textContent = this.t("needMissionDirectItem");
             return;
         }
+        if (!targetPlayers.length) {
+            resultTarget.textContent = this.t("needTargetPlayer");
+            return;
+        }
 
         const safeTitle = title.replace(/[\\/:*?"<>|]/g, "_");
-        const fileName = `${targetPlayer}_${safeTitle}.csv`;
+        const primaryTarget = targetPlayers[0];
+        const fileName = targetPlayers.length > 1
+            ? `${this.t("missionMultiTargetPrefix")}_${safeTitle}.csv`
+            : `${primaryTarget}_${safeTitle}.csv`;
         const missionFile = {
             id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             fileName,
             uploadedAt: new Date().toLocaleString(),
             uploadedAtISO: new Date().toISOString(),
-            targetPlayer,
+            assignedAt: new Date().toISOString().slice(0, 10),
+            dueDate,
+            sourceType: "direct",
+            targetPlayer: primaryTarget,
+            targetPlayers: targetPlayers.slice(),
             missions: [{ title, detail: item }],
-            sourceRows: [["MissionTitle", "MissionItem", "TargetPlayer"], [title, item, targetPlayer]]
+            sourceRows: [["MissionTitle", "MissionItem", "TargetPlayers", "MissionDueDate"], [title, item, targetPlayers.join(", "), dueDate]]
         };
 
         this.coachMissionFiles = [...this.coachMissionFiles, missionFile];
         this.saveCoachMissionFiles();
+
+        // 배포 대상 선수별로 '미션 지시' 기록을 남겨 선수 모드 대화창에도 즉시 표시되도록 한다.
+        targetPlayers.forEach((targetName) => {
+            this.records.push(new MissionRecord({
+                mission: "COACH_MISSION",
+                playerName: this.session.playerName,
+                sessionDate: this.session.sessionDate,
+                missionFileName: fileName,
+                missionTitle: title,
+                missionResponse: item,
+                missionActorRole: "coach",
+                missionActorName: this.session.playerName,
+                missionTargetPlayer: targetName,
+                missionMessageType: "mission",
+                score: ""
+            }));
+        });
+        this.storageService.saveRecords(this.records);
+
+        this.expandedMissionFileId = missionFile.id;
         this.activeMissionFileId = missionFile.id;
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
         document.getElementById("missionDirectTitle").value = "";
         document.getElementById("missionDirectItem").value = "";
-        resultTarget.textContent = this.t("missionDirectSaved", { targetPlayer, title });
+        const dueDateInput = document.getElementById("missionDirectDueDate");
+        if (dueDateInput) dueDateInput.value = "";
+        if (targetPlayers.length > 1) {
+            resultTarget.textContent = this.t("missionDirectSavedMulti", { count: targetPlayers.length, players: targetPlayers.join(", "), title });
+        } else {
+            resultTarget.textContent = this.t("missionDirectSaved", { targetPlayer: primaryTarget, title });
+        }
     }
 
     async handleMissionFileUpload(event) {
@@ -4259,11 +5257,11 @@ class PuttingTrainingApp {
             parsed.push(missionFile);
         }
 
-        this.coachMissionFiles = [...this.coachMissionFiles, ...parsed];
-        this.saveCoachMissionFiles();
-        this.activeMissionFileId = parsed[0]?.id || this.activeMissionFileId;
-        this.renderCoachMissionFiles();
-        this.renderMissionWorkArea();
+        this.pendingMissionFiles = parsed;
+        this.pendingMissionFileIndex = 0;
+        this.renderPendingMissionUploadPreview();
+        const resultTarget = document.getElementById("missionSaveResult");
+        if (resultTarget) resultTarget.textContent = "원본 파일을 확인하고 입력 허용 필드를 선택한 뒤 업로드 미션등록을 눌러주세요.";
         event.target.value = "";
     }
 
@@ -4344,6 +5342,7 @@ class PuttingTrainingApp {
 
     updateDeleteButtonAccess() {
         const deleteBtn = document.getElementById("deleteMissionFileBtn");
+        if (!deleteBtn) return;
         const allowed = this.isCoachMode();
         deleteBtn.disabled = !allowed;
         deleteBtn.title = allowed
@@ -4351,39 +5350,197 @@ class PuttingTrainingApp {
             : this.t("coachDeleteOnly");
     }
 
-    deleteSelectedMissionFile() {
-        const resultTarget = document.getElementById("missionSaveResult");
-        const allowed = this.isCoachMode();
-        if (!allowed) {
-            resultTarget.textContent = this.t("coachDeleteOnly");
+    saveMissionResultEntry(fileId) {
+        // 선수 모드: 카드 내 양식(원본 표 행별 입력 + 메모)으로 수행 결과를 기록하면 records에 저장되어 클라우드 동기화로 코치에게도 공유된다.
+        if (this.isCoachMode()) return;
+        const file = this.coachMissionFiles.find((item) => item.id === fileId);
+        if (!file) return;
+
+        const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
+        const dateEl = card?.querySelector(".mission-result-date");
+        const textEl = card?.querySelector(".mission-result-text");
+        const noteEl = card?.querySelector(".mission-result-note");
+        const resultDate = String(dateEl?.value || "").trim();
+        const freeText = String(textEl?.value || "").trim();
+
+        // 원본 양식(표)이 있으면 행별 입력값을 우선 수집
+        const rows = this.getMissionSourceRows(file);
+        const formulas = this.getMissionSourceFormulas(file);
+        const inputLayout = this.getMissionInputLayout({ ...file, sourceRows: rows });
+        const headerCells = inputLayout.headers.map((cell) => String(cell || "").trim() || "-");
+        const inputEls = card ? Array.from(card.querySelectorAll(".mission-result-input")) : [];
+        const rowResults = inputEls
+            .map((input) => ({
+                rowIdx: Number(input.dataset.rowIndex || 0),
+                columnIdx: Number(input.dataset.columnIndex || 0),
+                value: String(input.value || "").trim()
+            }))
+            .filter((entry) => entry.value);
+
+        if (!rowResults.length && !freeText) {
+            if (noteEl) { noteEl.style.color = "#c93232"; noteEl.textContent = this.t("missionResultNoData"); }
             return;
         }
 
-        const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
+        // 수식이 포함된 양식은 입력값을 반영해 재계산한 결과를 함께 저장해 실제 점수산정에 반영한다.
+        let finalGrid = rows.map((row) => (Array.isArray(row) ? row.slice() : []));
+        let computedFormulaText = "";
+        if (Object.keys(formulas).length) {
+            rowResults.forEach(({ rowIdx, columnIdx, value }) => {
+                if (!finalGrid[rowIdx]) finalGrid[rowIdx] = [];
+                finalGrid[rowIdx][columnIdx] = value;
+            });
+            const evaluator = new SheetFormulaEvaluator(finalGrid);
+            evaluator.recalcAll(formulas);
+            finalGrid = evaluator.grid;
+            computedFormulaText = Object.keys(formulas).map((key) => {
+                const [r, c] = key.split(",").map(Number);
+                const label = headerCells[c] || `Col${c + 1}`;
+                const value = evaluator.getCellValue(r, c);
+                return `${label}(자동계산)=${value}`;
+            }).join(", ");
+        }
+
+        const responseText = rowResults.length
+            ? rowResults.map((entry) => {
+                const rowCells = rows[entry.rowIdx] || [];
+                const rowLabel = headerCells
+                    .map((head, idx) => `${head}=${String(rowCells[idx] ?? "").trim()}`)
+                    .filter((part) => !/=-?$/.test(part))
+                    .join(", ");
+                const fieldLabel = headerCells[entry.columnIdx] || `Column ${entry.columnIdx + 1}`;
+                return `${rowLabel || `#${entry.rowIdx + 1}`} | ${fieldLabel} → ${entry.value}`;
+            }).join("\n") + (computedFormulaText ? `\n${computedFormulaText}` : "") + (freeText ? `\n${freeText}` : "")
+            : freeText;
+
+        this.records.push(new MissionRecord({
+            mission: "COACH_MISSION",
+            playerName: this.session.playerName,
+            sessionDate: resultDate || this.session.sessionDate,
+            missionFileName: file.fileName,
+            missionTitle: this.getMissionFileDisplayTitle(file),
+            missionResponse: responseText,
+            missionActorRole: "player",
+            missionActorName: this.session.playerName,
+            missionTargetPlayer: RUNTIME_COACH_CONFIG.coachName || "",
+            missionMessageType: "result",
+            missionSourceRows: finalGrid,
+            missionSourceFormulas: formulas,
+            missionInputColumns: this.getMissionInputColumns(file),
+            missionInputCells: this.getMissionInputCells(file),
+            missionInputMode: this.getMissionInputMode(file),
+            missionInputHeaderRow: inputLayout.headerRow,
+            score: ""
+        }));
+        this.storageService.saveRecords(this.records);
+
+        inputEls.forEach((input) => { input.value = ""; });
+        if (textEl) textEl.value = "";
+        if (noteEl) {
+            noteEl.style.color = "#1a7a49";
+            noteEl.textContent = rowResults.length
+                ? this.t("missionResultSavedRows", { count: rowResults.length })
+                : this.t("missionResultSaved");
+        }
+        this.renderMissionEntryList();
+    }
+
+    reassignMissionFile(fileId) {
+        if (!this.isCoachMode()) return;
+        const resultTarget = document.getElementById("missionSaveResult");
+        const file = this.coachMissionFiles.find((item) => item.id === fileId);
+        if (!file) return;
+
+        const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
+        const boxes = card ? Array.from(card.querySelectorAll(".mission-reassign-check")) : [];
+        const nextTargets = boxes
+            .filter((box) => box.checked)
+            .map((box) => String(box.value || "").trim())
+            .filter(Boolean);
+        if (!nextTargets.length) {
+            if (resultTarget) resultTarget.textContent = this.t("needTargetPlayer");
+            return;
+        }
+
+        const prevTargets = this.getMissionFileTargetPlayers(file);
+        const newlyAdded = nextTargets.filter((name) => !prevTargets.includes(name));
+
+        file.targetPlayers = nextTargets.slice();
+        file.targetPlayer = nextTargets[0];
+        if (Array.isArray(file.sourceRows) && file.sourceRows.length > 1) {
+            const headerRow = file.sourceRows[0] || [];
+            const targetCol = headerRow.findIndex((cell) => ["targetplayers", "targetplayer"].includes(String(cell || "").trim().toLowerCase()));
+            if (targetCol >= 0) {
+                file.sourceRows = file.sourceRows.map((row, idx) => {
+                    if (idx === 0) return row;
+                    const nextRow = Array.isArray(row) ? row.slice() : [];
+                    nextRow[targetCol] = nextTargets.join(", ");
+                    return nextRow;
+                });
+            }
+        }
+        this.saveCoachMissionFiles();
+
+        // 새로 배정된 선수에게는 '미션 지시' 기록을 추가해 대화창에서도 확인 가능하게 한다.
+        const title = file.missions?.[0]?.title || file.fileName;
+        const detail = file.missions?.[0]?.detail || "";
+        newlyAdded.forEach((targetName) => {
+            this.records.push(new MissionRecord({
+                mission: "COACH_MISSION",
+                playerName: this.session.playerName,
+                sessionDate: this.session.sessionDate,
+                missionFileName: file.fileName,
+                missionTitle: title,
+                missionResponse: detail,
+                missionActorRole: "coach",
+                missionActorName: this.session.playerName,
+                missionTargetPlayer: targetName,
+                missionMessageType: "mission",
+                score: ""
+            }));
+        });
+        if (newlyAdded.length) this.storageService.saveRecords(this.records);
+
+        if (resultTarget) resultTarget.textContent = this.t("missionReassigned", { players: nextTargets.join(", ") });
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+    }
+
+    deleteMissionFileById(fileId) {
+        const resultTarget = document.getElementById("missionSaveResult");
+        if (!this.isCoachMode()) {
+            if (resultTarget) resultTarget.textContent = this.t("coachDeleteOnly");
+            return;
+        }
+
+        const file = this.coachMissionFiles.find(item => item.id === fileId);
         if (!file) {
-            resultTarget.textContent = this.t("deleteNoFile");
+            if (resultTarget) resultTarget.textContent = this.t("deleteNoFile");
             return;
         }
 
         const code = window.prompt(this.t("promptDeleteCode"));
         if (code === null) return;
         if (code.trim() !== RUNTIME_COACH_CONFIG.deleteCode) {
-            resultTarget.textContent = this.t("deleteCodeMismatch");
+            if (resultTarget) resultTarget.textContent = this.t("deleteCodeMismatch");
             return;
         }
 
-        this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== this.activeMissionFileId);
+        this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== fileId);
         this.saveCoachMissionFiles();
 
-        if (this.coachMissionFiles.length) {
-            this.activeMissionFileId = this.coachMissionFiles[0].id;
-        } else {
-            this.activeMissionFileId = null;
+        if (this.expandedMissionFileId === fileId) {
+            this.expandedMissionFileId = null;
         }
+        this.activeMissionFileId = this.expandedMissionFileId;
 
-        resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
+        if (resultTarget) resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
+    }
+
+    deleteSelectedMissionFile() {
+        this.deleteMissionFileById(this.activeMissionFileId);
     }
 
     async uploadMissionResultData() {
@@ -4857,6 +6014,8 @@ class PuttingTrainingApp {
         const signupErr = document.getElementById("signupError");
         if (signupErr) { signupErr.style.color = ""; signupErr.textContent = ""; }
         this.coachSelectedPlayer = "";
+        this.missionTargetSelection = new Set();
+        this.expandedMissionFileId = "";
         this.selectedMissionResultFile = "";
         document.getElementById("sessionInfo").textContent = "";
         document.getElementById("loginPasscode").value = "";
@@ -4935,22 +6094,31 @@ class PuttingTrainingApp {
             document.getElementById("downloadVisualPdf").addEventListener("click", () => this.exportSectionPdf("section-visual", "visual", "visualPdfResult", "downloadVisualPdf"));
             document.getElementById("importCsvBtn").addEventListener("click", () => this.importCsv());
             document.getElementById("sendTrainingDataBtn").addEventListener("click", () => this.sendTrainingDataToCoach());
-            document.getElementById("coachPlayerFilter").addEventListener("change", (event) => {
-                this.coachSelectedPlayer = String(event.target?.value || "").trim();
-                if (this.isCoachMode()) {
-                    const targetInput = document.getElementById("missionTargetPlayer");
-                    const broadcastChecked = !!document.getElementById("missionBroadcastAll")?.checked;
-                    if (targetInput && !broadcastChecked) targetInput.value = this.coachSelectedPlayer || "";
-                }
-                this.renderCoachMissionFiles();
-                this.renderMissionWorkArea();
-                this.renderMissionResultUploadList();
-                this.renderMissionEntryList();
-            });
+            const coachPlayerFilterEl = document.getElementById("coachPlayerFilter");
+            if (coachPlayerFilterEl) {
+                coachPlayerFilterEl.addEventListener("change", (event) => {
+                    this.coachSelectedPlayer = String(event.target?.value || "").trim();
+                    if (this.isCoachMode()) {
+                        const targetInput = document.getElementById("missionTargetPlayer");
+                        const broadcastChecked = !!document.getElementById("missionBroadcastAll")?.checked;
+                        if (targetInput && !broadcastChecked) targetInput.value = this.coachSelectedPlayer || "";
+                    }
+                    this.renderCoachMissionFiles();
+                    this.renderMissionWorkArea();
+                    this.renderMissionResultUploadList();
+                    this.renderMissionEntryList();
+                });
+            }
             document.getElementById("missionBroadcastAll").addEventListener("change", () => {
                 this.updateCoachRoleUI();
             });
+            document.getElementById("missionTargetSelectAll").addEventListener("change", (event) => {
+                const checked = !!event.target?.checked;
+                this.missionTargetSelection = new Set(checked ? this.getManagedPlayers() : []);
+                this.renderMissionTargetPicker();
+            });
             document.getElementById("missionExcelInput").addEventListener("change", (event) => this.handleMissionFileUpload(event));
+            document.getElementById("registerUploadedMissionBtn").addEventListener("click", () => this.registerUploadedMissions());
             document.getElementById("registerPlayerBtn").addEventListener("click", () => this.registerPlayerAccount());
             document.getElementById("saveSignupCodeBtn").addEventListener("click", () => this.saveSignupCodeSetting());
             document.getElementById("registeredPlayerList").addEventListener("click", (event) => this.handleRegisteredPlayerAction(event));
@@ -4965,20 +6133,29 @@ class PuttingTrainingApp {
             });
             document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
-            document.getElementById("deleteMissionFileBtn").addEventListener("click", () => this.deleteSelectedMissionFile());
-            document.getElementById("uploadMissionResultBtn").addEventListener("click", () => this.uploadMissionResultData());
-            document.getElementById("downloadMissionResultBtn").addEventListener("click", () => this.downloadMissionResultData());
-            document.getElementById("missionResultDownloadFile").addEventListener("change", (event) => {
+            const deleteMissionBtn = document.getElementById("deleteMissionFileBtn");
+            if (deleteMissionBtn) deleteMissionBtn.addEventListener("click", () => this.deleteSelectedMissionFile());
+            const uploadResultBtn = document.getElementById("uploadMissionResultBtn");
+            if (uploadResultBtn) uploadResultBtn.addEventListener("click", () => this.uploadMissionResultData());
+            const downloadResultBtn = document.getElementById("downloadMissionResultBtn");
+            if (downloadResultBtn) downloadResultBtn.addEventListener("click", () => this.downloadMissionResultData());
+            const resultDownloadSel = document.getElementById("missionResultDownloadFile");
+            if (resultDownloadSel) resultDownloadSel.addEventListener("change", (event) => {
                 this.selectedMissionResultFile = String(event.target?.value || "").trim();
             });
             document.getElementById("missionItemSelect").addEventListener("change", () => {
                 const file = this.coachMissionFiles.find(item => item.id === this.activeMissionFileId);
                 const idx = Number(document.getElementById("missionItemSelect").value || 0);
                 const mission = file && file.missions ? file.missions[idx] : null;
-                document.getElementById("missionMeta").textContent = mission && mission.detail
+                const descText = mission && mission.detail
                     ? this.t("missionDesc", { detail: mission.detail })
                     : this.t("missionDescEmpty");
-                if (file) this.renderMissionSourcePreview(file);
+                const missionTargets = file ? this.getMissionFileTargetPlayers(file) : [];
+                const targetLine = missionTargets.length
+                    ? `<div class="small" style="margin-top:2px; color:#4a649e;">${this.t("missionTargetPlayersLine", { players: missionTargets.join(", ") })}</div>`
+                    : "";
+                document.getElementById("missionMeta").innerHTML = `${descText}${targetLine}`;
+                if (file && this.isCoachMode()) this.renderMissionSourcePreview(file);
                 this.renderMissionEntryList();
             });
             document.getElementById("actualMiss").addEventListener("change", (event) => {
@@ -4993,10 +6170,8 @@ class PuttingTrainingApp {
             this.appEventsBound = true;
         }
         this.sectionNavigator.init("section-framework");
+        this.expandedMissionFileId = "";
         this.renderCoachMissionFiles();
-        if (this.coachMissionFiles.length && !this.activeMissionFileId) {
-            this.activeMissionFileId = this.coachMissionFiles[0].id;
-        }
         this.renderMissionWorkArea();
         this.updateDeleteButtonAccess();
         this.updateCoachRoleUI();
