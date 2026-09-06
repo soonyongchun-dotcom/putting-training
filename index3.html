@@ -1755,6 +1755,30 @@
       }
       return risk;
     }
+    // 최근 라운드 기준으로 경기력 %를 재계산해 sytpt_users.performance_level에 반영
+    // (새 경기결과가 서버에 저장되면 자동으로 경기력 %가 갱신되도록 함)
+    async function refreshPerformanceLevels(playerIds){
+      var updated=false;
+      try{
+        var ids=(playerIds||[]).filter(Boolean);
+        if(!ids.length) return updated;
+        var diffsMap=await getRecentRoundDiffsMap(ids);
+        var users=await getUsers();
+        for(var i=0;i<ids.length;i++){
+          var pid=ids[i];
+          var diffs=diffsMap[pid]||[];
+          var perf=computePerformanceFromDiffs(diffs);
+          if(perf==null) continue;
+          var current=users.find(function(u){return u.id===pid;});
+          var curVal=current&&current.performanceLevel!=null?Math.round(Number(current.performanceLevel)):null;
+          if(curVal===perf) continue;
+          var res=await sb.from('sytpt_users').update({performance_level:perf}).eq('id',pid);
+          if(res&&res.error){ console.warn('refreshPerformanceLevels update failed', pid, res.error); continue; }
+          updated=true;
+        }
+      }catch(e){ console.warn('refreshPerformanceLevels failed', e); }
+      return updated;
+    }
     function getActivePlayerForView(users){
       const session=getSession(); if(!session) return null;
       if(session.role==='coach'){
@@ -3045,10 +3069,24 @@
         renderCoachMatchBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();
         renderPlayerViewContext();renderCoachInboxDynamic();renderCoachDirectiveList();renderCoachKPIs();switchCoachTab('monitoring');
         updateCoachAnalysisBadge();updateCoachMatchBadge();updateCoachPuttingBadge();
+        // 접속 시 새로 저장된 라운드가 있으면 경기력 %를 최신 라운드 기준으로 재산정
+        (async function(){
+          var users=await getUsers();
+          var ap=getApprovedPlayers(users);
+          if(await refreshPerformanceLevels(ap.map(function(p){return p.id;}))){
+            renderCoachAthleteBoard();renderPlayerViewContext();
+          }
+        })();
       }else{
         playerBtn.style.display='inline-block';coachBtn.style.display='none';
         document.getElementById('coachPortal').style.display='none';switchPortal('player');
         renderPlayerViewContext();
+        // 접속 시 새로 저장된 라운드가 있으면 본인 경기력 %를 최신 라운드 기준으로 재산정
+        (async function(){
+          if(await refreshPerformanceLevels([session.id])){
+            renderPlayerViewContext();
+          }
+        })();
       }
     }
 
@@ -3101,9 +3139,24 @@
           lastMessagesFetch = 0;
           renderPlayerMessageThread();renderDashboardCoachMessages();renderCoachInboxDynamic();renderCommCounts();renderReplyStatus();renderCoachKPIs();
         })
-        .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_player_rounds'},function(){
+        .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_player_rounds'},function(payload){
           // 새 라운드 데이터가 올라오면 경기력/위험도를 즉시 재산정
-          renderCoachAthleteBoard();renderPlayerViewContext();
+          updateCoachAnalysisBadge();
+          (async function(){
+            try{
+              var pid=payload&&payload.new&&payload.new.player_id?payload.new.player_id:(payload&&payload.old?payload.old.player_id:null);
+              var users=await getUsers();
+              var ap=getApprovedPlayers(users);
+              var targetIds=ap.map(function(p){return p.id;});
+              if(pid){
+                var norm=normalizeRoundPlayerKey(pid);
+                var matched=targetIds.filter(function(id){return normalizeRoundPlayerKey(id)===norm;});
+                if(matched.length) targetIds=matched;
+              }
+              await refreshPerformanceLevels(targetIds);
+            }catch(e){ console.warn('round realtime refresh failed', e); }
+            renderCoachAthleteBoard();renderPlayerViewContext();
+          })();
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_coach_directives'},function(){
           // Clear cache to ensure new coach directives show up immediately
