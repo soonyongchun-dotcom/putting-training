@@ -442,6 +442,16 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .player-badge-approved { display:inline-block; background:#16a34a; color:#fff; border-radius:12px; padding:1px 9px; font-size:11px; font-weight:700; margin-left:6px; }
 .players-empty { color:#999; font-size:13px; padding:10px 0; }
 .nav-card.nav-disabled { opacity:0.38; cursor:not-allowed; pointer-events:none; filter:grayscale(60%); }
+.usage-guide-box {
+    margin-top:12px;
+    border:1px solid #d3def6;
+    border-radius:10px;
+    padding:12px;
+    background:#f5f9ff;
+}
+.usage-guide-title { font-weight:bold; color:#1f4db8; margin-bottom:6px; }
+.usage-guide-list { margin:8px 0 0 18px; padding:0; }
+.usage-guide-list li { margin:6px 0; line-height:1.35; }
 </style>
 </head>
 
@@ -527,7 +537,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="top-bar">
     <div>
-        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.2f</span></h1>
+        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.3f</span></h1>
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
@@ -578,9 +588,19 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="section active" id="section-framework">
 <div class="panel panel-train">
-    <h2>Performance Lie-Reading Framework</h2>
+    <div class="row" style="justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Performance Lie-Reading Framework</h2>
+        <button type="button" id="showUsageGuideBtn" class="secondary-btn"></button>
+    </div>
+    <div id="usageGuideBox" class="usage-guide-box" style="display:none;">
+        <div class="usage-guide-title" id="usageGuideTitle"></div>
+        <ol class="usage-guide-list">
+            <li id="usageGuideItem1"></li>
+            <li id="usageGuideItem2"></li>
+        </ol>
+    </div>
     <div class="small">라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합</div>
-    <ol class="guide-list">
+    <ol class="guide-list" id="frameworkGuideList">
         <li><b>Low-Point 훈련:</b> 라인이 아니라 중력 방향(물이 모이는 지점)부터 찾기</li>
         <li><b>Feet Calibration:</b> 예측 경사%와 실제 경사% 오차를 누적 기록</li>
         <li><b>High-Side Only:</b> 낮은 쪽 미스를 벌점으로 관리해 결정력 강화</li>
@@ -1400,7 +1420,11 @@ const UI_I18N = {
         slope_flat: "평지",
         slope_down_1: "내리막1",
         slope_down_2: "내리막2",
-        slope_down_3: "내리막3"
+        slope_down_3: "내리막3",
+        usageGuideBtn: "📖 프로그램 사용안내",
+        usageGuideTitle: "프로그램 사용안내",
+        usageGuideItem1: "M1, M2는 퍼팅의 방향성 인지와 속도 제어 능력을 분석하는데 필요한 것으로, 퍼팅에 문제가 발생 시 코치 지시에 따라 수행하고 분석결과를 코치로부터 피드백 받아 재수행하는 훈련과정입니다.",
+        usageGuideItem2: "6번 항 코치미션은 퍼팅과 관련한 라이 결정 능력과 속도 감각을 향상시킬 목적으로 부여받은 미션을 수행하면 되며, 지정된 기한에 수행하지 않으면 부여된 미션이 삭제됩니다."
     },
     en: {
         loginTitle: "SY-PTS Login",
@@ -1584,7 +1608,11 @@ const UI_I18N = {
         slope_flat: "Flat",
         slope_down_1: "Downhill 1",
         slope_down_2: "Downhill 2",
-        slope_down_3: "Downhill 3"
+        slope_down_3: "Downhill 3",
+        usageGuideBtn: "📖 Usage Guide",
+        usageGuideTitle: "Usage Guide",
+        usageGuideItem1: "M1 and M2 are used to analyze putting direction perception and speed control ability. When an issue occurs in putting, perform the drills as directed by the coach, receive feedback on the analysis results from the coach, and redo the drills.",
+        usageGuideItem2: "Item 6 (Coach Mission) is meant to improve lie-decision ability and speed feel related to putting. Complete the assigned mission by its due date, otherwise the mission will be deleted."
     }
 };
 
@@ -2915,6 +2943,13 @@ class PuttingTrainingApp {
     init() {
         this.setupLogin();
         this.applyLanguage(this.language);
+        const usageGuideBtn = document.getElementById("showUsageGuideBtn");
+        const usageGuideBox = document.getElementById("usageGuideBox");
+        if (usageGuideBtn && usageGuideBox) {
+            usageGuideBtn.addEventListener("click", () => {
+                usageGuideBox.style.display = usageGuideBox.style.display === "none" ? "block" : "none";
+            });
+        }
     }
 
     setupLogin() {
@@ -3073,7 +3108,7 @@ class PuttingTrainingApp {
                     ? "Lie reading is not feel but trained perception: ① slope direction recognition ② slope magnitude quantification ③ speed integration"
                     : "라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합";
             }
-            const guideList = panel?.querySelectorAll(".guide-list li");
+            const guideList = document.getElementById("frameworkGuideList")?.querySelectorAll("li");
             if (guideList && guideList.length >= 6) {
                 const guideHtml = this.language === "en"
                     ? [
@@ -3123,6 +3158,10 @@ class PuttingTrainingApp {
                     : "드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요. 속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.";
             }
         }
+        setText("#showUsageGuideBtn", this.t("usageGuideBtn"));
+        setText("#usageGuideTitle", this.t("usageGuideTitle"));
+        setText("#usageGuideItem1", this.t("usageGuideItem1"));
+        setText("#usageGuideItem2", this.t("usageGuideItem2"));
 
         const m1Panel = document.getElementById("m1Panel");
         if (m1Panel) {
