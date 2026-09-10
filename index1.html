@@ -406,6 +406,20 @@ textarea{
       <input type="text" id="courseName" placeholder="코스 이름">
     </div>
     <div class="form-group">
+      <label class="form-label">코스 전장</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="courseLength" min="1" step="0.1" placeholder="예: 7200" inputmode="decimal" style="flex:1;">
+        <span id="courseLengthUnit" style="font-weight:600;color:var(--muted);">yd</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">코스 파</label>
+      <select id="coursePar">
+        <option value="72" selected>Par 72</option>
+        <option value="71">Par 71</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">거리 단위</label>
       <select id="distanceUnit">
         <option value="yd">Yard (야드)</option>
@@ -720,6 +734,8 @@ let roundData = {
   player: '',
   date: '',
   course: '',
+  courseLength: '',
+  coursePar: 72,
   distanceUnit: 'yd', // 기본 단위: 야드
   holes: []
 };
@@ -750,8 +766,11 @@ const btnReset = document.getElementById('btnReset');
 const playerNameInput = document.getElementById('playerName');
 const roundDateInput = document.getElementById('roundDate');
 const courseNameInput = document.getElementById('courseName');
+const courseLengthInput = document.getElementById('courseLength');
+const courseParInput = document.getElementById('coursePar');
 const distanceUnitSel = document.getElementById('distanceUnit');
 const holeDistanceUnitLabel = document.getElementById('holeDistanceUnitLabel');
+const courseLengthUnitEl = document.getElementById('courseLengthUnit');
 
 const btnPutter = document.getElementById('btnPutter');
 const putterCountEl = document.getElementById('putterCount');
@@ -788,6 +807,9 @@ const completedHolesEl = document.getElementById('completedHoles');
 
 // 오늘 날짜 기본값
 roundDateInput.value = new Date().toISOString().slice(0,10);
+distanceUnitSel.addEventListener('change', ()=>{
+  courseLengthUnitEl.textContent = distanceUnitSel.value;
+});
 
 // 로컬 저장소 키
 const STORAGE_KEY_BASE = 'golf_quick_record_data';
@@ -1217,6 +1239,8 @@ async function saveRoundToSupabase(){
         player: canonicalPlayerName,
         date: canonicalRoundDate,
         course: canonicalCourse,
+        courseLength: roundData.courseLength,
+        coursePar: Number(roundData.coursePar) || 72,
         distanceUnit: roundData.distanceUnit || distanceUnitSel.value || 'yd'
       },
       round_payload: { holes: roundData.holes || [] },
@@ -1248,6 +1272,8 @@ if(btnStartRound){
     roundData.player = playerNameInput.value.trim();
     roundData.date = roundDateInput.value;
     roundData.course = courseNameInput.value.trim();
+    roundData.courseLength = courseLengthInput.value !== '' ? Number(courseLengthInput.value) : '';
+    roundData.coursePar = Number(courseParInput.value) || 72;
     roundData.distanceUnit = distanceUnitSel.value; // 단위 저장
     
     // 단위 라벨 업데이트
@@ -1273,6 +1299,7 @@ if(btnStartRound){
 // 거리 단위 라벨 업데이트
 function updateDistanceUnitLabels(){
   const unit = roundData.distanceUnit || 'yd';
+  courseLengthUnitEl.textContent = unit;
   holeDistanceUnitLabel.textContent = unit;
   puttDistanceUnitLabel.textContent = unit;
   // 탭 패널 내 단위 표시 업데이트
@@ -1830,7 +1857,7 @@ btnExportCSV.addEventListener('click', async ()=>{
   
   // 헤더
   const unit = roundData.distanceUnit || 'yd';
-  lines.push(['Player', roundData.player, '', 'Date', roundData.date, '', 'Course', roundData.course, '', 'Unit', unit].join(','));
+  lines.push(['Player', roundData.player, '', 'Date', roundData.date, '', 'Course', roundData.course, '', 'CourseLength', roundData.courseLength, '', 'CoursePar', roundData.coursePar, '', 'Unit', unit].join(','));
   lines.push('');
   
   // 샷 데이터 헤더 (원본 파일과 동일한 형식)
@@ -1988,6 +2015,8 @@ function restoreData(){
       playerNameInput.value = roundData.player || '';
       roundDateInput.value = roundData.date || new Date().toISOString().slice(0,10);
       courseNameInput.value = roundData.course || '';
+      courseLengthInput.value = roundData.courseLength ?? '';
+      courseParInput.value = String(roundData.coursePar || 72);
       distanceUnitSel.value = roundData.distanceUnit || 'yd';
       
       if(saved.started){
