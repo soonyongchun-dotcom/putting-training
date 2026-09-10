@@ -2115,7 +2115,9 @@
     const weighted = wSum > 0 ? parts.reduce((sum, p) => sum + p.w * p.s, 0) / wSum : 100;
 
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 1점 단위로 반올림
-    const score100 = roundToStep(clamp(100 - weighted, 0, 100), 1);
+    let score100 = roundToStep(clamp(100 - weighted, 0, 100), 1);
+    // Sequence Index 미측정(F1 선행 분석 누락) 시 나머지 항목만으로 만점 처리되는 것을 방지하기 위해 상한 적용
+    if (sSequence == null) score100 = Math.min(score100, 75);
     const grade = score100 >= 90 ? 'A - Tour Pro Level'
                 : score100 >= 80 ? 'B - Advanced'
                 : score100 >= 70 ? 'C - Intermediate'
