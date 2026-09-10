@@ -1212,13 +1212,35 @@ class CloudStateService {
         const storageValue = this.pendingValueMap.get(localKey);
         this.pendingValueMap.delete(localKey);
 
-        await this.client.from("app_kv_store").upsert({
+        const payload = {
             storage_key: this.buildCloudKey(localKey),
-            storage_value: storageValue,
+            storage_value: storageValue
+        };
+        let result = await this.client.from("app_kv_store").upsert({
+            ...payload,
             updated_at: new Date().toISOString()
         }, {
             onConflict: "storage_key"
         });
+        if (result.error && /column|updated_at/i.test(String(result.error.message || ""))) {
+            result = await this.client.from("app_kv_store").upsert(payload, {
+                onConflict: "storage_key"
+            });
+        }
+        if (result.error) {
+            throw result.error;
+        }
+        return true;
+    }
+
+    async flushNow(localKey) {
+        const key = String(localKey || "");
+        const timerId = this.flushTimerMap.get(key);
+        if (timerId) {
+            clearTimeout(timerId);
+            this.flushTimerMap.delete(key);
+        }
+        return this.flushKey(key);
     }
 }
 
@@ -6023,7 +6045,7 @@ class PuttingTrainingApp {
         setTimeout(() => window.URL.revokeObjectURL(url), 0);
     }
 
-    saveMissionResultEntry(fileId) {
+    async saveMissionResultEntry(fileId) {
         // 선수 모드: 카드 내 양식(원본 표 행별 입력 + 메모)으로 수행 결과를 기록하면 records에 저장되어 클라우드 동기화로 코치에게도 공유된다.
         if (this.isCoachMode()) return;
         const file = this.coachMissionFiles.find((item) => item.id === fileId);
@@ -6094,15 +6116,31 @@ class PuttingTrainingApp {
             score: ""
         }));
         this.storageService.saveRecords(this.records);
+        let cloudSyncError = "";
+        if (CLOUD_STATE_SERVICE?.enabled) {
+            try {
+                await CLOUD_STATE_SERVICE.flushNow("greenMissions");
+            } catch (error) {
+                cloudSyncError = String(error?.message || error || "cloud sync failed");
+                console.warn("미션 수행 결과 클라우드 동기화 실패:", error);
+            }
+        }
         this.downloadMissionResultGrid(file, finalGrid, resultDate || this.session.sessionDate);
 
         inputEls.forEach((input) => { input.value = ""; });
         if (textEl) textEl.value = "";
         if (noteEl) {
-            noteEl.style.color = "#1a7a49";
-            noteEl.textContent = rowResults.length
-                ? this.t("missionResultSavedRows", { count: rowResults.length })
-                : this.t("missionResultSaved");
+            if (cloudSyncError) {
+                noteEl.style.color = "#b45309";
+                noteEl.textContent = this.language === "en"
+                    ? "Saved on this phone, but cloud sharing failed. Please try saving again when connected."
+                    : "휴대폰에는 저장됐지만 코치 공유에 실패했습니다. 인터넷 연결 후 다시 저장하세요.";
+            } else {
+                noteEl.style.color = "#1a7a49";
+                noteEl.textContent = rowResults.length
+                    ? this.t("missionResultSavedRows", { count: rowResults.length })
+                    : this.t("missionResultSaved");
+            }
         }
         this.renderMissionEntryList();
     }
