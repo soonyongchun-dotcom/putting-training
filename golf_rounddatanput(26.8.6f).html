@@ -788,6 +788,20 @@ function getSelectedSyncedRounds(){
   return ids.map(id => map.get(id)).filter(Boolean);
 }
 
+function resolveRemoteRoundPar(row, holes){
+  const meta = (row && row.round_meta) || {};
+  const candidates = [meta.roundPar, meta.par, row && row.round_par, row && row.par];
+  for (let i = 0; i < candidates.length; i++){
+    const value = candidates[i];
+    if (value != null && value !== '' && !isNaN(Number(value)) && Number(value) > 0) return Number(value);
+  }
+  const holeParTotal = (Array.isArray(holes) ? holes : []).reduce((sum, hole)=>{
+    const value = hole && hole.par;
+    return (value != null && value !== '' && !isNaN(Number(value))) ? sum + Number(value) : sum;
+  }, 0);
+  return holeParTotal > 0 ? holeParTotal : 72;
+}
+
 function hasImportedRound(roundId){
   if (!roundId) return false;
   for (let i = 1; i <= 18; i++){
@@ -806,6 +820,7 @@ function restoreRoundFromRemote(row){
   const restoreRoundId = `server:${row.id}`;
   DISTANCE_UNIT = targetUnit;
   const holes = Array.isArray(payload.holes) ? payload.holes : [];
+  const restoredRoundPar = resolveRemoteRoundPar(row, holes);
 
   for(let i=1;i<=18;i++){
     const holeData = holes[i-1] || {};
@@ -860,7 +875,7 @@ function restoreRoundFromRemote(row){
   if(playerNameEl) playerNameEl.value = meta.player || row.player_name || row.player_id || '';
   if(roundDateEl) roundDateEl.value = meta.date || row.round_date || new Date().toISOString().slice(0,10);
   if(courseNameEl) courseNameEl.value = meta.course || row.course || '';
-  if(roundParEl) roundParEl.value = meta.roundPar || 72;
+  if(roundParEl) roundParEl.value = restoredRoundPar;
   if(roundYardEl) roundYardEl.value = (meta.totalYard != null && meta.totalYard !== '' && !isNaN(Number(meta.totalYard))) ? convertDistanceValue(Number(meta.totalYard), remoteSavedUnit, targetUnit) : '';
   if(roundWeatherEl) roundWeatherEl.value = meta.weather || '';
   if(distanceUnitEl){
