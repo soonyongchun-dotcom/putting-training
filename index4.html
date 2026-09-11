@@ -891,7 +891,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver96.9.3f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver96.9.5f</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1167,8 +1167,8 @@
       <div class="analysis-score-group analysis-score-group-consistency">
         <div class="analysis-distance-score-row">
           <div class="analysis-score-items">
-            <span class="analysis-score-item" id="analysisSegmentScoreF5">F5: - / 100</span>
-            <span class="analysis-score-item" id="analysisSegmentScoreF6">F6: - / 100</span>
+            <span class="analysis-score-item" id="analysisSegmentScoreF5">F5: -</span>
+            <span class="analysis-score-item" id="analysisSegmentScoreF6">F6: -</span>
           </div>
           <span class="analysis-score-average" id="analysisConsistencyAverage">일관성 모션 평균: -</span>
         </div>
@@ -2116,8 +2116,6 @@
 
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 1점 단위로 반올림
     let score100 = roundToStep(clamp(100 - weighted, 0, 100), 1);
-    // Sequence Index 미측정(F1 선행 분석 누락) 시 나머지 항목만으로 만점 처리되는 것을 방지하기 위해 상한 적용
-    if (sSequence == null) score100 = Math.min(score100, 75);
     const grade = score100 >= 90 ? 'A - Tour Pro Level'
                 : score100 >= 80 ? 'B - Advanced'
                 : score100 >= 70 ? 'C - Intermediate'
@@ -2355,11 +2353,28 @@
       fm.lagAngleA6  = lagA ?? null;
 
       // ③ 토크 전환 템포 지수: Sequence Index = ΔX_COM(탑→P6) / (ΔX_C7(탑→P7) + ε)
-      //    백스윙탑 좌표는 Frame 1 B패널 분석 결과(frameSideMetricsHistory.frame1)에서 참조
-      const topFm = frameSideMetricsHistory['frame1'] || {};
-      if (topFm.pelvisNormX != null && fmA.comNormX6 != null && topFm.c7NormX != null && fmB.c7NormX6 != null) {
-        const dCom = Math.abs(fmA.comNormX6 - topFm.pelvisNormX);
-        const dC7  = Math.abs(fmB.c7NormX6 - topFm.c7NormX);
+      //    백스윙탑 좌표 참조: 1) 히스토리 우선, 2) frameStateHistory에서 동적 계산
+      let topFmSide = frameSideMetricsHistory['frame1'] || {};
+      let topFmFront = frameMetricsHistory['frame1'] || {};
+
+      if ((topFmSide.pelvisNormX == null && topFmSide.c7NormX == null) &&
+          frameStateHistory.side.frame1 && frameStateHistory.side.frame1.points && frameStateHistory.side.frame1.points.length >= 4) {
+        topFmSide = computeFrameMetrics(frameStateHistory.side.frame1.points, frameStateHistory.side.frame1.lines, 'frame1', getHeightScale(), frontCanvas.height, (frontVideo && frontVideo.videoWidth) ? frontVideo.videoWidth / (frontVideo.videoHeight || 1) : 16/9);
+      }
+      if ((topFmFront.pelvisNormX == null && topFmFront.c7NormX == null) &&
+          frameStateHistory.front.frame1 && frameStateHistory.front.frame1.points && frameStateHistory.front.frame1.points.length >= 4) {
+        topFmFront = computeFrameMetrics(frameStateHistory.front.frame1.points, frameStateHistory.front.frame1.lines, 'frame1', getHeightScale(), frontCanvas.height, (frontVideo && frontVideo.videoWidth) ? frontVideo.videoWidth / (frontVideo.videoHeight || 1) : 16/9);
+      }
+
+      const topPelvis = topFmSide.pelvisNormX ?? topFmFront.pelvisNormX ?? null;
+      const topC7     = topFmSide.c7NormX     ?? topFmFront.c7NormX     ?? null;
+
+      const p6Com = fmA.comNormX6 ?? fmA.pelvisNormX ?? null;
+      const p7C7  = fmB.c7NormX6  ?? fmB.c7NormX     ?? null;
+
+      if (topPelvis != null && p6Com != null && topC7 != null && p7C7 != null) {
+        const dCom = Math.abs(p6Com - topPelvis);
+        const dC7  = Math.abs(p7C7 - topC7);
         fm.comShiftTop6 = dCom;
         fm.c7ShiftTop6  = dC7;
         fm.sequenceIndex = clamp(dCom / (dC7 + 0.002), 0, 3);
@@ -2848,8 +2863,8 @@
     if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = `F3: ${segmentScoreHistory.frame3 !== null ? segmentScoreHistory.frame3.toFixed(1) : '-'}`;
     if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = `F4: ${segmentScoreHistory.frame4 !== null ? segmentScoreHistory.frame4.toFixed(1) : '-'}`;
     // F5·F6(일관성)은 100점 만점 독립 지표 — F1~F4 평균에 포함하지 않음
-    if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = `F5: ${segmentScoreHistory.frame5 !== null ? (segmentScoreHistory.frame5 * 10).toFixed(1) : '-'} / 100`;
-    if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = `F6: ${segmentScoreHistory.frame6 !== null ? (segmentScoreHistory.frame6 * 10).toFixed(1) : '-'} / 100`;
+    if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = `F5: ${segmentScoreHistory.frame5 !== null ? (segmentScoreHistory.frame5 * 10).toFixed(1) : '-'}`;
+    if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = `F6: ${segmentScoreHistory.frame6 !== null ? (segmentScoreHistory.frame6 * 10).toFixed(1) : '-'}`;
     if (analysisConsistencyAverage) {
       const cScores = [segmentScoreHistory.frame5, segmentScoreHistory.frame6].filter(v => v !== null);
       const cAvg = cScores.length ? cScores.reduce((sum, v) => sum + v, 0) / cScores.length * 10 : null;
@@ -3072,13 +3087,11 @@
     if (analysisSegmentScoreF2) analysisSegmentScoreF2.textContent = 'F2: -';
     if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = 'F3: -';
     if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = 'F4: -';
-    if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = 'F5: - / 100';
-    if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = 'F6: - / 100';
+    if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = 'F5: -';
+    if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = 'F6: -';
     if (analysisConsistencyAverage) analysisConsistencyAverage.textContent = '일관성 모션 평균: -';
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 평균: -';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
-    frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
-    frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     if (analysisFrontDetail) analysisFrontDetail.innerHTML = '';
     const nb = document.getElementById('swingNarrativeBlock');
     const nb2 = document.getElementById('swingNarrativeToggleBtn');
@@ -3090,11 +3103,6 @@
   }
 
   function runMotionAnalysis(view) {
-    if (view === 'front') {
-      baselineFrontResult = null;
-      segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
-      clearAnalysisResults();
-    }
     setGuideState(view);
   }
 
