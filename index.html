@@ -5405,7 +5405,7 @@ class PuttingTrainingApp {
         const missionTitle = mission?.title || "";
 
         const rows = this.records
-            .filter(r => r.mission === "COACH_MISSION" && r.missionFileName === file.fileName)
+            .filter(r => r.mission === "COACH_MISSION" && this.isSameMissionSource(r, file))
             .filter(r => !missionTitle || r.missionTitle === missionTitle)
             .filter(r => {
                 if (this.isCoachMode()) {
@@ -6051,6 +6051,12 @@ class PuttingTrainingApp {
         const file = this.coachMissionFiles.find((item) => item.id === fileId);
         if (!file) return;
 
+        const playerName = String(this.session.playerName || "").trim();
+        const assignedPlayers = this.getMissionFileTargetPlayers(file);
+        if (!playerName || (assignedPlayers.length && !assignedPlayers.includes(playerName))) {
+            return;
+        }
+
         const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
         const dateEl = card?.querySelector(".mission-result-date");
         const textEl = card?.querySelector(".mission-result-text");
@@ -6094,14 +6100,14 @@ class PuttingTrainingApp {
 
         this.records.push(new MissionRecord({
             mission: "COACH_MISSION",
-            playerName: this.session.playerName,
+            playerName,
             sessionDate: resultDate || this.session.sessionDate,
             missionFileName: file.fileName,
             missionFileId: file.id,
             missionTitle: this.getMissionFileDisplayTitle(file),
             missionResponse: responseText,
             missionActorRole: "player",
-            missionActorName: this.session.playerName,
+            missionActorName: playerName,
             missionTargetPlayer: RUNTIME_COACH_CONFIG.coachName || "",
             missionMessageType: "result",
             missionSourceRows: finalGrid,
@@ -6712,6 +6718,7 @@ class PuttingTrainingApp {
 
     handleLogout() {
         this.session = { playerName: "", sessionDate: "", language: this.language, role: "player" };
+        this.activeMissionFileId = null;
         // 가입 오류 메시지 색상 리셋
         const signupErr = document.getElementById("signupError");
         if (signupErr) { signupErr.style.color = ""; signupErr.textContent = ""; }
@@ -6719,6 +6726,19 @@ class PuttingTrainingApp {
         this.missionTargetSelection = new Set();
         this.expandedMissionFileId = "";
         this.selectedMissionResultFile = "";
+        const loginNameInput = document.getElementById("loginPlayerName");
+        const loginDateInput = document.getElementById("loginDate");
+        if (loginNameInput) loginNameInput.value = "";
+        if (loginDateInput) {
+            const today = new Date();
+            loginDateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        }
+        storageSetItem(APP_CONFIG.LOGIN_DRAFT_KEY, JSON.stringify({
+            playerName: "",
+            sessionDate: loginDateInput?.value || "",
+            language: this.language,
+            role: "player"
+        }));
         document.getElementById("sessionInfo").textContent = "";
         document.getElementById("loginPasscode").value = "";
         document.getElementById("loginError").textContent = "";
