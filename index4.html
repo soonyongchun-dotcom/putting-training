@@ -891,7 +891,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver96.9.5f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver96.9.6f</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -968,6 +968,8 @@
     <div class="analysis-panel-header-top">
       <span class="analysis-title">Motion Analysis</span>
       <div style="display:flex; gap:8px;">
+        <button type="button" id="distanceReferenceBtn" title="비율 계산에 사용할 기준선의 두 점을 선택">기준선 지정</button>
+        <button type="button" id="distanceMeasureBtn" title="두 점 사이의 화면상 거리를 측정">거리 산출</button>
         <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
         <button type="button" id="geminiAnalysisBtn" title="Gemini로 최종 스윙 결과를 쉬운 말로 분석">AI 분석</button>
         <button type="button" id="downloadGeminiReportBtn" disabled title="Gemini 분석 결과를 텍스트 파일로 다운로드">AI 보고서 다운로드</button>
@@ -1246,6 +1248,8 @@
   const analysisSegmentSelect = document.getElementById('analysisSegmentSelect');
   const analysisGuide = document.getElementById('analysisGuide');
   const analysisGuideNextBtn = document.getElementById('analysisGuideNextBtn');
+  const distanceReferenceBtn = document.getElementById('distanceReferenceBtn');
+  const distanceMeasureBtn = document.getElementById('distanceMeasureBtn');
   const analysisGuideStep = document.getElementById('analysisGuideStep');
   const frontAnalysisBtn = document.getElementById('frontAnalysisBtn');
   const sideAnalysisBtn = document.getElementById('sideAnalysisBtn');
@@ -3117,6 +3121,9 @@
     // 포인트/라인 초기화
     frontPoints = []; frontLines = [];
     sidePoints  = []; sideLines  = [];
+    distanceLinesByView = { front: [], side: [] };
+    distancePendingPoints = { front: [], side: [] };
+    distanceReferenceLinesByView = { front: null, side: null };
     // 히스토리 초기화
     baselineFrontResult = null;
     frameStateHistory = { front: {}, side: {} };
@@ -3140,6 +3147,12 @@
   let sidePoints = [];
   let frontLines = [];
   let sideLines = [];
+  let distanceMeasureActive = false;
+  let distanceReferenceActive = false;
+  let distancePendingPoints = { front: [], side: [] };
+  let distanceLinesByView = { front: [], side: [] };
+  let distanceReferencePendingPoints = { front: [], side: [] };
+  let distanceReferenceLinesByView = { front: null, side: null };
   let frontZoom = 1;
   let sideZoom = 1;
   let frontSpeedFactor = 1;
@@ -3690,6 +3703,95 @@
       ctx.stroke();
     });
 
+    const view = canvas === frontCanvas ? 'front' : 'side';
+    const measurements = distanceLinesByView[view];
+    measurements.forEach(measurement => {
+      const startX = metrics.offsetX + measurement.start.x * metrics.drawWidth;
+      const startY = metrics.offsetY + measurement.start.y * metrics.drawHeight;
+      const endX = metrics.offsetX + measurement.end.x * metrics.drawWidth;
+      const endY = metrics.offsetY + measurement.end.y * metrics.drawHeight;
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+      const distancePx = Math.hypot(
+        (measurement.end.x - measurement.start.x) * metrics.drawWidth,
+        (measurement.end.y - measurement.start.y) * metrics.drawHeight
+      );
+      const reference = distanceReferenceLinesByView[view];
+      const referencePx = reference ? Math.hypot(
+        (reference.end.x - reference.start.x) * metrics.drawWidth,
+        (reference.end.y - reference.start.y) * metrics.drawHeight
+      ) : 0;
+      const distanceRatio = referencePx > 0 ? (distancePx / referencePx) * 100 : null;
+      ctx.save();
+      ctx.strokeStyle = '#39e66b';
+      ctx.fillStyle = '#39e66b';
+      ctx.lineWidth = lineWidth * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(startX, startY, radius * 1.35, 0, Math.PI * 2);
+      ctx.arc(endX, endY, radius * 1.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = `bold ${Math.max(11 * scale, 11)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      const ratioLabel = distanceRatio === null ? '기준선 미지정' : `기준선 대비 ${distanceRatio.toFixed(1)}%`;
+      ctx.fillText(`거리 ${distancePx.toFixed(1)}px (${ratioLabel})`, midX, midY - 6 * scale);
+      ctx.restore();
+    });
+    const reference = distanceReferenceLinesByView[view];
+    if (reference) {
+      const startX = metrics.offsetX + reference.start.x * metrics.drawWidth;
+      const startY = metrics.offsetY + reference.start.y * metrics.drawHeight;
+      const endX = metrics.offsetX + reference.end.x * metrics.drawWidth;
+      const endY = metrics.offsetY + reference.end.y * metrics.drawHeight;
+      ctx.save();
+      ctx.strokeStyle = '#ffd54a';
+      ctx.fillStyle = '#ffd54a';
+      ctx.lineWidth = lineWidth * 1.5;
+      ctx.setLineDash([7 * scale, 5 * scale]);
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = `bold ${Math.max(11 * scale, 11)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('기준선', (startX + endX) / 2, (startY + endY) / 2 + 6 * scale);
+      ctx.restore();
+    }
+    const pending = distancePendingPoints[view];
+    if (pending.length > 0) {
+      const x = metrics.offsetX + pending[0].x * metrics.drawWidth;
+      const y = metrics.offsetY + pending[0].y * metrics.drawHeight;
+      ctx.save();
+      ctx.fillStyle = '#39e66b';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    const referencePending = distanceReferencePendingPoints[view];
+    if (referencePending.length > 0) {
+      const x = metrics.offsetX + referencePending[0].x * metrics.drawWidth;
+      const y = metrics.offsetY + referencePending[0].y * metrics.drawHeight;
+      ctx.save();
+      ctx.fillStyle = '#ffd54a';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     if(previewLine){
       ctx.save();
       ctx.strokeStyle = 'cyan';
@@ -3908,11 +4010,101 @@
     deletePoint(points, lines, pos, ctx, canvas, video, zoom);
   }
 
+  function addDistancePoint(view, pos, ctx, canvas, video, zoom){
+    const pending = distancePendingPoints[view];
+    pending.push(pos);
+    if (pending.length < 2) {
+      drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+      return;
+    }
+    const start = pending.shift();
+    const end = pending.shift();
+    const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
+    const dx = (end.x - start.x) * metrics.drawWidth;
+    const dy = (end.y - start.y) * metrics.drawHeight;
+    distanceLinesByView[view].push({ start, end, distancePx: Math.hypot(dx, dy) });
+    drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+  }
+
+  function addDistanceReferencePoint(view, pos, ctx, canvas, video, zoom){
+    const pending = distanceReferencePendingPoints[view];
+    pending.push(pos);
+    if (pending.length < 2) {
+      drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+      return;
+    }
+    distanceReferenceLinesByView[view] = { start: pending.shift(), end: pending.shift() };
+    drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+  }
+
+  function deleteDistanceSelection(view, pos, ctx, canvas, video, zoom){
+    const isNearSegment = (start, end, threshold = 0.03) => {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const lengthSquared = dx * dx + dy * dy;
+      const t = lengthSquared === 0
+        ? 0
+        : clamp(((pos.x - start.x) * dx + (pos.y - start.y) * dy) / lengthSquared, 0, 1);
+      const closestX = start.x + t * dx;
+      const closestY = start.y + t * dy;
+      return Math.hypot(pos.x - closestX, pos.y - closestY) < threshold;
+    };
+    const pending = distanceMeasureActive
+      ? distancePendingPoints[view]
+      : distanceReferencePendingPoints[view];
+    for (let i = 0; i < pending.length; i++) {
+      if (Math.hypot(pos.x - pending[i].x, pos.y - pending[i].y) < 0.04) {
+        pending.splice(i, 1);
+        drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+        return true;
+      }
+    }
+    if (distanceMeasureActive) {
+      const measurements = distanceLinesByView[view];
+      for (let i = 0; i < measurements.length; i++) {
+        if (isNearSegment(measurements[i].start, measurements[i].end)) {
+          measurements.splice(i, 1);
+          drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+          return true;
+        }
+      }
+    } else {
+      const reference = distanceReferenceLinesByView[view];
+      if (reference && isNearSegment(reference.start, reference.end)) {
+        distanceReferenceLinesByView[view] = null;
+        drawOverlay(ctx, view === 'front' ? frontPoints : sidePoints, view === 'front' ? frontLines : sideLines, canvas, video, zoom);
+        return true;
+      }
+    }
+    return false;
+  }
+
   function startPointer(event, points, lines, ctx, canvas, video, zoomGetter, view){
     event.preventDefault();
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
+    if (distanceReferenceActive || distanceMeasureActive) {
+      event.preventDefault();
+      if (distanceMeasureActive && !distanceReferenceLinesByView[view]) {
+        if (statusSpan) statusSpan.textContent = `${view === 'front' ? 'A' : 'B'} 영상의 기준선을 먼저 지정하세요.`;
+        return;
+      }
+      activePointer = {
+        distanceMode: true,
+        points, lines, ctx, canvas, video, zoomGetter, view,
+        startPos: pos, currentPos: pos
+      };
+      pointerIsDragging = false;
+      longPressTriggered = false;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        if(!activePointer || activePointer.distanceMode !== true || pointerIsDragging) return;
+        longPressTriggered = deleteDistanceSelection(view, pos, ctx, canvas, video, zoom);
+      }, LONG_PRESS_MS);
+      canvas.setPointerCapture(event.pointerId);
+      return;
+    }
     activePointer = { points, lines, ctx, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
     pointerIsDragging = false;
     longPressTriggered = false;
@@ -3938,6 +4130,10 @@
     if(dist > 0.01){
       clearTimeout(longPressTimer);
       pointerIsDragging = true;
+      if (activePointer.distanceMode) {
+        activePointer.currentPos = pos;
+        return;
+      }
       activePointer.currentPos = pos;
       drawOverlay(ctx, points, lines, canvas, video, zoom, { start: startPos, end: pos });
     }
@@ -3946,6 +4142,27 @@
   function endPointer(event){
     clearTimeout(longPressTimer);
     if(!activePointer) return;
+    if (activePointer.distanceMode) {
+      const { ctx, canvas, video, zoomGetter, view, startPos, currentPos } = activePointer;
+      if (longPressTriggered) {
+        longPressTriggered = false;
+        activePointer = null;
+        pointerIsDragging = false;
+        if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+        return;
+      }
+      const zoom = zoomGetter();
+      const pos = getNormalizedCoords(event, canvas, video, zoom);
+      const endPos = (pos && pointerIsDragging) ? pos : currentPos;
+      if (!pointerIsDragging && Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y) <= 0.01) {
+        if (distanceReferenceActive) addDistanceReferencePoint(view, startPos, ctx, canvas, video, zoom);
+        else addDistancePoint(view, startPos, ctx, canvas, video, zoom);
+      }
+      activePointer = null;
+      pointerIsDragging = false;
+      if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+      return;
+    }
     const { points, lines, ctx, canvas, video, zoomGetter, view, startPos, currentPos } = activePointer;
     if(longPressTriggered){
       longPressTriggered = false;
@@ -4057,6 +4274,10 @@
     loadVideo(frontVideo, file);
     frontPoints = [];
     frontLines = [];
+    distanceLinesByView.front = [];
+    distancePendingPoints.front = [];
+    distanceReferencePendingPoints.front = [];
+    distanceReferenceLinesByView.front = null;
     frontZoom = 1;
     frontZoomRange.value = frontZoom;
     frontSpeedFactor = 1;
@@ -4087,6 +4308,10 @@
     loadVideo(sideVideo, file);
     sidePoints = [];
     sideLines = [];
+    distanceLinesByView.side = [];
+    distancePendingPoints.side = [];
+    distanceReferencePendingPoints.side = [];
+    distanceReferenceLinesByView.side = null;
     sideZoom = 1;
     sideZoomRange.value = sideZoom;
     sideSpeedFactor = 1;
@@ -4383,6 +4608,10 @@
     sidePoints = [];
     frontLines = [];
     sideLines = [];
+    distanceLinesByView = { front: [], side: [] };
+    distancePendingPoints = { front: [], side: [] };
+    distanceReferencePendingPoints = { front: [], side: [] };
+    distanceReferenceLinesByView = { front: null, side: null };
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
     drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
   });
@@ -4392,6 +4621,38 @@
   }
   if (sideAnalysisBtn) {
     sideAnalysisBtn.addEventListener('click', () => selectDistanceSegment('side'));
+  }
+  if (distanceMeasureBtn) {
+    distanceMeasureBtn.addEventListener('click', () => {
+      distanceMeasureActive = !distanceMeasureActive;
+      distanceReferenceActive = false;
+      distanceReferencePendingPoints = { front: [], side: [] };
+      distanceMeasureBtn.textContent = distanceMeasureActive ? '거리 선택 중' : '거리 산출';
+      distanceMeasureBtn.style.background = distanceMeasureActive ? 'rgba(57,230,107,0.25)' : '';
+      distanceMeasureBtn.style.borderColor = distanceMeasureActive ? '#39e66b' : '';
+      if (!distanceMeasureActive) {
+        distancePendingPoints = { front: [], side: [] };
+      }
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+    });
+  }
+  if (distanceReferenceBtn) {
+    distanceReferenceBtn.addEventListener('click', () => {
+      distanceReferenceActive = !distanceReferenceActive;
+      distanceMeasureActive = false;
+      distancePendingPoints = { front: [], side: [] };
+      distanceReferenceBtn.textContent = distanceReferenceActive ? '기준점 선택 중' : '기준선 지정';
+      distanceReferenceBtn.style.background = distanceReferenceActive ? 'rgba(255,213,74,0.25)' : '';
+      distanceReferenceBtn.style.borderColor = distanceReferenceActive ? '#ffd54a' : '';
+      if (distanceMeasureBtn) {
+        distanceMeasureBtn.textContent = '거리 산출';
+        distanceMeasureBtn.style.background = '';
+        distanceMeasureBtn.style.borderColor = '';
+      }
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+    });
   }
   // 비거리 버튼(🏌️): F1~F4 전용 / 일관성 버튼(🎯): F5~F6 전용 (마지막 사용 프레임 기억)
   let lastDistanceSegment = 'frame1';
