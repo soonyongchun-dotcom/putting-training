@@ -2880,11 +2880,11 @@
   }
 
   /**
-   * [골프칼럼] 지면반발력 3유형(모멘트암·유연성형 / 지면비틂·커플드토크형 / CoM압박·휘핑형) 추정
+  * [골프칼럼] 스윙 특성 3유형(유연성·부드러운형 / 하체주도·지면반력형 / 코어·래깅 조화형) 추정
    * 새 랜드마크·측정값을 추가하지 않고, F1~F6에서 이미 산출된 델타 지표(segmentDeltaHistory[frame].fm)만 재사용한다.
-   *   - rArmExt(F4 rMaxNormDelta), axisStable(F3 c7SwayPercent), linearShift(F5 pelvisShiftRatio/F2 pelvisLateralDelta)
-   *   - coil(F1 xFactorDelta), releaseSpeed(F6 releaseIndex), vertThrust(F3 kneeExtDelta)
-   *   - idealShift(F5/F2 이동비율이 20~30% 대역에 근접할수록 만점), sequenceLead(F6 sequenceIndex), whipLean(F4 lateralLeanDelta)
+  *   - flexibleLever(F4 rMaxNormDelta), axisStable(F3 c7SwayPercent), lowCoreMove(F5/F2 이동량), lowVertical(F3 kneeExtDelta)
+  *   - coil(F1 xFactorDelta), groundForce(F3 kneeExtDelta), lagRetention(F2 laggingAngleDelta), hingeRelease(F4 armShaftDelta)
+  *   - idealShift(F5/F2 이동비율이 20~30% 대역에 근접할수록 만점), sequenceLead(F6 sequenceIndex), releaseSpeed(F6 releaseIndex)
    * 각 유형 적합도(0~1)를 위 지표의 가중평균으로 구하고, 세 값의 비중을 백분율로 정규화해 하이브리드 비율로 표시한다.
    */
   function weightedAvg01(parts) {
@@ -2911,30 +2911,36 @@
     const coil           = f1 && hasMetric(f1.xFactorDelta) ? clamp(Math.abs(f1.xFactorDelta) / 90, 0, 1) : null;
     const releaseSpeed   = f6 && hasMetric(f6.releaseIndex)  ? clamp((f6.releaseIndex - 40) / 110, 0, 1) : null;
     const sequenceLead   = f6 && hasMetric(f6.sequenceIndex) ? clamp(f6.sequenceIndex / 2, 0, 1) : null;
-    const whipLean       = f4 && hasMetric(f4.lateralLeanDelta) ? clamp(f4.lateralLeanDelta / 120, 0, 1) : null;
+    const lagRetention   = f2 && hasMetric(f2.laggingAngleDelta) ? clamp(-f2.laggingAngleDelta / 100, 0, 1) : null;
+    const hingeRelease   = f4 && hasMetric(f4.armShaftDelta) ? clamp(f4.armShaftDelta / 100, 0, 1) : null;
     const shiftRatioAbs  = f5 && hasMetric(f5.pelvisShiftRatio) ? Math.abs(f5.pelvisShiftRatio)
                          : f2 && hasMetric(f2.pelvisLateralDelta) ? Math.abs(f2.pelvisLateralDelta) : null;
     const linearShift    = hasMetric(shiftRatioAbs) ? clamp(shiftRatioAbs / 0.4, 0, 1) : null;
+    const coreMove       = f2 && hasMetric(f2.pelvisLateralDelta)
+      ? clamp(Math.abs(f2.pelvisLateralDelta) / 0.35, 0, 1)
+      : linearShift;
     // 이상적 비대칭(60:40~70:30 근사)은 이동비율 약 25%를 중심으로 ±25%p 범위 내 만점에 근접
     const idealShift     = hasMetric(shiftRatioAbs) ? clamp(1 - Math.abs(shiftRatioAbs - 0.25) / 0.25, 0, 1) : null;
 
-    // 유형1 — 모멘트암·유연성형(엘스·호블란): r_max 확장 + 축 고정 + 낮은 선형 체중이동(순수회전)
+    // 유형1 — 유연성·부드러운형: 축을 유지하고 하체/코어를 과하게 쓰지 않는 레버 중심 스윙
     const type1 = weightedAvg01([
-      { value: rArmExt, weight: 0.40 },
+      { value: rArmExt, weight: 0.35 },
       { value: axisStable, weight: 0.30 },
-      { value: hasMetric(linearShift) ? 1 - linearShift : null, weight: 0.30 },
+      { value: hasMetric(vertThrust) ? 1 - vertThrust : null, weight: 0.20 },
+      { value: hasMetric(coreMove) ? 1 - coreMove : null, weight: 0.15 },
     ]);
-    // 유형2 — 지면비틂·커플드토크형(람·니만): 큰 X-Factor 코일 + 빠른 릴리즈 + 상대적으로 낮은 수직추진
+    // 유형2 — 하체주도·지면반력형: 강한 지면반력, 작은 상체 코일과 코어 이동
     const type2 = weightedAvg01([
-      { value: coil, weight: 0.35 },
-      { value: releaseSpeed, weight: 0.35 },
-      { value: hasMetric(vertThrust) ? 1 - vertThrust : null, weight: 0.30 },
+      { value: vertThrust, weight: 0.50 },
+      { value: hasMetric(coil) ? 1 - coil : null, weight: 0.25 },
+      { value: hasMetric(coreMove) ? 1 - coreMove : null, weight: 0.25 },
     ]);
-    // 유형3 — CoM압박·휘핑형(매킬로이): 강한 수직추진(Sinking) + 20~30% 이상적 체중이동 + 시퀀스/측면기울기(채찍질)
+    // 유형3 — 코어·래깅 조화형: 래깅 유지, 힌지 릴리즈, 이상적 코어 이동과 시퀀스의 조화
     const type3 = weightedAvg01([
-      { value: vertThrust, weight: 0.35 },
-      { value: idealShift, weight: 0.35 },
-      { value: weightedAvg01([{ value: sequenceLead, weight: 0.5 }, { value: whipLean, weight: 0.5 }]), weight: 0.30 },
+      { value: lagRetention, weight: 0.30 },
+      { value: hingeRelease, weight: 0.25 },
+      { value: idealShift, weight: 0.25 },
+      { value: weightedAvg01([{ value: sequenceLead, weight: 0.5 }, { value: releaseSpeed, weight: 0.5 }]), weight: 0.20 },
     ]);
 
     const raw = { type1: type1 || 0, type2: type2 || 0, type3: type3 || 0 };
