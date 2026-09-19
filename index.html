@@ -897,7 +897,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
   <div class="mission-section-title" id="missionTaskTitle">수행미션</div>
   <div class="section-action-row">
-      <button id="refreshMissionFilesBtn" type="button" class="secondary-btn">🔄 미션 새로고침</button>
+    <button id="refreshMissionFilesBtn" type="button" class="secondary-btn">🔄 미션 진행상황 동기화</button>
       <span id="refreshMissionFilesResult" style="font-size:12px; color:#3d5fa1;"></span>
   </div>
   <div class="mission-file-list" id="missionFileList"></div>
@@ -1358,7 +1358,7 @@ const UI_I18N = {
         coachPlayerManageTitle: "선수 선택/등록",
         coachMissionManageTitle: "미션 등록/배포",
         coachResultManageTitle: "선수 결과 관리",
-        coachConversationTitle: "선수 대화/피드백",
+        coachConversationTitle: "미션 피드백/커뮤니케이션",
         missionBroadcastAllLabel: "전체선수 공지",
         missionBroadcastSaved: "전체선수 공지 저장 완료: {{count}}명",
         noPlayersForBroadcast: "전체공지 대상 선수가 없습니다.",
@@ -1373,8 +1373,11 @@ const UI_I18N = {
         missionCardTargets: "배정: {{players}}",
         missionCardExpand: "펼치기",
         missionCardCollapse: "접기",
-        missionReassignApply: "재배정 적용",
-        missionDeleteBtn: "미션 삭제",
+        missionReassignApply: "미션 배정 대상 변경",
+        missionProgressSync: "🔄 미션 진행상황 동기화",
+        missionDeleteBtn: "선택 선수 배정 삭제",
+        needSelectedCoachPlayer: "삭제할 선수를 먼저 선택하세요.",
+        missionAssignmentRemoved: "선수 배정 삭제 완료: {{player}}",
         missionReassigned: "재배정 완료: {{players}}",
         missionDirectDueDateLabel: "미션 기한",
         missionDueDateLabel: "기한",
@@ -1546,7 +1549,7 @@ const UI_I18N = {
         coachPlayerManageTitle: "Player Select / Register",
         coachMissionManageTitle: "Mission Setup / Assign",
         coachResultManageTitle: "Player Result Management",
-        coachConversationTitle: "Player Conversation / Feedback",
+        coachConversationTitle: "Mission Feedback / Communication",
         missionBroadcastAllLabel: "Broadcast to all players",
         missionBroadcastSaved: "Broadcast saved: {{count}} players",
         noPlayersForBroadcast: "No players available for broadcast.",
@@ -1561,8 +1564,11 @@ const UI_I18N = {
         missionCardTargets: "Assigned: {{players}}",
         missionCardExpand: "Expand",
         missionCardCollapse: "Collapse",
-        missionReassignApply: "Apply Reassignment",
-        missionDeleteBtn: "Delete Mission",
+        missionReassignApply: "Change Mission Assignment Targets",
+        missionProgressSync: "🔄 Sync Mission Progress",
+        missionDeleteBtn: "Remove Selected Player Assignment",
+        needSelectedCoachPlayer: "Select a player before removing the assignment.",
+        missionAssignmentRemoved: "Player assignment removed: {{player}}",
         missionReassigned: "Reassigned: {{players}}",
         missionDirectDueDateLabel: "Due Date",
         missionDueDateLabel: "Due",
@@ -3305,6 +3311,7 @@ class PuttingTrainingApp {
             setText("#missionBroadcastLabel", this.t("missionBroadcastAllLabel"));
             setText("#missionTargetPickerLabel", this.t("missionTargetPickerLabel"));
             setText("#missionTargetSelectAllLabel", this.t("missionTargetSelectAllLabel"));
+            setText("#refreshMissionFilesBtn", this.t("missionProgressSync"));
             setText("label[for='missionExcelInput']", this.language === "en" ? "Mission File Upload (.xlsx, .xls, .csv)" : "미션 파일 업로드 (.xlsx, .xls, .csv)");
             setText("label[for='missionResultCsvInput']", this.t("missionResultFileLabel"));
             setText("label[for='missionResultDownloadFile']", this.t("missionResultDownloadTargetLabel"));
@@ -5407,6 +5414,7 @@ class PuttingTrainingApp {
         const rows = this.records
             .filter(r => r.mission === "COACH_MISSION" && this.isSameMissionSource(r, file))
             .filter(r => !missionTitle || r.missionTitle === missionTitle)
+            .filter(r => r.missionMessageType !== "mission")
             .filter(r => {
                 if (this.isCoachMode()) {
                     if (!selectedCoachPlayer) return true;
@@ -6214,7 +6222,7 @@ class PuttingTrainingApp {
         this.renderMissionWorkArea();
     }
 
-    deleteMissionFileById(fileId) {
+    async deleteMissionFileById(fileId) {
         const resultTarget = document.getElementById("missionSaveResult");
         if (!this.isCoachMode()) {
             if (resultTarget) resultTarget.textContent = this.t("coachDeleteOnly");
@@ -6234,15 +6242,73 @@ class PuttingTrainingApp {
             return;
         }
 
-        this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== fileId);
-        this.saveCoachMissionFiles();
+        const targets = this.getMissionFileTargetPlayers(file);
+        const selectedPlayer = this.getSelectedCoachPlayer();
+        const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
+        const checkedTargets = card
+            ? Array.from(card.querySelectorAll(".mission-reassign-check:checked"))
+                .map((box) => String(box.value || "").trim())
+                .filter(Boolean)
+            : [];
+        const uncheckedTargets = targets.filter((name) => !checkedTargets.includes(name));
+        const targetToRemove = selectedPlayer && targets.includes(selectedPlayer)
+            ? selectedPlayer
+            : uncheckedTargets.length === 1
+                ? uncheckedTargets[0]
+                : "";
+        if (targets.length > 1) {
+            if (!targetToRemove) {
+                if (resultTarget) resultTarget.textContent = this.t("needSelectedCoachPlayer");
+                return;
+            }
 
-        if (this.expandedMissionFileId === fileId) {
-            this.expandedMissionFileId = null;
+            const remainingTargets = targets.filter((name) => name !== targetToRemove);
+            file.targetPlayers = remainingTargets;
+            file.targetPlayer = remainingTargets[0] || "";
+            if (Array.isArray(file.sourceRows) && file.sourceRows.length > 1) {
+                const headerRow = file.sourceRows[0] || [];
+                const targetCol = headerRow.findIndex((cell) => ["targetplayers", "targetplayer"].includes(String(cell || "").trim().toLowerCase()));
+                if (targetCol >= 0) {
+                    file.sourceRows = file.sourceRows.map((row, index) => {
+                        if (index === 0) return row;
+                        const nextRow = Array.isArray(row) ? row.slice() : [];
+                        nextRow[targetCol] = remainingTargets.join(", ");
+                        return nextRow;
+                    });
+                }
+            }
+            this.saveCoachMissionFiles();
+            if (CLOUD_STATE_SERVICE?.enabled) {
+                try {
+                    await CLOUD_STATE_SERVICE.flushNow(APP_CONFIG.COACH_MISSIONS_KEY);
+                } catch (error) {
+                    if (resultTarget) resultTarget.textContent = this.language === "en"
+                        ? `Assignment changed locally, but cloud sync failed: ${error.message}`
+                        : `배정은 로컬에서 변경됐지만 클라우드 동기화에 실패했습니다: ${error.message}`;
+                    return;
+                }
+            }
+            if (resultTarget) resultTarget.textContent = this.t("missionAssignmentRemoved", { player: targetToRemove });
+        } else {
+            this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== fileId);
+            this.saveCoachMissionFiles();
+            if (CLOUD_STATE_SERVICE?.enabled) {
+                try {
+                    await CLOUD_STATE_SERVICE.flushNow(APP_CONFIG.COACH_MISSIONS_KEY);
+                } catch (error) {
+                    if (resultTarget) resultTarget.textContent = this.language === "en"
+                        ? `Mission removal was saved locally, but cloud sync failed: ${error.message}`
+                        : `미션 삭제는 로컬에 저장됐지만 클라우드 동기화에 실패했습니다: ${error.message}`;
+                    return;
+                }
+            }
+
+            if (this.expandedMissionFileId === fileId) {
+                this.expandedMissionFileId = null;
+            }
+            this.activeMissionFileId = this.expandedMissionFileId;
+            if (resultTarget) resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
         }
-        this.activeMissionFileId = this.expandedMissionFileId;
-
-        if (resultTarget) resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
     }
