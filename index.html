@@ -537,7 +537,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="top-bar">
     <div>
-        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.3f</span></h1>
+        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.5f</span></h1>
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
@@ -1241,6 +1241,30 @@ class CloudStateService {
             this.flushTimerMap.delete(key);
         }
         return this.flushKey(key);
+    }
+
+    async forceSetItem(localKey, value) {
+        const key = String(localKey || "");
+        if (!this.enabled || !this.shouldSyncKey(key)) return false;
+        const timerId = this.flushTimerMap.get(key);
+        if (timerId) {
+            clearTimeout(timerId);
+            this.flushTimerMap.delete(key);
+        }
+        this.pendingValueMap.delete(key);
+        const payload = {
+            storage_key: this.buildCloudKey(key),
+            storage_value: String(value ?? "")
+        };
+        let result = await this.client.from("app_kv_store").upsert({
+            ...payload,
+            updated_at: new Date().toISOString()
+        }, { onConflict: "storage_key" });
+        if (result.error && /column|updated_at/i.test(String(result.error.message || ""))) {
+            result = await this.client.from("app_kv_store").upsert(payload, { onConflict: "storage_key" });
+        }
+        if (result.error) throw result.error;
+        return true;
     }
 }
 
@@ -1958,6 +1982,12 @@ class SheetFormulaEvaluator {
                     return sum + (Number(value) || 0);
                 }, 0);
             }
+            case "SUMPRODUCT": {
+                const ranges = args.map((arg) => arg && typeof arg === "object" && Array.isArray(arg.__range) ? arg.__range : [arg]);
+                const length = Math.max(0, ...ranges.map((range) => range.length));
+                return Array.from({ length }, (_, index) => ranges.reduce((product, range) => product * (Number(range[index]) || 0), 1))
+                    .reduce((sum, value) => sum + value, 0);
+            }
             case "AVERAGEIF": {
                 const range = args[0] && typeof args[0] === "object" && Array.isArray(args[0].__range) ? args[0].__range : [args[0]];
                 const avgRange = args[2] && typeof args[2] === "object" && Array.isArray(args[2].__range) ? args[2].__range : range;
@@ -1978,15 +2008,27 @@ class SheetFormulaEvaluator {
             }
             case "IF": return args[0] ? args[1] : (args[2] !== undefined ? args[2] : "");
             case "IFNA": return (args[0] === "#ERR" || args[0] === "#NAME?" || args[0] === undefined || args[0] === null) ? (args[1] ?? "") : args[0];
+            case "IFS": {
+                for (let index = 0; index + 1 < args.length; index += 2) {
+                    if (args[index]) return args[index + 1];
+                }
+                return "";
+            }
             case "AND": return this.flattenArgs(args).every((v) => !!v);
             case "OR": return this.flattenArgs(args).some((v) => !!v);
             case "NOT": return !args[0];
+            case "ISNUMBER": return typeof args[0] === "number" && Number.isFinite(args[0]);
+            case "ISBLANK": return args[0] === "" || args[0] === undefined || args[0] === null;
             case "ABS": return Math.abs(Number(args[0]) || 0);
             case "INT": return Math.floor(Number(args[0]) || 0);
             case "MOD": return (Number(args[0]) || 0) % (Number(args[1]) || 1);
             case "POWER": return Math.pow(Number(args[0]) || 0, Number(args[1]) || 0);
             case "SQRT": return Math.sqrt(Number(args[0]) || 0);
-            case "VALUE": return Number(args[0]) || 0;
+            case "VALUE": {
+                const text = String(args[0] ?? "").trim().replace(/,/g, "");
+                if (text.endsWith("%")) return (Number(text.slice(0, -1)) || 0) / 100;
+                return Number(text) || 0;
+            }
             case "LEN": return String(args[0] ?? "").length;
             case "LEFT": return String(args[0] ?? "").slice(0, Number(args[1]) || 1);
             case "RIGHT": {
@@ -5515,6 +5557,7 @@ class PuttingTrainingApp {
         const headers = layout.headers;
         const formulas = file.sourceFormulas || {};
         const maxColumns = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), headers.length);
+        const mergeMaps = this.getMissionMergeRenderMaps(file);
         const esc = (value) => String(value ?? "")
             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -5541,18 +5584,23 @@ class PuttingTrainingApp {
             const cells = Array.isArray(row) ? row : [];
             const isDataRow = rowIndex > layout.headerRow;
             const tds = Array.from({ length: maxColumns }, (_, columnIndex) => {
+                const cellKey = `${rowIndex},${columnIndex}`;
+                if (mergeMaps.skip.has(cellKey)) return "";
+                const span = mergeMaps.spans.get(cellKey);
+                const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                 const hasFormula = !!formulas[`${rowIndex},${columnIndex}`];
                 const cellText = esc(cells[columnIndex] || "");
+                const cellTag = rowIndex === layout.headerRow ? "th" : "td";
                 if (hasFormula && isDataRow) {
-                    return `<td style="background:#eef2ff; color:#5b6f9f;" title="수식 셀(자동계산, 선택 불가)">${cellText || "(수식)"}</td>`;
+                    return `<${cellTag}${spanAttrs} style="background:#eef2ff; color:#5b6f9f;" title="수식 셀(자동계산, 선택 불가)">${cellText || "(수식)"}</${cellTag}>`;
                 }
                 if (file.inputMode === "cell" && isDataRow) {
                     const key = `${rowIndex},${columnIndex}`;
                     const checked = file.inputCells.includes(key) ? "checked" : "";
-                    return `<td style="background:#fff8dc;"><label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${cellText}</label></td>`;
+                    return `<${cellTag}${spanAttrs} style="background:#fff8dc;"><label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${cellText}</label></${cellTag}>`;
                 }
                 const highlight = file.inputMode === "column" && isDataRow && file.inputColumns.includes(columnIndex);
-                return `<td${highlight ? " style=\"background:#fff8dc;\"" : ""}>${cellText}</td>`;
+                return `<${cellTag}${spanAttrs}${highlight ? " style=\"background:#fff8dc;\"" : ""}>${cellText}</${cellTag}>`;
             }).join("");
             return `<tr>${tds}</tr>`;
         }).join("");
@@ -5562,7 +5610,7 @@ class PuttingTrainingApp {
             ${modeToggleHtml}
             <div class="mission-field-picker" style="${file.inputMode === "column" ? "" : "display:none;"}"><div class="mission-field-picker-list">${columnFieldOptions || "표 헤더가 없습니다."}</div></div>
             <div class="small" style="${file.inputMode === "cell" ? "" : "display:none;"} margin:4px 0; color:#5b6f9f;">표에서 선수가 입력할 셀을 개별적으로 체크하세요. (파란 배경: 수식 셀 - 자동계산, 선택 불가)</div>
-            <div class="mission-upload-preview"><table class="distance-table"><tbody>${previewRows}</tbody></table></div>
+            <div class="mission-upload-preview"><table class="mission-result-table"><tbody>${previewRows}</tbody></table></div>
         `;
 
         target.querySelectorAll('input[name="missionInputModeRadio"]').forEach((radio) => {
@@ -6053,6 +6101,35 @@ class PuttingTrainingApp {
         setTimeout(() => window.URL.revokeObjectURL(url), 0);
     }
 
+    async mergeLatestMissionRecords() {
+        const localRecords = Array.isArray(this.records) ? this.records.slice() : [];
+        if (CLOUD_STATE_SERVICE?.enabled) {
+            try {
+                await CLOUD_STATE_SERVICE.pullFromCloud();
+            } catch (error) {
+                console.warn("미션 결과 최신 기록 동기화 실패:", error);
+            }
+        }
+        const cloudRecords = this.storageService.getRecords();
+        const merged = [...cloudRecords, ...localRecords];
+        const seen = new Set();
+        this.records = merged.filter((record) => {
+            const key = [
+                record.mission,
+                record.date,
+                record.playerName,
+                record.sessionDate,
+                record.missionFileId,
+                record.missionFileName,
+                record.missionMessageType,
+                record.missionResponse
+            ].map((value) => String(value ?? "")).join("||");
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
     async saveMissionResultEntry(fileId) {
         // 선수 모드: 카드 내 양식(원본 표 행별 입력 + 메모)으로 수행 결과를 기록하면 records에 저장되어 클라우드 동기화로 코치에게도 공유된다.
         if (this.isCoachMode()) return;
@@ -6106,6 +6183,7 @@ class PuttingTrainingApp {
             .join("\n");
         const responseText = freeText ? `${formText}\n메모: ${freeText}` : formText;
 
+        await this.mergeLatestMissionRecords();
         this.records.push(new MissionRecord({
             mission: "COACH_MISSION",
             playerName,
@@ -6242,6 +6320,39 @@ class PuttingTrainingApp {
             return;
         }
 
+        const isSameMissionRecordForDelete = (record) => (
+            this.isSameMissionSource(record, file) ||
+            String(record?.missionFileName || "").trim() === String(file?.fileName || "").trim()
+        );
+        this.coachMissionFiles = this.coachMissionFiles.filter((item) => item.id !== fileId);
+        this.records = this.records.filter((record) => !(
+            record.mission === "COACH_MISSION" && isSameMissionRecordForDelete(record)
+        ));
+        this.missionResultUploads = this.missionResultUploads.filter((item) => !(
+            item?.missionDefinition && isSameMissionRecordForDelete(item)
+        ));
+        this.saveCoachMissionFiles();
+        this.storageService.saveRecords(this.records);
+        this.saveMissionResultUploads();
+        this.expandedMissionFileId = null;
+        this.activeMissionFileId = null;
+        if (CLOUD_STATE_SERVICE?.enabled) {
+            try {
+                await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.COACH_MISSIONS_KEY, localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY));
+                await CLOUD_STATE_SERVICE.forceSetItem("greenMissions", localStorage.getItem("greenMissions"));
+                await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, localStorage.getItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY));
+            } catch (error) {
+                if (resultTarget) resultTarget.textContent = this.language === "en"
+                    ? `Mission removal was saved locally, but cloud sync failed: ${error.message}`
+                    : `로컬에서는 삭제됐지만 클라우드 동기화에 실패했습니다: ${error.message}`;
+                return;
+            }
+        }
+        if (resultTarget) resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
+        this.renderCoachMissionFiles();
+        this.renderMissionWorkArea();
+        return;
+
         const targets = this.getMissionFileTargetPlayers(file);
         const selectedPlayer = this.getSelectedCoachPlayer();
         const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
@@ -6255,7 +6366,13 @@ class PuttingTrainingApp {
             ? selectedPlayer
             : uncheckedTargets.length === 1
                 ? uncheckedTargets[0]
-                : "";
+                : checkedTargets.length === 1
+                    ? checkedTargets[0]
+                    : "";
+        const isSameMissionRecord = (record) => (
+            this.isSameMissionSource(record, file) ||
+            String(record?.missionFileName || "").trim() === String(file?.fileName || "").trim()
+        );
         if (targets.length > 1) {
             if (!targetToRemove) {
                 if (resultTarget) resultTarget.textContent = this.t("needSelectedCoachPlayer");
@@ -6277,10 +6394,31 @@ class PuttingTrainingApp {
                     });
                 }
             }
+            this.records = this.records.filter((record) => !(
+                record.mission === "COACH_MISSION" &&
+                String(record.missionTargetPlayer || "").trim() === targetToRemove &&
+                isSameMissionRecord(record)
+            ));
+            this.missionResultUploads = this.missionResultUploads
+                .map((item) => {
+                    if (!item?.missionDefinition || !isSameMissionRecord(item)) return item;
+                    return {
+                        ...item,
+                        targetPlayers: remainingTargets.slice(),
+                        targetPlayer: remainingTargets[0] || ""
+                    };
+                });
+            const coachPlayerFilter = document.getElementById("coachPlayerFilter");
+            this.coachSelectedPlayer = targetToRemove;
+            if (coachPlayerFilter) coachPlayerFilter.value = targetToRemove;
             this.saveCoachMissionFiles();
+            this.storageService.saveRecords(this.records);
+            this.saveMissionResultUploads();
             if (CLOUD_STATE_SERVICE?.enabled) {
                 try {
-                    await CLOUD_STATE_SERVICE.flushNow(APP_CONFIG.COACH_MISSIONS_KEY);
+                    await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.COACH_MISSIONS_KEY, localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY));
+                    await CLOUD_STATE_SERVICE.forceSetItem("greenMissions", localStorage.getItem("greenMissions"));
+                    await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, localStorage.getItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY));
                 } catch (error) {
                     if (resultTarget) resultTarget.textContent = this.language === "en"
                         ? `Assignment changed locally, but cloud sync failed: ${error.message}`
@@ -6291,10 +6429,21 @@ class PuttingTrainingApp {
             if (resultTarget) resultTarget.textContent = this.t("missionAssignmentRemoved", { player: targetToRemove });
         } else {
             this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== fileId);
+            this.records = this.records.filter((record) => !(
+                record.mission === "COACH_MISSION" &&
+                isSameMissionRecord(record)
+            ));
+            this.missionResultUploads = this.missionResultUploads.filter((item) => !(
+                item?.missionDefinition && isSameMissionRecord(item)
+            ));
             this.saveCoachMissionFiles();
+            this.storageService.saveRecords(this.records);
+            this.saveMissionResultUploads();
             if (CLOUD_STATE_SERVICE?.enabled) {
                 try {
-                    await CLOUD_STATE_SERVICE.flushNow(APP_CONFIG.COACH_MISSIONS_KEY);
+                    await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.COACH_MISSIONS_KEY, localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY));
+                    await CLOUD_STATE_SERVICE.forceSetItem("greenMissions", localStorage.getItem("greenMissions"));
+                    await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, localStorage.getItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY));
                 } catch (error) {
                     if (resultTarget) resultTarget.textContent = this.language === "en"
                         ? `Mission removal was saved locally, but cloud sync failed: ${error.message}`
