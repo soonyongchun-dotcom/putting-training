@@ -1751,6 +1751,7 @@
     }
     // B패널 메트릭 별도 저장 — Frame 6 토크 전환 지수의 백스윙탑(F1 B패널) 기준점 등 프레임 간 참조용
     frameSideMetricsHistory[selectedSegment] = JSON.parse(JSON.stringify(sideResult.frameMetrics || null));
+    if (selectedSegment === 'frame1') refreshFrame2RadiusCompression();
     if (selectedSegment === 'frame4') refreshFrame3GroundForceTransition();
     updateSummary(displayedFrontResult, sideResult, deltaResult);
     updateComparisonSection(deltaResult);
@@ -2876,6 +2877,21 @@
     updateSegmentScoresDisplay();
   }
 
+  function refreshFrame2RadiusCompression() {
+    // Frame 1(백스윙 탑)을 나중에 다시 완료해도 이미 표시된 Frame 2 카드가 갱신되도록 함
+    // (기존엔 Frame1 B패널을 Frame2 분석 이후에 완료하면 "Frame 1 탑 선행 분석 필요"가 그대로 남아있었음)
+    const frame2Result = segmentDeltaHistory.frame2;
+    const frame1History = frameMetricsHistory.frame1;
+    if (!frame2Result || !frame2Result.fm || !frame1History) return;
+    const fm = frame2Result.fm;
+    fm.radiusTop = hasMetric(frame1History._coreHandRadiusB) ? frame1History._coreHandRadiusB : null;
+    fm.radiusCompressionRatio = (fm.radiusTop != null && fm.radiusTop > 0 && fm.radiusF2 != null)
+      ? (fm.radiusTop - fm.radiusF2) / fm.radiusTop : null;
+    frame2Result.segmentScore = computeSegmentScore(frame2Result, 'frame2');
+    segmentScoreHistory.frame2 = frame2Result.segmentScore;
+    updateSegmentComparisonCard('frame2', frame2Result);
+  }
+
   function refreshFrame3GroundForceTransition() {
     const frame3Result = segmentDeltaHistory.frame3;
     const frame4History = frameMetricsHistory.frame4;
@@ -2934,7 +2950,9 @@
       if (analysisDeltaCardF2RadiusCompression) analysisDeltaCardF2RadiusCompression.textContent =
         hasMetric(fm.radiusCompressionRatio)
           ? `코어-손 압축: ${formatPercent(fm.radiusCompressionRatio * 100)} (탑 ${fm.radiusTop.toFixed(3)}→F2 ${fm.radiusF2.toFixed(3)}; ${fm.radiusCompressionRatio >= 0.20 ? '만점 기준 충족' : fm.radiusCompressionRatio > 0 ? '압축' : '유지/확장'})`
-          : '코어-손 압축: Frame 1 탑 선행 분석 필요';
+          : !hasMetric(fm.radiusTop)
+            ? '코어-손 압축: Frame 1 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요'
+            : '코어-손 압축: Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)';
       if (analysisDeltaCardF2CoreShift) analysisDeltaCardF2CoreShift.textContent =
         fm.pelvisLateralDelta != null
           ? `코어 이동: ${formatPercent(fm.pelvisLateralDelta * 100)}`  // 양수 = 목표방향 이동

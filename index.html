@@ -4649,17 +4649,8 @@ class PuttingTrainingApp {
                 const rows = sourceRows;
                 let tableHtml = "";
                     if (rows.length > 0) {
-                    const maxCols = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
-                    const normRows = rows.map((row) => {
-                        const cells = Array.isArray(row) ? row.slice(0, maxCols) : [];
-                        while (cells.length < maxCols) cells.push("");
-                        return cells;
-                    });
-                    const inputLayout = this.getMissionInputLayout({ ...file, sourceRows: rows });
-                    const inputHeaderRow = inputLayout.headerRow;
-                    const headerCells = normRows[inputHeaderRow] || normRows[0];
+                    const { normRows, headerRow: inputHeaderRow, mergeMaps } = this.buildMissionPreviewGrid({ ...file, sourceRows: rows });
                     const formulasForFile = this.getMissionSourceFormulas(file);
-                    const mergeMaps = this.getMissionMergeRenderMaps(file);
                     const fullTableHtml = normRows.map((row, rowIndex) => {
                         const cellsHtml = row.map((cell, columnIndex) => {
                             const cellKey = `${rowIndex},${columnIndex}`;
@@ -5102,6 +5093,20 @@ class PuttingTrainingApp {
             return file.inputMode;
         }
         return "column";
+    }
+
+    // 코치 셀선택 화면과 선수 화면이 동일한 표 구조(행/열 패딩, 병합맵)를 쓰도록 통합
+    buildMissionPreviewGrid(file) {
+        const rows = Array.isArray(file?.sourceRows) ? file.sourceRows : [];
+        const maxCols = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+        const normRows = rows.map((row) => {
+            const cells = Array.isArray(row) ? row.slice(0, maxCols) : [];
+            while (cells.length < maxCols) cells.push("");
+            return cells;
+        });
+        const layout = this.getMissionInputLayout({ ...file, sourceRows: rows });
+        const mergeMaps = this.getMissionMergeRenderMaps(file);
+        return { normRows, maxCols, headerRow: layout.headerRow, headers: layout.headers, mergeMaps };
     }
 
     // 수식 셈은 자동계산되므로 항상 입력 불가
@@ -5551,13 +5556,10 @@ class PuttingTrainingApp {
         }
 
         const file = this.pendingMissionFiles[this.pendingMissionFileIndex] || this.pendingMissionFiles[0];
-        const rows = Array.isArray(file.sourceRows) ? file.sourceRows : [];
-        const layout = this.getMissionInputLayout(file);
-        file.inputHeaderRow = layout.headerRow;
-        const headers = layout.headers;
+        const { normRows, maxCols: maxColumns, headerRow, headers, mergeMaps } = this.buildMissionPreviewGrid(file);
+        file.inputHeaderRow = headerRow;
+        const layout = { headerRow };
         const formulas = file.sourceFormulas || {};
-        const maxColumns = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), headers.length);
-        const mergeMaps = this.getMissionMergeRenderMaps(file);
         const esc = (value) => String(value ?? "")
             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -5580,7 +5582,7 @@ class PuttingTrainingApp {
             </label>
         `).join("");
 
-        const previewRows = rows.map((row, rowIndex) => {
+        const previewRows = normRows.map((row, rowIndex) => {
             const cells = Array.isArray(row) ? row : [];
             const isDataRow = rowIndex > layout.headerRow;
             const tds = Array.from({ length: maxColumns }, (_, columnIndex) => {
@@ -5591,16 +5593,18 @@ class PuttingTrainingApp {
                 const hasFormula = !!formulas[`${rowIndex},${columnIndex}`];
                 const cellText = esc(cells[columnIndex] || "");
                 const cellTag = rowIndex === layout.headerRow ? "th" : "td";
+                // 수식 셀은 업로드 원본 값을 그대로 보여주되(자동계산), 그 외 셀은 코치가 바로 수정 가능
+                const editInput = `<input type="text" class="mission-preview-cell-edit" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${cellText}" style="width:100%; min-width:90px; border:1px solid transparent; background:transparent; font:inherit; color:inherit; text-align:inherit; padding:2px 4px; box-sizing:border-box;">`;
                 if (hasFormula && isDataRow) {
                     return `<${cellTag}${spanAttrs} style="background:#eef2ff; color:#5b6f9f;" title="수식 셀(자동계산, 선택 불가)">${cellText || "(수식)"}</${cellTag}>`;
                 }
                 if (file.inputMode === "cell" && isDataRow) {
                     const key = `${rowIndex},${columnIndex}`;
                     const checked = file.inputCells.includes(key) ? "checked" : "";
-                    return `<${cellTag}${spanAttrs} style="background:#fff8dc;"><label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${cellText}</label></${cellTag}>`;
+                    return `<${cellTag}${spanAttrs} style="background:#fff8dc;"><label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${editInput}</label></${cellTag}>`;
                 }
                 const highlight = file.inputMode === "column" && isDataRow && file.inputColumns.includes(columnIndex);
-                return `<${cellTag}${spanAttrs}${highlight ? " style=\"background:#fff8dc;\"" : ""}>${cellText}</${cellTag}>`;
+                return `<${cellTag}${spanAttrs}${highlight ? " style=\"background:#fff8dc;\"" : ""}>${editInput}</${cellTag}>`;
             }).join("");
             return `<tr>${tds}</tr>`;
         }).join("");
@@ -5610,8 +5614,22 @@ class PuttingTrainingApp {
             ${modeToggleHtml}
             <div class="mission-field-picker" style="${file.inputMode === "column" ? "" : "display:none;"}"><div class="mission-field-picker-list">${columnFieldOptions || "표 헤더가 없습니다."}</div></div>
             <div class="small" style="${file.inputMode === "cell" ? "" : "display:none;"} margin:4px 0; color:#5b6f9f;">표에서 선수가 입력할 셀을 개별적으로 체크하세요. (파란 배경: 수식 셀 - 자동계산, 선택 불가)</div>
+            <div class="small" style="margin:4px 0; color:#5b6f9f;">표 안의 값(헤더 포함)을 클릭해 직접 수정할 수 있습니다. 수식 셀(파란 배경)은 자동계산이라 수정 불가합니다.</div>
             <div class="mission-upload-preview"><table class="mission-result-table"><tbody>${previewRows}</tbody></table></div>
         `;
+
+        target.querySelectorAll(".mission-preview-cell-edit").forEach((input) => {
+            input.addEventListener("focus", () => { input.style.borderColor = "#8aa2d8"; input.style.background = "#fff"; });
+            input.addEventListener("blur", () => { input.style.borderColor = "transparent"; input.style.background = "transparent"; });
+            input.addEventListener("change", () => {
+                const rowIndex = Number(input.dataset.rowIndex);
+                const columnIndex = Number(input.dataset.columnIndex);
+                if (!Array.isArray(file.sourceRows[rowIndex])) file.sourceRows[rowIndex] = [];
+                file.sourceRows[rowIndex][columnIndex] = input.value;
+                // 헤더 텍스트를 바꾸면 "입력 허용 필드" 목록 라벨도 갱신되도록 다시 렌더링
+                if (rowIndex === layout.headerRow) this.renderPendingMissionUploadPreview();
+            });
+        });
 
         target.querySelectorAll('input[name="missionInputModeRadio"]').forEach((radio) => {
             radio.addEventListener("change", () => {
