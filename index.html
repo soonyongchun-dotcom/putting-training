@@ -6320,39 +6320,6 @@ class PuttingTrainingApp {
             return;
         }
 
-        const isSameMissionRecordForDelete = (record) => (
-            this.isSameMissionSource(record, file) ||
-            String(record?.missionFileName || "").trim() === String(file?.fileName || "").trim()
-        );
-        this.coachMissionFiles = this.coachMissionFiles.filter((item) => item.id !== fileId);
-        this.records = this.records.filter((record) => !(
-            record.mission === "COACH_MISSION" && isSameMissionRecordForDelete(record)
-        ));
-        this.missionResultUploads = this.missionResultUploads.filter((item) => !(
-            item?.missionDefinition && isSameMissionRecordForDelete(item)
-        ));
-        this.saveCoachMissionFiles();
-        this.storageService.saveRecords(this.records);
-        this.saveMissionResultUploads();
-        this.expandedMissionFileId = null;
-        this.activeMissionFileId = null;
-        if (CLOUD_STATE_SERVICE?.enabled) {
-            try {
-                await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.COACH_MISSIONS_KEY, localStorage.getItem(APP_CONFIG.COACH_MISSIONS_KEY));
-                await CLOUD_STATE_SERVICE.forceSetItem("greenMissions", localStorage.getItem("greenMissions"));
-                await CLOUD_STATE_SERVICE.forceSetItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY, localStorage.getItem(APP_CONFIG.MISSION_RESULT_UPLOADS_KEY));
-            } catch (error) {
-                if (resultTarget) resultTarget.textContent = this.language === "en"
-                    ? `Mission removal was saved locally, but cloud sync failed: ${error.message}`
-                    : `로컬에서는 삭제됐지만 클라우드 동기화에 실패했습니다: ${error.message}`;
-                return;
-            }
-        }
-        if (resultTarget) resultTarget.textContent = this.t("fileDeleted", { fileName: file.fileName });
-        this.renderCoachMissionFiles();
-        this.renderMissionWorkArea();
-        return;
-
         const targets = this.getMissionFileTargetPlayers(file);
         const selectedPlayer = this.getSelectedCoachPlayer();
         const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
@@ -6409,8 +6376,11 @@ class PuttingTrainingApp {
                     };
                 });
             const coachPlayerFilter = document.getElementById("coachPlayerFilter");
-            this.coachSelectedPlayer = targetToRemove;
-            if (coachPlayerFilter) coachPlayerFilter.value = targetToRemove;
+            const nextSelectedPlayer = remainingTargets.includes(selectedPlayer)
+                ? selectedPlayer
+                : (remainingTargets[0] || "");
+            this.coachSelectedPlayer = nextSelectedPlayer;
+            if (coachPlayerFilter) coachPlayerFilter.value = nextSelectedPlayer;
             this.saveCoachMissionFiles();
             this.storageService.saveRecords(this.records);
             this.saveMissionResultUploads();
