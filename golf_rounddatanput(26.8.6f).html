@@ -3039,7 +3039,7 @@ function calcMetricsForRound(roundId){
   const driveDistanceSum = driveLens.reduce((a,b)=> a + Number(b || 0), 0);
   const driveDistanceCount = driveLens.length;
   const longestDrive = longestDriveLens.length ? Math.max(...longestDriveLens) : null;
-  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
+  const threshold250 = (DISTANCE_UNIT === 'm') ? toCalcYards(228) : 250;
   const drive250Plus = driveLens.filter(d => d > threshold250).length;
   const scrambleRate = scrambleAttempts ? (scrambleSuccess / scrambleAttempts) * 100 : 0;
 
@@ -4092,7 +4092,7 @@ function recomputeRound(){
   const driveLens = perHoleDriveDistances;
   
   // all distance calculations are yard-based
-  const threshold250 = (DISTANCE_UNIT === 'm') ? 228 : 250;
+  const threshold250 = (DISTANCE_UNIT === 'm') ? toCalcYards(228) : 250;
   const drive250PlusCount = driveLens.filter(d => d > threshold250).length;
 
   // compute GIR% and putt percentages and proximity avg
