@@ -537,7 +537,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="top-bar">
     <div>
-        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.5f</span></h1>
+        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.6ff</span></h1>
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
@@ -898,6 +898,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
   <div class="mission-section-title" id="missionTaskTitle">수행미션</div>
   <div class="section-action-row">
     <button id="refreshMissionFilesBtn" type="button" class="secondary-btn">🔄 미션 진행상황 동기화</button>
+        <button id="deleteMissionFileBtn" type="button" class="secondary-btn">미션 전체 삭제</button>
       <span id="refreshMissionFilesResult" style="font-size:12px; color:#3d5fa1;"></span>
   </div>
   <div class="mission-file-list" id="missionFileList"></div>
@@ -1400,6 +1401,7 @@ const UI_I18N = {
         missionReassignApply: "미션 배정 대상 변경",
         missionProgressSync: "🔄 미션 진행상황 동기화",
         missionDeleteBtn: "선택 선수 배정 삭제",
+        missionDeleteAllBtn: "미션 전체 삭제",
         needSelectedCoachPlayer: "삭제할 선수를 먼저 선택하세요.",
         missionAssignmentRemoved: "선수 배정 삭제 완료: {{player}}",
         missionReassigned: "재배정 완료: {{players}}",
@@ -1591,6 +1593,7 @@ const UI_I18N = {
         missionReassignApply: "Change Mission Assignment Targets",
         missionProgressSync: "🔄 Sync Mission Progress",
         missionDeleteBtn: "Remove Selected Player Assignment",
+        missionDeleteAllBtn: "Delete Entire Mission",
         needSelectedCoachPlayer: "Select a player before removing the assignment.",
         missionAssignmentRemoved: "Player assignment removed: {{player}}",
         missionReassigned: "Reassigned: {{players}}",
@@ -3369,7 +3372,7 @@ class PuttingTrainingApp {
             setText("#registerPlayerBtn", this.t("registerPlayerBtn"));
             setText("#saveMissionInputBtn", this.t("missionSendBtn"));
             setText("#saveMissionDirectBtn", this.t("saveMissionDirect"));
-            setText("#deleteMissionFileBtn", this.language === "en" ? "Delete Selected File" : "선택 파일 삭제");
+            setText("#deleteMissionFileBtn", this.t("missionDeleteAllBtn"));
             setText("#uploadMissionResultBtn", this.t("uploadMissionResult"));
             setText("#downloadMissionResultBtn", this.t("downloadMissionResult"));
             setText("#missionTaskTitle", this.isCoachMode() ? this.t("missionTaskTitleCoach") : this.t("missionTaskTitlePlayer"));
@@ -6318,7 +6321,7 @@ class PuttingTrainingApp {
         this.renderMissionWorkArea();
     }
 
-    async deleteMissionFileById(fileId) {
+    async deleteMissionFileById(fileId, options = {}) {
         const resultTarget = document.getElementById("missionSaveResult");
         if (!this.isCoachMode()) {
             if (resultTarget) resultTarget.textContent = this.t("coachDeleteOnly");
@@ -6358,7 +6361,7 @@ class PuttingTrainingApp {
             this.isSameMissionSource(record, file) ||
             String(record?.missionFileName || "").trim() === String(file?.fileName || "").trim()
         );
-        if (targets.length > 1) {
+        if (targets.length > 1 && !options.deleteWholeFile) {
             if (!targetToRemove) {
                 if (resultTarget) resultTarget.textContent = this.t("needSelectedCoachPlayer");
                 return;
@@ -6451,7 +6454,7 @@ class PuttingTrainingApp {
     }
 
     deleteSelectedMissionFile() {
-        this.deleteMissionFileById(this.activeMissionFileId);
+        this.deleteMissionFileById(this.activeMissionFileId, { deleteWholeFile: true });
     }
 
     async uploadMissionResultData() {
