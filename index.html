@@ -410,6 +410,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .mission-result-table th, .mission-result-table td { border:1px solid #d7e0f2; padding:4px 6px; text-align:center; }
 .mission-result-table th { background:#eef4ff; color:#1f4db8; }
 .mission-result-table td { background:#fff; }
+.mission-result-table .mission-source-cell { white-space:pre-wrap; }
 .mission-result-input { width:100%; min-width:110px; border:1px solid #c7d4ee; border-radius:6px; padding:5px 6px; box-sizing:border-box; font-size:12px; }
 .mission-result-table th .mission-result-input { margin:0; min-width:110px; color:#1f2937; background:#fff; font-weight:normal; }
 .mission-formula-cell { background:#eef2ff; color:#334155; font-weight:600; }
@@ -2075,7 +2076,10 @@ class SheetFormulaEvaluator {
                 const col = Number(colStr);
                 const value = this.evaluate(formulas[key]);
                 if (!this.grid[row]) this.grid[row] = [];
-                this.grid[row][col] = value === true ? "TRUE" : value === false ? "FALSE" : value;
+                // 지원하지 않는 수식은 Excel이 저장한 마지막 계산값을 유지한다.
+                if (value !== "#ERR" && value !== "#NAME?") {
+                    this.grid[row][col] = value === true ? "TRUE" : value === false ? "FALSE" : value;
+                }
             });
         }
         return this.grid;
@@ -2135,6 +2139,9 @@ class MissionRecord {
         this.missionSourceRows = Array.isArray(payload.missionSourceRows) ? payload.missionSourceRows : null;
         this.missionSourceFormulas = payload.missionSourceFormulas && typeof payload.missionSourceFormulas === "object" ? payload.missionSourceFormulas : null;
         this.missionSourceMerges = Array.isArray(payload.missionSourceMerges) ? payload.missionSourceMerges : null;
+        this.missionSourceCellStyles = payload.missionSourceCellStyles && typeof payload.missionSourceCellStyles === "object" ? payload.missionSourceCellStyles : null;
+        this.missionSourceRowHeights = Array.isArray(payload.missionSourceRowHeights) ? payload.missionSourceRowHeights : null;
+        this.missionSourceColumnWidths = Array.isArray(payload.missionSourceColumnWidths) ? payload.missionSourceColumnWidths : null;
         this.missionInputColumns = Array.isArray(payload.missionInputColumns) ? payload.missionInputColumns : null;
         this.missionInputCells = Array.isArray(payload.missionInputCells) ? payload.missionInputCells : null;
         this.missionInputMode = payload.missionInputMode || "column";
@@ -4661,23 +4668,22 @@ class PuttingTrainingApp {
                             const span = mergeMaps.spans.get(cellKey);
                             const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                             const isEditable = this.isMissionCellEditable(file, rowIndex, columnIndex);
+                            const sourceStyle = this.getMissionCellStyle(file, rowIndex, columnIndex);
+                            const cellAttrs = `${spanAttrs} class="mission-source-cell${formulasForFile[cellKey] ? " mission-formula-cell" : ""}"${sourceStyle ? ` style="${sourceStyle}"` : ""}`;
                             if (rowIndex === inputHeaderRow) {
                                 if (isEditable) {
-                                    return `<th${spanAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></th>`;
+                                    return `<th${cellAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></th>`;
                                 }
-                                return `<th${spanAttrs}>${esc(String(cell || "").trim() || "-")}</th>`;
+                                return `<th${cellAttrs}>${esc(String(cell || "").trim() || "-")}</th>`;
                             }
                             if (isEditable) {
-                                return `<td${spanAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></td>`;
+                                return `<td${cellAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></td>`;
                             }
-                            if (formulasForFile[`${rowIndex},${columnIndex}`]) {
-                                return `<td${spanAttrs} class="mission-formula-cell" data-row-index="${rowIndex}" data-column-index="${columnIndex}">${esc(cell)}</td>`;
-                            }
-                            return `<td${spanAttrs}>${esc(cell)}</td>`;
+                            return `<td${cellAttrs} data-row-index="${rowIndex}" data-column-index="${columnIndex}">${esc(cell)}</td>`;
                         }).join("");
-                        return `<tr>${cellsHtml}</tr>`;
+                        return `<tr${this.getMissionRowStyle(file, rowIndex)}>${cellsHtml}</tr>`;
                     }).join("");
-                    tableHtml = `<table class="mission-result-table"><tbody>${fullTableHtml}</tbody></table>`;
+                    tableHtml = `<table class="mission-result-table"${this.getMissionTableStyle(file)}><tbody>${fullTableHtml}</tbody></table>`;
                 }
                 return `
                 <div class="mission-result-form">
@@ -4977,6 +4983,52 @@ class PuttingTrainingApp {
             return file.sourceMerges;
         }
         return [];
+    }
+
+    getMissionSourceCellStyles(file) {
+        return file?.sourceCellStyles && typeof file.sourceCellStyles === "object" ? file.sourceCellStyles : {};
+    }
+
+    toMissionCellStyle(cell) {
+        const style = cell?.s;
+        if (!style || typeof style !== "object") return "";
+
+        const toColor = (color) => {
+            const rgb = String(color?.rgb || color || "").replace(/^#/, "");
+            return /^[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(rgb) ? `#${rgb.slice(-6)}` : "";
+        };
+        const css = [];
+        const font = style.font || {};
+        const fill = style.fill || {};
+        const alignment = style.alignment || {};
+        const fontColor = toColor(font.color);
+        const fillColor = toColor(fill.fgColor || fill.bgColor);
+
+        if (fontColor) css.push(`color:${fontColor}`);
+        if (fillColor && fill.patternType !== "none") css.push(`background-color:${fillColor}`);
+        if (font.bold || font.b) css.push("font-weight:700");
+        if (font.italic || font.i) css.push("font-style:italic");
+        if (Number.isFinite(Number(font.sz)) && Number(font.sz) > 0) css.push(`font-size:${Number(font.sz)}pt`);
+        if (["left", "center", "right"].includes(alignment.horizontal)) css.push(`text-align:${alignment.horizontal}`);
+        if (["top", "center", "bottom"].includes(alignment.vertical)) css.push(`vertical-align:${alignment.vertical}`);
+        if (alignment.wrapText || alignment.wrap) css.push("white-space:pre-wrap");
+
+        return css.join(";");
+    }
+
+    getMissionCellStyle(file, rowIndex, columnIndex) {
+        return String(this.getMissionSourceCellStyles(file)[`${rowIndex},${columnIndex}`] || "");
+    }
+
+    getMissionRowStyle(file, rowIndex) {
+        const height = Number(file?.sourceRowHeights?.[rowIndex]);
+        return Number.isFinite(height) && height > 0 ? ` style="height:${height}px"` : "";
+    }
+
+    getMissionTableStyle(file) {
+        const widths = Array.isArray(file?.sourceColumnWidths) ? file.sourceColumnWidths : [];
+        const total = widths.reduce((sum, width) => sum + (Number(width) || 0), 0);
+        return total > 0 ? ` style="min-width:${Math.max(100, total * 7)}px"` : "";
     }
 
     getMissionMergeRenderMaps(file) {
@@ -5749,6 +5801,9 @@ class PuttingTrainingApp {
                     missionSourceRows: file.sourceRows,
                     missionSourceFormulas: file.sourceFormulas || null,
                     missionSourceMerges: file.sourceMerges || null,
+                    missionSourceCellStyles: file.sourceCellStyles || null,
+                    missionSourceRowHeights: file.sourceRowHeights || null,
+                    missionSourceColumnWidths: file.sourceColumnWidths || null,
                     missionInputColumns: file.inputColumns,
                     missionInputCells: file.inputCells,
                     missionInputMode: file.inputMode,
@@ -5770,6 +5825,9 @@ class PuttingTrainingApp {
                 missionSourceRows: file.sourceRows,
                 missionSourceFormulas: file.sourceFormulas || null,
                 missionSourceMerges: file.sourceMerges || null,
+                missionSourceCellStyles: file.sourceCellStyles || null,
+                missionSourceRowHeights: file.sourceRowHeights || null,
+                missionSourceColumnWidths: file.sourceColumnWidths || null,
                 missionInputColumns: file.inputColumns,
                 missionInputCells: file.inputCells,
                 missionInputMode: file.inputMode,
@@ -5808,6 +5866,9 @@ class PuttingTrainingApp {
         let sourceRows = [];
         let sourceFormulas = {};
         let sourceMerges = [];
+        let sourceCellStyles = {};
+        let sourceRowHeights = [];
+        let sourceColumnWidths = [];
         const uploadTitle = String(document.getElementById("missionUploadTitle")?.value || "").trim();
         const uploadDueDate = String(document.getElementById("missionUploadDueDate")?.value || "").trim();
         const uploadDetail = String(document.getElementById("missionUploadDetail")?.value || "").trim();
@@ -5816,7 +5877,7 @@ class PuttingTrainingApp {
         try {
             if (window.XLSX) {
                 const buffer = await file.arrayBuffer();
-                const workbook = window.XLSX.read(buffer, { type: "array" });
+                const workbook = window.XLSX.read(buffer, { type: "array", cellStyles: true, cellNF: true });
                 const firstSheetName = workbook.SheetNames[0];
                 const sheet = workbook.Sheets[firstSheetName];
                 if (sheet && sheet["!ref"]) {
@@ -5829,6 +5890,8 @@ class PuttingTrainingApp {
                             if (cell && cell.f) {
                                 sourceFormulas[`${r - range.s.r},${c - range.s.c}`] = cell.f;
                             }
+                            const style = this.toMissionCellStyle(cell);
+                            if (style) sourceCellStyles[`${r - range.s.r},${c - range.s.c}`] = style;
                             row.push(cell ? (cell.w ?? cell.v ?? "") : "");
                         }
                         rows.push(row);
@@ -5840,6 +5903,14 @@ class PuttingTrainingApp {
                             e: { r: merge.e.r - range.s.r, c: merge.e.c - range.s.c }
                         }))
                         : [];
+                    sourceRowHeights = Array.from({ length: range.e.r - range.s.r + 1 }, (_, index) => {
+                        const row = sheet["!rows"]?.[range.s.r + index];
+                        return Number(row?.hpx || (Number(row?.hpt) || 0) * (4 / 3)) || 0;
+                    });
+                    sourceColumnWidths = Array.from({ length: range.e.c - range.s.c + 1 }, (_, index) => {
+                        const col = sheet["!cols"]?.[range.s.c + index];
+                        return Number(col?.wch || 0);
+                    });
                 }
             }
         } catch (error) {
@@ -5867,6 +5938,11 @@ class PuttingTrainingApp {
             });
             sourceRows = [syntheticHeader, sourceRows[0]];
             sourceFormulas = shiftedFormulas;
+            sourceCellStyles = Object.fromEntries(Object.entries(sourceCellStyles).map(([key, value]) => {
+                const [row, col] = key.split(",").map(Number);
+                return [`${row + 1},${col}`, value];
+            }));
+            sourceRowHeights = [0, ...sourceRowHeights];
             sourceMerges = sourceMerges.map((merge) => ({
                 s: { r: Number(merge?.s?.r || 0) + 1, c: Number(merge?.s?.c || 0) },
                 e: { r: Number(merge?.e?.r || 0) + 1, c: Number(merge?.e?.c || 0) }
@@ -5908,6 +5984,9 @@ class PuttingTrainingApp {
             sourceRows,
             sourceFormulas,
             sourceMerges,
+            sourceCellStyles,
+            sourceRowHeights,
+            sourceColumnWidths,
             targetPlayer,
             targetPlayers: parsedTargets,
             inputMode: "column",
