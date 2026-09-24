@@ -899,7 +899,6 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
   <div class="mission-section-title" id="missionTaskTitle">수행미션</div>
   <div class="section-action-row">
     <button id="refreshMissionFilesBtn" type="button" class="secondary-btn">🔄 미션 진행상황 동기화</button>
-        <button id="deleteMissionFileBtn" type="button" class="secondary-btn">미션 전체 삭제</button>
       <span id="refreshMissionFilesResult" style="font-size:12px; color:#3d5fa1;"></span>
   </div>
   <div class="mission-file-list" id="missionFileList"></div>
@@ -4716,6 +4715,17 @@ class PuttingTrainingApp {
                 </div>
                 <div class="mission-card-actions">
                     <button type="button" class="secondary-btn" data-reassign-file="${esc(file.id)}">${this.t("missionReassignApply")}</button>
+                </div>
+                <div class="small" style="margin-top:10px; font-weight:bold;">${this.language === "en" ? "Select assignments to remove" : "삭제할 배정 선수 선택"}</div>
+                <div class="mission-reassign-list">
+                    ${targets.map((name) => `
+                        <label class="mission-target-item">
+                            <input type="checkbox" class="mission-remove-check" value="${esc(name)}">
+                            <span>${esc(name)}</span>
+                        </label>
+                    `).join("")}
+                </div>
+                <div class="mission-card-actions">
                     <button type="button" class="secondary-btn" data-delete-file="${esc(file.id)}">${this.t("missionDeleteBtn")}</button>
                 </div>
             ` : "";
@@ -6421,32 +6431,24 @@ class PuttingTrainingApp {
         }
 
         const targets = this.getMissionFileTargetPlayers(file);
-        const selectedPlayer = this.getSelectedCoachPlayer();
         const card = document.querySelector(`.mission-card[data-file-id="${fileId}"]`);
-        const checkedTargets = card
-            ? Array.from(card.querySelectorAll(".mission-reassign-check:checked"))
+        const targetToRemove = card
+            ? Array.from(card.querySelectorAll(".mission-remove-check:checked"))
                 .map((box) => String(box.value || "").trim())
-                .filter(Boolean)
+                .filter((name) => targets.includes(name))
             : [];
-        const uncheckedTargets = targets.filter((name) => !checkedTargets.includes(name));
-        const targetToRemove = selectedPlayer && targets.includes(selectedPlayer)
-            ? selectedPlayer
-            : uncheckedTargets.length === 1
-                ? uncheckedTargets[0]
-                : checkedTargets.length === 1
-                    ? checkedTargets[0]
-                    : "";
+        const remainingTargets = targets.filter((name) => !targetToRemove.includes(name));
+        const deleteWholeFile = options.deleteWholeFile || !remainingTargets.length;
         const isSameMissionRecord = (record) => (
             this.isSameMissionSource(record, file) ||
             String(record?.missionFileName || "").trim() === String(file?.fileName || "").trim()
         );
-        if (targets.length > 1 && !options.deleteWholeFile) {
-            if (!targetToRemove) {
+        if (!deleteWholeFile) {
+            if (!targetToRemove.length) {
                 if (resultTarget) resultTarget.textContent = this.t("needSelectedCoachPlayer");
                 return;
             }
 
-            const remainingTargets = targets.filter((name) => name !== targetToRemove);
             file.targetPlayers = remainingTargets;
             file.targetPlayer = remainingTargets[0] || "";
             if (Array.isArray(file.sourceRows) && file.sourceRows.length > 1) {
@@ -6463,7 +6465,7 @@ class PuttingTrainingApp {
             }
             this.records = this.records.filter((record) => !(
                 record.mission === "COACH_MISSION" &&
-                String(record.missionTargetPlayer || "").trim() === targetToRemove &&
+                targetToRemove.includes(String(record.missionTargetPlayer || "").trim()) &&
                 isSameMissionRecord(record)
             ));
             this.missionResultUploads = this.missionResultUploads
@@ -6475,12 +6477,6 @@ class PuttingTrainingApp {
                         targetPlayer: remainingTargets[0] || ""
                     };
                 });
-            const coachPlayerFilter = document.getElementById("coachPlayerFilter");
-            const nextSelectedPlayer = remainingTargets.includes(selectedPlayer)
-                ? selectedPlayer
-                : (remainingTargets[0] || "");
-            this.coachSelectedPlayer = nextSelectedPlayer;
-            if (coachPlayerFilter) coachPlayerFilter.value = nextSelectedPlayer;
             this.saveCoachMissionFiles();
             this.storageService.saveRecords(this.records);
             this.saveMissionResultUploads();
@@ -6496,7 +6492,7 @@ class PuttingTrainingApp {
                     return;
                 }
             }
-            if (resultTarget) resultTarget.textContent = this.t("missionAssignmentRemoved", { player: targetToRemove });
+            if (resultTarget) resultTarget.textContent = this.t("missionAssignmentRemoved", { player: targetToRemove.join(", ") });
         } else {
             this.coachMissionFiles = this.coachMissionFiles.filter(item => item.id !== fileId);
             this.records = this.records.filter((record) => !(
@@ -7142,8 +7138,6 @@ class PuttingTrainingApp {
             });
             document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
-            const deleteMissionBtn = document.getElementById("deleteMissionFileBtn");
-            if (deleteMissionBtn) deleteMissionBtn.addEventListener("click", () => this.deleteSelectedMissionFile());
             const uploadResultBtn = document.getElementById("uploadMissionResultBtn");
             if (uploadResultBtn) uploadResultBtn.addEventListener("click", () => this.uploadMissionResultData());
             const downloadResultBtn = document.getElementById("downloadMissionResultBtn");
