@@ -933,6 +933,15 @@
     color: #d8c8a0;
     font-size: 0.82rem;
   }
+  .analysis-swing-type .swing-type-label {
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .analysis-swing-type .swing-type-label:focus-visible {
+    outline: 2px solid #ffd76a;
+    outline-offset: 2px;
+  }
   .analysis-guide {
     padding: 12px;
     border-radius: 10px;
@@ -1021,7 +1030,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.8ff</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.10f</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -3411,9 +3420,8 @@
   }
 
   /**
-   * F1~F6에서 산출된 지표만 재사용해 스윙 유형 적합도를 추정한다.
-   * 유형1은 축 고정·코어-손 압축·회전, 유형2는 골반 이동·시퀀스 선행,
-   * 유형3은 수직신전·지면반력·릴리즈 근거를 반영한다.
+   * F1~F4의 주 동작 지표와 F5/F6의 이동·시퀀스 보조 지표로 유형 적합도를 추정한다.
+   * 모든 하위 지표는 0~1로 정규화한 뒤 유형 간 상대 비중으로 표시한다.
    */
   function weightedAvg01(parts) {
     const valid = parts.filter(p => hasMetric(p.value));
@@ -3430,84 +3438,119 @@
     const f4 = segmentDeltaHistory.frame4 && segmentDeltaHistory.frame4.fm;
     const f5 = segmentDeltaHistory.frame5 && segmentDeltaHistory.frame5.fm;
     const f6 = segmentDeltaHistory.frame6 && segmentDeltaHistory.frame6.fm;
-    const analyzedCount = [f1, f2, f3, f4, f5, f6].filter(Boolean).length;
+    const analyzedCount = [f1, f2, f3, f4].filter(Boolean).length;
     if (analyzedCount < 2) return null;
 
-    const axisStable = f3 && hasMetric(f3.c7SwayPercent) ? clamp(1 - Math.abs(f3.c7SwayPercent) / 10, 0, 1) : null;
     const c7Displacement = f1 && hasMetric(f1.c7XPercent) && hasMetric(f1.c7YPercent)
       ? Math.hypot(f1.c7XPercent, f1.c7YPercent) : null;
-    const axisFixed = hasMetric(c7Displacement) ? clamp(1 - c7Displacement / 10, 0, 1) : null;
-    const compression = f2 && hasMetric(f2.radiusCompressionRatio) ? clamp(f2.radiusCompressionRatio / 0.6, 0, 1) : null;
-    const vertThrust = f3 && hasMetric(f3.kneeExtDelta) ? clamp(f3.kneeExtDelta / 40, 0, 1) : null;
-    const groundForce = f3 && f3._groundForce && hasMetric(f3._groundForce.score100)
-      ? clamp(f3._groundForce.score100 / 100, 0, 1) : null;
-    const coil = f1 && hasMetric(f1.xFactorDelta) ? clamp(Math.abs(f1.xFactorDelta) / 90, 0, 1) : null;
-    const releaseSpeed = f6 && hasMetric(f6.releaseIndex) ? clamp((f6.releaseIndex - 40) / 110, 0, 1) : null;
-    const sequenceLead = f6 && hasMetric(f6.sequenceIndex) ? clamp(f6.sequenceIndex / 2, 0, 1) : null;
-    const shiftRatioAbs  = f5 && hasMetric(f5.pelvisShiftRatio) ? Math.abs(f5.pelvisShiftRatio)
-                         : f2 && hasMetric(f2.pelvisLateralDelta) ? Math.abs(f2.pelvisLateralDelta) : null;
-    const linearShift = hasMetric(shiftRatioAbs) ? clamp(shiftRatioAbs / 0.25, 0, 1) : null;
-
-    // 유형1 — C7 축을 고정하고 코어-손 압축과 회전 토크를 쓰는 컴팩트형
-    const type1 = weightedAvg01([
-      { value: axisStable, weight: 0.25 },
-      { value: axisFixed, weight: 0.20 },
-      { value: compression, weight: 0.30 },
-      { value: coil, weight: 0.25 },
+    const axisStability = weightedAvg01([
+      { value: hasMetric(c7Displacement) ? bandScore(c7Displacement, 2, 12) : null, weight: 0.45 },
+      { value: f3 && hasMetric(f3.c7SwayPercent) ? bandScore(Math.abs(f3.c7SwayPercent), 2, 10) : null, weight: 0.30 },
+      { value: f3 && hasMetric(f3.c7RisePercent) ? bandScore(Math.max(0, f3.c7RisePercent), 0, 4) : null, weight: 0.25 },
     ]);
-    // 유형2 — 측면 골반 이동과 하체 선행 시퀀스 기반
-    const type2 = hasMetric(linearShift)
-      ? (hasMetric(sequenceLead) ? linearShift * sequenceLead : linearShift)
+    const upperTurn = f1 && hasMetric(f1.xFactorDelta) ? clamp(Math.abs(f1.xFactorDelta) / 90, 0, 1) : null;
+
+    const verticalDrive = f3 && hasMetric(f3.kneeExtDelta) ? rampScore(f3.kneeExtDelta, 0, 30) : null;
+    const hipLoad = f3 && hasMetric(f3.hipDropPercent) ? rampScore(f3.hipDropPercent, 0, 4) : null;
+    const leadLegBrace = f3 && hasMetric(f3.leadLegBraceRatioB)
+      ? bandScore(f3.leadLegBraceRatioB * 100, 10, 40) : null;
+    const legDriveProxy = weightedAvg01([
+      { value: hipLoad, weight: 0.40 },
+      { value: verticalDrive, weight: 0.35 },
+      { value: leadLegBrace, weight: 0.25 },
+    ]);
+    const lowDriveFit = hasMetric(legDriveProxy) ? 1 - legDriveProxy : null;
+    const mediumDriveFit = hasMetric(legDriveProxy)
+      ? clamp(1 - Math.abs(legDriveProxy - 0.5) * 2, 0, 1) : null;
+
+    const radiusTop = frameMetricsHistory.frame1 && frameMetricsHistory.frame1._swingRadiusB;
+    const radiusF2 = frameMetricsHistory.frame2 && frameMetricsHistory.frame2._swingRadiusB;
+    const radiusF4 = frameMetricsHistory.frame4 && frameMetricsHistory.frame4._swingRadiusB;
+    const swingCompression = hasMetric(radiusTop) && radiusTop > 0 && hasMetric(radiusF2)
+      ? (radiusTop - radiusF2) / radiusTop : null;
+    const swingExpansion = hasMetric(radiusF2) && radiusF2 > 0 && hasMetric(radiusF4)
+      ? (radiusF4 - radiusF2) / radiusF2 : null;
+    const compressionCycle = weightedAvg01([
+      { value: f2 && hasMetric(f2.radiusCompressionRatio) ? rampScore(f2.radiusCompressionRatio, 0, 0.35) : null, weight: 0.25 },
+      { value: hasMetric(swingCompression) ? rampScore(swingCompression, 0, 0.25) : null, weight: 0.30 },
+      { value: hasMetric(swingExpansion) ? rampScore(swingExpansion, 0, 0.25) : null, weight: 0.45 },
+    ]);
+
+    const shiftRatio = f5 && hasMetric(f5.pelvisShiftRatio) ? Math.abs(f5.pelvisShiftRatio)
+      : f2 && hasMetric(f2.pelvisLateralDelta) ? Math.abs(f2.pelvisLateralDelta) : null;
+    const shiftFit = hasMetric(shiftRatio)
+      ? clamp(1 - Math.max(0.20 - shiftRatio, shiftRatio - 0.30) / 0.20, 0, 1) : null;
+    const sequenceFit = f6 && hasMetric(f6.sequenceIndex) ? clamp(f6.sequenceIndex / 1.5, 0, 1) : null;
+    const shiftAndLead = hasMetric(shiftFit) && hasMetric(sequenceFit)
+      ? shiftFit * sequenceFit : (hasMetric(shiftFit) ? shiftFit : sequenceFit);
+    const turnShiftBlend = hasMetric(upperTurn) && hasMetric(shiftFit)
+      ? Math.sqrt(upperTurn * shiftFit) : (hasMetric(upperTurn) ? upperTurn : shiftFit);
+    const tempoPenalty = f6 && f6._tempo && hasMetric(f6._tempo.sTempo) ? f6._tempo.sTempo : null;
+    const tempoFit = hasMetric(tempoPenalty) ? 1 - tempoPenalty / 100 : null;
+    const armShaftRelease = f4 && hasMetric(f4.armShaftDelta)
+      ? (f4.armShaftDelta >= 100 ? 1
+        : f4.armShaftDelta >= 0 ? 0.5 + 0.5 * smoothstep01(f4.armShaftDelta / 100)
+          : rampScore(f4.armShaftDelta, -60, 0) * 0.5)
       : null;
-    // 유형3 — 수직신전과 지면반력 전환, 실제 릴리즈 근거 기반
+
+    // 유형1 — 낮은 하체 구동 proxy, 고정축, 상체 회전 중심
+    const type1 = weightedAvg01([
+      { value: axisStability, weight: 0.50 },
+      { value: upperTurn, weight: 0.30 },
+      { value: lowDriveFit, weight: 0.20 },
+    ]);
+    // 유형2 — 골반 이동과 Sequence Index로 하체 선행을 확인
+    const type2 = weightedAvg01([
+      { value: shiftAndLead, weight: 0.60 },
+      { value: legDriveProxy, weight: 0.40 },
+    ]);
+    // 유형3 — 압축·팽창, 턴+이동 결합, 중간 하체 구동 및 릴리즈/템포
     const type3 = weightedAvg01([
-      { value: vertThrust, weight: 0.40 },
-      { value: groundForce, weight: 0.30 },
-      { value: releaseSpeed, weight: 0.30 },
+      { value: compressionCycle, weight: 0.40 },
+      { value: turnShiftBlend, weight: 0.20 },
+      { value: mediumDriveFit, weight: 0.20 },
+      { value: armShaftRelease, weight: 0.10 },
+      { value: tempoFit, weight: 0.10 },
     ]);
 
     const raw = { type1: type1 || 0, type2: type2 || 0, type3: type3 || 0 };
-    const type3CapApplied = Boolean(
-      (f3 && hasMetric(f3.kneeExtDelta) && f3.kneeExtDelta <= 0)
-      || (f6 && hasMetric(f6.releaseIndex) && f6.releaseIndex < 100)
-    );
     const total = raw.type1 + raw.type2 + raw.type3;
     if (total <= 0) return null;
 
-    const labels = {
-      type1: '유형1(수평·회전 토크 중심형)',
-      type2: '유형2(측면 이동·레버리지형)',
-      type3: '유형3(수직 신전·휘핑형)',
-    };
-    const uncappedType3Pct = raw.type3 / total * 100;
-    const type3Pct = type3CapApplied ? Math.min(uncappedType3Pct, 15) : uncappedType3Pct;
-    const otherTotal = raw.type1 + raw.type2;
-    const remainingPct = 100 - type3Pct;
     const pct = {
-      type1: Math.round(otherTotal > 0 ? remainingPct * raw.type1 / otherTotal : remainingPct),
-      type2: Math.round(otherTotal > 0 ? remainingPct * raw.type2 / otherTotal : 0),
-      type3: Math.round(type3Pct),
+      type1: Math.round(raw.type1 / total * 100),
+      type2: Math.round(raw.type2 / total * 100),
+      type3: Math.round(raw.type3 / total * 100),
     };
-    const correctionType = raw.type1 >= raw.type2 || otherTotal <= 0 ? 'type1' : 'type2';
+    const correctionType = Object.entries(raw).sort((a, b) => b[1] - a[1])[0][0];
     pct[correctionType] += 100 - (pct.type1 + pct.type2 + pct.type3);
-    const sorted = Object.entries(pct).sort((a, b) => b[1] - a[1]);
-
-    const text = (sorted[0][1] >= 80 || sorted[1][1] < 15)
-      ? `${labels[sorted[0][0]]} ${sorted[0][1]}%`
-      : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}% 하이브리드`;
-
-    return { pct, text, analyzedCount, type3CapApplied };
+    return { pct, analyzedCount };
   }
 
   function updateSwingTypeCard() {
     if (!analysisSwingType) return;
     const result = classifySwingType();
     if (!result) {
-      analysisSwingType.innerHTML = '<strong>스윙 유형 추정:</strong> F1~F6 중 2개 이상 분석하면 표시됩니다.';
+      analysisSwingType.innerHTML = '<strong>스윙 유형 추정:</strong> F1~F4 중 2개 이상 분석하면 표시됩니다. F5/F6은 보조 근거로 반영됩니다.';
       return;
     }
-    analysisSwingType.innerHTML = `<strong>스윙 유형 추정:</strong> ${result.text}`
-      + `<span class="swing-type-note">F1~F6 지표 기반(유형1 ${result.pct.type1}% · 유형2 ${result.pct.type2}% · 유형3 ${result.pct.type3}%)${result.type3CapApplied ? ' — 수직신전 ≤0° 또는 Release Index 100 미만 기준으로 유형3 비중을 15% 이하로 제한' : ''} — 참고용 추정치</span>`;
+    const labels = {
+      type1: '유형1(수평·회전 토크 중심형)',
+      type2: '유형2(측면 이동·레버리지형)',
+      type3: '유형3(수직 신전·휘핑형)',
+    };
+    const descriptions = {
+      type1: 'C7 축을 안정시키고 상체 회전량을 중심으로 합니다. 하체 구동은 F3 신전·고관절 하강·리드레그 지지로 만든 2D proxy에서 상대적으로 낮게 추정합니다. 실제 지면반력 측정값은 아닙니다.',
+      type2: 'F5 골반 이동량과 F6 Sequence Index로 하체 선행을 추정하고, F3 하체 구동 proxy가 높을수록 적합도를 높입니다. 골반 회전 토크나 지면반력을 직접 측정한 값은 아닙니다.',
+      type3: 'F1 탑→F2 압축→F4 재전개에서 같은 골반-클럽헤드 반경을 비교하고, 상체 턴·골반 이동의 결합과 중간 수준의 하체 구동 proxy를 반영합니다. F4 릴리즈와 유효한 F6 템포도 보조 근거입니다.',
+    };
+    const typeLabel = key => `<span class="swing-type-label" tabindex="0" title="${descriptions[key]}" aria-label="${labels[key]}. ${descriptions[key]}">${labels[key]}</span>`;
+    const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
+    const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
+      ? `${typeLabel(sorted[0][0])} ${sorted[0][1]}%`
+      : `${typeLabel(sorted[0][0])} ${sorted[0][1]}% + ${typeLabel(sorted[1][0])} ${sorted[1][1]}% 하이브리드`;
+    analysisSwingType.innerHTML = `<strong>스윙 유형 추정:</strong> ${headline}`
+      + `<span class="swing-type-note">F1~F6 지표 기반 상대 적합도: ${typeLabel('type1')} ${result.pct.type1}% · ${typeLabel('type2')} ${result.pct.type2}% · ${typeLabel('type3')} ${result.pct.type3}% · GRF는 2D 동작 proxy 추정치</span>`;
   }
 
   function updateSegmentScoresDisplay() {
