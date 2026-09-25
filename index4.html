@@ -327,7 +327,8 @@
     display: flex;
   }
   .login-page .container,
-  .login-page .controls {
+  .login-page .controls,
+  .login-page .swing-compare-panel {
     display: none !important;
   }
   .login-box {
@@ -502,6 +503,88 @@
   .analysis-btn:hover {
     background: #ff9f2b;
   }
+  .swing-compare-panel {
+    display: none;
+    width: min(95vw, 990px);
+    margin: 14px auto 18px;
+    padding: 12px;
+    box-sizing: border-box;
+    color: #f7f7f7;
+    background: rgba(9, 20, 28, 0.92);
+    border: 1px solid rgba(68, 205, 180, 0.45);
+    border-radius: 8px;
+    text-align: left;
+  }
+  .swing-compare-panel.visible { display: block; }
+  .swing-compare-header,
+  .swing-compare-controls,
+  .swing-compare-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .swing-compare-header { justify-content: space-between; }
+  .swing-compare-title { font-size: 1rem; font-weight: 800; }
+  .swing-compare-controls select {
+    min-width: 190px;
+    padding: 6px 8px;
+    border-radius: 5px;
+  }
+  .swing-compare-status {
+    margin-top: 9px;
+    color: #b9d8d2;
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+  .swing-compare-opinion {
+    margin-top: 10px;
+    padding: 10px 12px;
+    color: #d8eee9;
+    background: rgba(68, 205, 180, 0.08);
+    border: 1px solid rgba(68, 205, 180, 0.24);
+    border-radius: 5px;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+  .swing-compare-opinion-guide {
+    display: block;
+    margin-top: 6px;
+    color: #9fc7bf;
+  }
+  .swing-compare-summary { margin-top: 10px; align-items: stretch; }
+  .swing-compare-metric {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.06);
+    border-left: 3px solid #44cdb4;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+  .swing-compare-metric strong {
+    display: block;
+    margin-top: 3px;
+    color: #7ef0d9;
+    font-size: 1.05rem;
+  }
+  .swing-compare-table-wrap { margin-top: 10px; overflow-x: auto; }
+  .swing-compare-table-wrap.collapsed { display: none; }
+  .swing-compare-table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  .swing-compare-table th,
+  .swing-compare-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+  }
+  .swing-compare-table th:first-child,
+  .swing-compare-table td:first-child { text-align: left; }
+  .swing-compare-active { background: #14836f !important; }
   .analysis-panel {
     margin: 0 auto 18px;
     width: min(95vw, 990px);
@@ -514,7 +597,7 @@
     transition: max-height 0.26s ease, padding 0.26s ease;
   }
   .analysis-panel.collapsed {
-    max-height: 130px;
+    max-height: none;
     padding: 0 12px 6px;
   }
   .analysis-panel:not(.collapsed) {
@@ -938,7 +1021,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver96.9.7f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.8ff</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1012,11 +1095,43 @@
   </div>
 </div>
 
+<section class="swing-compare-panel" id="swingComparePanel">
+  <div class="swing-compare-header">
+    <div class="swing-compare-title">A/B 스윙 핵심 포인트 비교</div>
+    <div class="swing-compare-controls">
+      <select id="swingComparePhaseSelect" aria-label="비교 시점">
+        <option value="address">어드레스</option>
+        <option value="top">백스윙 탑 (1/5)</option>
+        <option value="shoulder">어깨선 (2/5)</option>
+        <option value="waist">허리선 (3/5)</option>
+        <option value="preImpact">임팩트 전 (4/5)</option>
+        <option value="impact">임팩트 (5/5)</option>
+      </select>
+      <button type="button" id="swingCompareTableToggleBtn" aria-expanded="true">비교표 접기</button>
+      <button type="button" id="swingCompareClearPhaseBtn" title="현재 시점의 A/B 포인트만 삭제">현재 시점 지우기</button>
+      <button type="button" id="swingCompareResetBtn" title="모든 비교 포인트와 결과 삭제">비교 초기화</button>
+    </div>
+  </div>
+  <div class="swing-compare-status" id="swingCompareStatus">A/B에 서로 다른 스윙 영상을 불러온 뒤 비교 입력을 시작하세요.</div>
+  <div class="swing-compare-summary" id="swingCompareSummary"></div>
+  <div class="swing-compare-opinion">
+    <div id="swingCompareOpinion">6개 시점의 A/B 포인트를 입력하면 종합의견이 표시됩니다.</div>
+    <em class="swing-compare-opinion-guide">판정 기준: 종합 편차 5% 이내 = 같은 스윙 · 10% 이내 = 유사 스윙 · 10% 초과~20% 이내 = 약간 다른 스윙 · 20% 초과 = 다른 스윙</em>
+  </div>
+  <div class="swing-compare-table-wrap" id="swingCompareTableWrap">
+    <table class="swing-compare-table">
+      <thead><tr><th>시점</th><th>A 입력</th><th>B 입력</th><th>자세 유사도(%)</th><th>집중도 일치(%)</th><th>템포 일치(%)</th></tr></thead>
+      <tbody id="swingCompareTableBody"></tbody>
+    </table>
+  </div>
+</section>
+
 <div class="analysis-panel collapsed" id="analysisPanel">
   <div class="analysis-panel-header">
     <div class="analysis-panel-header-top">
       <span class="analysis-title">Motion Analysis</span>
-      <div style="display:flex; gap:8px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button type="button" id="swingCompareToggleBtn" title="서로 다른 A/B 스윙의 6개 주요 시점을 비교">A/B 스윙 비교</button>
         <button type="button" id="distanceReferenceBtn" title="비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정">기준선 지정</button>
         <button type="button" id="distanceMeasureBtn" title="두 점 사이의 화면상 거리를 측정">거리 산출</button>
         <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
@@ -1277,6 +1392,17 @@
   const sideCanvas = document.getElementById('sideCanvas');
   const frontCtx = frontCanvas.getContext('2d');
   const sideCtx = sideCanvas.getContext('2d');
+  const swingComparePanel = document.getElementById('swingComparePanel');
+  const swingComparePhaseSelect = document.getElementById('swingComparePhaseSelect');
+  const swingCompareToggleBtn = document.getElementById('swingCompareToggleBtn');
+  const swingCompareTableToggleBtn = document.getElementById('swingCompareTableToggleBtn');
+  const swingCompareClearPhaseBtn = document.getElementById('swingCompareClearPhaseBtn');
+  const swingCompareResetBtn = document.getElementById('swingCompareResetBtn');
+  const swingCompareStatus = document.getElementById('swingCompareStatus');
+  const swingCompareSummary = document.getElementById('swingCompareSummary');
+  const swingCompareOpinion = document.getElementById('swingCompareOpinion');
+  const swingCompareTableWrap = document.getElementById('swingCompareTableWrap');
+  const swingCompareTableBody = document.getElementById('swingCompareTableBody');
 
   const frontPlayBtn = document.getElementById('frontPlayBtn');
   const sidePlayBtn = document.getElementById('sidePlayBtn');
@@ -3678,6 +3804,7 @@
     frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     segmentScoreHistory  = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     segmentDeltaHistory  = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
+    resetSwingCompareData();
     // 가이드 상태 초기화
     guideView = null;
     guideStep = 0;
@@ -3719,6 +3846,350 @@
   let longPressTimer = null;
   let longPressTriggered = false;
   const LONG_PRESS_MS = 500;
+
+  const SWING_COMPARE_PHASES = [
+    { id: 'address', label: '어드레스' },
+    { id: 'top', label: '백스윙 탑 (1/5)' },
+    { id: 'shoulder', label: '어깨선 (2/5)' },
+    { id: 'waist', label: '허리선 (3/5)' },
+    { id: 'preImpact', label: '임팩트 전 (4/5)' },
+    { id: 'impact', label: '임팩트 (5/5)' },
+  ];
+  const SWING_COMPARE_POINT_TYPES = [
+    { id: 'wristCenter', label: '손목 중심', short: 'W', color: '#ffb300' },
+    { id: 'coreCenter', label: '코어 중심', short: 'C', color: '#ce66d8' },
+    { id: 'c7Center', label: 'C7', short: '7', color: '#ef4770' },
+    { id: 'clubHeadCenter', label: '클럽헤드 중심', short: 'K', color: '#26d9d0' },
+  ];
+  let swingCompareActive = false;
+  let swingComparePhase = 'address';
+  let swingCompareData = createEmptySwingCompareData();
+
+  function createEmptySwingCompareData() {
+    const data = { front: {}, side: {} };
+    ['front', 'side'].forEach(view => {
+      SWING_COMPARE_PHASES.forEach(phase => {
+        data[view][phase.id] = { points: [], videoTime: null };
+      });
+    });
+    return data;
+  }
+
+  function getSwingCompareEntry(view, phaseId = swingComparePhase) {
+    return swingCompareData[view][phaseId];
+  }
+
+  function getSwingComparePoint(view, phaseId, type) {
+    return getSwingCompareEntry(view, phaseId).points.find(point => point.type === type) || null;
+  }
+
+  function getSwingCompareAspect(view) {
+    const video = view === 'front' ? frontVideo : sideVideo;
+    return video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : 16 / 9;
+  }
+
+  function getSwingCompareLocalPose(view, phaseId) {
+    const core = getSwingComparePoint(view, phaseId, 'coreCenter');
+    const c7 = getSwingComparePoint(view, phaseId, 'c7Center');
+    if (!core || !c7) return null;
+    const aspect = getSwingCompareAspect(view);
+    const dx = (c7.x - core.x) * aspect;
+    const dy = c7.y - core.y;
+    const trunk = Math.hypot(dx, dy);
+    if (trunk < 0.005) return null;
+    const up = { x: dx / trunk, y: dy / trunk };
+    const across = { x: up.y, y: -up.x };
+    const pose = {};
+    SWING_COMPARE_POINT_TYPES.forEach(type => {
+      const point = getSwingComparePoint(view, phaseId, type.id);
+      if (!point) return;
+      const vx = (point.x - core.x) * aspect;
+      const vy = point.y - core.y;
+      pose[type.id] = {
+        x: (vx * across.x + vy * across.y) / trunk,
+        y: (vx * up.x + vy * up.y) / trunk,
+      };
+    });
+    return pose;
+  }
+
+  function scoreFromError(error, fullError) {
+    return Math.round(clamp(1 - error / fullError, 0, 1) * 100);
+  }
+
+  function average(values) {
+    return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+  }
+
+  function computeSwingComparePhaseMetrics(phaseId) {
+    const poseA = getSwingCompareLocalPose('front', phaseId);
+    const poseB = getSwingCompareLocalPose('side', phaseId);
+    if (!poseA || !poseB || SWING_COMPARE_POINT_TYPES.some(type => !poseA[type.id] || !poseB[type.id])) return null;
+    const errors = ['wristCenter', 'clubHeadCenter'].map(type => Math.hypot(
+      poseA[type].x - poseB[type].x,
+      poseA[type].y - poseB[type].y
+    ));
+    const poseRms = Math.sqrt(errors.reduce((sum, value) => sum + value * value, 0) / errors.length);
+    const concentration = pose => {
+      const points = SWING_COMPARE_POINT_TYPES.map(type => pose[type.id]);
+      const center = { x: average(points.map(point => point.x)), y: average(points.map(point => point.y)) };
+      return average(points.map(point => Math.hypot(point.x - center.x, point.y - center.y)));
+    };
+    const concentrationA = concentration(poseA);
+    const concentrationB = concentration(poseB);
+    const concentrationDiff = Math.abs(concentrationA - concentrationB) / Math.max(0.25, (concentrationA + concentrationB) / 2);
+    return {
+      poseScore: scoreFromError(poseRms, 0.75),
+      concentrationScore: scoreFromError(concentrationDiff, 0.6),
+    };
+  }
+
+  function getSwingCompareAddressFrame(view, phaseId, type) {
+    const addressCore = getSwingComparePoint(view, 'address', 'coreCenter');
+    const addressC7 = getSwingComparePoint(view, 'address', 'c7Center');
+    const point = getSwingComparePoint(view, phaseId, type);
+    if (!addressCore || !addressC7 || !point) return null;
+    const aspect = getSwingCompareAspect(view);
+    const dx = (addressC7.x - addressCore.x) * aspect;
+    const dy = addressC7.y - addressCore.y;
+    const trunk = Math.hypot(dx, dy);
+    if (trunk < 0.005) return null;
+    const up = { x: dx / trunk, y: dy / trunk };
+    const across = { x: up.y, y: -up.x };
+    const vx = (point.x - addressCore.x) * aspect;
+    const vy = point.y - addressCore.y;
+    return { x: (vx * across.x + vy * across.y) / trunk, y: (vx * up.x + vy * up.y) / trunk };
+  }
+
+  function computeSwingCompareTrajectoryScore(type) {
+    const errors = [];
+    SWING_COMPARE_PHASES.forEach(phase => {
+      const pointA = getSwingCompareAddressFrame('front', phase.id, type);
+      const pointB = getSwingCompareAddressFrame('side', phase.id, type);
+      if (pointA && pointB) errors.push(Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y));
+    });
+    if (errors.length < 2) return null;
+    const rms = Math.sqrt(errors.reduce((sum, value) => sum + value * value, 0) / errors.length);
+    return scoreFromError(rms, 1.2);
+  }
+
+  function getSwingCompareNormalizedTimes(view) {
+      const start = getSwingCompareEntry(view, 'address').videoTime;
+      const end = getSwingCompareEntry(view, 'impact').videoTime;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+      const values = {};
+      SWING_COMPARE_PHASES.forEach(phase => {
+        const time = getSwingCompareEntry(view, phase.id).videoTime;
+        if (Number.isFinite(time)) values[phase.id] = (time - start) / (end - start);
+      });
+      return values;
+  }
+
+  function computeSwingComparePhaseTimingScore(phaseId) {
+    const timesA = getSwingCompareNormalizedTimes('front');
+    const timesB = getSwingCompareNormalizedTimes('side');
+    if (!timesA || !timesB || !Number.isFinite(timesA[phaseId]) || !Number.isFinite(timesB[phaseId])) return null;
+    return scoreFromError(Math.abs(timesA[phaseId] - timesB[phaseId]), 0.2);
+  }
+
+  function computeSwingCompareTimingScore() {
+    const timesA = getSwingCompareNormalizedTimes('front');
+    const timesB = getSwingCompareNormalizedTimes('side');
+    if (!timesA || !timesB) return null;
+    const errors = SWING_COMPARE_PHASES
+      .filter(phase => Number.isFinite(timesA[phase.id]) && Number.isFinite(timesB[phase.id]))
+      .map(phase => Math.abs(timesA[phase.id] - timesB[phase.id]));
+    return errors.length >= 3 ? scoreFromError(average(errors), 0.2) : null;
+  }
+
+  function formatSwingCompareScore(value) {
+    return Number.isFinite(value) ? `${value}%` : '-';
+  }
+
+  function buildSwingCompareOpinion(values, phaseMetrics) {
+    const completed = phaseMetrics.filter(item => item.metrics);
+    if (!completed.length) return '6개 시점의 A/B 포인트를 입력하면 종합의견이 표시됩니다.';
+    const available = [
+      { label: '자세 유사도', value: values.posture },
+      { label: '집중도 일치', value: values.concentration },
+      { label: '손목 궤적', value: values.wristPath },
+      { label: '코어 궤적', value: values.corePath },
+      { label: '템포 일치', value: values.timing },
+    ].filter(item => Number.isFinite(item.value));
+    const sorted = available.slice().sort((a, b) => b.value - a.value);
+    const overallDeviation = Number.isFinite(values.overall) ? 100 - values.overall : null;
+    const comparisonClass = overallDeviation <= 5 ? '같은 스윙'
+      : overallDeviation <= 10 ? '유사 스윙'
+      : overallDeviation <= 20 ? '약간 다른 스윙' : '다른 스윙';
+    const classificationText = Number.isFinite(overallDeviation)
+      ? `종합 편차 ${overallDeviation.toFixed(1)}%로 ${comparisonClass} 범위입니다.` : '';
+    const overallText = values.overall >= 85 ? '두 스윙의 핵심 움직임이 전반적으로 매우 유사합니다.'
+      : values.overall >= 70 ? '두 스윙의 큰 흐름은 유사하지만 일부 구간에서 차이가 확인됩니다.'
+      : values.overall >= 50 ? '공통된 움직임과 뚜렷하게 다른 움직임이 함께 나타납니다.'
+      : '두 스윙의 핵심 포인트 이동 패턴 차이가 큰 편입니다.';
+    const strongest = sorted[0] ? `가장 유사한 항목은 ${sorted[0].label}(${Math.round(sorted[0].value)}%)입니다.` : '';
+    const weakest = sorted.length > 1 ? `가장 차이가 큰 항목은 ${sorted[sorted.length - 1].label}(${Math.round(sorted[sorted.length - 1].value)}%)입니다.` : '';
+    const weakestPhase = completed.slice().sort((a, b) => a.metrics.poseScore - b.metrics.poseScore)[0];
+    const phaseText = weakestPhase ? `${weakestPhase.phase.label} 자세 유사도(${weakestPhase.metrics.poseScore}%)를 우선 확인하세요.` : '';
+    const coverage = completed.length < SWING_COMPARE_PHASES.length ? ` 현재 ${completed.length}/6개 시점이 반영되었습니다.` : '';
+    return [classificationText, overallText, strongest, weakest, phaseText].filter(Boolean).join(' ') + coverage;
+  }
+
+  function updateSwingCompareResults() {
+    const phaseMetrics = SWING_COMPARE_PHASES.map(phase => ({
+      phase,
+      metrics: computeSwingComparePhaseMetrics(phase.id),
+      timingScore: computeSwingComparePhaseTimingScore(phase.id),
+    }));
+    if (swingCompareTableBody) {
+      swingCompareTableBody.innerHTML = phaseMetrics.map(({ phase, metrics }) => {
+        const countA = getSwingCompareEntry('front', phase.id).points.length;
+        const countB = getSwingCompareEntry('side', phase.id).points.length;
+        return `<tr><td>${phase.label}</td><td>${countA}/4</td><td>${countB}/4</td>`
+          + `<td>${formatSwingCompareScore(metrics && metrics.poseScore)}</td>`
+          + `<td>${formatSwingCompareScore(metrics && metrics.concentrationScore)}</td>`
+            + `<td>${formatSwingCompareScore(computeSwingComparePhaseTimingScore(phase.id))}</td></tr>`;
+      }).join('');
+    }
+    const completed = phaseMetrics.filter(item => item.metrics);
+    const posture = average(completed.map(item => item.metrics.poseScore));
+    const concentration = average(completed.map(item => item.metrics.concentrationScore));
+    const wristPath = computeSwingCompareTrajectoryScore('wristCenter');
+    const corePath = computeSwingCompareTrajectoryScore('coreCenter');
+    const timing = computeSwingCompareTimingScore();
+    const overall = average([posture, concentration, wristPath, corePath, timing].filter(Number.isFinite));
+    const metrics = [
+      ['종합 유사도(%)', overall], ['자세 유사도(%)', posture], ['집중도 일치(%)', concentration],
+      ['손목 궤적(%)', wristPath], ['코어 궤적(%)', corePath], ['템포 일치(%)', timing],
+    ];
+    if (swingCompareSummary) {
+      swingCompareSummary.innerHTML = metrics.map(([label, value]) =>
+        `<div class="swing-compare-metric">${label}<strong>${formatSwingCompareScore(value == null ? null : Math.round(value))}</strong></div>`
+      ).join('');
+    }
+    if (swingCompareOpinion) {
+      swingCompareOpinion.textContent = buildSwingCompareOpinion(
+        { overall, posture, concentration, wristPath, corePath, timing },
+        phaseMetrics
+      );
+    }
+  }
+
+  function updateSwingCompareGuide() {
+    if (!swingCompareStatus) return;
+    if (!swingCompareActive) {
+      swingCompareStatus.textContent = '비교 입력 시작을 누르면 기존 분석과 분리된 4개 핵심 포인트 입력 모드가 열립니다.';
+      showGuide();
+      return;
+    }
+    const phase = SWING_COMPARE_PHASES.find(item => item.id === swingComparePhase);
+    const describe = view => {
+      const entry = getSwingCompareEntry(view);
+      const next = SWING_COMPARE_POINT_TYPES[entry.points.length];
+      return `${view === 'front' ? 'A' : 'B'} ${entry.points.length}/4${next ? ` · 다음: ${next.label}` : ' · 완료'}`;
+    };
+    swingCompareStatus.textContent = `${phase.label} 프레임에 영상을 맞춘 뒤 포인트를 순서대로 선택하세요. ${describe('front')} | ${describe('side')}`;
+    [[frontGuideBubble, 'front'], [sideGuideBubble, 'side']].forEach(([bubble, view]) => {
+      if (!bubble) return;
+      bubble.textContent = `${phase.label} · ${describe(view)}`;
+      bubble.classList.add('visible');
+    });
+  }
+
+  function redrawSwingCompareOverlays() {
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+  }
+
+  function setSwingComparePhase(phaseId) {
+    swingComparePhase = phaseId;
+    const frontEntry = getSwingCompareEntry('front');
+    const sideEntry = getSwingCompareEntry('side');
+    if (Number.isFinite(frontEntry.videoTime)) frontVideo.currentTime = frontEntry.videoTime;
+    if (Number.isFinite(sideEntry.videoTime)) sideVideo.currentTime = sideEntry.videoTime;
+    updateSwingCompareGuide();
+    redrawSwingCompareOverlays();
+  }
+
+  function toggleSwingCompareMode() {
+    if (!frontVideo.src || !sideVideo.src) {
+      alert('A와 B 패널에 비교할 스윙 영상을 각각 먼저 불러오세요.');
+      return;
+    }
+    swingCompareActive = !swingCompareActive;
+    distanceMeasureActive = false;
+    distanceReferenceActive = false;
+    if (swingComparePanel) swingComparePanel.classList.toggle('visible', swingCompareActive);
+    if (swingCompareToggleBtn) {
+      swingCompareToggleBtn.textContent = swingCompareActive ? 'A/B 비교 종료' : 'A/B 스윙 비교';
+      swingCompareToggleBtn.classList.toggle('swing-compare-active', swingCompareActive);
+    }
+    updateSwingCompareGuide();
+    redrawSwingCompareOverlays();
+  }
+
+  function addSwingComparePoint(view, pos) {
+    const entry = getSwingCompareEntry(view);
+    const nextType = SWING_COMPARE_POINT_TYPES[entry.points.length];
+    if (!nextType) return;
+    const video = view === 'front' ? frontVideo : sideVideo;
+    video.pause();
+    entry.points.push({ x: pos.x, y: pos.y, type: nextType.id });
+    entry.videoTime = Number.isFinite(video.currentTime) ? video.currentTime : null;
+    updateSwingCompareGuide();
+    updateSwingCompareResults();
+    redrawSwingCompareOverlays();
+  }
+
+  function deleteSwingComparePoint(view, pos) {
+    const entry = getSwingCompareEntry(view);
+    let closestIndex = -1;
+    let closestDistance = 0.04;
+    entry.points.forEach((point, index) => {
+      const distance = Math.hypot(point.x - pos.x, point.y - pos.y);
+      if (distance < closestDistance) { closestDistance = distance; closestIndex = index; }
+    });
+    if (closestIndex < 0) return false;
+    entry.points.splice(closestIndex);
+    if (!entry.points.length) entry.videoTime = null;
+    updateSwingCompareGuide();
+    updateSwingCompareResults();
+    redrawSwingCompareOverlays();
+    return true;
+  }
+
+  function resetSwingCompareData() {
+    swingCompareData = createEmptySwingCompareData();
+    updateSwingCompareGuide();
+    updateSwingCompareResults();
+    redrawSwingCompareOverlays();
+  }
+
+  function drawSwingComparePoints(ctx, canvas, video, zoom, view) {
+    if (!swingCompareActive) return;
+    const points = getSwingCompareEntry(view).points;
+    const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
+    const scale = canvas.width / Math.max(1, canvas.getBoundingClientRect().width);
+    ctx.save();
+    points.forEach(point => {
+      const type = SWING_COMPARE_POINT_TYPES.find(item => item.id === point.type);
+      const x = metrics.offsetX + point.x * metrics.drawWidth;
+      const y = metrics.offsetY + point.y * metrics.drawHeight;
+      ctx.beginPath();
+      ctx.fillStyle = type.color;
+      ctx.strokeStyle = '#06110f';
+      ctx.lineWidth = 2 * scale;
+      ctx.arc(x, y, 8 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${Math.max(11, 11 * scale)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(type.short, x, y);
+    });
+    ctx.restore();
+  }
 
   const STORAGE_KEY = 'gsap_logged_in';
   const ADMIN_HASH = '3e486d3b54a67521a2e0849299b9c3e270247a6ed37c43770dc913eea5b118e8';
@@ -4182,6 +4653,11 @@
     syncCanvasSize(canvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
+    const view = canvas === frontCanvas ? 'front' : 'side';
+    if (swingCompareActive) {
+      points = getSwingCompareEntry(view).points;
+      lines = [];
+    }
     const rect = canvas.getBoundingClientRect();
     const scale = rect.width > 0 ? canvas.width / rect.width : 1;
     const radius = 3 * scale;
@@ -4254,7 +4730,6 @@
       ctx.stroke();
     });
 
-    const view = canvas === frontCanvas ? 'front' : 'side';
     const measurements = distanceLinesByView[view];
     measurements.forEach(measurement => {
       const startX = metrics.offsetX + measurement.start.x * metrics.drawWidth;
@@ -4358,6 +4833,7 @@
       ctx.stroke();
       ctx.restore();
     }
+    drawSwingComparePoints(ctx, canvas, video, zoom, view);
   }
 
   function drawPointsOnFrame(ctx, points, width, height){
@@ -4580,6 +5056,10 @@
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
+    if (swingCompareActive) {
+      deleteSwingComparePoint(view, pos);
+      return;
+    }
     // 우클릭(또는 롱프레스)으로 특정 점/라인을 선택적으로 삭제 — 순서와 무관하게 언제든 가능
     deletePoint(points, lines, pos, ctx, canvas, video, zoom, 0.03, view);
   }
@@ -4679,6 +5159,18 @@
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
+    if (swingCompareActive) {
+      activePointer = { compareMode: true, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
+      pointerIsDragging = false;
+      longPressTriggered = false;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        if (!activePointer || !activePointer.compareMode || pointerIsDragging) return;
+        longPressTriggered = deleteSwingComparePoint(view, pos);
+      }, LONG_PRESS_MS);
+      canvas.setPointerCapture(event.pointerId);
+      return;
+    }
     if (distanceReferenceActive || distanceMeasureActive) {
       event.preventDefault();
       if (distanceMeasureActive && !distanceReferenceLinesByView[view]) {
@@ -4715,6 +5207,14 @@
 
   function movePointer(event){
     if(!activePointer) return;
+    if (activePointer.compareMode) {
+      const pos = getNormalizedCoords(event, activePointer.canvas, activePointer.video, activePointer.zoomGetter());
+      if (pos && Math.hypot(pos.x - activePointer.startPos.x, pos.y - activePointer.startPos.y) > 0.01) {
+        clearTimeout(longPressTimer);
+        pointerIsDragging = true;
+      }
+      return;
+    }
     const { canvas, video, zoomGetter, startPos, ctx, points, lines } = activePointer;
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
@@ -4738,6 +5238,16 @@
   function endPointer(event){
     clearTimeout(longPressTimer);
     if(!activePointer) return;
+    if (activePointer.compareMode) {
+      const { canvas, video, zoomGetter, view } = activePointer;
+      const pos = getNormalizedCoords(event, canvas, video, zoomGetter());
+      if (!longPressTriggered && pos && !pointerIsDragging) addSwingComparePoint(view, pos);
+      longPressTriggered = false;
+      activePointer = null;
+      pointerIsDragging = false;
+      if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (activePointer.distanceMode) {
       const { ctx, canvas, video, zoomGetter, view, startPos, currentPos } = activePointer;
       if (longPressTriggered) {
@@ -4914,6 +5424,7 @@
       return;
     }
     clearAnalysisResults();
+    resetSwingCompareData();
     baselineFrontResult = null;
     segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
@@ -4950,6 +5461,7 @@
       return;
     }
     clearAnalysisResults();
+    resetSwingCompareData();
     segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
@@ -5253,6 +5765,14 @@
   });
 
   clearPointsBtn.addEventListener('click', () => {
+    if (swingCompareActive) {
+      swingCompareData.front[swingComparePhase] = { points: [], videoTime: null };
+      swingCompareData.side[swingComparePhase] = { points: [], videoTime: null };
+      updateSwingCompareGuide();
+      updateSwingCompareResults();
+      redrawSwingCompareOverlays();
+      return;
+    }
     frontPoints = [];
     sidePoints = [];
     frontLines = [];
@@ -5309,6 +5829,7 @@
   let lastDistanceSegment = 'frame1';
   let lastConsistencySegment = 'frame5';
   function switchToSegment(segment, view) {
+    if (swingCompareActive) toggleSwingCompareMode();
     // 같은 프레임 안에서 A↔B 패널만 전환하는 경우, 아직 저장(performAnalysis)되지 않은
     // 현재 입력 중인 포인트를 기록에서 덮어써 사라지게 하지 않도록 복원을 건너뜀
     const isSameSegment = selectedSegment === segment;
@@ -5402,6 +5923,32 @@
       performAnalysis();
     });
   }
+  if (swingComparePhaseSelect) {
+    swingComparePhaseSelect.addEventListener('change', event => setSwingComparePhase(event.target.value));
+  }
+  if (swingCompareToggleBtn) {
+    swingCompareToggleBtn.addEventListener('click', toggleSwingCompareMode);
+  }
+  if (swingCompareTableToggleBtn && swingCompareTableWrap) {
+    swingCompareTableToggleBtn.addEventListener('click', () => {
+      const collapsed = swingCompareTableWrap.classList.toggle('collapsed');
+      swingCompareTableToggleBtn.textContent = collapsed ? '비교표 펼치기' : '비교표 접기';
+      swingCompareTableToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+    });
+  }
+  if (swingCompareClearPhaseBtn) {
+    swingCompareClearPhaseBtn.addEventListener('click', () => {
+      swingCompareData.front[swingComparePhase] = { points: [], videoTime: null };
+      swingCompareData.side[swingComparePhase] = { points: [], videoTime: null };
+      updateSwingCompareGuide();
+      updateSwingCompareResults();
+      redrawSwingCompareOverlays();
+    });
+  }
+  if (swingCompareResetBtn) {
+    swingCompareResetBtn.addEventListener('click', resetSwingCompareData);
+  }
+  updateSwingCompareResults();
   if (analysisToggleBtn) {
     analysisToggleBtn.addEventListener('click', toggleAnalysisPanel);
   }
