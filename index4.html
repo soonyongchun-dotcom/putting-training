@@ -1147,7 +1147,7 @@
           <div class="analysis-metric" id="analysisDeltaCardF3Score"
             data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 지면반력 전환 지수 50% | 수직신장 30% | 축 Sway 20%&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Thrust"
-               data-tooltip="고관절-무릎-발목 수직신장 각도 변화량(A→B) 기준 — 지면반력으로 다리가 펴지는 정도를 측정&#10;◎ 변화 0°: 0점&#10;◎ 변화 0°~1°: 선형 가산&#10;◎ 변화 1° 이상: 10점 만점&#10;◎ 음수(다리가 오히려 굽어짐): 0점">수직신장 각도: -</div>
+               data-tooltip="고관절-무릎-발목 수직신장 각도 변화량(A→B) 기준 — 지면반력으로 다리가 펴지는 정도를 측정&#10;◎ 변화 0°: 0점&#10;◎ 변화 0°~30°: 선형 가산&#10;◎ 변화 30° 이상: 10점 만점&#10;◎ 음수(다리가 오히려 굽어짐): 0점">수직신장 각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3AxisSway"
             data-tooltip="다운스윙 중 C7(목 뒤) 수평 이동량 (캔버스 정규화 좌표 기준)&#10;◎ 0%: 만점 (회전축 완벽 고정)&#10;◎ 0~10%: 선형 감점&#10;◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)&#10;A·B 패널의 C7 x좌표 차이로 계산">축 고정 지수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3GroundForceTransition"
@@ -2443,9 +2443,9 @@
 
     } else if (segment === 'frame3') {
       // 수직신장각: A→B 변화량(지면반력 구간의 실제 신전 정도)이 클수록 고점수 —
-      // 변화 0°=0점, 변화 1° 이상=10점 만점(선형, 2026-09-24 범위 축소)
+      // 변화 0°=0점, 변화 30° 이상=10점 만점(선형, 2026-09-24 범위 재조정)
       const keDelta = deltaResult.fm && hasMetric(deltaResult.fm.kneeExtDelta) ? deltaResult.fm.kneeExtDelta : null;
-      const keScore = keDelta != null ? clamp(keDelta, 0, 1) : null;
+      const keScore = keDelta != null ? clamp(keDelta / 30, 0, 1) : null;
       // 축 고정: C7 수평 이동 비율이 작을수록 고점수 (허용 ±10%)
       const swayPct = deltaResult.fm && hasMetric(deltaResult.fm.c7SwayPercent) ? Math.abs(deltaResult.fm.c7SwayPercent) : null;
       const swayScore = swayPct != null ? clamp(1 - swayPct / 10, 0, 1) : null;
@@ -3206,7 +3206,7 @@
       const kext  = fm.kneeExtDelta;
       const sway  = fm.c7SwayPercent;
       lines.push(`${bold('F3 지면반력 — 하체 에너지 전달')}`);
-      lines.push(`수직신장 변화(A→B) ${deg(kext)} — ${kext != null && kext >= 1 ? hl('충분한 신장 (≥1°)', true) : kext != null && kext >= 0 ? hl('보통 수준 (0~1°)', false) : hl('오히려 굴어짐 (음수) ⚠', false)}`);
+      lines.push(`수직신장 변화(A→B) ${deg(kext)} — ${kext != null && kext >= 30 ? hl('충분한 신장 (≥30°)', true) : kext != null && kext >= 0 ? hl('보통 수준 (0~30°)', false) : hl('오히려 굴어짐 (음수) ⚠', false)}`);
       lines.push(`C7 Sway ${sway != null ? sway.toFixed(1) + '%' : '—'} — ${sway != null && sway <= 3 ? hl('축 고정 우수 (≤3%)', true) : sway != null && sway <= 10 ? hl('허용 범위 (3~10%)', false) : hl('축 이탈 과다 (>10%) ⚠', false)}`);
       lines.push(`반경 변화: 어드레스 ${raw(aR)} → 지면반력 ${raw(bR)}. ${bR > aR * 1.5 ? hl('하체 신장으로 레버 확장 확인', true) : hl('레버 확장 제한적', false)}`);
     }
