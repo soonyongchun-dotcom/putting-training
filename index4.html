@@ -3411,12 +3411,9 @@
   }
 
   /**
-  * [골프칼럼] 스윙 특성 3유형(유연성·부드러운형 / 하체주도·지면반력형 / 코어·래깅 조화형) 추정
-   * 새 랜드마크·측정값을 추가하지 않고, F1~F6에서 이미 산출된 델타 지표(segmentDeltaHistory[frame].fm)만 재사용한다.
-  *   - flexibleLever(F4 rMaxNormDelta), axisStable(F3 c7SwayPercent), lowCoreMove(F5/F2 이동량), lowVertical(F3 kneeExtDelta)
-  *   - coil(F1 xFactorDelta), groundForce(F3 kneeExtDelta), lagRetention(F2 laggingAngleDelta), hingeRelease(F4 armShaftDelta)
-  *   - idealShift(F5/F2 이동비율이 20~30% 대역에 근접할수록 만점), sequenceLead(F6 sequenceIndex), releaseSpeed(F6 releaseIndex)
-   * 각 유형 적합도(0~1)를 위 지표의 가중평균으로 구하고, 세 값의 비중을 백분율로 정규화해 하이브리드 비율로 표시한다.
+   * F1~F6에서 산출된 지표만 재사용해 스윙 유형 적합도를 추정한다.
+   * 유형1은 축 고정·코어-손 압축·회전, 유형2는 골반 이동·시퀀스 선행,
+   * 유형3은 수직신전·지면반력·릴리즈 근거를 반영한다.
    */
   function weightedAvg01(parts) {
     const valid = parts.filter(p => hasMetric(p.value));
@@ -3436,67 +3433,70 @@
     const analyzedCount = [f1, f2, f3, f4, f5, f6].filter(Boolean).length;
     if (analyzedCount < 2) return null;
 
-    const axisStable  = f3 && hasMetric(f3.c7SwayPercent) ? clamp(1 - Math.abs(f3.c7SwayPercent) / 10, 0, 1) : null;
-    const vertThrust   = f3 && hasMetric(f3.kneeExtDelta)   ? clamp(f3.kneeExtDelta / 40, 0, 1) : null;
-    const rArmExt       = f4 && hasMetric(f4.rMaxNormDelta) ? clamp(f4.rMaxNormDelta / 0.3, 0, 1) : null;
-    const coil           = f1 && hasMetric(f1.xFactorDelta) ? clamp(Math.abs(f1.xFactorDelta) / 90, 0, 1) : null;
-    const releaseSpeed   = f6 && hasMetric(f6.releaseIndex)  ? clamp((f6.releaseIndex - 40) / 110, 0, 1) : null;
-    const sequenceLead   = f6 && hasMetric(f6.sequenceIndex) ? clamp(f6.sequenceIndex / 2, 0, 1) : null;
-    const lagRetention   = f2 && hasMetric(f2.laggingAngleDelta) ? clamp(-f2.laggingAngleDelta / 100, 0, 1) : null;
-    const hingeRelease   = f4 && hasMetric(f4.armShaftDelta) ? clamp(f4.armShaftDelta / 100, 0, 1) : null;
+    const axisStable = f3 && hasMetric(f3.c7SwayPercent) ? clamp(1 - Math.abs(f3.c7SwayPercent) / 10, 0, 1) : null;
+    const c7Displacement = f1 && hasMetric(f1.c7XPercent) && hasMetric(f1.c7YPercent)
+      ? Math.hypot(f1.c7XPercent, f1.c7YPercent) : null;
+    const axisFixed = hasMetric(c7Displacement) ? clamp(1 - c7Displacement / 10, 0, 1) : null;
+    const compression = f2 && hasMetric(f2.radiusCompressionRatio) ? clamp(f2.radiusCompressionRatio / 0.6, 0, 1) : null;
+    const vertThrust = f3 && hasMetric(f3.kneeExtDelta) ? clamp(f3.kneeExtDelta / 40, 0, 1) : null;
+    const groundForce = f3 && f3._groundForce && hasMetric(f3._groundForce.score100)
+      ? clamp(f3._groundForce.score100 / 100, 0, 1) : null;
+    const coil = f1 && hasMetric(f1.xFactorDelta) ? clamp(Math.abs(f1.xFactorDelta) / 90, 0, 1) : null;
+    const releaseSpeed = f6 && hasMetric(f6.releaseIndex) ? clamp((f6.releaseIndex - 40) / 110, 0, 1) : null;
+    const sequenceLead = f6 && hasMetric(f6.sequenceIndex) ? clamp(f6.sequenceIndex / 2, 0, 1) : null;
     const shiftRatioAbs  = f5 && hasMetric(f5.pelvisShiftRatio) ? Math.abs(f5.pelvisShiftRatio)
                          : f2 && hasMetric(f2.pelvisLateralDelta) ? Math.abs(f2.pelvisLateralDelta) : null;
-    const linearShift    = hasMetric(shiftRatioAbs) ? clamp(shiftRatioAbs / 0.4, 0, 1) : null;
-    const coreMove       = f2 && hasMetric(f2.pelvisLateralDelta)
-      ? clamp(Math.abs(f2.pelvisLateralDelta) / 0.35, 0, 1)
-      : linearShift;
-    // 이상적 비대칭(60:40~70:30 근사)은 이동비율 약 25%를 중심으로 ±25%p 범위 내 만점에 근접
-    const idealShift     = hasMetric(shiftRatioAbs) ? clamp(1 - Math.abs(shiftRatioAbs - 0.25) / 0.25, 0, 1) : null;
+    const linearShift = hasMetric(shiftRatioAbs) ? clamp(shiftRatioAbs / 0.25, 0, 1) : null;
 
-    // 유형1 — 유연성·부드러운형: 축을 유지하고 하체/코어를 과하게 쓰지 않는 레버 중심 스윙
+    // 유형1 — C7 축을 고정하고 코어-손 압축과 회전 토크를 쓰는 컴팩트형
     const type1 = weightedAvg01([
-      { value: rArmExt, weight: 0.35 },
-      { value: axisStable, weight: 0.30 },
-      { value: hasMetric(vertThrust) ? 1 - vertThrust : null, weight: 0.20 },
-      { value: hasMetric(coreMove) ? 1 - coreMove : null, weight: 0.15 },
+      { value: axisStable, weight: 0.25 },
+      { value: axisFixed, weight: 0.20 },
+      { value: compression, weight: 0.30 },
+      { value: coil, weight: 0.25 },
     ]);
-    // 유형2 — 하체주도·지면반력형: 강한 지면반력, 작은 상체 코일과 코어 이동
-    const type2 = weightedAvg01([
-      { value: vertThrust, weight: 0.50 },
-      { value: hasMetric(coil) ? 1 - coil : null, weight: 0.25 },
-      { value: hasMetric(coreMove) ? 1 - coreMove : null, weight: 0.25 },
-    ]);
-    // 유형3 — 코어·래깅 조화형: 래깅 유지, 힌지 릴리즈, 이상적 코어 이동과 시퀀스의 조화
+    // 유형2 — 측면 골반 이동과 하체 선행 시퀀스 기반
+    const type2 = hasMetric(linearShift)
+      ? (hasMetric(sequenceLead) ? linearShift * sequenceLead : linearShift)
+      : null;
+    // 유형3 — 수직신전과 지면반력 전환, 실제 릴리즈 근거 기반
     const type3 = weightedAvg01([
-      { value: lagRetention, weight: 0.30 },
-      { value: hingeRelease, weight: 0.25 },
-      { value: idealShift, weight: 0.25 },
-      { value: weightedAvg01([{ value: sequenceLead, weight: 0.5 }, { value: releaseSpeed, weight: 0.5 }]), weight: 0.20 },
+      { value: vertThrust, weight: 0.40 },
+      { value: groundForce, weight: 0.30 },
+      { value: releaseSpeed, weight: 0.30 },
     ]);
 
     const raw = { type1: type1 || 0, type2: type2 || 0, type3: type3 || 0 };
+    const type3CapApplied = Boolean(
+      (f3 && hasMetric(f3.kneeExtDelta) && f3.kneeExtDelta <= 0)
+      || (f6 && hasMetric(f6.releaseIndex) && f6.releaseIndex < 100)
+    );
     const total = raw.type1 + raw.type2 + raw.type3;
     if (total <= 0) return null;
 
     const labels = {
-      type1: '유형1(모멘트암·유연성형)',
-      type2: '유형2(지면비틂·커플드토크형)',
-      type3: '유형3(CoM압박·휘핑형)',
+      type1: '유형1(수평·회전 토크 중심형)',
+      type2: '유형2(측면 이동·레버리지형)',
+      type3: '유형3(수직 신전·휘핑형)',
     };
+    const uncappedType3Pct = raw.type3 / total * 100;
+    const type3Pct = type3CapApplied ? Math.min(uncappedType3Pct, 15) : uncappedType3Pct;
+    const otherTotal = raw.type1 + raw.type2;
+    const remainingPct = 100 - type3Pct;
     const pct = {
-      type1: Math.round(raw.type1 / total * 100),
-      type2: Math.round(raw.type2 / total * 100),
-      type3: Math.round(raw.type3 / total * 100),
+      type1: Math.round(otherTotal > 0 ? remainingPct * raw.type1 / otherTotal : remainingPct),
+      type2: Math.round(otherTotal > 0 ? remainingPct * raw.type2 / otherTotal : 0),
+      type3: Math.round(type3Pct),
     };
+    const correctionType = raw.type1 >= raw.type2 || otherTotal <= 0 ? 'type1' : 'type2';
+    pct[correctionType] += 100 - (pct.type1 + pct.type2 + pct.type3);
     const sorted = Object.entries(pct).sort((a, b) => b[1] - a[1]);
-    // 반올림 오차(합계≠100) 보정 — 1위 유형에서 흡수
-    sorted[0][1] += 100 - (pct.type1 + pct.type2 + pct.type3);
 
     const text = (sorted[0][1] >= 80 || sorted[1][1] < 15)
       ? `${labels[sorted[0][0]]} ${sorted[0][1]}%`
       : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}% 하이브리드`;
 
-    return { pct, text, analyzedCount };
+    return { pct, text, analyzedCount, type3CapApplied };
   }
 
   function updateSwingTypeCard() {
@@ -3507,7 +3507,7 @@
       return;
     }
     analysisSwingType.innerHTML = `<strong>스윙 유형 추정:</strong> ${result.text}`
-      + `<span class="swing-type-note">F1~F6 기존 지표 기반 추정치(유형1 ${result.pct.type1}% · 유형2 ${result.pct.type2}% · 유형3 ${result.pct.type3}%) — 참고용, 분석 프레임이 늘수록 정확도 향상</span>`;
+      + `<span class="swing-type-note">F1~F6 지표 기반(유형1 ${result.pct.type1}% · 유형2 ${result.pct.type2}% · 유형3 ${result.pct.type3}%)${result.type3CapApplied ? ' — 수직신전 ≤0° 또는 Release Index 100 미만 기준으로 유형3 비중을 15% 이하로 제한' : ''} — 참고용 추정치</span>`;
   }
 
   function updateSegmentScoresDisplay() {
