@@ -1145,7 +1145,7 @@
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
           <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Score"
-            data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 지면반력 전환 지수 50% | 수직신장 30% | 축 Sway 20%&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합">점수: -</div>
+            data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%&#10;전환 지수는 100점 만점 리포트의 70/100을 만점 기준으로 환산(70 이상=만점)&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Thrust"
                data-tooltip="고관절-무릎-발목 수직신장 각도 변화량(A→B) 기준 — 지면반력으로 다리가 펴지는 정도를 측정&#10;◎ 변화 0°: 0점&#10;◎ 변화 0°~30°: 선형 가산&#10;◎ 변화 30° 이상: 10점 만점&#10;◎ 음수(다리가 오히려 굽어짐): 0점">수직신장 각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3AxisSway"
@@ -2451,11 +2451,12 @@
       const swayScore = swayPct != null ? clamp(1 - swayPct / 10, 0, 1) : null;
       const transitionReport = deltaResult.fm && deltaResult.fm._groundForce
         ? deltaResult.fm._groundForce : computeGroundForceTransitionReport(deltaResult.fm || {});
+      // 전환 지수는 70/100을 만점 기준으로 재조정(2026-09-24) — 70 이상이면 만점, 그 이하는 비례
       const transitionScore = transitionReport && hasMetric(transitionReport.score100)
-        ? transitionReport.score100 / 100 : null;
+        ? clamp(transitionReport.score100 / 70, 0, 1) : null;
       score = combineMetricScores([
-        { value: keScore,         weight: 0.30 },
-        { value: swayScore,       weight: 0.20 },
+        { value: keScore,         weight: 0.25 },
+        { value: swayScore,       weight: 0.25 },
         { value: transitionScore, weight: 0.50 },
       ]);
 
