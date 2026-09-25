@@ -240,6 +240,37 @@
     border-radius: 8px;
     touch-action: none; /* allow drawing on mobile without the browser intercepting gestures */
   }
+  .video-guide-bubble {
+    position: absolute;
+    top: 8px;
+    max-width: 78%;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: #fff;
+    background: rgba(20, 24, 32, 0.85);
+    border: 1px solid rgba(255, 213, 74, 0.6);
+    border-radius: 8px;
+    pointer-events: auto;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+    z-index: 5;
+    display: none;
+  }
+  .video-guide-bubble.visible {
+    display: block;
+  }
+  .video-guide-bubble.dragging {
+    opacity: 0.85;
+    border-color: #ffd54a;
+  }
+  #frontWrapper .video-guide-bubble {
+    left: 8px;
+  }
+  #sideWrapper .video-guide-bubble {
+    right: 8px;
+  }
   .zoom-controls {
     display: flex;
     justify-content: center;
@@ -483,7 +514,7 @@
     transition: max-height 0.26s ease, padding 0.26s ease;
   }
   .analysis-panel.collapsed {
-    max-height: 54px;
+    max-height: 130px;
     padding: 0 12px 6px;
   }
   .analysis-panel:not(.collapsed) {
@@ -927,6 +958,7 @@
     <div class="video-stage">
       <video id="frontVideo" playsinline></video>
       <canvas id="frontCanvas"></canvas>
+      <div class="video-guide-bubble" id="frontGuideBubble"></div>
     </div>
     <div class="video-controls">
       <button id="frontPlayBtn" disabled title="Play/pause">▶</button>
@@ -959,6 +991,7 @@
     <div class="video-stage">
       <video id="sideVideo" playsinline></video>
       <canvas id="sideCanvas"></canvas>
+      <div class="video-guide-bubble" id="sideGuideBubble"></div>
     </div>
     <div class="video-controls">
       <button id="sidePlayBtn" disabled title="Play/pause">▶</button>
@@ -1048,8 +1081,8 @@
             <option value="frame2">Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]</option>
             <option value="frame3">Frame 3 — 다운스윙 후기 (외부토크/지면반력)</option>
             <option value="frame4">Frame 4 — 임팩트/선속도 지수</option>
-            <option value="frame5">Frame 5 — 일관성 리포트 [P1:어드레스 → P6:다운스윙 허리높이]</option>
-            <option value="frame6">Frame 6 — 리듬/템포·시퀀스 [P6:다운스윙 중기 → P7:임팩트]</option>
+            <option value="frame5">Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]</option>
+            <option value="frame6">Frame 6 — 리듬/템포·시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]</option>
           </select>
           <span class="height-unit">프레임 선택</span>
         </div>
@@ -1094,27 +1127,27 @@
           <div class="analysis-metric" id="analysisDeltaCardF1XFactor"
                data-tooltip="어드레스→백스윙 탑 어깨 회전각 (X-Factor, 측면 카메라 기준)&#10;산출 방식: B프레임 xFactorDeg − A프레임 xFactorDeg&#10;  회전 증가 → 오른어깨 x 증가 → 값이 음수로 커짐&#10;◎ ≤-150°: 만점 (충분한 상체 코일)&#10;◎ -150°~-60°: 선형 보간&#10;◎ ≥-60°: 0점 (회전 부족 또는 역회전)">X-Factor(어깨회전): -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1TopShaft"
-            data-tooltip="백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)&#10;산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각&#10;◎ -3°~+3°: 정상 범위&#10;◎ 음수(−): 오버스윙(클럽헤드가 평행선 아래로 넘어감)&#10;◎ 양수(+): 부족/레이드오프(클럽헤드가 평행선 위에 머묾)&#10;점수는 클릭 오차를 고려해 |각도| ≤10° 만점, ≥45° 0점">샤프트 수평(탑): -</div>
+            data-tooltip="백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)&#10;산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각&#10;◎ -3°~+3°: 정상 범위&#10;◎ 음수(−): 오버스윙(클럽헤드가 평행선 아래로 넘어감)&#10;◎ 양수(+): 부족/레이드오프(클럽헤드가 평행선 위에 머묾)&#10;점수는 상태표시 기준과 동일하게 |각도| ≤3° 만점, ≥20° 0점">샤프트 수평(탑): -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1C7XY"
                data-tooltip="어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %&#10;기준선: &quot;기준선 지정&quot; 버튼으로 A/B 영상에 각각 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF2">
           <div class="analysis-segment-compare-title">Frame 2 — 래깅/코어이동</div>
           <div class="analysis-metric" id="analysisDeltaCardF2Score"
-            data-tooltip="래깅+코어이동+코어-손압축 점수 (0~10점)&#10;래깅각도 35% + 코어(골반)좌측이동 35% + 코어-손 압축 30%&#10;래깅: -100° 이하 = 10점 | 코어이동: 35% 이상 = 10점 | 코어-손 거리: 백스윙 탑 대비 20% 이상 감소 = 10점">점수: -</div>
+            data-tooltip="래깅+코어이동+코어-손압축 점수 (0~10점)&#10;래깅각도 35% + 코어(골반)좌측이동 35% + 코어-손 압축 30%&#10;래깅: -100° 이하 = 10점 | 코어이동: 35% 이상 = 10점 | 코어-손 거리: 백스윙 탑 대비 35% 이상 감소 = 10점">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2LagAngle"
                data-tooltip="래깅각 변화(어드레스→다운스윙) + 다운스윙 실제 래깅각&#10;실제 래깅각: 클럽헤드-양손 중심-오른어깨 내각 (B프레임)&#10;◎ 변화량 -100° 이하: 만점(10점)&#10;◎ -10° 간격으로 1점씩 감점&#10;◎ 0° 이상: 0점 (코킹 조기 릴리즈)">코킹(래깅)각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2RadiusCompression"
-            data-tooltip="백스윙 탑→Frame 2 다운스윙의 코어-양손 중심 거리 압축률&#10;산출: (탑 골반-양손 거리 − Frame 2 골반-양손 거리) / 탑 거리&#10;◎ 20% 이상 감소: 만점 (충분한 압축)&#10;◎ 0~20%: 압축률에 따라 가점&#10;◎ 0% 이하: 0점 (압축 없이 유지 또는 확장)&#10;클럽헤드는 사용하지 않음">코어-손 압축: -</div>
+            data-tooltip="백스윙 탑→Frame 2 다운스윙의 코어-양손 중심 거리 압축률&#10;산출: (탑 골반-양손 거리 − Frame 2 골반-양손 거리) / 탑 거리&#10;◎ 35% 이상 감소: 만점 (충분한 압축)&#10;◎ 0~35%: 압축률에 따라 가점&#10;◎ 0% 이하: 0점 (압축 없이 유지 또는 확장)&#10;클럽헤드는 사용하지 않음">코어-손 압축: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2CoreShift"
                data-tooltip="코어(골반) 좌측 이동량 (몸통 길이 기준 비율)&#10;기준: 어드레스→다운스윙 어깨~골반 거리 대비 변위 (zoom·키 독립)&#10;◎ +15% 이상 좌측(목표방향) 이동: 만점(10점)&#10;◎ 0~15%: 선형 가산&#10;◎ 0% 이하(우측 이동 또는 정지): 0점&#10;다운스윙 시 골반이 목표방향(왼쪽)으로 이동할수록 고점수">코어(골반) 이동: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
           <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Score"
-            data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 수직신장 35% | 축 Sway 20% | 지면반력 전환 지수 45%&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합">점수: -</div>
+            data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 지면반력 전환 지수 50% | 수직신장 30% | 축 Sway 20%&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Thrust"
-               data-tooltip="고관절-무릎-발목 수직신장 각도 변화&#10;◎ ≥160°: 만점 (강한 지면반력 활용)&#10;◎ 0~160°: 선형 가산&#10;◎ 음수: 다리가 오히려 굴어짐 = 감점&#10;180°에 가까울수록 완전 신전 (타율 높임)">수직신장 각도: -</div>
+               data-tooltip="고관절-무릎-발목 수직신장 각도 변화량(A→B) 기준 — 지면반력으로 다리가 펴지는 정도를 측정&#10;◎ 변화 0°: 0점&#10;◎ 변화 0°~1°: 선형 가산&#10;◎ 변화 1° 이상: 10점 만점&#10;◎ 음수(다리가 오히려 굽어짐): 0점">수직신장 각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3AxisSway"
             data-tooltip="다운스윙 중 C7(목 뒤) 수평 이동량 (캔버스 정규화 좌표 기준)&#10;◎ 0%: 만점 (회전축 완벽 고정)&#10;◎ 0~10%: 선형 감점&#10;◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)&#10;A·B 패널의 C7 x좌표 차이로 계산">축 고정 지수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3GroundForceTransition"
@@ -1277,6 +1310,8 @@
   const distanceReferenceBtn = document.getElementById('distanceReferenceBtn');
   const distanceMeasureBtn = document.getElementById('distanceMeasureBtn');
   const analysisGuideStep = document.getElementById('analysisGuideStep');
+  const frontGuideBubble = document.getElementById('frontGuideBubble');
+  const sideGuideBubble = document.getElementById('sideGuideBubble');
   const frontAnalysisBtn = document.getElementById('frontAnalysisBtn');
   const sideAnalysisBtn = document.getElementById('sideAnalysisBtn');
   const frontConsistencyBtn = document.getElementById('frontConsistencyBtn');
@@ -1570,9 +1605,9 @@
           ],
       },
       frame2: {
-        title: 'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙 왼팔 수평]',
+        title: 'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙 손 허리높이(3/5 지점)]',
         steps: [
-          `(${viewLabel}) 1단계: 양손의 중심점(그립 중앙)을 찍으세요.`,
+          `(${viewLabel}) 1단계: ${guideView === 'front' ? '어드레스 자세에서' : '다운스윙 중 손이 허리 높이에 도달하는 시점(다운스윙 3/5 지점)에서'} 양손의 중심점(그립 중앙)을 찍으세요.`,
           `(${viewLabel}) 2단계: 클럽 헤드를 점으로 찍으세요. 양손 중심→클럽헤드 벡터로 래깅각도를 산출합니다.`,
           `(${viewLabel}) 3단계: 오른쪽 어깨를 찍으세요. 양손 중심→어깨 방향으로 래깅각도를 최종 산출합니다.`,
           `(${viewLabel}) 4단계: 골반 중심(Mid-Hip)을 찍으세요. 어드레스 대비 코어(골반) 좌측 이동량을 산출합니다.`,
@@ -1582,7 +1617,7 @@
       frame3: {
         title: 'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점',
         steps: [
-          `(${viewLabel}) 1단계: 왼쪽 고관절을 점으로 찍으세요.`,
+          `(${viewLabel}) 1단계: ${guideView === 'front' ? '다운스윙 4/5 지점(지면반력 발생 구간)에서' : '임팩트 직전(다운스윙 후기)에서'} 왼쪽 고관절을 점으로 찍으세요.`,
           `(${viewLabel}) 2단계: 왼쪽 무릎을 점으로 찍으세요.`,
           `(${viewLabel}) 3단계: 왼쪽 발목을 점으로 찍으세요. 고관절-무릎-발목으로 수직신장각도를 산출합니다.`,
           `(${viewLabel}) 4단계: C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요. 축 고정 지수(Sway 여부) 산출에 사용됩니다.`,
@@ -1596,7 +1631,7 @@
       frame4: {
         title: 'Frame 4 — 임팩트/선속도 지수',
         steps: [
-          `(${viewLabel}) 1단계: C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
+          `(${viewLabel}) 1단계: ${guideView === 'front' ? '어드레스 자세에서' : '임팩트 순간에서'} C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
           `(${viewLabel}) 2단계: 왼쪽 어깨를 점으로 찍으세요.`,
           `(${viewLabel}) 3단계: 왼쪽 손목을 점으로 찍으세요. 팔-샤프트 정렬 각도 산출에 사용됩니다.`,
           `(${viewLabel}) 4단계: 클럽 헤드를 찍으세요. 왼어깨→클럽헤드 최대회전반경(r_max)을 산출합니다.`,
@@ -1607,31 +1642,31 @@
         ],
       },
       frame5: {
-        title: 'Frame 5 — 일관성 리포트 [P1:어드레스 → P6:다운스윙 허리높이]',
+        title: 'Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]',
         steps: guideView === 'front'
           ? [
-            `(P1 — 어드레스) 1단계: pt1 양손의 중심점(그립 중앙)을 찍으세요.`,
+            `(P1 — 어드레스) 1단계: 어드레스 자세에서 pt1 양손의 중심점(그립 중앙)을 찍으세요.`,
             `(P1 — 어드레스) 2단계: pt2 C7 경추점을 찍으세요. 정면 영상에서는 목 뒤 중심부를 클릭하세요.`,
             `(P1 — 어드레스) 3단계: pt3 양 골반 중심점을 찍으세요.`,
             `(P1 — 어드레스) 4단계: pt4 클럽 헤드 중심(공 뒤쪽)을 찍으세요. P1 기준점 4개가 완성됩니다.`,
             `포인트 선택 완료. 분석을 실행합니다.`,
           ]
           : [
-            `(P6 — 다운스윙 허리높이) 1단계: 다운스윙 중 손이 허리높이에 도달한 시점에서 pt1 양손의 중심점(그립 중앙)을 찍으세요.`,
-            `(P6 — 다운스윙 허리높이) 2단계: 같은 시점의 pt2 C7 경추점을 찍으세요. 상체축 이동(욨리/얼리 익스텐션)을 측정합니다.`,
-            `(P6 — 다운스윙 허리높이) 3단계: 같은 시점의 pt3 양 골반 중심점을 찍으세요. 타겟 방향 체중이동량을 산출합니다.`,
-            `(P6 — 다운스윙 허리높이) 4단계: 같은 시점의 pt4 클럽 헤드 중심을 찍으세요. 샤프트 각도와 래깅(캐스팅) 정도를 산출합니다.`,
+            `(다운스윙 3/5 지점 — 허리높이) 1단계: 다운스윙 중 손이 허리높이에 도달한 시점에서 pt1 양손의 중심점(그립 중앙)을 찍으세요.`,
+            `(다운스윙 3/5 지점 — 허리높이) 2단계: 같은 시점의 pt2 C7 경추점을 찍으세요. 상체축 이동(욨리/얼리 익스텐션)을 측정합니다.`,
+            `(다운스윙 3/5 지점 — 허리높이) 3단계: 같은 시점의 pt3 양 골반 중심점을 찍으세요. 타겟 방향 체중이동량을 산출합니다.`,
+            `(다운스윙 3/5 지점 — 허리높이) 4단계: 같은 시점의 pt4 클럽 헤드 중심을 찍으세요. 샤프트 각도와 래깅(캐스팅) 정도를 산출합니다.`,
             `포인트 선택 완료. 분석을 실행합니다.`,
           ],
       },
       frame6: {
-        title: 'Frame 6 — 리듬/템포·키네매틱 시퀀스 [P6:다운스윙 중기 → P7:임팩트]',
+        title: 'Frame 6 — 리듬/템포·키네매틱 시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]',
         steps: guideView === 'front'
           ? [
-            `(P6 — 다운스윙 중기/허리높이) 1단계: 샤프트가 지면과 수평이 되는 시점으로 A영상을 맞추고 pt1 C7 경추점을 찍으세요.`,
-            `(P6 — 다운스윙 중기) 2단계: pt2 골반 중심점(COM)을 찍으세요. 토크 전환 지수의 하체 이동 기준점입니다.`,
-            `(P6 — 다운스윙 중기) 3단계: pt3 양손의 중심점(그립 중앙)을 찍으세요. 래깅각(θ_lag)을 산출합니다.`,
-            `(P6 — 다운스윙 중기) 4단계: pt4 클럽 헤드를 찍으세요. 다운스윙 회전 반경(r_downswing)을 산출합니다.`,
+            `(다운스윙 3/5 지점 — 중기) 1단계: 샤프트가 지면과 수평이 되는 시점으로 A영상을 맞추고 pt1 C7 경추점을 찍으세요.`,
+            `(다운스윙 3/5 지점 — 중기) 2단계: pt2 골반 중심점(COM)을 찍으세요. 토크 전환 지수의 하체 이동 기준점입니다.`,
+            `(다운스윙 3/5 지점 — 중기) 3단계: pt3 양손의 중심점(그립 중앙)을 찍으세요. 래깅각(θ_lag)을 산출합니다.`,
+            `(다운스윙 3/5 지점 — 중기) 4단계: pt4 클럽 헤드를 찍으세요. 다운스윙 회전 반경(r_downswing)을 산출합니다.`,
             `포인트 선택 완료. 분석을 실행합니다.`,
           ]
           : [
@@ -1653,21 +1688,34 @@
   function getFrameSectionLabel(frameId, view) {
     const labels = {
       frame1: { front: 'A — 어드레스 (척추축/X-Factor 기준)', side: 'B — 백스윙 탑 (척추축/X-Factor 확인)' },
-      frame2: { front: 'A — 어드레스 (기준)', side: 'B — 다운스윙 왼팔 수평 (래깅/코어이동)' },
-      frame3: { front: 'A — 샤프트 수평 기준', side: 'B — 비교 프레임 (지면반력)' },
-      frame4: { front: 'A — 임팩트 기준', side: 'B — 비교 프레임 (선속도 지수)' },
-      frame5: { front: 'P1 — 어드레스 (일관성 기준)', side: 'P6 — 다운스윙 허리높이 (일관성 비교)' },
-      frame6: { front: 'P6 — 다운스윙 중기 (템포 기준)', side: 'P7 — 임팩트 (릴리즈 확인)' },
+      frame2: { front: 'A — 어드레스 (기준)', side: 'B — 다운스윙 손 허리높이 (래깅/코어이동)' },
+      frame3: { front: 'A — 다운스윙 4/5 지점 기준', side: 'B — 임팩트 직전 (지면반력)' },
+      frame4: { front: 'A — 어드레스 기준', side: 'B — 임팩트 (선속도 지수)' },
+      frame5: { front: 'P1 — 어드레스 (일관성 기준)', side: '다운스윙 3/5 지점 — 허리높이 (일관성 비교)' },
+      frame6: { front: '다운스윙 3/5 지점 — 중기 (템포 기준)', side: 'B — 임팩트 (릴리즈 확인)' },
     };
     return (labels[frameId] || labels.frame1)[view];
   }
 
   function showGuide() {
     if (!analysisGuide || !analysisGuideStep || !analysisGuideNextBtn) return;
-    analysisGuide.textContent = getGuideMessage();
+    const message = getGuideMessage();
+    analysisGuide.textContent = message;
     const maxSteps = getFrameMaxPoints(selectedSegment, guideView) + 1;
     analysisGuideStep.textContent = guideStep > 0 ? `STEP ${guideStep} / ${maxSteps}` : '';
-    analysisGuideNextBtn.textContent = guideStep >= maxSteps ? '분석 실행' : '다음';
+    // 포인트 클릭 시 STEP이 자동으로 넘어가므로, 버튼은 "다음 단계 이동"이 아닌 "선택 완료 확인 후 분석 실행" 역할
+    analysisGuideNextBtn.textContent = (guideView && hasGuideSelectionCompleted()) ? '분석 실행' : '포인트 선택 필요';
+    // 안내 문구를 해당 영상 패널(A는 왼쪽, B는 오른쪽) 위에도 함께 띄워 시선 이동 없이 바로 확인 가능하게 함
+    if (frontGuideBubble) {
+      const showFront = guideView === 'front' && guideStep > 0;
+      frontGuideBubble.textContent = showFront ? message : '';
+      frontGuideBubble.classList.toggle('visible', showFront);
+    }
+    if (sideGuideBubble) {
+      const showSide = guideView === 'side' && guideStep > 0;
+      sideGuideBubble.textContent = showSide ? message : '';
+      sideGuideBubble.classList.toggle('visible', showSide);
+    }
     // Update A section title based on current frame (always shows A-panel label)
     if (analysisFrontSectionTitle) {
       analysisFrontSectionTitle.textContent = getFrameSectionLabel(selectedSegment, 'front');
@@ -1718,7 +1766,11 @@
     // Frame 1 분석 시점의 기준선을 확정 — 다른 프레임에서 기준선을 다시 지정해도 이 스냅샷은 덮어쓰지 않음
     if (selectedSegment === 'frame1') captureFrame1ReferenceSnapshot();
     const currentFrontResult = createAnalysisResult(frontPoints, frontLines, 'front', 'A');
-    if (!baselineFrontResult) {
+    // A패널 포인트가 아직 부족한 상태(예: 키 입력 change 이벤트 등으로 조기 호출)에서 baseline이
+    // 확정돼버리면 rawRadiusProxy가 없는 "빈 기준"이 영구 고정되어 이후 모든 스케일 보정이 실패함 —
+    // 기존 baseline이 무효(rawRadiusProxy 없음)면 유효한 반경이 나올 때 자동으로 다시 확정(자가복구)
+    const baselineInvalid = !baselineFrontResult || !hasMetric(baselineFrontResult.rawRadiusProxy) || baselineFrontResult.rawRadiusProxy <= 0;
+    if (baselineInvalid && hasMetric(currentFrontResult.rawRadiusProxy) && currentFrontResult.rawRadiusProxy > 0) {
       baselineFrontResult = JSON.parse(JSON.stringify(currentFrontResult));
       applyProjectionNormalization(baselineFrontResult, baselineFrontResult);
     }
@@ -1773,12 +1825,17 @@
 
   function setGuideState(view) {
     guideView = view;
-    resetViewAnalysis(view);
-    guideStep = 1;
+    const points = view === 'front' ? frontPoints : sidePoints;
+    // 이미 입력된 포인트가 있으면 그 지점부터 이어서 진행 — 재진입할 때마다 앞서 찍은 포인트를 초기화하지 않음
+    // (기존엔 여기서 무조건 resetViewAnalysis를 호출해 B패널 6단계 중 일부만 완료한 상태로 재방문하면 처음부터 다시 찍어야 했음)
+    if (points.length === 0) {
+      resetViewAnalysis(view);
+    }
+    const maxSteps = getFrameMaxPoints(selectedSegment, guideView) + 1;
+    guideStep = Math.min(points.length + 1, maxSteps);
     showGuide();
     analysisPanel.classList.remove('collapsed');
     if (analysisToggleBtn) analysisToggleBtn.textContent = '접기';
-    const maxSteps = getFrameMaxPoints(selectedSegment, guideView) + 1;
     if (hasGuideSelectionCompleted()) {
       guideStep = maxSteps;
       showGuide();
@@ -1786,16 +1843,18 @@
     }
   }
 
+  // 포인트 클릭 시 안내가 자동으로 다음 단계로 넘어가므로, 이 버튼은 "모두 선택했는지 확인 후 분석 실행"용으로만 사용
   function advanceGuideStep() {
     if (!guideView) return;
-    const maxSteps = getFrameMaxPoints(selectedSegment, guideView) + 1;
-    if (guideStep < maxSteps) {
-      guideStep += 1;
-      showGuide();
+    const points = guideView === 'front' ? frontPoints : sidePoints;
+    const maxPts = getFrameMaxPoints(selectedSegment, guideView);
+    if (points.length < maxPts) {
+      alert(`아직 선택하지 않은 포인트가 ${maxPts - points.length}개 남아있습니다. 안내 문구를 따라 영상 위에 포인트를 모두 클릭하세요.`);
+      return;
     }
-    if (guideStep >= maxSteps) {
-      performAnalysis();
-    }
+    guideStep = maxPts + 1;
+    showGuide();
+    performAnalysis();
   }
 
   function normalizePointsAndLines(points, lines) {
@@ -2295,7 +2354,7 @@
    *   spineAngleDelta: B(백스윙 탑) - A(어드레스) 척추각도 차이 → ±5° 이내 만점, ±15° 이상 → 0점
    *   headLatDelta: 백스윙 탑 머리편차 증가량 → 증가할수록 감점 (머리 드리프트)
    *
-   * Frame 2 — 래깅/코어이동 (A:어드레스 → B:다운스윙 왼팔 수평)
+   * Frame 2 — 래깅/코어이동 (A:어드레스 → B:다운스윙 손 허리높이, 3/5 지점)
    *   xFactorDelta: X-Factor 증가 여부 → 더 벌어질수록 고점수 (타겟 +15°~+30°)
    *   laggingDelta: 래깅각도 감소 여부(예리해짐) → 더 작아질수록(음의 변화) 고점수
    *
@@ -2347,9 +2406,10 @@
       // X-Factor: -60° = 0점, -150° 이하 = 만점 (완만한 램프)
       const xfDelta = deltaResult.fm && hasMetric(deltaResult.fm.xFactorDelta) ? deltaResult.fm.xFactorDelta : null;
       const xfScore = xfDelta != null ? rampScore(-xfDelta, 60, 150) : null;
-      // 백스윙 탑 샤프트-지면 수평 판정: |각도| ≤8° 만점(평행 유지), ≥30° 0점(오버/부족 모두 감점) — 척추각도와 함께 편차 민감도 상향
+      // 백스윙 탑 샤프트-지면 수평 판정: |각도| ≤3° 만점(평행 유지, 상태표시 "정상 범위"와 기준 일치), ≥20° 0점
+      // (기존 deadzone 8°는 상태표시 임계값(3°)보다 훨씬 관대해 "부족(레이드오프)"로 표시되는 값조차 거의 감점되지 않는 불일치가 있었음 — 2026-09-24 재조정)
       const topShaft = deltaResult.fm && hasMetric(deltaResult.fm.topShaftAngleDeg) ? Math.abs(deltaResult.fm.topShaftAngleDeg) : null;
-      const topShaftScore = topShaft != null ? bandScore(topShaft, 8, 30) : null;
+      const topShaftScore = topShaft != null ? bandScore(topShaft, 3, 20) : null;
       // 어드레스→탑 C7 좌우/상하 변위(키 대비 %): 2% 미만 만점, 1%씩 감점폭 늘어남(12%에서 0점)
       const c7X1 = deltaResult.fm && hasMetric(deltaResult.fm.c7XPercent) ? deltaResult.fm.c7XPercent : null;
       const c7Y1 = deltaResult.fm && hasMetric(deltaResult.fm.c7YPercent) ? deltaResult.fm.c7YPercent : null;
@@ -2372,9 +2432,9 @@
       // 몸통 참조거리 정규화 기준: +0.35(몸통의 35% 이동) = 만점
       const coreDelta = deltaResult.fm && hasMetric(deltaResult.fm.pelvisLateralDelta) ? deltaResult.fm.pelvisLateralDelta : null;
       const coreScore = coreDelta != null ? clamp(coreDelta / 0.35, 0, 1) : null;
-      // 백스윙 탑→다운스윙 최대반경 압축률: 20% 이상 감소하면 만점
+      // 백스윙 탑→다운스윙 최대반경 압축률: 35% 이상 감소해야 만점(60%는 너무 높아 실제 데이터에서 달성하기 어려워 하향, 2026-09-24)
       const radiusCompression = deltaResult.fm && hasMetric(deltaResult.fm.radiusCompressionRatio) ? deltaResult.fm.radiusCompressionRatio : null;
-      const radiusCompressionScore = radiusCompression != null ? rampScore(radiusCompression, 0, 0.20) : null;
+      const radiusCompressionScore = radiusCompression != null ? rampScore(radiusCompression, 0, 0.35) : null;
       score = combineMetricScores([
         { value: lagScore, weight: 0.35 },
         { value: coreScore, weight: 0.35 },
@@ -2382,11 +2442,10 @@
       ]);
 
     } else if (segment === 'frame3') {
-      // 수직신장각: 증가할수록 고점수 (타겟: ≥160° 만점)
-      // 음(-)의 방향(굽어짐) 감점 폭을 20°→40°로 넓혀 클릭오차에 의한 급격한 점수 하락 완화
+      // 수직신장각: A→B 변화량(지면반력 구간의 실제 신전 정도)이 클수록 고점수 —
+      // 변화 0°=0점, 변화 1° 이상=10점 만점(선형, 2026-09-24 범위 축소)
       const keDelta = deltaResult.fm && hasMetric(deltaResult.fm.kneeExtDelta) ? deltaResult.fm.kneeExtDelta : null;
-      const keScore = keDelta != null ? (keDelta >= 160 ? 1 : keDelta >= 0 ? rampScore(keDelta, 0, 160)
-                                                        : rampScore(keDelta, -40, 0)) : null;
+      const keScore = keDelta != null ? clamp(keDelta, 0, 1) : null;
       // 축 고정: C7 수평 이동 비율이 작을수록 고점수 (허용 ±10%)
       const swayPct = deltaResult.fm && hasMetric(deltaResult.fm.c7SwayPercent) ? Math.abs(deltaResult.fm.c7SwayPercent) : null;
       const swayScore = swayPct != null ? clamp(1 - swayPct / 10, 0, 1) : null;
@@ -2395,9 +2454,9 @@
       const transitionScore = transitionReport && hasMetric(transitionReport.score100)
         ? transitionReport.score100 / 100 : null;
       score = combineMetricScores([
-        { value: keScore,         weight: 0.35 },
+        { value: keScore,         weight: 0.30 },
         { value: swayScore,       weight: 0.20 },
-        { value: transitionScore, weight: 0.45 },
+        { value: transitionScore, weight: 0.50 },
       ]);
 
     } else if (segment === 'frame4') {
@@ -2411,11 +2470,13 @@
       const arcDelta = (arcF3 != null && arcAbs != null) ? (arcAbs - arcF3) : null;
       const arcDeltaScore = arcDelta != null ? clamp(arcDelta / 40, 0, 1) : null; // 변화량 40 이상 만점
       // 두 조건(절대 선속도 지수/변화량) 모두 만족 시에만 핵심 45%가 완전 만점이 되도록 게이트 적용
+      // Frame3 미분석 등으로 둘 중 하나만 없으면 나머지 하나만으로 부분 반영(전체 제외하지 않음, 2026-09-24 수정)
       const arcCoreScore = (arcAbsScore != null && arcDeltaScore != null)
         ? ((arcAbsScore >= 1 && arcDeltaScore >= 1)
             ? 1
             : 0.5 * arcAbsScore + 0.5 * arcDeltaScore)
-        : null;
+        : (arcAbsScore != null ? arcAbsScore : arcDeltaScore);
+      if (deltaResult.fm) deltaResult.fm._arcCoreAvailable = arcCoreScore != null;
 
       // 1차 지표: 팔-샤프트 정렬 개선 (+100° 이상 = 만점)
       // 음(-)의 방향 감점 폭을 30°→60°로 넓혀 완만하게 처리
@@ -2504,6 +2565,11 @@
       fm.laggingAngleBDeg    = fmB.laggingAngleDeg ?? null; // B프레임(다운스윙) 실제 래깅각
       const frame1History = frameMetricsHistory['frame1'];
       fm.radiusTop = frame1History && hasMetric(frame1History._coreHandRadiusB) ? frame1History._coreHandRadiusB : null;
+      // radiusTop이 없을 때 원인 구분: B패널(백스윙 탑) 자체에 그립/클럽헤드 포인트가 없는지(topShaftAngleDeg도 null),
+      // 아니면 포인트는 있는데 어드레스 반경 정규화(scale)만 실패했는지
+      const frame1SideHistory = frameSideMetricsHistory['frame1'];
+      fm.radiusTopMissingReason = hasMetric(fm.radiusTop) ? null
+        : (frame1SideHistory && hasMetric(frame1SideHistory.topShaftAngleDeg)) ? 'scaleIssue' : 'noTopPoints';
       fm.radiusF2 = hasMetric(fmB.coreHandRadius) ? fmB.coreHandRadius : null;
       fm.radiusCompressionRatio = (fm.radiusTop != null && fm.radiusTop > 0 && fm.radiusF2 != null)
         ? (fm.radiusTop - fm.radiusF2) / fm.radiusTop : null;
@@ -2520,6 +2586,9 @@
         : pxDeltaPelvis;             // 폴백: 정규화 좌표 차이
     } else if (segment === 'frame3') {
       fm.kneeExtDelta      = computeMetricDelta(fmA.kneeExtensionDeg, fmB.kneeExtensionDeg);
+      // 점수는 A↔B 델타(변화량, 보통 몇 도 안팎)가 아니라 B(지면반력 구간) 시점의 절대 신전각도를 사용 —
+      // kneeExtDelta로 점수를 매기면 정상적인 작은 변화도 거의 0점으로 나오는 버그가 있었음(2026-09-24 수정)
+      fm.kneeExtensionDegB = hasMetric(fmB.kneeExtensionDeg) ? fmB.kneeExtensionDeg : null;
       const frame2History = frameMetricsHistory['frame2'];
       const frame4History = frameMetricsHistory['frame4'];
       fm.radiusF2 = frame2History && hasMetric(frame2History._swingRadiusB) ? frame2History._swingRadiusB : null;
@@ -2553,10 +2622,11 @@
       fm.armShaftDelta     = fmA.armShaftAngleDeg != null && fmB.armShaftAngleDeg != null
         ? fmB.armShaftAngleDeg - fmA.armShaftAngleDeg : null;
       fm.lateralLeanDelta  = computeMetricDelta(fmA.lateralLeanAngle, fmB.lateralLeanAngle);
-      // 어드레스(Frame1 A패널) 대비 임팩트(현재 프레임 A패널) C7 좌우/상하 변위 — 입력 키 대비 %
+      // 어드레스(Frame1 A패널) 대비 임팩트(현재 프레임 B패널) C7 좌우/상하 변위 — 입력 키 대비 %
+      // (기존엔 A패널을 임팩트로 잘못 참조해 armShaftDelta의 "A=어드레스/B=임팩트" 정의와 불일치했음 — 2026-09-24 수정)
       const addressFm = frameMetricsHistory['frame1'];
       const c7DispImpact = addressFm
-        ? computeHeightPercentDisplacement(addressFm.c7NormX, addressFm.c7NormY, fmA.c7NormX, fmA.c7NormY)
+        ? computeHeightPercentDisplacement(addressFm.c7NormX, addressFm.c7NormY, fmB.c7NormX, fmB.c7NormY)
         : { xPercent: null, yPercent: null, reason: 'noAddress' };
       fm.c7XPercent = c7DispImpact.xPercent;
       fm.c7YPercent = c7DispImpact.yPercent;
@@ -2887,6 +2957,9 @@
     if (!frame2Result || !frame2Result.fm || !frame1History) return;
     const fm = frame2Result.fm;
     fm.radiusTop = hasMetric(frame1History._coreHandRadiusB) ? frame1History._coreHandRadiusB : null;
+    const frame1SideHistory = frameSideMetricsHistory['frame1'];
+    fm.radiusTopMissingReason = hasMetric(fm.radiusTop) ? null
+      : (frame1SideHistory && hasMetric(frame1SideHistory.topShaftAngleDeg)) ? 'scaleIssue' : 'noTopPoints';
     fm.radiusCompressionRatio = (fm.radiusTop != null && fm.radiusTop > 0 && fm.radiusF2 != null)
       ? (fm.radiusTop - fm.radiusF2) / fm.radiusTop : null;
     frame2Result.segmentScore = computeSegmentScore(frame2Result, 'frame2');
@@ -2907,6 +2980,21 @@
     updateSegmentComparisonCard('frame3', frame3Result);
   }
 
+  // 점수 산정에 실제로 반영된 하위 지표 수 — 일부 지표가 데이터 부족으로 빠지면
+  // combineMetricScores가 가중치를 나머지 지표로 재정규화해 조용히 계산하므로, 몇 개가 빠졌는지 별도로 표시
+  function countAvailableMetrics(segment, fm) {
+    const checks = {
+      frame1: [fm.spineAngleDelta, fm.xFactorDelta, fm.topShaftAngleDeg, fm.c7XPercent, fm.c7YPercent],
+      frame2: [fm.laggingAngleDelta, fm.pelvisLateralDelta, fm.radiusCompressionRatio],
+      frame3: [fm.kneeExtDelta, fm.c7SwayPercent, fm._groundForce && hasMetric(fm._groundForce.score100) ? fm._groundForce.score100 : null],
+      frame4: [fm._arcCoreAvailable ? 1 : null, fm.radiusExpansionRatio, fm.armShaftDelta, fm.lateralLeanDelta, fm.c7XPercent, fm.c7YPercent],
+    }[segment];
+    if (!checks) return null;
+    const total = checks.length;
+    const available = checks.filter(v => hasMetric(v)).length;
+    return { available, total };
+  }
+
   function updateSegmentComparisonCard(segment, deltaResult) {
     const fm = deltaResult.fm || {};
     const scoreEls = { frame1: analysisDeltaCardF1Score, frame2: analysisDeltaCardF2Score,
@@ -2921,7 +3009,9 @@
         const rep = fm._tempo;
         scoreEl.innerHTML = `<span class="analysis-f5-score-part">종합점수: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">(${rep.grade})</span>`;
       } else {
-        scoreEl.textContent = `점수: ${deltaResult.segmentScore.toFixed(1)}`;
+        const avail = countAvailableMetrics(segment, fm);
+        const availNote = avail && avail.available < avail.total ? ` (${avail.available}/${avail.total} 지표 반영, 나머지는 데이터 부족으로 제외)` : '';
+        scoreEl.textContent = `점수: ${deltaResult.segmentScore.toFixed(1)}${availNote}`;
       }
     }
 
@@ -2951,17 +3041,21 @@
           : '래깅각: 데이터 부족';
       if (analysisDeltaCardF2RadiusCompression) analysisDeltaCardF2RadiusCompression.textContent =
         hasMetric(fm.radiusCompressionRatio)
-          ? `코어-손 압축: ${formatPercent(fm.radiusCompressionRatio * 100)} (탑 ${fm.radiusTop.toFixed(3)}→F2 ${fm.radiusF2.toFixed(3)}; ${fm.radiusCompressionRatio >= 0.20 ? '만점 기준 충족' : fm.radiusCompressionRatio > 0 ? '압축' : '유지/확장'})`
-          : !hasMetric(fm.radiusTop)
-            ? '코어-손 압축: Frame 1 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요'
-            : '코어-손 압축: Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)';
+          ? `코어-손 압축: ${formatPercent(fm.radiusCompressionRatio * 100)} (탑 ${fm.radiusTop.toFixed(3)}→F2 ${fm.radiusF2.toFixed(3)}; ${fm.radiusCompressionRatio >= 0.35 ? '만점 기준 충족' : fm.radiusCompressionRatio > 0 ? '압축' : '유지/확장'})`
+          : fm.radiusTopMissingReason === 'scaleIssue'
+            ? '코어-손 압축: Frame 1 포인트는 확인됨(정규화 오류) — Frame 1 A패널을 다시 분석해 기준 반경을 확정하세요'
+            : !hasMetric(fm.radiusTop)
+              ? '코어-손 압축: Frame 1 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요'
+              : '코어-손 압축: Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)';
       if (analysisDeltaCardF2CoreShift) analysisDeltaCardF2CoreShift.textContent =
         fm.pelvisLateralDelta != null
           ? `코어 이동: ${formatPercent(fm.pelvisLateralDelta * 100)}`  // 양수 = 목표방향 이동
           : '코어 이동: 데이터 부족';
     } else if (segment === 'frame3') {
       if (analysisDeltaCardF3Thrust) analysisDeltaCardF3Thrust.textContent =
-        fm.kneeExtDelta != null ? `수직신장 변화: ${formatDelta(fm.kneeExtDelta)}°` : '수직신장: 데이터 부족';
+        fm.kneeExtDelta != null
+          ? `수직신장 변화: ${formatDelta(fm.kneeExtDelta)}°${fm.kneeExtensionDegB != null ? ` (B 절대각 ${fm.kneeExtensionDegB.toFixed(1)}°)` : ''}`
+          : '수직신장: 데이터 부족';
       if (analysisDeltaCardF3AxisSway) analysisDeltaCardF3AxisSway.textContent =
         fm.c7SwayPercent != null ? `C7 Sway: ${formatPercent(fm.c7SwayPercent)}` : 'C7 Sway: 데이터 부족';
       if (analysisDeltaCardF3GroundForceTransition) {
@@ -3106,13 +3200,13 @@
       lines.push(`래깅 각도 변화 ${deg(lag)} — ${lag != null && lag <= -100 ? hl('완전 코킹 유지 (≤-100°)', true) : lag != null && lag <= -60 ? hl('부분 코킹 (-60~-100°)', false) : hl('조기 릴리즈 경향 (>-60°)', false)}`);
       lines.push(`코어(골반) 이동 ${core != null ? (core * 100).toFixed(1) + '%' : '—'} — ${core != null && core >= 0.15 ? hl('골반 선행 충분 (≥+15%)', true) : core != null && core >= 0 ? hl('골반 이동 부족 (0~15%)', false) : hl('골반 반대 이동 또는 정지 ⚠', false)}`);
       const compression = fm.radiusCompressionRatio;
-      lines.push(`코어-손 압축: 탑 ${raw(fm.radiusTop)} → 다운스윙 ${raw(fm.radiusF2)} (${compression != null ? formatPercent(compression * 100) : '—'}). ${compression != null && compression >= 0.20 ? hl('압축 충분', true) : hl('압축 부족', false)}`);
+      lines.push(`코어-손 압축: 탑 ${raw(fm.radiusTop)} → 다운스윙 ${raw(fm.radiusF2)} (${compression != null ? formatPercent(compression * 100) : '—'}). ${compression != null && compression >= 0.35 ? hl('압축 충분', true) : hl('압축 부족', false)}`);
     }
     else if (segment === 'frame3') {
       const kext  = fm.kneeExtDelta;
       const sway  = fm.c7SwayPercent;
       lines.push(`${bold('F3 지면반력 — 하체 에너지 전달')}`);
-      lines.push(`수직신장 각도 변화 ${deg(kext)} — ${kext != null && kext >= 160 ? hl('강한 지면반력 (≥160°)', true) : kext != null && kext >= 100 ? hl('보통 수준 (100~160°)', false) : hl('신장 부족 (<100°)', false)}`);
+      lines.push(`수직신장 변화(A→B) ${deg(kext)} — ${kext != null && kext >= 1 ? hl('충분한 신장 (≥1°)', true) : kext != null && kext >= 0 ? hl('보통 수준 (0~1°)', false) : hl('오히려 굴어짐 (음수) ⚠', false)}`);
       lines.push(`C7 Sway ${sway != null ? sway.toFixed(1) + '%' : '—'} — ${sway != null && sway <= 3 ? hl('축 고정 우수 (≤3%)', true) : sway != null && sway <= 10 ? hl('허용 범위 (3~10%)', false) : hl('축 이탈 과다 (>10%) ⚠', false)}`);
       lines.push(`반경 변화: 어드레스 ${raw(aR)} → 지면반력 ${raw(bR)}. ${bR > aR * 1.5 ? hl('하체 신장으로 레버 확장 확인', true) : hl('레버 확장 제한적', false)}`);
     }
@@ -4459,7 +4553,11 @@
       guideStep = Math.min(points.length + 1, maxSteps);
       showGuide();
     }
-    if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
+    // A패널(baselineFrontResult 확정 전)에서 마지막 점을 찍은 순간에도 자동 분석되도록 함
+    // (이전엔 baselineFrontResult가 있어야만 자동 실행되어, A패널을 다 찍고 "분석 실행"을 누르지 않은 채
+    //  B패널로 넘어가면 baseline이 끝내 확정되지 않아 코어-손 압축 같은 스케일 보정 지표가 계속 누락됐음)
+    const viewComplete = view ? points.length >= getFramePointTypesForView(selectedSegment, view).length : false;
+    if (frontVideo.src && sideVideo.src && (baselineFrontResult || viewComplete)) performAnalysis();
   }
 
   function onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter, view){
@@ -4725,6 +4823,49 @@
   sideCanvas.addEventListener('pointercancel', endPointer);
   sideCanvas.addEventListener('pointerleave', endPointer);
   sideCanvas.addEventListener('contextmenu', e => onCanvasContextMenu(e, sidePoints, sideLines, sideCtx, sideCanvas, sideVideo, () => sideZoom, 'side'));
+
+  // 안내 말풍선이 클릭해야 할 랜드마크 위치를 가릴 수 있어, 사용자가 직접 끌어서 다른 위치로 옮길 수 있게 함
+  function makeGuideBubbleDraggable(bubbleEl) {
+    if (!bubbleEl) return;
+    let dragState = null;
+    bubbleEl.addEventListener('pointerdown', e => {
+      const stage = bubbleEl.parentElement;
+      const stageRect = stage.getBoundingClientRect();
+      const bubbleRect = bubbleEl.getBoundingClientRect();
+      dragState = {
+        pointerId: e.pointerId,
+        offsetX: e.clientX - bubbleRect.left,
+        offsetY: e.clientY - bubbleRect.top,
+        stageRect,
+        width: bubbleRect.width,
+        height: bubbleRect.height,
+      };
+      bubbleEl.classList.add('dragging');
+      bubbleEl.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    bubbleEl.addEventListener('pointermove', e => {
+      if (!dragState || dragState.pointerId !== e.pointerId) return;
+      const { stageRect, offsetX, offsetY, width, height } = dragState;
+      let left = e.clientX - stageRect.left - offsetX;
+      let top = e.clientY - stageRect.top - offsetY;
+      left = clamp(left, 0, Math.max(0, stageRect.width - width));
+      top = clamp(top, 0, Math.max(0, stageRect.height - height));
+      bubbleEl.style.left = `${left}px`;
+      bubbleEl.style.right = 'auto';
+      bubbleEl.style.top = `${top}px`;
+    });
+    const endDrag = e => {
+      if (!dragState || dragState.pointerId !== e.pointerId) return;
+      bubbleEl.classList.remove('dragging');
+      bubbleEl.releasePointerCapture(e.pointerId);
+      dragState = null;
+    };
+    bubbleEl.addEventListener('pointerup', endDrag);
+    bubbleEl.addEventListener('pointercancel', endDrag);
+  }
+  makeGuideBubbleDraggable(frontGuideBubble);
+  makeGuideBubbleDraggable(sideGuideBubble);
 
   function checkButtonsEnabled(){
     playPauseBothBtn.disabled = !(frontVideo.src && sideVideo.src);
@@ -5167,26 +5308,51 @@
   let lastDistanceSegment = 'frame1';
   let lastConsistencySegment = 'frame5';
   function switchToSegment(segment, view) {
+    // 같은 프레임 안에서 A↔B 패널만 전환하는 경우, 아직 저장(performAnalysis)되지 않은
+    // 현재 입력 중인 포인트를 기록에서 덮어써 사라지게 하지 않도록 복원을 건너뜀
+    const isSameSegment = selectedSegment === segment;
     selectedSegment = segment;
     if (analysisSegmentSelect) analysisSegmentSelect.value = segment;
-    const savedFront = frameStateHistory.front[segment];
-    frontPoints = savedFront ? JSON.parse(JSON.stringify(savedFront.points)) : [];
-    frontLines  = savedFront ? JSON.parse(JSON.stringify(savedFront.lines))  : [];
-    const savedSide = frameStateHistory.side[segment];
-    sidePoints = savedSide ? JSON.parse(JSON.stringify(savedSide.points)) : [];
-    sideLines  = savedSide ? JSON.parse(JSON.stringify(savedSide.lines))  : [];
-    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
-    drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
+    if (!isSameSegment) {
+      const savedFront = frameStateHistory.front[segment];
+      frontPoints = savedFront ? JSON.parse(JSON.stringify(savedFront.points)) : [];
+      frontLines  = savedFront ? JSON.parse(JSON.stringify(savedFront.lines))  : [];
+      const savedSide = frameStateHistory.side[segment];
+      sidePoints = savedSide ? JSON.parse(JSON.stringify(savedSide.points)) : [];
+      sideLines  = savedSide ? JSON.parse(JSON.stringify(savedSide.lines))  : [];
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
+    }
     runMotionAnalysis(view);
+  }
+  // 저장된 기록 기준으로 해당 프레임의 A/B 패널 랜드마크 입력이 모두 끝났는지 확인
+  function isPanelComplete(segment, view) {
+    const saved = view === 'front' ? frameStateHistory.front[segment] : frameStateHistory.side[segment];
+    const need = getFramePointTypesForView(segment, view).length;
+    return !!(saved && saved.points && saved.points.length >= need);
   }
   function selectDistanceSegment(view) {
     // 현재 선택이 F1~F4면 그대로, 아니면 마지막 사용 비거리 프레임으로
-    const target = ['frame1','frame2','frame3','frame4'].includes(selectedSegment) ? selectedSegment : lastDistanceSegment;
+    let target = ['frame1','frame2','frame3','frame4'].includes(selectedSegment) ? selectedSegment : lastDistanceSegment;
+    // 현재 프레임의 A/B 패널이 이미 모두 완료된 상태에서 버튼을 또 누르면 "다음 프레임으로 넘어가려는 의도"로 보고 자동 진행
+    // (기존엔 같은 프레임에 계속 머물러 있어, 사용자가 다음 프레임으로 이동했다고 착각하고 그 프레임의 A패널 입력을 건너뛰는 문제가 있었음)
+    const order = ['frame1','frame2','frame3','frame4'];
+    if (order.includes(target) && isPanelComplete(target, 'front') && isPanelComplete(target, 'side')) {
+      const idx = order.indexOf(target);
+      if (idx < order.length - 1) target = order[idx + 1];
+    }
+    lastDistanceSegment = target;
     switchToSegment(target, view);
   }
   function selectConsistencySegment(view) {
     // 현재 선택이 F5/F6이면 그대로, 아니면 마지막 사용 일관성 프레임으로 (F6 분석 시 🎯로 진행 가능)
-    const target = ['frame5','frame6'].includes(selectedSegment) ? selectedSegment : lastConsistencySegment;
+    let target = ['frame5','frame6'].includes(selectedSegment) ? selectedSegment : lastConsistencySegment;
+    const order = ['frame5','frame6'];
+    if (order.includes(target) && isPanelComplete(target, 'front') && isPanelComplete(target, 'side')) {
+      const idx = order.indexOf(target);
+      if (idx < order.length - 1) target = order[idx + 1];
+    }
+    lastConsistencySegment = target;
     switchToSegment(target, view);
   }
   if (frontConsistencyBtn) {
@@ -5207,12 +5373,14 @@
       // 마지막 사용 프레임 기억 — 버튼 라우팅에 사용
       if (['frame1','frame2','frame3','frame4'].includes(selectedSegment)) lastDistanceSegment = selectedSegment;
       else if (['frame5','frame6'].includes(selectedSegment)) lastConsistencySegment = selectedSegment;
-      // 해당 프레임의 저장된 A 패널 상태 복원
+      // 해당 프레임의 저장된 A 패널 상태 복원 (기록이 없으면 이전 프레임의 점이 남아있지 않도록 반드시 초기화)
       const savedFront = frameStateHistory.front[selectedSegment];
       if (savedFront) {
         frontPoints = JSON.parse(JSON.stringify(savedFront.points));
         frontLines  = JSON.parse(JSON.stringify(savedFront.lines));
         if (isFinite(savedFront.videoTime)) frontVideo.currentTime = savedFront.videoTime;
+      } else {
+        frontPoints = []; frontLines = [];
       }
       // 해당 프레임의 저장된 B 패널 상태 복원
       const savedSide = frameStateHistory.side[selectedSegment];
@@ -5225,6 +5393,11 @@
       }
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
+      // 이전 프레임의 안내 문구/말풍선이 그대로 남아있지 않도록 가이드 상태를 초기화하고,
+      // 새로 선택된 프레임의 제목을 안내에 반영해 "분석 버튼을 눌러 시작하세요"로 갱신
+      guideView = null;
+      guideStep = 0;
+      showGuide();
       performAnalysis();
     });
   }
