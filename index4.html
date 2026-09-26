@@ -516,6 +516,18 @@
     text-align: left;
   }
   .swing-compare-panel.visible { display: block; }
+  .backswing-panel { display: none; width: min(95vw, 990px); margin: 14px auto; padding: 12px; box-sizing: border-box; color: #f7f7f7; background: #15262c; border: 1px solid #53ad9b; border-radius: 6px; }
+  .backswing-panel.visible { display: block; }
+  .backswing-panel select, .backswing-panel button { margin: 4px; padding: 6px 9px; }
+  .backswing-panel p { margin: 8px 0; line-height: 1.5; }
+  .backswing-panel .backswing-result { color: #c5e5d9; }
+  .backswing-result-title { margin: 12px 0 6px; padding-left: 10px; border-left: 3px solid #71e68a; color: #71e68a; font-size: 1.2rem; font-weight: 800; line-height: 1.4; }
+  .backswing-result-detail { font-size: 0.88rem; line-height: 1.6; }
+  .backswing-types { margin-top: 12px; border-top: 1px solid rgba(83, 173, 155, 0.35); padding-top: 10px; font-size: 0.85rem; line-height: 1.6; }
+  .backswing-types summary { cursor: pointer; color: #c5e5d9; font-weight: 700; }
+  .backswing-types ul { margin: 8px 0 0; padding-left: 20px; }
+  .backswing-types li { margin-bottom: 6px; }
+  .backswing-panel .backswing-reference { display: block; margin-top: 12px; color: #a9bdba; font-family: Georgia, 'Batang', serif; font-size: 0.74rem; line-height: 1.5; }
   .swing-compare-header,
   .swing-compare-controls,
   .swing-compare-summary {
@@ -670,6 +682,11 @@
     background: #005fa3;
     padding: 5px 12px;
     font-size: 0.9rem;
+  }
+  #distanceReferenceBtn, #distanceMeasureBtn {
+    background: #006b5e;
+    border: 1px solid #53ad9b;
+    color: #fff;
   }
   .analysis-panel-body {
     display: grid;
@@ -1030,7 +1047,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.10f</span></h1>
+  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.11ff</span></h1>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1135,12 +1152,41 @@
   </div>
 </section>
 
+<section class="backswing-panel" id="backswingPanel" aria-label="백스윙 유형 결정">
+  <strong>측면 백스윙 궤적 분류 · A 영상</strong>
+  <p>측면 스윙을 A에 불러오고, 각 자세로 이동한 뒤 C7(목 뒤) → 골반 중심 → 양손 중심(그립) → 클럽헤드 순서로 영상의 점을 찍으세요. 단계별로 같은 영상과 카메라 각도를 유지하세요.</p>
+  <label for="backswingPhase">선택 자세</label>
+  <select id="backswingPhase">
+    <option value="address">어드레스</option><option value="p1">P1 · 테이크어웨이 시작</option>
+    <option value="p2">P2 · 샤프트 지면 평행</option><option value="p3">P3 · 팔 지면 평행</option>
+    <option value="p4">P4 · 탑 직전</option><option value="top">백스윙 탑</option>
+    <option value="transition">전환 · 내려오는 손이 P4와 비슷한 높이</option>
+  </select>
+  <button type="button" id="backswingUndoBtn">현재 자세 마지막 점 취소</button>
+  <button type="button" id="backswingResetBtn">백스윙 입력 초기화</button>
+  <button type="button" id="backswingDecideBtn">유형 판정</button>
+  <p id="backswingGuide" role="status"></p>
+  <div id="backswingResult" class="backswing-result" aria-live="polite"></div>
+  <details class="backswing-types">
+    <summary>백스윙 유형별 특징</summary>
+    <ul>
+      <li><strong>1. 온플레인 패턴:</strong> 어드레스부터 탑까지 평면을 유지하며 보정 동작이 적은 형태. C7 축 고정 중심 움직임과 관련됩니다.</li>
+      <li><strong>2. 업라이트-샬로잉 패턴:</strong> 가파른 탑에서 전환 시 샤프트가 완만해지는 형태. 코어 압축·팽창 및 수직 지면반력 활용과 관련될 수 있습니다.</li>
+      <li><strong>3. 아웃사이드 페이스 제어 패턴:</strong> P2에서 클럽헤드를 바깥쪽에 두는 형태. 페이스 열림 억제, 하체 이동 및 하체 선행과 관련됩니다.</li>
+      <li><strong>4. 하이브리드 A:</strong> P2 구간의 아웃사이드 움직임과 가파른 탑 이후 샬로잉이 함께 나타나는 형태입니다.</li>
+      <li><strong>5. 하이브리드 B:</strong> 온플레인 궤적과 가파른 탑 이후 샬로잉이 함께 나타나는 형태입니다.</li>
+    </ul>
+  </details>
+  <small class="backswing-reference">※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.</small>
+</section>
+
 <div class="analysis-panel collapsed" id="analysisPanel">
   <div class="analysis-panel-header">
     <div class="analysis-panel-header-top">
       <span class="analysis-title">Motion Analysis</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
         <button type="button" id="swingCompareToggleBtn" title="서로 다른 A/B 스윙의 6개 주요 시점을 비교">A/B 스윙 비교</button>
+        <button type="button" id="backswingToggleBtn" title="A 영상의 측면 스윙으로 백스윙 궤적 분류">백스윙 유형 결정</button>
         <button type="button" id="distanceReferenceBtn" title="비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정">기준선 지정</button>
         <button type="button" id="distanceMeasureBtn" title="두 점 사이의 화면상 거리를 측정">거리 산출</button>
         <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
@@ -1401,6 +1447,11 @@
   const sideCanvas = document.getElementById('sideCanvas');
   const frontCtx = frontCanvas.getContext('2d');
   const sideCtx = sideCanvas.getContext('2d');
+  const backswingPanel = document.getElementById('backswingPanel');
+  const backswingPhaseSelect = document.getElementById('backswingPhase');
+  const backswingGuide = document.getElementById('backswingGuide');
+  const backswingResult = document.getElementById('backswingResult');
+  const backswingToggleBtn = document.getElementById('backswingToggleBtn');
   const swingComparePanel = document.getElementById('swingComparePanel');
   const swingComparePhaseSelect = document.getElementById('swingComparePhaseSelect');
   const swingCompareToggleBtn = document.getElementById('swingCompareToggleBtn');
@@ -1833,6 +1884,10 @@
   }
 
   function showGuide() {
+    if (backswingActive) {
+      updateBackswingGuide();
+      return;
+    }
     if (!analysisGuide || !analysisGuideStep || !analysisGuideNextBtn) return;
     const message = getGuideMessage();
     analysisGuide.textContent = message;
@@ -3848,6 +3903,7 @@
     segmentScoreHistory  = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     segmentDeltaHistory  = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     resetSwingCompareData();
+    resetBackswing();
     // 가이드 상태 초기화
     guideView = null;
     guideStep = 0;
@@ -3861,6 +3917,159 @@
 
 
   let frontPoints = [];
+  const BACKSWING_PHASES = ['address', 'p1', 'p2', 'p3', 'p4', 'top', 'transition'];
+  const BACKSWING_POINTS = ['C7(목 뒤)', '골반 중심', '양손 중심(그립)', '클럽헤드'];
+  let backswingActive = false;
+  let backswingFrames = {};
+
+  function updateBackswingGuide() {
+    if (!backswingActive) return;
+    const phase = backswingPhaseSelect.value;
+    const count = (backswingFrames[phase]?.points || []).length;
+    const label = backswingPhaseSelect.selectedOptions[0].textContent;
+    backswingGuide.textContent = `${label} · ${count}/4 ${count < 4 ? `다음: ${BACKSWING_POINTS[count]}` : '입력 완료. 다음 자세를 선택하세요.'}`;
+    frontGuideBubble.textContent = backswingGuide.textContent;
+    frontGuideBubble.classList.add('visible');
+  }
+
+  function resetBackswing() {
+    backswingFrames = {};
+    backswingResult.textContent = '';
+    backswingPhaseSelect.value = 'address';
+    updateBackswingGuide();
+    if (backswingActive) drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+  }
+
+  function setBackswingMode(active) {
+    backswingActive = active;
+    backswingPanel.classList.toggle('visible', active);
+    backswingToggleBtn.textContent = active ? '백스윙 입력 종료' : '백스윙 유형 결정';
+    backswingToggleBtn.setAttribute('aria-pressed', String(active));
+    if (active) {
+      distanceMeasureActive = false;
+      distanceReferenceActive = false;
+      distancePendingPoints = { front: [], side: [] };
+      distanceReferencePendingPoints = { front: [], side: [] };
+      distanceMeasureBtn.textContent = '거리 산출';
+      distanceReferenceBtn.textContent = '기준선 지정';
+      distanceMeasureBtn.style.background = distanceMeasureBtn.style.borderColor = '';
+      distanceReferenceBtn.style.background = distanceReferenceBtn.style.borderColor = '';
+      updateBackswingGuide();
+      if (!frontVideo.src) frontFileInput.click();
+    } else {
+      showGuide();
+    }
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+  }
+
+  function drawBackswingPoints(ctx, metrics, canvas) {
+    const points = backswingFrames[backswingPhaseSelect.value]?.points || [];
+    const scale = canvas.width / (canvas.getBoundingClientRect().width || canvas.width);
+    ctx.save();
+    ctx.fillStyle = '#53e5b5';
+    ctx.strokeStyle = '#12252b';
+    ctx.lineWidth = 2 * scale;
+    ctx.font = `${Math.max(12, 12 * scale)}px sans-serif`;
+    points.forEach((point, index) => {
+      const x = metrics.offsetX + point.x * metrics.drawWidth;
+      const y = metrics.offsetY + point.y * metrics.drawHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, 5 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillText(String(index + 1), x + 7 * scale, y - 7 * scale);
+    });
+    ctx.restore();
+  }
+
+  function addBackswingPoint(pos) {
+    if (!frontVideo.src) return;
+    frontVideo.pause();
+    const phase = backswingPhaseSelect.value;
+    const entry = backswingFrames[phase] || { points: [], time: frontVideo.currentTime };
+    if (entry.points.length >= BACKSWING_POINTS.length) return;
+    if (entry.points.length && Math.abs(entry.time - frontVideo.currentTime) > 0.04) {
+      backswingResult.textContent = '현재 자세의 포인트는 동일한 프레임에서 찍어야 합니다. 자세를 다시 선택하거나 마지막 점을 취소하세요.';
+      return;
+    }
+    if (!entry.points.length) entry.time = frontVideo.currentTime;
+    entry.points.push(pos);
+    backswingFrames[phase] = entry;
+    backswingResult.textContent = '';
+    if (entry.points.length === BACKSWING_POINTS.length) {
+      const nextPhase = BACKSWING_PHASES[BACKSWING_PHASES.indexOf(phase) + 1];
+      if (nextPhase) backswingPhaseSelect.value = nextPhase;
+      else document.getElementById('backswingDecideBtn').click();
+    }
+    updateBackswingGuide();
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+  }
+
+  function classifyBackswing(frames) {
+    const missing = BACKSWING_PHASES.filter(phase => frames[phase]?.points.length !== 4);
+    if (missing.length) return { error: `미입력 자세: ${missing.map(phase => backswingPhaseSelect.querySelector(`[value="${phase}"]`).textContent).join(', ')}` };
+    if (BACKSWING_PHASES.some((phase, index) => index && frames[phase].time <= frames[BACKSWING_PHASES[index - 1]].time)) {
+      return { error: '프레임 시각이 어드레스 → P1 → P2 → P3 → P4 → 탑 → 전환 순서가 아닙니다. 각 자세의 프레임을 다시 선택하세요.' };
+    }
+    const address = frames.address.points;
+    const p2 = frames.p2.points;
+    const p3 = frames.p3.points;
+    const p4 = frames.p4.points;
+    const top = frames.top.points;
+    const transition = frames.transition.points;
+    const torso = Math.hypot(address[0].x - address[1].x, address[0].y - address[1].y);
+    if (torso < 0.03) return { error: '어드레스 C7과 골반 중심이 너무 가깝습니다. 기준점을 다시 찍으세요.' };
+    if (Math.abs(p4[2].y - transition[2].y) / torso > 0.35) {
+      return { error: '전환 프레임의 손 높이가 P4와 다릅니다. 내려오는 손이 P4와 비슷한 높이인 프레임을 선택하세요.' };
+    }
+    const shaftAngle = points => Math.atan2(Math.abs(points[3].y - points[2].y), Math.abs(points[3].x - points[2].x)) * 180 / Math.PI;
+    const outside = (Math.abs(p2[3].x - p2[0].x) - Math.abs(p2[2].x - p2[0].x)) / torso > 0.15;
+    const axisStable = Math.hypot(top[0].x - address[0].x, top[0].y - address[0].y) / torso < 0.25;
+    const plane = axisStable && Math.abs(shaftAngle(p3) - shaftAngle(p4)) <= 18;
+    const upright = (address[2].y - top[2].y) / torso > 1.1;
+    const shallow = shaftAngle(p4) - shaftAngle(transition) >= 12;
+    const uprightShallow = upright && shallow;
+    let type = null;
+    if (outside && uprightShallow) type = '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)';
+    else if (plane && uprightShallow) type = '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)';
+    else if (uprightShallow) type = '2. 업라이트-샬로잉 패턴';
+    else if (outside) type = '3. 아웃사이드 페이스 제어 패턴';
+    else if (plane) type = '1. 온플레인 패턴';
+    return { type, outside, plane, upright, shallow, axisStable, p4Angle: shaftAngle(p4), transitionAngle: shaftAngle(transition) };
+  }
+
+  backswingToggleBtn.addEventListener('click', () => {
+    if (!backswingActive && swingCompareActive) toggleSwingCompareMode();
+    setBackswingMode(!backswingActive);
+  });
+  backswingPhaseSelect.addEventListener('change', () => {
+    const time = backswingFrames[backswingPhaseSelect.value]?.time;
+    if (Number.isFinite(time)) frontVideo.currentTime = time;
+    updateBackswingGuide();
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+  });
+  document.getElementById('backswingUndoBtn').addEventListener('click', () => {
+    const entry = backswingFrames[backswingPhaseSelect.value];
+    if (entry) entry.points.pop();
+    backswingResult.textContent = '';
+    updateBackswingGuide();
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+  });
+  document.getElementById('backswingResetBtn').addEventListener('click', resetBackswing);
+  document.getElementById('backswingDecideBtn').addEventListener('click', () => {
+    const result = classifyBackswing(backswingFrames);
+    if (result.error) {
+      backswingResult.textContent = result.error;
+      return;
+    }
+    const title = document.createElement('div');
+    title.className = 'backswing-result-title';
+    title.textContent = result.type ? `백스윙 유형 ${result.type}` : '백스윙 유형 판정 보류';
+    const detail = document.createElement('div');
+    detail.className = 'backswing-result-detail';
+    detail.textContent = `${result.type ? '' : '다섯 패턴의 영상상 조건에 부합하지 않습니다. '}화면상 근거: P2 클럽헤드 바깥 ${result.outside ? '해당' : '미해당'} · C7 안정/중간 샤프트 기울기 ${result.plane ? '해당' : '미해당'} · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`;
+    backswingResult.replaceChildren(title, detail);
+  });
   let sidePoints = [];
   let frontLines = [];
   let sideLines = [];
@@ -4192,6 +4401,7 @@
       alert('A와 B 패널에 비교할 스윙 영상을 각각 먼저 불러오세요.');
       return;
     }
+    if (backswingActive) setBackswingMode(false);
     swingCompareActive = !swingCompareActive;
     distanceMeasureActive = false;
     distanceReferenceActive = false;
@@ -4729,6 +4939,10 @@
     syncCanvasSize(canvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
+    if (backswingActive && canvas === frontCanvas) {
+      drawBackswingPoints(ctx, metrics, canvas);
+      return;
+    }
     const view = canvas === frontCanvas ? 'front' : 'side';
     if (swingCompareActive) {
       points = getSwingCompareEntry(view).points;
@@ -4840,6 +5054,7 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       const ratioLabel = distanceRatio === null ? '기준선 미지정' : `기준선 대비 ${distanceRatio.toFixed(1)}%`;
+      ctx.fillStyle = '#000';
       ctx.fillText(`거리 ${distancePx.toFixed(1)}px (${ratioLabel})`, midX, midY - 6 * scale);
       ctx.restore();
     });
@@ -5161,8 +5376,8 @@
     distanceReferenceActive = false;
     if (!distanceReferenceBtn) return;
     distanceReferenceBtn.textContent = '기준선 지정 완료';
-    distanceReferenceBtn.style.background = 'rgba(76,255,128,0.25)';
-    distanceReferenceBtn.style.borderColor = '#4cff80';
+    distanceReferenceBtn.style.background = '#004f46';
+    distanceReferenceBtn.style.borderColor = '#78d4bd';
     clearTimeout(distanceReferenceFlashTimer);
     distanceReferenceFlashTimer = setTimeout(() => {
       distanceReferenceBtn.textContent = '기준선 지정';
@@ -5235,6 +5450,11 @@
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
+    if (backswingActive && view === 'front') {
+      activePointer = { backswingMode: true, canvas, video, zoomGetter, startPos: pos };
+      canvas.setPointerCapture(event.pointerId);
+      return;
+    }
     if (swingCompareActive) {
       activePointer = { compareMode: true, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
       pointerIsDragging = false;
@@ -5283,6 +5503,7 @@
 
   function movePointer(event){
     if(!activePointer) return;
+    if (activePointer.backswingMode) return;
     if (activePointer.compareMode) {
       const pos = getNormalizedCoords(event, activePointer.canvas, activePointer.video, activePointer.zoomGetter());
       if (pos && Math.hypot(pos.x - activePointer.startPos.x, pos.y - activePointer.startPos.y) > 0.01) {
@@ -5314,6 +5535,14 @@
   function endPointer(event){
     clearTimeout(longPressTimer);
     if(!activePointer) return;
+    if (activePointer.backswingMode) {
+      const { canvas, video, zoomGetter, startPos } = activePointer;
+      const pos = getNormalizedCoords(event, canvas, video, zoomGetter());
+      if (pos && Math.hypot(pos.x - startPos.x, pos.y - startPos.y) < 0.01) addBackswingPoint(pos);
+      activePointer = null;
+      canvas.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (activePointer.compareMode) {
       const { canvas, video, zoomGetter, view } = activePointer;
       const pos = getNormalizedCoords(event, canvas, video, zoomGetter());
@@ -5499,6 +5728,7 @@
       if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
       return;
     }
+    resetBackswing();
     clearAnalysisResults();
     resetSwingCompareData();
     baselineFrontResult = null;
@@ -5841,6 +6071,13 @@
   });
 
   clearPointsBtn.addEventListener('click', () => {
+    if (backswingActive) {
+      delete backswingFrames[backswingPhaseSelect.value];
+      backswingResult.textContent = '';
+      updateBackswingGuide();
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      return;
+    }
     if (swingCompareActive) {
       swingCompareData.front[swingComparePhase] = { points: [], videoTime: null };
       swingCompareData.side[swingComparePhase] = { points: [], videoTime: null };
@@ -5871,12 +6108,13 @@
   }
   if (distanceMeasureBtn) {
     distanceMeasureBtn.addEventListener('click', () => {
+      if (backswingActive) setBackswingMode(false);
       distanceMeasureActive = !distanceMeasureActive;
       distanceReferenceActive = false;
       distanceReferencePendingPoints = { front: [], side: [] };
       distanceMeasureBtn.textContent = distanceMeasureActive ? '거리 선택 중' : '거리 산출';
-      distanceMeasureBtn.style.background = distanceMeasureActive ? 'rgba(57,230,107,0.25)' : '';
-      distanceMeasureBtn.style.borderColor = distanceMeasureActive ? '#39e66b' : '';
+      distanceMeasureBtn.style.background = distanceMeasureActive ? '#004f46' : '';
+      distanceMeasureBtn.style.borderColor = distanceMeasureActive ? '#78d4bd' : '';
       if (!distanceMeasureActive) {
         distancePendingPoints = { front: [], side: [] };
       }
@@ -5886,12 +6124,13 @@
   }
   if (distanceReferenceBtn) {
     distanceReferenceBtn.addEventListener('click', () => {
+      if (backswingActive) setBackswingMode(false);
       distanceReferenceActive = !distanceReferenceActive;
       distanceMeasureActive = false;
       distancePendingPoints = { front: [], side: [] };
       distanceReferenceBtn.textContent = distanceReferenceActive ? '기준점 선택 중' : '기준선 지정';
-      distanceReferenceBtn.style.background = distanceReferenceActive ? 'rgba(255,213,74,0.25)' : '';
-      distanceReferenceBtn.style.borderColor = distanceReferenceActive ? '#ffd54a' : '';
+      distanceReferenceBtn.style.background = distanceReferenceActive ? '#004f46' : '';
+      distanceReferenceBtn.style.borderColor = distanceReferenceActive ? '#78d4bd' : '';
       if (distanceMeasureBtn) {
         distanceMeasureBtn.textContent = '거리 산출';
         distanceMeasureBtn.style.background = '';
@@ -5905,6 +6144,7 @@
   let lastDistanceSegment = 'frame1';
   let lastConsistencySegment = 'frame5';
   function switchToSegment(segment, view) {
+    if (backswingActive) setBackswingMode(false);
     if (swingCompareActive) toggleSwingCompareMode();
     // 같은 프레임 안에서 A↔B 패널만 전환하는 경우, 아직 저장(performAnalysis)되지 않은
     // 현재 입력 중인 포인트를 기록에서 덮어써 사라지게 하지 않도록 복원을 건너뜀
