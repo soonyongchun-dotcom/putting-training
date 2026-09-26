@@ -1637,6 +1637,11 @@
     return snap != null ? snap : getReferenceLineLengthNorm(view); // Frame 1 스냅샷이 없을 때만 실시간 값으로 폴백
   }
 
+  function getAnalysisAspect(video) {
+    return video && video.videoWidth && video.videoHeight
+      ? video.videoWidth / video.videoHeight : 16 / 9;
+  }
+
   // 두 시점의 랜드마크 변위를 입력 키(신장) 대비 %로 환산
   // 기준선은 항상 어드레스(Frame 1, A/front 영상)에서 한 번 지정한 것만 사용 — B/side 기준선은 사용하지 않음
   // reason: 계산 실패 원인을 UI에서 정확히 구분 표시하기 위한 값 ('coords' | 'reference' | null)
@@ -1743,9 +1748,16 @@
     // 신장 입력 대신 어드레스(baseline) 프레임 자체의 실측 반경을 기준자(=1.0)로 사용
     // → 화면 줌/카메라 거리와 무관하며, 신장 입력 오류·누락에도 영향받지 않는 비율 정규화
     const baselineSpan = baselineResult.rawRadiusProxy;
+    const referenceLength = getLockedReferenceLineLength('front');
+    const baselineReferenceRatio = hasMetric(referenceLength) && referenceLength > 0
+      ? baselineSpan / referenceLength : baselineSpan;
+    const resultReferenceRatio = hasMetric(result.rawRadiusProxy) && hasMetric(referenceLength) && referenceLength > 0
+      ? result.rawRadiusProxy / referenceLength : result.rawRadiusProxy;
     const scale = 1 / baselineSpan;
     result.projectionScale = scale;
-    result.radiusProxy = result.rawRadiusProxy * scale;
+    result.referenceLengthRatio = resultReferenceRatio;
+    result.radiusProxy = baselineReferenceRatio > 0
+      ? resultReferenceRatio / baselineReferenceRatio : result.rawRadiusProxy * scale;
     if (result.frameMetrics && hasMetric(result.frameMetrics.coreHandRadiusRaw)) {
       result.frameMetrics.coreHandRadius = result.frameMetrics.coreHandRadiusRaw * scale;
     }
@@ -1760,8 +1772,8 @@
     // 어드레스(baselineFrontResult) 대비 집중도·반경 비율 — 로데이터 표시용
     result.momentRatioPct = baselineResult.rawMomentProxy > 0
       ? (result.rawMomentProxy / baselineResult.rawMomentProxy * 100) : null;
-    result.radiusRatioPct = baselineResult.rawRadiusProxy > 0
-      ? (result.rawRadiusProxy / baselineResult.rawRadiusProxy * 100) : null;
+    result.radiusRatioPct = baselineReferenceRatio > 0
+      ? (resultReferenceRatio / baselineReferenceRatio * 100) : null;
     // pelvisNormX, c7NormX, rMaxNorm 은 이미 0-1 정규화 좌표 기반값이므로
     // projectionScale 적용 불필요 (적용 시 1 초과 → 133% 등 이상값 발생)
     result.summary += ` 보정기준: 어드레스 실측 반경 대비 비율 정규화 적용(신장 입력 미사용).`;
@@ -2063,11 +2075,11 @@
     return frameId === 'frame4' && point.type === 'pelvis';
   }
 
-  function computePairwiseMaxDistance(items) {
+  function computePairwiseMaxDistance(items, aspect = 1) {
     let maxDist = 0;
     for (let i = 0; i < items.length; i++) {
       for (let j = i + 1; j < items.length; j++) {
-        const dx = items[i].x - items[j].x;
+        const dx = (items[i].x - items[j].x) * aspect;
         const dy = items[i].y - items[j].y;
         const d = Math.hypot(dx, dy);
         if (d > maxDist) maxDist = d;
@@ -2238,7 +2250,7 @@
       // p1=C7, p2=오른쪽어깨, p3=왼쪽어깨, p4=골반중심
       // 척추각도: C7→골반 벡터가 수직(아래 방향)으로부터 기울어진 각도
       if (p1 && p4) {
-        const dx = p4.x - p1.x;
+        const dx = (p4.x - p1.x) * ar;
         const dy = p4.y - p1.y;
         m.spineAngleDeg = Math.abs(Math.atan2(dx, Math.abs(dy)) * 180 / Math.PI);
       }
@@ -2249,7 +2261,7 @@
       // shoulderTotalDist: 실제 2D 어깨 거리 (기준 어깨폭 W)
       if (p2 && p3) {
         // atan2(dy,dx): 화면 Y↓ 좌표계에서 정상 백스윙(오른어깨 내려감) → dy<0 → 부호 반전하면 양수
-        m.xFactorDeg = -(Math.atan2(p3.y - p2.y, p3.x - p2.x) * 180 / Math.PI);
+        m.xFactorDeg = -(Math.atan2(p3.y - p2.y, (p3.x - p2.x) * ar) * 180 / Math.PI);
         m.shoulderHorzWidth = Math.abs(p2.x - p3.x);              // 수평 투영폭
         m.shoulderVertDiff  = Math.abs(p2.y - p3.y);              // 어깨 높이 차이
         m.shoulderTotalDist = Math.hypot(p2.x - p3.x, p2.y - p3.y); // 실제 어깨 연결 거리(W)
@@ -2276,8 +2288,8 @@
       // 양손 중심, 클럽헤드, 오른쪽어깨, 골반중심
       // 래깅각도: 어깨→양손 중심 벡터 vs 양손 중심→클럽헤드 벡터 간 각도
       if (pHandMid && p2 && p3) {
-        const v1 = { x: p3.x - pHandMid.x, y: p3.y - pHandMid.y };
-        const v2 = { x: p2.x - pHandMid.x, y: p2.y - pHandMid.y };
+        const v1 = { x: (p3.x - pHandMid.x) * ar, y: p3.y - pHandMid.y };
+        const v2 = { x: (p2.x - pHandMid.x) * ar, y: p2.y - pHandMid.y };
         const len1 = Math.hypot(v1.x, v1.y);
         const len2 = Math.hypot(v2.x, v2.y);
         if (len1 > 0 && len2 > 0) {
@@ -2301,8 +2313,8 @@
       // p1=왼고관절, p2=왼무릎, p3=왼발목, p4=C7
       // 수직신장각: 고관절-무릎-발목이 이루는 각도 (180°에 가까울수록 완전 신전)
       if (p1 && p2 && p3) {
-        const v1 = { x: p1.x - p2.x, y: p1.y - p2.y }; // 무릎→고관절
-        const v2 = { x: p3.x - p2.x, y: p3.y - p2.y }; // 무릎→발목
+        const v1 = { x: (p1.x - p2.x) * ar, y: p1.y - p2.y }; // 무릎→고관절
+        const v2 = { x: (p3.x - p2.x) * ar, y: p3.y - p2.y }; // 무릎→발목
         const len1 = Math.hypot(v1.x, v1.y);
         const len2 = Math.hypot(v2.x, v2.y);
         if (len1 > 0 && len2 > 0) {
@@ -2331,8 +2343,8 @@
       }
       // 팔-샤프트 정렬: 왼어깨→왼손목 벡터와 왼손목→클럽헤드 벡터 간 각도 (180°에 가까울수록 완전 신전)
       if (p2 && p3 && p4) {
-        const v1 = { x: p2.x - p3.x, y: p2.y - p3.y };
-        const v2 = { x: p4.x - p3.x, y: p4.y - p3.y };
+        const v1 = { x: (p2.x - p3.x) * ar, y: p2.y - p3.y };
+        const v2 = { x: (p4.x - p3.x) * ar, y: p4.y - p3.y };
         const len1 = Math.hypot(v1.x, v1.y);
         const len2 = Math.hypot(v2.x, v2.y);
         if (len1 > 0 && len2 > 0) {
@@ -2342,7 +2354,7 @@
       // 임팩트 측면 기울기: C7(p1)→왼어깨(p2) 벡터의 수직 편각 (정면 전용)
       // trail-side lean 클수록 양수 → 좋은 임팩트 C-shape
       if (p1 && p2) {
-        m.lateralLeanAngle = Math.atan2(p2.x - p1.x, Math.abs(p2.y - p1.y)) * 180 / Math.PI;
+        m.lateralLeanAngle = Math.atan2((p2.x - p1.x) * ar, Math.abs(p2.y - p1.y)) * 180 / Math.PI;
       }
       // C7 좌표 저장 — 어드레스(Frame1) 대비 임팩트 C7 변위(%)를 산출하기 위함
       if (p1) { m.c7NormX = p1.x; m.c7NormY = p1.y; }
@@ -2381,12 +2393,12 @@
       }
       if (h1 && h4) {
         // pt4 샤프트 각도: 손(pt1)→클럽헤드(pt4) 벡터가 지면(수평)과 이루는 각도 (0°=평행)
-        m.shaftAngleDeg = Math.atan2(Math.abs(h4.y - h1.y), Math.abs(h4.x - h1.x)) * 180 / Math.PI;
+        m.shaftAngleDeg = Math.atan2(Math.abs(h4.y - h1.y), Math.abs(h4.x - h1.x) * ar) * 180 / Math.PI;
       }
       if (h1 && h2 && h4) {
         // 래깅각: C7(pt2)→손(pt1) 벡터 vs 손(pt1)→클럽헤드(pt4) 벡터 (90°대=코킹 유지, 180°=캐스팅)
-        const v1 = { x: h1.x - h2.x, y: h1.y - h2.y };
-        const v2 = { x: h4.x - h1.x, y: h4.y - h1.y };
+        const v1 = { x: (h1.x - h2.x) * ar, y: h1.y - h2.y };
+        const v2 = { x: (h4.x - h1.x) * ar, y: h4.y - h1.y };
         const len1 = Math.hypot(v1.x, v1.y);
         const len2 = Math.hypot(v2.x, v2.y);
         if (len1 > 0 && len2 > 0) {
@@ -2407,8 +2419,8 @@
       }
       // 래깅각 θ_lag: C7→손 벡터 vs 손→클럽헤드 벡터 (좁을수록 코킹 유지)
       if (t1 && t3 && t4) {
-        const v1 = { x: t1.x - t3.x, y: t1.y - t3.y };
-        const v2 = { x: t4.x - t3.x, y: t4.y - t3.y };
+        const v1 = { x: (t1.x - t3.x) * ar, y: t1.y - t3.y };
+        const v2 = { x: (t4.x - t3.x) * ar, y: t4.y - t3.y };
         const len1 = Math.hypot(v1.x, v1.y);
         const len2 = Math.hypot(v2.x, v2.y);
         if (len1 > 0 && len2 > 0) {
@@ -2977,8 +2989,10 @@
       return result;
     }
 
+    const activeVideo = viewLabel === 'A' ? frontVideo : sideVideo;
+    const videoAspect = getAnalysisAspect(activeVideo);
     const center = compactItems.reduce((acc, point) => {
-      acc.x += point.x;
+      acc.x += point.x * videoAspect;
       acc.y += point.y;
       return acc;
     }, { x: 0, y: 0 });
@@ -2986,13 +3000,13 @@
     center.y /= compactItems.length;
 
     const avgDistFromCenter = compactItems.reduce((sum, point) => {
-      const dx = point.x - center.x;
+      const dx = point.x * videoAspect - center.x;
       const dy = point.y - center.y;
       return sum + Math.hypot(dx, dy);
     }, 0) / compactItems.length;
 
     // 압축·전개 반경은 사용자가 그린 임의 보조선 끝점이 아니라 선택 랜드마크만으로 산출
-    const maxSpan = computePairwiseMaxDistance(points);
+    const maxSpan = computePairwiseMaxDistance(points, videoAspect);
     const avgAngleDeg = computeAverageAngleDifference(lines);
     const landmarkAngle = computeLandmarkAngle(points, lines);
     const angleDeg = landmarkAngle !== null ? landmarkAngle : avgAngleDeg;
@@ -3006,9 +3020,6 @@
     result.angleDeg = angleDeg;
     result.heightScale = heightScale;
     const canvasHeight = (viewLabel === 'A' ? frontCanvas : sideCanvas).height || 480;
-    const activeVideo = viewLabel === 'A' ? frontVideo : sideVideo;
-    const videoAspect = (activeVideo.videoWidth && activeVideo.videoHeight)
-      ? activeVideo.videoWidth / activeVideo.videoHeight : 16 / 9;
     result.canvasHeight = canvasHeight;
     result.frameMetrics = computeFrameMetrics(points, lines, selectedSegment, heightScale, canvasHeight, videoAspect);
     if (selectedSegment === 'frame5') {
@@ -3536,13 +3547,14 @@
       : f2 && hasMetric(f2.pelvisLateralDelta) ? Math.abs(f2.pelvisLateralDelta) : null;
     const shiftFit = hasMetric(shiftRatio)
       ? clamp(1 - Math.max(0.20 - shiftRatio, shiftRatio - 0.30) / 0.20, 0, 1) : null;
-    const sequenceFit = f6 && hasMetric(f6.sequenceIndex) ? clamp(f6.sequenceIndex / 1.5, 0, 1) : null;
-    const shiftAndLead = hasMetric(shiftFit) && hasMetric(sequenceFit)
-      ? shiftFit * sequenceFit : (hasMetric(shiftFit) ? shiftFit : sequenceFit);
+    // F6 시퀀스는 별도 리듬·템포 분석에서만 사용하고, 스윙타입 주 점수에서는 제외
+    // 타입 2는 골반 이동과 F3 하체 구동을 중심으로 판정한다.
+    const sequenceFit = null;
+    const shiftAndLead = shiftFit;
     const turnShiftBlend = hasMetric(upperTurn) && hasMetric(shiftFit)
       ? Math.sqrt(upperTurn * shiftFit) : (hasMetric(upperTurn) ? upperTurn : shiftFit);
-    const tempoPenalty = f6 && f6._tempo && hasMetric(f6._tempo.sTempo) ? f6._tempo.sTempo : null;
-    const tempoFit = hasMetric(tempoPenalty) ? 1 - tempoPenalty / 100 : null;
+    // F6 템포도 스윙타입 점수에서는 제외하고 F6 카드에서만 표시한다.
+    const tempoFit = null;
     const armShaftRelease = f4 && hasMetric(f4.armShaftDelta)
       ? (f4.armShaftDelta >= 100 ? 1
         : f4.armShaftDelta >= 0 ? 0.5 + 0.5 * smoothstep01(f4.armShaftDelta / 100)
@@ -3555,12 +3567,12 @@
       { value: upperTurn, weight: 0.30 },
       { value: lowDriveFit, weight: 0.20 },
     ]);
-    // 유형2 — 골반 이동과 Sequence Index로 하체 선행을 확인
+    // 유형2 — 골반 이동과 F3 하체 구동으로 하체 선행을 확인
     const type2 = weightedAvg01([
       { value: shiftAndLead, weight: 0.60 },
       { value: legDriveProxy, weight: 0.40 },
     ]);
-    // 유형3 — 압축·팽창, 턴+이동 결합, 중간 하체 구동 및 릴리즈/템포
+    // 유형3 — 압축·팽창, 턴+이동 결합, 중간 하체 구동 및 릴리즈
     const type3 = weightedAvg01([
       { value: compressionCycle, weight: 0.40 },
       { value: turnShiftBlend, weight: 0.20 },
@@ -4061,9 +4073,10 @@
     if (Math.abs(p3[0].y - transition[0].y) / torso > 0.35) {
       return { error: '전환 프레임의 손 높이가 P3와 다릅니다. 내려오는 손이 P3와 비슷한 높이인 프레임을 선택하세요.' };
     }
-    const shaftAngle = points => Math.atan2(Math.abs(points[1].y - points[0].y), Math.abs(points[1].x - points[0].x)) * 180 / Math.PI;
+    const backswingAspect = getAnalysisAspect(frontVideo);
+    const shaftAngle = points => Math.atan2(Math.abs(points[1].y - points[0].y), Math.abs(points[1].x - points[0].x) * backswingAspect) * 180 / Math.PI;
     const outside = (Math.abs(p2[1].x - ball.x) - Math.abs(p2[0].x - ball.x)) / torso > 0.15;
-    const angleFromBall = point => Math.atan2(point.y - ball.y, point.x - ball.x) * 180 / Math.PI;
+    const angleFromBall = point => Math.atan2(point.y - ball.y, (point.x - ball.x) * backswingAspect) * 180 / Math.PI;
     const normalizeAngle = angle => ((angle + 540) % 360) - 180;
     const lowerAngle = angleFromBall(addressHead || addressHand);
     const upperAngle = angleFromBall(topC7);
