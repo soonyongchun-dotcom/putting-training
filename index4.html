@@ -1046,6 +1046,16 @@
     padding-top: 10px;
     border-top: 1px solid rgba(255, 215, 106, 0.24);
   }
+  .analysis-profile-match {
+    padding: 10px 12px;
+    border: 1px solid rgba(111, 211, 188, 0.38);
+    border-radius: 7px;
+    background: rgba(40, 125, 105, 0.14);
+  }
+  .analysis-profile-match .analysis-type-heading { color: #8ee0c9; }
+  .analysis-profile-code { margin-top: 4px; color: #ffe2a0; font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .analysis-profile-name { margin-top: 3px; color: #effaf6; font-weight: 650; }
+  .analysis-profile-basis { display: block; margin-top: 4px; color: #b8cccb; font-size: 0.8rem; }
   .analysis-type-heading { color: #ffd76a; font-weight: 700; }
   .analysis-type-list { display: grid; gap: 6px; margin-top: 8px; }
   .analysis-type-row {
@@ -4768,7 +4778,60 @@
       rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">백스윙 유형</div>`
         + `<div>${backswingLabel}</div></section>`);
     }
+    const matchedProfile = getMatchedSwingProfile(backswingClassification, result);
+    if (matchedProfile) {
+      const profileName = getMatchedSwingProfileName(matchedProfile);
+      const basis = uiLanguage === 'en'
+        ? 'Matched from the backswing path and swing power-engine classifications.'
+        : '백스윙 궤적 분류와 스윙 파워 엔진 분류를 조합한 결과';
+      rows.push(`<section class="analysis-type-section analysis-profile-match"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Matched Swing Profile' : '매칭 스윙 프로필'}</div>`
+        + `<div class="analysis-profile-code">Profile ${String(matchedProfile.n).padStart(2, '0')} · [${matchedProfile.g} :: ${matchedProfile.e}]</div>`
+        + `<div class="analysis-profile-name">${profileName}</div><span class="analysis-profile-basis">${basis}</span></section>`);
+    }
     analysisSwingType.innerHTML = rows.join('');
+  }
+
+  function getBackswingProfileCode(result) {
+    if (!result) return null;
+    if (result.outside && result.upright && result.shallow) return 'HAP-A';
+    if (result.plane && result.upright && result.shallow) return 'HAP-B';
+    if (result.upright && result.shallow) return 'USP';
+    if (result.outside) return 'OFP';
+    if (result.plane) return 'OPA';
+    return null;
+  }
+
+  function getPowerEngineCode(result) {
+    if (!result || !result.pct) return null;
+    const ranked = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
+    const engineForType = { type1: 'ATE', type2: 'LSE', type3: 'VEE' };
+    if (ranked[0][1] >= 80 || ranked[1][1] < 15) return engineForType[ranked[0][0]];
+    const active = ranked.filter(([, percentage]) => percentage >= 15).map(([type]) => type);
+    if (active.length >= 3) return 'TKE';
+    const pairKey = active.sort().join('+');
+    const hybridEngines = {
+      'type1+type2': 'RLH',
+      'type1+type3': 'RVH',
+      'type2+type3': 'LVH',
+    };
+    return hybridEngines[pairKey] || engineForType[ranked[0][0]];
+  }
+
+  function getMatchedSwingProfile(backResult = backswingClassification, swingResult = classifySwingType()) {
+    const backswingCode = getBackswingProfileCode(backResult);
+    const engineCode = getPowerEngineCode(swingResult);
+    if (!backswingCode || !engineCode) return null;
+    return SWING_PROFILE_DATA.find(profile => profile.g === backswingCode && profile.e === engineCode) || null;
+  }
+
+  function getMatchedSwingProfileName(profile) {
+    const backswingNames = uiLanguage === 'en'
+      ? { OPA: 'On-Plane Backswing', USP: 'Upright-Shallowing Backswing', OFP: 'Outside-Takeaway Backswing', 'HAP-A': 'Hybrid A Backswing', 'HAP-B': 'Hybrid B Backswing' }
+      : { OPA: '온플레인 백스윙', USP: '업라이트-샬로잉 백스윙', OFP: '아웃사이드 페이스 제어 백스윙', 'HAP-A': '하이브리드 A 백스윙', 'HAP-B': '하이브리드 B 백스윙' };
+    const engine = SWING_POWER_ENGINES.find(item => item.code === profile.e);
+    return uiLanguage === 'en'
+      ? `${backswingNames[profile.g]} × ${engine.en}`
+      : `${backswingNames[profile.g]} × ${engine.ko} 스윙`;
   }
 
   function buildTypeClassificationReportLines() {
@@ -4789,6 +4852,12 @@
         : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}% 하이브리드`;
       lines.push(`스윙 유형 추정: ${headline}`);
       lines.push(`스윙 유형 상대 적합도: 유형1 ${result.pct.type1}% · 유형2 ${result.pct.type2}% · 유형3 ${result.pct.type3}%`);
+    }
+    const matchedProfile = getMatchedSwingProfile();
+    if (matchedProfile) {
+      lines.push(uiLanguage === 'en'
+        ? `Matched swing profile: ${String(matchedProfile.n).padStart(2, '0')}. [${matchedProfile.g} :: ${matchedProfile.e}] ${getMatchedSwingProfileName(matchedProfile)}`
+        : `매칭 스윙 프로필: ${String(matchedProfile.n).padStart(2, '0')}. [${matchedProfile.g} :: ${matchedProfile.e}] ${getMatchedSwingProfileName(matchedProfile)}`);
     }
     return lines;
   }
