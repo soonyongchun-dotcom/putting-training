@@ -1076,6 +1076,12 @@
 
 <div class="top-bar">
   <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.11ff</span></h1>
+  <label class="language-select" for="languageSelect">언어
+    <select id="languageSelect" aria-label="언어">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+    </select>
+  </label>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
@@ -1365,7 +1371,7 @@
           <div class="analysis-metric" id="analysisDeltaCardF4Lean"
                data-tooltip="임팩트 측면 기울기 변화 (C7&#8594;왼어깨 수직편각)&#10;&#9679; +100&#176; 이상: 만점 (B 스윙이 더 trail-side lean)&#10;&#9679; 0&#176;: 중립 (0.5점 기여)&#10;&#9679; 음수: B에서 상체가 더 서있음 (Early Extension 의심)&#10;정면 촬영 전용 지표 &#8212; 임팩트 C-shape 유지 여부">측면기울기: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4C7XY"
-               data-tooltip="어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %&#10;기준선: "기준선 지정" 버튼으로 A 영상에 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
+               data-tooltip="어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %&#10;기준선: &quot;기준선 지정&quot; 버튼으로 A 영상에 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF5">
           <div class="analysis-segment-compare-title">Frame 5 &#8212; 일관성 리포트 (P1&#8594;P6, 100점)</div>
@@ -1452,6 +1458,628 @@
 </div>
 
 <script>
+  const UI_LANGUAGE_STORAGE_KEY = 'gsap_ui_language';
+  const UI_TRANSLATIONS_EN = {
+    '언어': 'Language', '한국어': 'Korean', '정면 A': 'Front A', '정면 B': 'Front B',
+    'A/B 스윙 핵심 포인트 비교': 'A/B Swing Keypoint Comparison',
+    'A/B 스윙 비교': 'A/B Swing Comparison', '백스윙 유형 결정': 'Classify Backswing Type',
+    '백스윙 입력 종료': 'Finish Backswing Input', '기준선 지정': 'Set Reference Line',
+    '거리 산출': 'Measure Distance', '전체 초기화': 'Reset All',
+    'AI 분석': 'AI Analysis', 'AI 분석 중...': 'Analyzing...', 'AI 보고서 다운로드': 'Download AI Report',
+    'PDF 다운로드': 'Download PDF', '펼치기': 'Expand', '접기': 'Collapse',
+    '분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.': 'Select an analysis button to start the step-by-step swing guide.',
+    '다음': 'Next', '분석 실행': 'Analyze', '포인트 선택 필요': 'Select Points',
+    '현재 세션만 사용': 'Current session only', '프레임 선택': 'Select frame',
+    'A영상 분석': 'Front A Analysis', '분석 결과 보기 ▼': 'Show Analysis Results ▼',
+    '분석 결과 접기 ▲': 'Hide Analysis Results ▲', '프레임별 비교 분석': 'Frame-by-Frame Comparison',
+    '비거리 모션 평균: -': 'Distance Motion Average: -', '일관성 모션 평균: -': 'Consistency Motion Average: -',
+    '현재 자세 마지막 점 취소': 'Undo Last Point for Current Pose', '백스윙 입력 초기화': 'Reset Backswing Input',
+    '유형 판정': 'Classify Type', '백스윙 유형별 특징': 'Backswing Type Guide',
+    '측면 백스윙 궤적 분류 · A 영상': 'Side-View Backswing Path Classification · Video A',
+    '측면 스윙을 A에 불러오세요.': 'Load a side-view swing video in A.',
+    '선택 자세': 'Select Pose', '어드레스': 'Address', '백스윙 탑': 'Top of Backswing',
+    '비교표 접기': 'Collapse Comparison Table', '비교표 펼치기': 'Expand Comparison Table',
+    '현재 시점 지우기': 'Clear Current Phase', '비교 초기화': 'Reset Comparison',
+    '기준선 지정 완료': 'Reference Line Set', '기준점 선택 중': 'Selecting Reference Points',
+    '거리 선택 중': 'Selecting Distance Points', '분석을 시작하기 전에 선수 키(cm)를 먼저 입력하세요. 이동 변위 지표 계산의 정확도를 위해 필요합니다.': 'Enter the player height in centimeters before starting the analysis. This is required to calculate displacement metrics.',
+    '분석을 시작하기 전에 "기준선 지정" 버튼으로 A 영상에서 머리~발끝 기준선을 먼저 표시하세요. C7 변위(%) 계산의 기준(=입력한 키 100%)이 됩니다.': 'Set a head-to-toe reference line on Video A before starting. It is used as the 100% scale for C7 displacement.',
+    '먼저 Frame 1을 분석해 기준선(척도 기준)을 확정한 뒤 다른 프레임을 분석하세요. 이후 프레임들은 Frame 1의 기준선을 그대로 사용합니다.': 'Analyze Frame 1 first to lock the scale reference line. All subsequent frames use the Frame 1 reference.',
+    '먼저 Frame 1(어드레스 → 백스윙 탑)을 분석해 기준점(척도 정규화 기준)을 설정한 뒤 다른 프레임을 분석하세요.': 'Analyze Frame 1 (Address → Top of Backswing) first to establish the scale normalization baseline.',
+    '모든 분석 데이터(영상 포인트, 점수, 기록)를 초기화합니다. 계속하시겠습니까?': 'This will clear all analysis data, points, scores, and records. Continue?',
+    '프레임을 선택하고 랜드마크를 입력하세요.': 'Select a frame and add landmarks.',
+    'PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.': 'The libraries required to generate a PDF have not loaded.',
+    'PDF 생성에 실패했습니다. 다시 시도해주세요.': 'Could not generate the PDF. Please try again.',
+    '지원되지 않는 파일 형식입니다.': 'Unsupported file type.',
+    '분석을 실행합니다.': 'Run the analysis.', '점수: -': 'Score: -',
+    '관리자 전용 사용자 계정 등록/삭제 및 로그인 기록 확인 기능입니다.': 'Administrator tools for adding or removing accounts and reviewing login history.',
+    '비교 시점': 'Comparison phase', '어드레스': 'Address', '백스윙 탑 (1/5)': 'Top of Backswing (1/5)',
+    '어깨선 (2/5)': 'Shoulder Level (2/5)', '허리선 (3/5)': 'Waist Level (3/5)',
+    '임팩트 전 (4/5)': 'Pre-Impact (4/5)', '임팩트 (5/5)': 'Impact (5/5)',
+    '현재 시점의 A/B 포인트만 삭제': 'Clear only the A/B points for the current phase',
+    '모든 비교 포인트와 결과 삭제': 'Clear all comparison points and results',
+    'A/B에 서로 다른 스윙 영상을 불러온 뒤 비교 입력을 시작하세요.': 'Load different swing videos in A and B, then start entering comparison points.',
+    '6개 시점의 A/B 포인트를 입력하면 종합의견이 표시됩니다.': 'Enter A/B points for all six phases to see the overall comparison.',
+    '판정 기준: 종합 편차 5% 이내 = 같은 스윙 · 10% 이내 = 유사 스윙 · 10% 초과~20% 이내 = 약간 다른 스윙 · 20% 초과 = 다른 스윙': 'Classification: ≤5% overall deviation = same swing · ≤10% = similar · >10–20% = somewhat different · >20% = different',
+    '시점': 'Phase', 'A 입력': 'A Input', 'B 입력': 'B Input', '집중도 일치(%)': 'Compactness Match (%)',
+    '손목 궤적(%)': 'Wrist Path (%)', '코어 궤적(%)': 'Core Path (%)', '래깅각 A/B(일치율)': 'Lag Angle A/B (Match)', '템포 일치(%)': 'Tempo Match (%)',
+    'P1 · 테이크어웨이 시작': 'P1 · Takeaway Start', 'P2 · 샤프트 지면 평행': 'P2 · Shaft Parallel to Ground',
+    'P3 · 팔 지면 평행': 'P3 · Lead Arm Parallel to Ground', 'P4 · 탑 직전': 'P4 · Before the Top',
+    '전환 · 내려오는 손이 P3와 비슷한 높이': 'Transition · Hands Returning to P3 Height',
+    '현재 자세 마지막 점 취소': 'Undo Last Point for Current Pose', '백스윙 입력 초기화': 'Reset Backswing Input',
+    '유형 판정': 'Classify Type', '백스윙 유형별 특징': 'Backswing Type Guide',
+    '1. 온플레인 패턴 (On-Plane):': '1. On-Plane: ',
+    '어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적': 'A classic path where the hand-and-arm plane at the top matches the address shaft plane.',
+    '2. 업라이트-샬로잉 패턴 (Upright-Shallowing):': '2. Upright-Shallowing: ',
+    '높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적': 'Builds position at a high, steep top, then shallows the shaft during transition.',
+    '3. 아웃사이드 페이스 제어 패턴 (Outside Takeaway):': '3. Outside Takeaway: ',
+    'P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적': 'At P2, the clubhead stays outside the hands to help prevent the face from opening.',
+    '4. 하이브리드 A: 아웃사이드 + 업라이트-샬로잉:': '4. Hybrid A: Outside + Upright-Shallowing: ',
+    '테이크어웨이는 아웃사이드(3번)로 페이스를 제어하고, 탑 및 다운스윙은 업라이트-샬로잉(2번)으로 파워를 극대화하는 복합 궤적': 'Combines an outside takeaway with an upright top and a shallowing transition.',
+    '5. 하이브리드 B: 온플레인 + 업라이트-샬로잉:': '5. Hybrid B: On-Plane + Upright-Shallowing: ',
+    '정석적인 온플레인(1번) 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉(2번)을 가미하는 복합 궤적': 'Combines an on-plane arc with vertical extension and a shallowing move in the downswing.',
+    '※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.': 'Note: 2D side-view video cannot measure club depth or ground reaction force. Outside and on-plane patterns are visual estimates, not definitive measurements of force coupling or face angle.',
+    'Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]': 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top]',
+    'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]': 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing]',
+    'Frame 3 — 다운스윙 후기 (외부토크/지면반력)': 'Frame 3 — Late Downswing (External Torque / Ground Force)',
+    'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점': 'Frame 3 — Late Downswing (External Torque / Ground Force) — Shaft-Parallel Phase',
+    'Frame 4 — 임팩트/선속도 지수': 'Frame 4 — Impact / Linear Speed Index',
+    'Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]': 'Frame 5 — Consistency Report [Address → Downswing 3/5 (Waist Height)]',
+    'Frame 6 — 리듬/템포·시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]': 'Frame 6 — Rhythm, Tempo and Sequence [Downswing Midpoint → Impact]',
+    'Frame 5 — 일관성 리포트 (P1→P6, 100점)': 'Frame 5 — Consistency Report (P1→P6, 100 points)',
+    'Frame 6 — 리듬/템포·키네매틱 시퀀스 (P6→P7, 100점)': 'Frame 6 — Rhythm, Tempo and Kinematic Sequence (P6→P7, 100 points)',
+    '압축·전개 반경: -': 'Compression / Expansion Radius: -', '주요 각도: -': 'Key Angle: -', '키 보정: -': 'Height Scale: -',
+    '반경 비율: -': 'Radius Ratio: -', '각도·반경: -': 'Angle · Radius: -',
+    '척추각도: -': 'Spine Angle: -', 'X-Factor(어깨회전): -': 'X-Factor (Shoulder Turn): -',
+    '샤프트 수평(탑): -': 'Shaft Level (Top): -', 'C7 변위(X/Y): -': 'C7 Displacement (X/Y): -',
+    '코킹(래깅)각도: -': 'Lag Angle: -', '코어-손 압축: -': 'Core-to-Hand Compression: -',
+    '코어(골반) 이동: -': 'Core (Pelvis) Shift: -', '수직신장 각도: -': 'Vertical Extension: -',
+    '축 고정 지수: -': 'Axis Stability Index: -', '지면반력 전환 지수: -': 'Ground-Force Transition Index: -',
+    '선속도 지수: -': 'Linear Speed Index: -', '스윙 반경 전개: -': 'Swing Radius Expansion: -',
+    '팔-샤프트 정렬: -': 'Arm-Shaft Alignment: -', '측면기울기: -': 'Lateral Tilt: -',
+    'pt1 손위치: -': 'pt1 Hand Position: -', 'pt2 C7축: -': 'pt2 C7 Axis: -', 'pt3 골반이동: -': 'pt3 Pelvis Shift: -',
+    'pt4 클럽헤드: -': 'pt4 Clubhead: -', 'Δt 템포: -': 'Δt Tempo: -', '래깅-릴리즈: -': 'Lag-Release: -', '토크 전환: -': 'Torque Transition: -',
+    '점수: -': 'Score: -',
+    '기준선: ': 'Reference line: ', '산출: ': 'Calculation: ', '기준: ': 'Reference: ', '가중치: ': 'Weights: ',
+    '어드레스': 'Address', '백스윙탑': 'Top of Backswing', '다운스윙': 'Downswing', '임팩트': 'Impact',
+    '비거리 모션': 'Distance Motion', '일관성 모션': 'Consistency Motion', '프레임별 비교 분석': 'Frame-by-Frame Comparison',
+    '랜드마크': 'landmark', '포인트': 'point', '분석': 'analysis', '점수': 'score', '측정': 'measurement',
+    '골반': 'pelvis', '양손 중심': 'hand center', '클럽 헤드': 'clubhead', '지면반력': 'ground force',
+    '수직신장': 'vertical extension', '척추각도': 'spine angle', '샤프트': 'shaft', '축 고정': 'axis stability',
+    '하체': 'lower body', '상체': 'upper body', '이동': 'shift', '변위': 'displacement', '압축': 'compression',
+    '전개': 'expansion', '상태': 'status', '완료': 'complete', '미완료': 'incomplete', '필요': 'required',
+    '선택': 'select', '입력': 'input', '오류': 'error', '결과': 'result', '기준': 'reference', '영상': 'video',
+    '자세': 'pose', '시점': 'phase', '각도': 'angle', '비율': 'ratio', '변화': 'change', '평균': 'average',
+    '적합도': 'fit', '유형': 'type', '백스윙': 'backswing', '스윙': 'swing', 'A 영상': 'Video A', 'B 영상': 'Video B',
+    '백스윙 유형 추정': 'Backswing Type', '스윙 유형 추정': 'Swing Type Estimate', '주요 적합 조합': 'Leading Fit',
+    '상대 적합도': 'relative fit', 'GRF는 2D 동작 proxy 추정치': 'GRF is estimated from 2D motion proxies',
+    'F1~F4 중 2개 이상 분석하면 표시됩니다. F5/F6은 보조 근거로 반영됩니다.': 'Available after analyzing at least two of F1–F4. F5/F6 are supporting evidence.',
+    'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 선택 프레임에 맞는 랜드마크를 찍으면 지표가 업데이트됩니다.': 'Start by selecting an analysis button. Metrics update as you mark landmarks for the selected phase.',
+    'F1~F6 중 2개 이상 분석하면 표시됩니다': 'Shown after analyzing at least two of F1–F6',
+    '에서 공통 포인트 ': ' shared points reused from ', '개를 자동 적용했습니다. 위치를 확인하고 나머지만 선택하세요.': ' points were reused automatically. Verify them and select the remaining points.',
+    '분석 버튼(🏌️)을 눌러 프레임별 랜드마크 선택을 시작하세요. 현재 선택: ': 'Select the swing-analysis button to start marking landmarks. Current phase: ',
+    '분석 버튼을 눌러 시작하세요': 'Select an analysis button to begin',
+    '(A — 어드레스)': '(A — Address)', '(B — 백스윙 탑)': '(B — Top of Backswing)',
+    '(A — 어드레스) ': '(A — Address) ', '(B — 백스윙 탑) ': '(B — Top of Backswing) ',
+    '(A — 어드레스) 1단계: ': '(A — Address) Step 1: ', '(A — 어드레스) 2단계: ': '(A — Address) Step 2: ',
+    '(A — 어드레스) 3단계: ': '(A — Address) Step 3: ', '(A — 어드레스) 4단계: ': '(A — Address) Step 4: ',
+    '(B — 백스윙 탑) 1단계: ': '(B — Top of Backswing) Step 1: ', '(B — 백스윙 탑) 2단계: ': '(B — Top of Backswing) Step 2: ',
+    '(B — 백스윙 탑) 3단계: ': '(B — Top of Backswing) Step 3: ', '(B — 백스윙 탑) 4단계: ': '(B — Top of Backswing) Step 4: ',
+    '(B — 백스윙 탑) 5단계: ': '(B — Top of Backswing) Step 5: ', '(B — 백스윙 탑) 6단계: ': '(B — Top of Backswing) Step 6: ',
+    '(A — 어드레스) 1단계: 어드레스 자세에서 C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.': '(A — Address) Step 1: Mark the projected C7 point. In the front view, click the center of the neck below the chin.',
+    '(A — 어드레스) 2단계: 오른쪽 어깨를 찍으세요.': '(A — Address) Step 2: Mark the right shoulder.',
+    '(A — 어드레스) 3단계: 왼쪽 어깨를 찍으세요. 어드레스 어깨회전각 기준값을 산출합니다.': '(A — Address) Step 3: Mark the left shoulder. This establishes the address shoulder-rotation baseline.',
+    '(A — 어드레스) 4단계: 골반 중심(Mid-Hip)을 찍으세요. C7→골반 척추각도 기준값을 설정합니다.': '(A — Address) Step 4: Mark the pelvis center (mid-hip) to establish the C7-to-pelvis spine-angle baseline.',
+    '(B — 백스윙 탑) 1단계: 백스윙 최정점에서 C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턱 아래)를 클릭하세요.': '(B — Top of Backswing) Step 1: Mark the projected C7 point at the top. In the front view, click the center of the neck below the chin.',
+    '(B — 백스윙 탑) 2단계: 오른쪽 어깨를 찍으세요.': '(B — Top of Backswing) Step 2: Mark the right shoulder.',
+    '(B — 백스윙 탑) 3단계: 왼쪽 어깨를 찍으세요. X-Factor(어깨회전각) 산출에 사용됩니다.': '(B — Top of Backswing) Step 3: Mark the left shoulder to calculate the X-Factor (shoulder turn).',
+    '(B — 백스윙 탑) 4단계: 골반 중심(Mid-Hip)을 찍으세요. 척추각도 유지 여부를 산출합니다.': '(B — Top of Backswing) Step 4: Mark the pelvis center (mid-hip) to evaluate spine-angle retention.',
+    '(B — 백스윙 탑) 5단계: 양손의 중심점(그립 중앙)을 찍으세요. 샤프트 수평 산출에 사용됩니다.': '(B — Top of Backswing) Step 5: Mark the center of both hands (middle of the grip) to calculate shaft level.',
+    '(B — 백스윙 탑) 6단계: 클럽 헤드를 찍으세요. 그립→클럽헤드 벡터가 지면과 이루는 각도로 샤프트 오버/부족 여부를 판정합니다.': '(B — Top of Backswing) Step 6: Mark the clubhead. The grip-to-clubhead angle relative to the ground indicates overswing or layoff.',
+    '포인트 선택 완료. 분석을 실행합니다.': 'Point selection complete. Run the analysis.',
+    '1단계: ': 'Step 1: ', '2단계: ': 'Step 2: ', '3단계: ': 'Step 3: ', '4단계: ': 'Step 4: ',
+    '5단계: ': 'Step 5: ', '6단계: ': 'Step 6: ', '찍으세요.': 'Mark this point.', '찍으세요': 'Mark this point.',
+    '점으로 찍으세요.': 'Mark this point.', '점을 찍으세요.': 'Mark this point.', '를 찍으세요.': 'Mark this point.',
+    '오른쪽 어깨를 찍으세요.': 'Mark the right shoulder.', '왼쪽 어깨를 점으로 찍으세요.': 'Mark the left shoulder.',
+    '왼쪽 무릎을 점으로 찍으세요.': 'Mark the left knee.', '왼쪽 발목을 점으로 찍으세요.': 'Mark the left ankle.',
+    'C7 투영점을 찍으세요.': 'Mark the projected C7 point.', '클럽 헤드를 점으로 찍으세요.': 'Mark the clubhead.',
+    '골반 중심(Mid-Hip)을 찍으세요.': 'Mark the pelvis center (mid-hip).',
+    '어드레스 자세에서': 'at address', '백스윙 최정점에서': 'at the top of the backswing',
+    '임팩트 순간에서': 'at impact', '다운스윙 중 손이 허리 높이에 도달하는 시점(다운스윙 3/5 지점)에서': 'when the hands reach waist height during the downswing (3/5 point)',
+    '다운스윙 4/5 지점(지면반력 발생 구간)에서': 'at the 4/5 point of the downswing (ground-force phase)',
+    '임팩트 직전(다운스윙 후기)에서': 'just before impact (late downswing)',
+    '양손의 중심점(그립 중앙)을 찍으세요.': 'Mark the center of both hands (middle of the grip).',
+    '클럽 헤드를 점으로 찍으세요. 양손 중심→클럽헤드 벡터로 래깅각도를 산출합니다.': 'Mark the clubhead. The hand-center-to-clubhead vector is used to calculate the lag angle.',
+    '오른쪽 어깨를 찍으세요. 양손 중심→어깨 방향으로 래깅각도를 최종 산출합니다.': 'Mark the right shoulder to complete the lag-angle calculation from the hand center to the shoulder.',
+    '골반 중심(Mid-Hip)을 찍으세요. 어드레스 대비 코어(골반) 좌측 이동량을 산출합니다.': 'Mark the pelvis center (mid-hip) to measure lateral core (pelvis) shift from address.',
+    '왼쪽 고관절을 점으로 찍으세요.': 'Mark the left hip.',
+    '왼쪽 발목을 점으로 찍으세요. 고관절-무릎-발목으로 수직신장각도를 산출합니다.': 'Mark the left ankle. Hip, knee, and ankle points are used to calculate vertical extension.',
+    '정면 영상에서는 목 중심부(턴 아래)를 클릭하세요. 축 고정 지수(Sway 여부) 산출에 사용됩니다.': 'In the front view, click the center of the neck below the chin. This is used to calculate axis sway.',
+    '(B) 5단계: 골반 중심(Mid-Hip)을 찍으세요. 압축·전개 반경의 중심점입니다.': '(B) Step 5: Mark the pelvis center (mid-hip), the center for the compression/expansion radius.',
+    '(B) 6단계: 클럽 헤드를 찍으세요. 골반 중심→클럽헤드 반경을 산출합니다.': '(B) Step 6: Mark the clubhead to calculate the pelvis-to-clubhead radius.',
+    '왼쪽 어깨를 점으로 찍으세요.': 'Mark the left shoulder.', '왼쪽 손목을 점으로 찍으세요. 팔-샤프트 정렬 각도 산출에 사용됩니다.': 'Mark the left wrist to calculate arm-shaft alignment.',
+    '클럽 헤드를 찍으세요. 왼어깨→클럽헤드 최대회전반경(r_max)을 산출합니다.': 'Mark the clubhead to calculate the maximum left-shoulder-to-clubhead swing radius (r_max).',
+    '골반 중심(Mid-Hip)을 찍으세요. 골반 중심→클럽헤드 전개 반경을 산출합니다.': 'Mark the pelvis center (mid-hip) to calculate the pelvis-to-clubhead expansion radius.',
+    '다운스윙 3/5 지점 — 허리높이': 'Downswing 3/5 Point — Waist Height', '다운스윙 3/5 지점 — 중기': 'Downswing Midpoint',
+    '같은 시점의': 'at the same phase,', '클럽헤드 중심(공 뒤쪽)': 'clubhead center (behind the ball)',
+    '양 골반 중심점': 'center of the pelvis', '토크 전환 지수의 하체 이동 기준점입니다.': 'This is the lower-body movement reference for the torque-transition index.',
+    '래깅각(θ_lag)을 산출합니다.': 'This is used to calculate the lag angle (θ_lag).',
+    '다운스윙 회전 반경(r_downswing)을 산출합니다.': 'This is used to calculate the downswing radius (r_downswing).',
+    '임팩트 순간으로 B영상을 맞추고': 'Set Video B to impact and', '임팩트 회전 반경(r_impact)을 산출합니다.': 'This is used to calculate the impact radius (r_impact).',
+    'A(기준)': 'A (Reference)', 'B(비교)': 'B (Comparison)',
+    '척추축/X-Factor/샤프트수평/C7변위 점수 (0~10점)': 'Spine axis / X-Factor / shaft level / C7 displacement score (0–10)',
+    '어드레스 → 백스윙 탑 척추각도 변화': 'Spine-angle change from address to the top',
+    '어드레스→백스윙 탑 어깨 회전각 (X-Factor, 측면 카메라 기준)': 'Shoulder-turn angle (X-Factor) from address to the top, side-view estimate',
+    '백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)': 'Club-shaft angle at the top (0° = level with the ground)',
+    '어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address to the top, as % of the reference height',
+    '래깅+코어이동+코어-손압축 점수 (0~10점)': 'Lag, core shift, and core-to-hand compression score (0–10)',
+    '외부토크/지면반력 점수 (0~10점)': 'External torque / ground-force score (0–10)',
+    '임팩트 반경/선속도 지수/C7변위 점수 (0~10점)': 'Impact radius / linear-speed index / C7 displacement score (0–10)',
+    '종합 일관성 점수 (100점 만점)': 'Overall consistency score (out of 100)',
+    '리듬/템포 종합 점수 (100점 만점)': 'Overall rhythm and tempo score (out of 100)',
+    '가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%': 'Weights: shaft level at top 30% | C7 displacement (X+Y) 35% (17.5% each) | coil (X-Factor) 17.5% | spine angle 17.5%',
+    '가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%': 'Weights: ground-force transition 50% | vertical extension 25% | axis sway 25%',
+    '가중치: 핵심(선속도) 45% | 팔-샤프트 10% | 스윙 반경 전개 10% | 측면기울기 10% | C7 X변위 12.5% | C7 Y변위 12.5%': 'Weights: linear speed 45% | arm-shaft alignment 10% | swing-radius expansion 10% | lateral tilt 10% | C7 X displacement 12.5% | C7 Y displacement 12.5%',
+    '래깅각도 35% + 코어(골반)좌측이동 35% + 코어-손 압축 30%': 'Lag angle 35% + leftward core (pelvis) shift 35% + core-to-hand compression 30%',
+    '일관성 리포트': 'Consistency report', '다운스윙 손 허리높이': 'downswing hands at waist height',
+    '키 기준': 'height-based', '만점 기준 충족': 'target met', '정상 범위': 'within normal range',
+    '부족(레이드오프)': 'insufficient (laid off)', '부족': 'insufficient', '오버': 'over-rotated',
+    '유지/확장': 'maintained / expanded', '압축 충분': 'sufficient compression', '압축 부족': 'insufficient compression',
+    '선행 분석 필요': 'prior analysis required', '데이터 부족': 'insufficient data', '측정 불가': 'not measurable',
+    '기준선 미지정': 'reference line not set', '기준선 지정 버튼 필요': 'set the reference line first',
+    'C7 좌표 부족': 'C7 coordinates missing', 'A/B 패널 모두에 C7 클릭 필요': 'mark C7 in both A and B panels',
+    'A 패널에 C7 클릭 필요': 'mark C7 in the A panel', '코어 이동': 'Core Shift', 'C7 변위': 'C7 Displacement',
+    '래깅각 변화': 'Lag-Angle Change', '실제:': 'measured:', '변화:': 'change:',
+    '키 기준, 2% 미만 만점': 'height reference; under 2% earns full credit',
+    '브레이싱': 'bracing', '고관절↓': 'hip drop', 'C7 조기상승': 'early C7 rise', '반경 F2→F3': 'radius F2→F3', 'F4 대기': 'awaiting F4',
+    '종합점수': 'Overall Score', '원감점': 'raw deduction', '점 차감': 'pts deducted',
+    '실제 회전량과 다름': 'not the actual rotation amount', '어드레스 레버': 'Address lever arm',
+    '백스윙탑 레버': 'Top-of-backswing lever arm', '탑에서 팔이 접혀 각속도 증폭 준비': 'arms fold at the top, preparing to increase angular velocity',
+    '탑에서 레버 유지': 'lever arm maintained at the top', '완전 코킹 유지': 'full lag retained', '부분 코킹': 'partial lag',
+    '조기 릴리즈 경향': 'tendency toward early release', '이동 항목 만점': 'full credit for shift',
+    '이동 항목 부분 점수': 'partial credit for shift', '골반 반대 이동 또는 정지': 'pelvis moved the opposite way or remained still',
+    '반경 변화': 'Radius Change', '하체 신장으로 레버 확장 확인': 'lever extension observed with lower-body extension',
+    '레버 확장 제한적': 'limited lever extension', '임팩트 재확장 충분': 'sufficient re-expansion at impact',
+    '부분 재확장': 'partial re-expansion', '반경 확장 부족': 'insufficient radius expansion',
+    '완전 릴리즈': 'full release', '부분 릴리즈': 'partial release', '릴리즈 부족': 'insufficient release',
+    'C-shape 형성 우수': 'strong C-shape', '기울기 보통': 'moderate tilt', 'C-shape 미형성': 'C-shape not maintained',
+    '힌지': 'hinge', '방출': 'release', '극대화': 'maximized', '원감점 ': 'raw deduction ',
+    '지표 항목 만점': 'metric at full credit', '지표 항목 부분 점수': 'metric at partial credit',
+    '측정 불가 (같은 영상의 P6/P7 시점 필요)': 'not measurable (P6 and P7 must be set on the same video)',
+    '기준 구간보다 짧음': 'below the target range', '기준 구간 내': 'within the target range', '기준 구간보다 김': 'above the target range',
+    '래깅-릴리즈 지수': 'Lag-Release Index', '토크 전환 지수': 'Torque-Transition Index',
+    '시퀀스 지수': 'sequence index', '임팩트 Side Bend': 'Impact Side Bend', '측면 척추 꺾임': 'side bend of the spine',
+    '방향성/스퀘어 임팩트 참고 지표': 'reference metric for direction and a square impact',
+    '이 점수는 P6→P7 시간차와 2D 반경·이동 지표를 합산한 추정치입니다. 타구 방향·실제 에너지 전달은 판정하지 않으며, A/B 패널에 같은 영상을 로드해야 Δt가 유효합니다.': 'This estimate combines the P6-to-P7 time interval with 2D radius and displacement metrics. It does not determine ball direction or actual energy transfer. Load the same video in A and B for a valid Δt.',
+    '레버 시퀀스:': 'Lever sequence:', '추정치입니다.': 'This is an estimate.', '영상을 불러오세요': 'Load a video',
+    '점수: ': 'Score: ', ' Generated:': ' Generated:', '생성일:': 'Generated:',
+    'Gemini API 키를 입력하세요. 키는 이 브라우저 세션에서만 사용됩니다.': 'Enter a Gemini API key. It is used only for this browser session.',
+    '먼저 F1~F5 중 하나 이상의 스윙 분석을 완료하세요.': 'Complete at least one swing analysis in F1–F5 first.',
+    'Gemini가 측정 결과를 읽고 있습니다...': 'Gemini is reviewing the measurements...',
+    'Gemini 분석을 완료하지 못했습니다: ': 'Gemini analysis failed: ', '서버가 혼잡합니다. ': 'Server is busy. ',
+    '번째 시도를 준비하고 있습니다...': ' retry is starting...',
+    '응답 길이 제한으로 마지막 부분이 잘렸습니다. 다시 시도하면 더 짧게 요약될 수 있습니다.': 'The response was truncated due to the output limit. A shorter retry may complete it.',
+    '백스윙 유형:': 'Backswing Type: ', '스윙 유형 추정:': 'Swing Type Estimate: ',
+    'A/B 스윙 핵심 포인트 비교': 'A/B Swing Keypoint Comparison',
+    '현재 시점의 A/B 포인트만 삭제': 'Clear only the A/B points for the current phase',
+    '모든 비교 포인트와 결과 삭제': 'Clear all comparison points and results',
+    '서로 다른 A/B 스윙 영상을 불러온 뒤 비교 입력을 시작하세요.': 'Load different swing videos in A and B, then start entering comparison points.',
+    '비교 입력 시작을 누르면 기존 분석과 분리된 4개 핵심 포인트 입력 모드가 열립니다.': 'Start comparison input to open a four-landmark mode separate from the main analysis.',
+    '프레임에 영상을 맞춘 뒤 포인트를 순서대로 선택하세요.': 'Set the video to this phase, then select the points in order.',
+    'A와 B 패널에 비교할 스윙 영상을 각각 먼저 불러오세요.': 'Load a swing video in both A and B before comparing them.',
+    '가장 유사한 항목은 ': 'The closest match is ', '가장 차이가 큰 항목은 ': 'The largest difference is ',
+    '항목 평균 일치율(': ' average match for this phase (', '을 우선 확인하세요.': '); review this first.',
+    '현재 ': 'Currently ', '개 시점이 반영되었습니다.': ' phases are included.',
+    '종합 편차 ': 'Overall deviation ', '%로 ': '% places the swings in the ', ' 범위입니다.': ' range.',
+    '같은 스윙': 'same-swing', '유사 스윙': 'similar-swing', '약간 다른 스윙': 'somewhat-different-swing', '다른 스윙': 'different-swing',
+    '두 스윙의 핵심 움직임이 전반적으로 매우 유사합니다.': 'The key movements in the two swings are highly similar overall.',
+    '두 스윙의 큰 흐름은 유사하지만 일부 구간에서 차이가 확인됩니다.': 'The overall patterns are similar, with differences in some phases.',
+    '공통된 움직임과 뚜렷하게 다른 움직임이 함께 나타납니다.': 'The swings share some movements but also show clear differences.',
+    '두 스윙의 핵심 포인트 이동 패턴 차이가 큰 편입니다.': 'The key-point movement patterns differ substantially.',
+    '집중도 일치': 'Compactness Match', '래깅각 일치': 'Lag-Angle Match', '종합 유사도(%)': 'Overall Similarity (%)',
+    '등록된 사용자가 없습니다.': 'No users are registered.', '로그 기록이 없습니다.': 'No login history.',
+    'Email과 비밀번호를 모두 입력하세요.': 'Enter both an email and a password.', '이미 등록된 사용자입니다.': 'This user is already registered.',
+    '사용자가 추가되었습니다.': 'User added.', '사용자 계정을 삭제하시겠습니까?': 'Delete this user account?',
+    'Please enter email and password.': 'Please enter an email and password.', 'Admin login successful.': 'Administrator login successful.',
+    'User login successful.': 'User login successful.', '현재 자세의 포인트는 동일한 프레임에서 찍어야 합니다. 자세를 다시 선택하거나 마지막 점을 취소하세요.': 'All points for a pose must be selected from the same video frame. Reselect the pose or undo the last point.',
+    '프레임 시각이 어드레스 → P1 → P2 → P3 → P4 → 탑 → 전환 순서가 아닙니다. 각 자세의 프레임을 다시 선택하세요.': 'Frames must be in this order: Address → P1 → P2 → P3 → P4 → Top → Transition. Select the phases again.',
+    '어드레스 공과 탑 C7/어깨 기준점이 너무 가깝습니다. 기준점을 다시 찍으세요.': 'The address ball and top C7/shoulder reference points are too close. Select the reference points again.',
+    '전환 프레임의 손 높이가 P3와 다릅니다. 내려오는 손이 P3와 비슷한 높이인 프레임을 선택하세요.': 'The hands at transition are not at the P3 height. Select a frame where the hands return to approximately P3 height.',
+    '랜드마크와 라인을 3개 이상 입력하면 물리적 분석이 가능합니다.': 'At least three landmarks or lines are required for physical analysis.',
+    '보정기준: 어드레스 실측 반경 대비 비율 정규화 적용(신장 입력 미사용).': 'Normalization uses the measured address radius as the reference (height input is not used).',
+    '점수: ': 'Score: ', '종합점수: ': 'Overall Score: ', 'Generated:': 'Generated:',
+    '선속도 지수: ': 'Linear Speed Index: ', '압축·전개 반경: ': 'Compression / Expansion Radius: ',
+    '주요 각도': 'Key Angle', '래깅각': 'Lag Angle', '키 보정 ': 'Height scale ',
+    '척추각도 ': 'Spine angle ', '어깨투영폭 ': 'Shoulder projected width ', '어깨기울기 ': 'Shoulder tilt ',
+    '래깅각 ': 'Lag angle ', '코어위치 ': 'Core position ', '신전각 ': 'Extension angle ', 'C7위치 ': 'C7 position ',
+    '손오프셋 ': 'Hand offset ', '샤프트각 ': 'Shaft angle ', 'r_max ': 'r_max ',
+    'Frame 1(백스윙탑)': 'Frame 1 (Top of Backswing)', 'Frame 2(다운스윙)': 'Frame 2 (Downswing)',
+    '선속도 지수 F3:': 'Linear Speed Index F3:', '기준선 대비 ': 'of reference line ', '거리 ': 'Distance ',
+    '기준선': 'Reference Line', '키 기준': 'height-based', '만점 기준 충족': 'target met',
+    '정상 범위': 'within normal range', '부족(레이드오프)': 'insufficient (laid off)', '데이터 부족': 'insufficient data',
+    '측정 불가': 'not measurable', '선행 분석 필요': 'prior analysis required', '완료': 'Complete',
+    '오른쪽 어깨': 'right shoulder', '왼쪽 어깨': 'left shoulder', '왼쪽 손목': 'left wrist',
+    '왼쪽 고관절': 'left hip', '왼쪽 무릎': 'left knee', '왼쪽 발목': 'left ankle', '골반 중심': 'pelvis center',
+    '양손의 중심점': 'center of both hands', '그립 중앙': 'center of the grip', '클럽 헤드': 'clubhead',
+    '랜드마크': 'landmark', '포인트': 'point', '지면반력': 'ground force', '수직신장': 'vertical extension',
+    '척추각도': 'spine angle', '다운스윙': 'downswing', '백스윙': 'backswing', '임팩트': 'impact',
+    '어드레스': 'address', '비거리 모션': 'Distance Motion', '일관성 모션': 'Consistency Motion',
+    '분석': 'analysis', '점수': 'score', '측정': 'measurement', '결과': 'result', '선택': 'select', '입력': 'input',
+    '이동': 'shift', '변위': 'displacement', '압축': 'compression', '전개': 'expansion', '완료': 'complete',
+    '필요': 'required', '오류': 'error', '영상': 'video', '자세': 'pose', '시점': 'phase', '각도': 'angle',
+    '비율': 'ratio', '변화': 'change', '평균': 'average', '유형': 'type', '스윙': 'swing',
+    '스윙 유형 상대 적합도:': 'Swing-type relative fit: ', '축회전 중심 스윙': 'Axis-Rotation-Driven Swing',
+    '하체이동 중심 스윙': 'Lower-Body-Shift-Driven Swing', '코어압축팽창 중심 스윙': 'Core Compression-Extension-Driven Swing',
+    '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)': '5. Hybrid B (On-Plane + Upright-Shallowing)',
+    '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)': '4. Hybrid A (Outside + Upright-Shallowing)',
+    '3. 아웃사이드 페이스 제어 패턴': '3. Outside Takeaway Pattern',
+    '2. 업라이트-샬로잉 패턴': '2. Upright-Shallowing Pattern', '1. 온플레인 패턴': '1. On-Plane Pattern',
+    '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)': 'Undetermined (does not match the five defined patterns)',
+    'F1 백스윙 탑: 축 고정과 어깨 회전': 'F1 Top of Backswing: Axis Stability and Shoulder Turn',
+    'F2 다운스윙: 래깅과 골반 이동': 'F2 Downswing: Lag and Pelvis Shift',
+    'F3 다운스윙 후기: 지면반력과 축 고정': 'F3 Late Downswing: Ground Force and Axis Stability',
+    'F4 임팩트: 반경 확장과 릴리즈': 'F4 Impact: Radius Expansion and Release',
+    'F5 일관성: 어드레스 대비 다운스윙 재현성': 'F5 Consistency: Downswing Reproducibility vs. Address',
+    'F6 리듬/템포: Δt 템포와 래깅-릴리즈·토크 전환 지수': 'F6 Rhythm and Tempo: Δt, Lag-Release, and Torque-Transition Indices',
+    '척추각 변화 ': 'Spine-angle change ', '어깨 회전 ': 'shoulder turn ', '래깅각 변화 ': 'lag-angle change ',
+    '골반 이동 ': 'pelvis shift ', '무릎 신전 변화 ': 'knee-extension change ', 'C7 스웨이 ': 'C7 sway ',
+    '반경 변화 ': 'radius change ', '팔-샤프트 정렬 변화 ': 'arm-shaft alignment change ', '측면 기울기 변화 ': 'lateral-tilt change ',
+    '일관성 ': 'consistency ', '손 이탈 ': 'hand offset ', '리듬/템포 ': 'rhythm/tempo ',
+    'Release Index ': 'Release Index ', 'Sequence Index ': 'Sequence Index ',
+    ' 아직 분석하지 않음': ' not analyzed yet', '점수 ': 'score ', '등급 없음': 'no grade',
+    'Frame 1(백스윙탑) 선행 분석 필요': 'Analyze Frame 1 (top of backswing) first',
+    '정면 A 분석': 'Front A Analysis', '측면 B 분석': 'Side B Analysis',
+    'Gemini API 키': 'Gemini API Key',
+    'A 영상의 측면 스윙으로 백스윙 궤적 분류': 'Classify the backswing path using the side-view video in A',
+    'Gemini 분석 결과를 텍스트 파일로 다운로드': 'Download the Gemini analysis as a text file',
+    'Gemini로 최종 스윙 결과를 쉬운 말로 분석': 'Use Gemini to explain the final swing results in plain language',
+    '두 점 사이의 화면상 거리를 측정': 'Measure the on-screen distance between two points',
+    '서로 다른 A/B 스윙의 6개 주요 시점을 비교': 'Compare six key phases from different swings in A and B',
+    '비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정': 'Click two points or drag once to set the head-to-toe reference line for ratio calculations',
+    '어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height',
+    '기준선: "기준선 지정" 버튼으로 A 영상에 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값': 'Reference: head-to-toe line set on Video A; the ratio is independent of display and video size.',
+    '각도 × 반경 (로데이터 조합)': 'Angle × radius (raw-data combination)',
+    '• 주요각도(팔-샤프트 꺾임)와 최대반경을 함께 표시': '• Shows the key angle (arm-shaft bend) and maximum radius together',
+    '• 각도가 크고 반경이 클수록 아크가 넓고 릴리즈가 충분': '• A larger angle and radius indicate a wider arc and more complete release',
+    '◎ 임팩트(F4): 150~180° × 큰 반경 = 이상적': '◎ Impact (F4): 150–180° with a large radius is ideal',
+    '임팩트 측면 기울기 변화 (C7→왼어깨 수직편각)': 'Impact lateral-tilt change (vertical angle from C7 to left shoulder)',
+    '● +100° 이상: 만점 (B 스윙이 더 trail-side lean)': '● ≥+100°: full credit (more trail-side lean in swing B)',
+    '● 0°: 중립 (0.5점 기여)': '● 0°: neutral (contributes 0.5 points)',
+    '● 음수: B에서 상체가 더 서있음 (Early Extension 의심)': '● Negative: torso is more upright in B (possible early extension)',
+    '정면 촬영 전용 지표 — 임팩트 C-shape 유지 여부': 'Front-view metric only — whether the C-shape is maintained at impact',
+    '고관절-무릎-발목 수직신장 각도 변화량(A→B) 기준 — 지면반력으로 다리가 펴지는 정도를 측정': 'Measures leg extension from ground force using the hip-knee-ankle angle change from A to B.',
+    '◎ 변화 0°: 0점': '◎ 0° change: 0 points', '◎ 변화 0°~30°: 선형 가산': '◎ 0°–30° change: points increase linearly',
+    '◎ 변화 30° 이상: 10점 만점': '◎ Change ≥30°: full 10 points', '◎ 음수(다리가 오히려 굽어짐): 0점': '◎ Negative (legs bend further): 0 points',
+    'Overall consistency score (out of 100)': 'Overall consistency score (out of 100)',
+    'Score = 100 − (W1·S_hand + W2·S_C7 + W3·S_pelvis + W4·S_head)': 'Score = 100 − (W1·S_hand + W2·S_C7 + W3·S_pelvis + W4·S_head)',
+    '가중치: 손 40% | C7 20% | 골반 20% | 클럽헤드 20%': 'Weights: hands 40% | C7 20% | pelvis 20% | clubhead 20%',
+    '각 항목은 원감점(0~100)에 가중치를 곱한 뒤 종합점수에서 차감': 'Each raw deduction (0–100) is weighted and subtracted from the total score.',
+    '90+: A(Tour Pro) | 80~89: B(Advanced) | 70~79: C(Intermediate) | <70: D(Needs Improvement)': '90+: A (Tour Pro) | 80–89: B (Advanced) | 70–79: C (Intermediate) | <70: D (Needs Improvement)',
+    'pt1 손 중심점(Hand Center) 평가 — 가중치 40%': 'pt1 Hand Center evaluation — 40% weight',
+    '어드레스(P1) 대비 P6(허리높이) 손 위치의 수평/수직 이동 비율 — 척추 길이 대비 비율로 정규화되어 영상 크기·촬영거리·체형(키) 차이와 무관하게 상대비교 가능': 'Horizontal/vertical hand-position change from address (P1) to P6 (waist height), normalized by spine length for comparison across video sizes, camera distances, and body heights.',
+    '이상 영역: 척추선 기준 좌우 오프셋 변화 10~100%(트레일사이드), 손 높이는 골반선 부근 이하(허용폭 70%)': 'Target zone: 10–100% lateral offset from the spine line toward the trail side; hands near or below the pelvis line (70% tolerance).',
+    '영역을 벗어난 오차만큼 감점': 'Points are deducted according to the deviation outside the target zone.',
+    'pt2 C7 경추점(C7 Spine Node) 평가 — 가중치 20%': 'pt2 C7 spine-node evaluation — 20% weight',
+    '어드레스 척추선 고정축 기준 좌우 스웨이 50% + 상하 라이즈(얼리 익스텐션) 50%': 'Based on the address spine axis: lateral sway 50% + vertical rise (early extension) 50%.',
+    '스웨이: 방향 무관 변위량, ≤35%까지 허용': 'Sway: displacement in either direction; up to 35% is allowed.',
+    '라이즈: 오직 “일어서는” 방향(양수)만 감점, 척추각 유지/추가 숙임(음수)은 정상 범위': 'Rise: only upward movement (positive) is penalized; maintaining or increasing spine tilt (negative) is within range.',
+    'pt3 골반 중심점(Pelvis Center) 평가 — 가중치 20%': 'pt3 Pelvis Center evaluation — 20% weight',
+    '어드레스(P1) 대비 P6 골반 중심의 타깃 방향 수평 이동량 (척추 길이 대비 비율, 영상 종횡비 보정 완료)': 'Horizontal target-direction pelvis shift from address (P1) to P6, normalized by spine length and corrected for video aspect ratio.',
+    '이상 범위: 20~30% 이동': 'Target range: 20–30% shift',
+    '부족(배치기/체중 뒤남음) 또는 과도(스웨이/슬라이딩) 시 오차만큼 감점': 'Deduct for insufficient shift (early extension/weight left behind) or excessive sway/sliding.',
+    'pt4 클럽 헤드(Club Head) 평가 — 가중치 20%': 'pt4 Clubhead evaluation — 20% weight',
+    '래깅각(C7→손 vs 손→클럽헤드, 이상 70~110°) 60% + 샤프트 각도 40%': 'Lag angle (C7-to-hand vs. hand-to-clubhead; target 70–110°) 60% + shaft angle 40%.',
+    'P6(허리높이)에서 코킹이 유지되면 샤프트는 세워져 있어야 하므로(이상 ≥50°) 지면과 평행(0°)에 가까울수록 조기 릴리즈(캐스팅)로 감점': 'At P6 (waist height), retained lag keeps the shaft upright (target ≥50°); a shaft near parallel to the ground (0°) is penalized as early release/casting.',
+    'Overall rhythm and tempo score (out of 100)': 'Overall rhythm and tempo score (out of 100)',
+    'Score = 100 − (W1·S_tempo + W2·S_release + W3·S_sequence)': 'Score = 100 − (W1·S_tempo + W2·S_release + W3·S_sequence)',
+    '가중치: Δt 40% | 릴리즈 30% | 시퀀스 30%': 'Weights: Δt 40% | release 30% | sequence 30%',
+    '측정 불가 항목은 제외하고 나머지 가중치를 재정규화': 'Unmeasurable metrics are excluded and the remaining weights are re-normalized.',
+    'Δt = B(임팩트) 시점 − A(다운스윙 중기) 시점 (초) — 가중치 40%': 'Δt = time at B (impact) − time at A (downswing midpoint), in seconds — 40% weight',
+    'A/B 패널에 같은 영상을 로드하고 각각 P6/P7 시점을 맞춰야 유효': 'For a valid result, load the same video in A and B and set the P6/P7 phases.',
+    'Δt < 0.04s: 기준 구간보다 짧음': 'Δt < 0.04s: below the target range',
+    '0.04 ≤ Δt ≤ 0.08s: 기준 구간 내(시간차 감점 없음)': '0.04 ≤ Δt ≤ 0.08s: within the target range (no time deduction)',
+    'Δt > 0.08s: 기준 구간보다 김': 'Δt > 0.08s: above the target range',
+    '시간차만으로 타구 방향이나 실제 에너지 전달은 판정할 수 없음': 'Timing alone cannot determine ball direction or actual energy transfer.',
+    '토크 전환 템포 지수 — 가중치 30%': 'Torque-transition tempo index — 30% weight',
+    '반경 비율 (최대 반경 / 어드레스 기준 비율)': 'Radius ratio (maximum radius / address baseline)',
+    '• 어드레스(F1A) 기준 최대 반경이 얼마나 변했는지': '• Change in maximum radius relative to address (F1A)',
+    '◎ F3 지면반력: 비율 증가 = 하체 신장 = 좋음': '◎ F3 ground force: a higher ratio indicates lower-body extension',
+    '◎ F4 임팩트: 비율 높을수록 레버 확장 = 클럽헤드 속도↑': '◎ F4 impact: a higher ratio indicates greater lever extension and clubhead speed',
+    '백스윙 탑→Frame 2 다운스윙의 코어-양손 중심 거리 압축률': 'Core-to-hand distance compression from the top of the backswing to Frame 2',
+    '산출: (탑 골반-양손 거리 − Frame 2 골반-양손 거리) / 탑 거리': 'Calculation: (top pelvis-to-hands distance − Frame 2 distance) / top distance',
+    '◎ 35% 이상 감소: 만점 (충분한 압축)': '◎ Reduction ≥35%: full credit (sufficient compression)',
+    '◎ 0~35%: 압축률에 따라 가점': '◎ 0–35%: score increases with compression',
+    '◎ 0% 이하: 0점 (압축 없이 유지 또는 확장)': '◎ 0% or less: 0 points (maintained or expanded without compression)',
+    '클럽헤드는 사용하지 않음': 'Clubhead is not used in this calculation.',
+    '어깨→손목→클럽헤드 꺾임 각도 (팔-샤프트 각)': 'Bend angle from shoulder to wrist to clubhead (arm-shaft angle)',
+    '◎ 90° = 완전 코킹(래그) — 클럽이 수직으로 세워짐': '◎ 90° = fully cocked (lag retained); shaft is upright',
+    '◎ 180° = 완전 릴리즈 — 팔+샤프트 일직선': '◎ 180° = fully released; arm and shaft form a straight line',
+    '어드레스: 140~170° 일반 / 다운스윙: 90~120° 이상적': 'Address: typically 140–170° / Downswing: 90–120° is ideal',
+    '선택': 'Select', '입력': 'Input',
+    'Frame 1 — 백스윙탑/축고정과 꼬임': 'Frame 1 — Top of Backswing / Axis Stability and Coil',
+    'Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]': 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top]',
+    'Frame 2 — 래깅/코어이동': 'Frame 2 — Lag and Core Shift',
+    'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]': 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing]',
+    'Frame 3 — 외부토크/지면반력': 'Frame 3 — External Torque / Ground Force',
+    'Frame 3 — 다운스윙 후기 (외부토크/지면반력)': 'Frame 3 — Late Downswing (External Torque / Ground Force)',
+    'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점': 'Frame 3 — Late Downswing (External Torque / Ground Force) — Shaft-Parallel Phase',
+    'Frame 4 — 임팩트/선속도 지수': 'Frame 4 — Impact / Linear Speed Index',
+    'C7 수평(X)/수직(Y) 변위 — 입력 키 대비 %': 'C7 Horizontal (X) / Vertical (Y) Displacement — % of Reference Height',
+    'C7 horizontal (X) / vertical (Y) displacement from address to the top, as % of the reference height': 'C7 horizontal (X) / vertical (Y) displacement from address to the top, as % of the reference height',
+    '기준선: "기준선 지정" 버튼으로 A/B 영상에 각각 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값': 'Reference: head-to-toe line set separately on A and B; ratio is independent of screen and video size.',
+    '기준선: "기준선 지정" 버튼으로 A 영상에 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값': 'Reference: head-to-toe line set on Video A; ratio is independent of screen and video size.',
+    '◎ 각 축 변위 2% 미만: 만점': '◎ Less than 2% displacement on either axis: full credit',
+    '◎ 1% 증가마다 완만한 감점(12%에서 0점)': '◎ Gradual deduction for each 1% increase (0 at 12%)',
+    '백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)': 'Club-shaft angle at the top (0° = level with the ground)',
+    '산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각': 'Calculation: horizontal angle of the vector from hand center (grip) to clubhead',
+    '◎ -3°~+3°: 정상 범위': '◎ -3° to +3°: normal range',
+    '◎ 음수(−): 오버스윙(클럽헤드가 평행선 아래로 넘어감)': '◎ Negative: overswing (clubhead drops below the parallel line)',
+    '◎ 양수(+): 부족/레이드오프(클럽헤드가 평행선 위에 머묾)': '◎ Positive: insufficient turn / laid off (clubhead remains above the parallel line)',
+    '점수는 상태표시 기준과 동일하게 |각도| ≤3° 만점, ≥20° 0점': 'Scoring uses the same thresholds as the status: full credit at |angle| ≤3°, zero at ≥20°',
+    '압축·전개 반경 = 선택된 랜드마크 중 가장 먼 두 점 사이 거리': 'Compression/expansion radius = distance between the two farthest selected landmarks',
+    'Frame 1 어드레스 실측 반경으로 정규화해 프레임 간 비교': 'Normalized by the measured Frame 1 address radius for cross-frame comparison',
+    '◎ 백스윙 탑→Frame 2 감소: 다운스윙 압축': '◎ Decrease from the top to Frame 2: downswing compression',
+    '◎ Frame 2→Frame 3·4 증가: 임팩트 방향 재전개': '◎ Increase from Frame 2 to Frames 3/4: re-expansion toward impact',
+    '어깨→손목→클럽헤드 꺾임 각도 (팔-샤프트 각)': 'Bend angle from shoulder to wrist to clubhead (arm-shaft angle)',
+    '◎ 90° = 완전 코킹(래그) — 클럽이 수직으로 세워짐': '◎ 90° = fully cocked (lag retained); shaft is upright',
+    '◎ 180° = 완전 릴리즈 — 팔+샤프트 일직선': '◎ 180° = fully released; arm and shaft form a straight line',
+    '어드레스: 140~170° 일반 / 다운스윙: 90~120° 이상적': 'Address: typically 140–170° / Downswing: 90–120° is ideal',
+    '래깅+코어이동+코어-손압축 점수 (0~10점)': 'Lag, core shift, and core-to-hand compression score (0–10)',
+    '래깅각도 35% + 코어(골반)좌측이동 35% + 코어-손 압축 30%': 'Lag angle 35% + leftward core (pelvis) shift 35% + core-to-hand compression 30%',
+    '래깅: -100° 이하 = 10점 | 코어이동: 35% 이상 = 10점 | 코어-손 거리: 백스윙 탑 대비 35% 이상 감소 = 10점': 'Lag: ≤-100° = 10 points | Core shift: ≥35% = 10 points | Core-to-hand distance: ≥35% reduction from the top = 10 points',
+    '래깅각 변화(어드레스→다운스윙) + 다운스윙 실제 래깅각': 'Lag-angle change (address to downswing) and measured downswing lag angle',
+    '실제 래깅각: 클럽헤드-양손 중심-오른어깨 내각 (B프레임)': 'Measured lag angle: interior angle of clubhead, hand center, and right shoulder (B frame)',
+    '◎ 변화량 -100° 이하: 만점(10점)': '◎ Change ≤-100°: full credit (10 points)',
+    '◎ -10° 간격으로 1점씩 감점': '◎ Deduct 1 point for every 10°',
+    '◎ 0° 이상: 0점 (코킹 조기 릴리즈)': '◎ 0° or higher: 0 points (early release)',
+    'External torque / ground-force score (0–10)': 'External torque / ground-force score (0–10)',
+    '가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%': 'Weights: ground-force transition 50% | vertical extension 25% | axis sway 25%',
+    '전환 지수는 100점 만점 리포트의 70/100을 만점 기준으로 환산(70 이상=만점)': 'The transition index is scaled to a full score at 70/100 on its report.',
+    '전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합': 'Combines lead-leg bracing, hip-drop loading, early C7-rise control, F2→F3→F4 radius expansion, and linear-speed gain.',
+    'Frame 2 압축 시점→Frame 4 임팩트의 골반 중심-클럽헤드 반경 재확장률': 'Pelvis-to-clubhead radius re-expansion from Frame 2 compression to Frame 4 impact',
+    '산출: (Frame 4 반경 − Frame 2 반경) / Frame 2 반경': 'Calculation: (Frame 4 radius − Frame 2 radius) / Frame 2 radius',
+    '◎ 25% 이상 증가: 만점': '◎ Increase of 25% or more: full credit', '◎ 0~25%: 전개율에 따라 가점': '◎ 0–25%: credit scales with expansion',
+    '◎ 0% 이하: 0점 (재확장 없음)': '◎ 0% or less: 0 points (no re-expansion)',
+    '두 점 사이의 화면상 거리를 측정': 'Measure the on-screen distance between two points',
+    '다운스윙 중 C7(목 뒤) 수평 이동량 (캔버스 정규화 좌표 기준)': 'Horizontal movement of C7 (back of neck) during the downswing (normalized canvas coordinates)',
+    '◎ 0%: 만점 (회전축 완벽 고정)': '◎ 0%: full credit (axis remains fixed)', '◎ 0~10%: 선형 감점': '◎ 0–10%: linearly decreasing score',
+    '◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)': '◎ ≥10%: 0 points (substantial sway or slide)', 'A·B 패널의 C7 x좌표 차이로 계산': 'Calculated from the difference in C7 x-coordinates between panels A and B',
+    'Sequence Index = ΔX_COM(탑→P6) / (ΔX_C7(탑→P7) + ε)': 'Sequence Index = ΔX_COM (Top→P6) / (ΔX_C7 (Top→P7) + ε)',
+    '탑(백스윙탑) 좌표는 Frame 1 B패널 분석 결과에서 자동 참조 (F1 선행 분석 필요)': 'Top-of-backswing coordinates are referenced from Frame 1, panel B (analyze F1 first).',
+    'COM(골반)이 먼저 이동하고 C7 축이 고정될수록 고지수 = 하체 선행 후 상체 회전': 'A higher index indicates the pelvis moves first while the C7 axis stays stable, followed by upper-body rotation.',
+    '지수 ≥1.5 만점 / ≤0 0점': 'Index ≥1.5: full credit / ≤0: zero',
+    'Sequence Index = ΔX_COM(탑→P6) / (ΔX_C7(탑→P7) + ε)': 'Sequence Index = ΔX_COM (Top→P6) / (ΔX_C7 (Top→P7) + ε)',
+    '리드레그 브레이싱 25% | 고관절 하강 로딩 20% | C7 조기상승 억제 10% | F2→F3 골반-클럽 반경 전개 15% | F3→F4 골반-클럽 반경 전개 10% | F4 임팩트 선속도 20%': 'Lead-leg bracing 25% | hip-drop loading 20% | early C7-rise control 10% | F2→F3 pelvis-to-club radius expansion 15% | F3→F4 expansion 10% | F4 impact linear speed 20%',
+    'F3에서는 눌러 들어가는 로딩을 평가하고, 상승·폭발은 F3→F4 전개와 F4 선속도에서 평가': 'F3 evaluates loading; upward drive and acceleration are evaluated through F3→F4 expansion and F4 linear speed.',
+    'F4 미분석 시 측정 가능한 항목만 재정규화': 'If F4 has not been analyzed, available metrics are reweighted.',
+    '토크 전환 템포 지수 — 가중치 30%': 'Torque-transition tempo index — 30% weight',
+    '임팩트 선속도 지수(v=ω×r)와 F3→F4 변화량': 'Impact linear-speed index (v=ω×r) and change from F3 to F4',
+    '◎ 선속도 지수 40 이상: 절대 선속도 지수 만점': '◎ Linear-speed index ≥40: full credit for absolute speed',
+    '◎ 변화량(F4−F3) 40 이상: 변화량 만점': '◎ Change (F4−F3) ≥40: full credit for speed gain',
+    '두 항목은 최종 F4 점수의 핵심 45%를 5:5로 반영': 'These two metrics split the core 45% of the final F4 score equally.',
+    '래깅-릴리즈 효율 지수 — 가중치 30%': 'Lag-release efficiency index — 30% weight',
+    'r: C7→클럽헤드 거리 (P6 vs P7, 영상 종횡비 보정)': 'r: C7-to-clubhead distance (P6 vs. P7, corrected for video aspect ratio)',
+    'θ_lag: P6 래깅각 (C7→손 vs 손→클럽헤드)': 'θ_lag: P6 lag angle (C7-to-hand vs. hand-to-clubhead)',
+    '래깅이 좁고 임팩트 반경이 극대화될수록 고지수 = 비거리 잠재력': 'A higher index indicates retained lag and a larger radius at impact, suggesting distance potential.',
+    '지수 ≥110 만점 / ≤40 0점': 'Index ≥110: full credit / ≤40: zero',
+    '키 입력 참고값 (현재 점수 계산에는 미사용)': 'Height is shown for reference only and is not used in the current score calculation.',
+    '◎ 100% = 170cm 기준 (참고 표시용)': '◎ 100% = 170 cm reference (display only)',
+    '현재 시점의 A/B 포인트만 삭제': 'Clear only the A/B points for the current phase',
+    '비거리 모션 분석': 'Distance Motion Analysis', '일관성 모션 분석': 'Consistency Motion Analysis',
+    '비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정': 'Click two points or drag once to set the head-to-toe reference line for ratio calculations',
+    'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height',
+    '어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height',
+    '기준선:': 'Reference line:',
+    '• 압축·전개 반경은 Frame 1 어드레스 실측 반경으로 정규화됩니다': '• Compression/expansion radius is normalized by the measured Frame 1 address radius',
+    '◎ 100% = 170cm 기준 (참고 표시용)': '◎ 100% = 170 cm reference (display only)',
+    '산출 방식: B프레임 xFactorDeg − A프레임 xFactorDeg': 'Calculation: B-frame xFactorDeg − A-frame xFactorDeg',
+    '회전 증가 → 오른어깨 x 증가 → 값이 음수로 커짐': 'More rotation → greater right-shoulder x → a more negative value',
+    '◎ ≤-150°: 만점 (충분한 상체 코일)': '◎ ≤-150°: full credit (sufficient upper-body coil)',
+    '◎ -150°~-60°: 선형 보간': '◎ -150° to -60°: linearly interpolated',
+    '◎ ≥-60°: 0점 (회전 부족 또는 역회전)': '◎ ≥-60°: 0 points (insufficient or reverse rotation)',
+    '점수가 높을수록 C7(축)이 입력한 키 대비 거의 이동하지 않고, 어깨를 충분히 회전하며, 탑에서 샤프트가 지면과 평행에 가까움': 'A higher score means less C7 (axis) movement relative to the reference height, sufficient shoulder turn, and a shaft closer to parallel at the top.',
+    '◎ |변화| ≤5°: 이 항목 만점': '◎ |change| ≤5°: full credit for this metric',
+    '◎ 5~18°: 완만한 감점': '◎ 5–18°: gradual deduction',
+    '◎ |변화| ≥18°: 이 항목 0점': '◎ |change| ≥18°: 0 points for this metric',
+    '프레임 점수는 다른 4개 지표와 가중합': 'The frame score is a weighted sum with the other four metrics.',
+    '음수: 앞으로 기울어짐 / 양수: 뒤로 기울어짐': 'Negative: leaning forward / Positive: leaning backward',
+    '지면반력 전환 지수 (0~100)': 'Ground-Force Transition Index (0–100)',
+    'Lead-leg bracing 25% | hip-drop loading 20% | early C7-rise control 10% | F2→F3 pelvis-to-club radius expansion 15% | F3→F4 expansion 10% | F4 impact linear speed 20%': 'Lead-leg bracing 25% | hip-drop loading 20% | early C7-rise control 10% | F2→F3 pelvis-to-club radius expansion 15% | F3→F4 expansion 10% | F4 impact linear speed 20%',
+    '코어(골반) 좌측 이동량 (몸통 길이 기준 비율)': 'Leftward core (pelvis) shift (ratio relative to torso length)',
+    '기준: 어드레스→다운스윙 어깨~골반 거리 대비 변위 (zoom·키 독립)': 'Reference: displacement relative to the address shoulder-to-pelvis distance (independent of zoom and height)',
+    '◎ +35% 이상 좌측(목표방향) 이동: 만점(10점)': '◎ Leftward (target-direction) shift ≥35%: full credit (10 points)',
+    '◎ 0~35%: 선형 가산': '◎ 0–35%: points increase linearly', '◎ 0% 이하(우측 이동 또는 정지): 0점': '◎ 0% or less (rightward shift or no movement): 0 points',
+    '다운스윙 시 골반이 목표방향(왼쪽)으로 이동할수록 고점수': 'A higher score is given when the pelvis shifts toward the target (left) during the downswing.',
+    '팔-샤프트 정렬 개선량 (릴리즈 직접 지표)': 'Arm-shaft alignment improvement (direct release metric)',
+    '◎ +100° 이상: 만점 (완전 릴리즈)': '◎ ≥+100°: full credit (full release)', '◎ 0°: 중립 (0.5점 기여)': '◎ 0°: neutral (contributes 0.5 points)',
+    '◎ 음수: 팔꿈치 유지 = 30° 당 감점': '◎ Negative: elbow remains bent; deduct for every 30°',
+    '양수 값 = 임팩트에서 팔-샤프트가 더 일직선에 접근 = r 확장 = v 증가': 'Positive values indicate straighter arm-shaft alignment at impact, a larger radius (r), and greater speed (v).',
+    'F1~F4 중 2개 이상 분석하면 표시됩니다. F5/F6은 보조 근거로 반영됩니다.': 'Shown after at least two of F1–F4 are analyzed. F5/F6 provide supporting evidence.',
+    'F1~F6 중 2개 이상 분석하면 표시됩니다.': 'Shown after at least two of F1–F6 are analyzed.',
+    '스윙 유형 추정:': 'Swing Type Estimate:', '백스윙 유형:': 'Backswing Type:',
+    '유형 1 · 축회전 중심': 'Type 1 · Axis-Rotation Driven', '유형 2 · 하체이동 중심': 'Type 2 · Lower-Body-Shift Driven',
+    '유형 3 · 코어 압축·팽창 중심': 'Type 3 · Core Compression-Extension Driven',
+    'F1~F6 지표 기반 상대 적합도 · GRF는 2D 동작 proxy 추정치': 'Relative fit based on F1–F6 metrics · GRF is estimated from 2D motion proxies',
+    '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)': 'Undetermined (does not match any of the five defined patterns)',
+    '백스윙 유형 판정 보류': 'Backswing Type Undetermined', '백스윙 유형 ': 'Backswing Type ',
+    '현재 자세의 포인트는 동일한 프레임에서 찍어야 합니다.': 'All points for the current pose must be selected from the same video frame.',
+    '입력 자세: ': 'Missing phases: ', '미입력 자세: ': 'Missing phases: ',
+    '다섯 패턴의 영상상 조건에 부합하지 않습니다.': 'The video does not match the visual criteria for any of the five patterns.',
+    'On-Plane Corridor ': 'On-Plane Corridor ', '전 구간 통과': 'passed all phases', '구간 이탈': 'deviation in one or more phases',
+    'P2 클럽헤드 바깥 ': 'P2 clubhead outside the hands: ', '어드레스 기준선 각도 하한 ': 'Address reference-line lower angle ',
+    ' / 엘보 ': ' / elbow ', ' / 상한 ': ' / upper angle ', '탑 손 높이 ': 'Top hand height: ',
+    '전환 샤프트 완만화 ': 'Shaft shallowing at transition: ', '높음': 'high', '일반': 'typical',
+    '미해당': 'not observed', '해당': 'observed', '정상 범위': 'normal range', '부족(레이드오프)': 'insufficient (laid off)',
+    '입력 완료. 다음 자세를 선택하세요.': 'Input complete. Select the next pose.',
+    '공/클럽헤드 위치': 'Ball / clubhead position', '어드레스 손/그립': 'Address hands / grip', '오른 팔꿈치': 'Right elbow',
+    '탑 C7/어깨 기준점': 'Top C7 / shoulder reference', '탑 손/그립': 'Top hands / grip', '탑 클럽헤드': 'Top clubhead',
+    '손/그립': 'Hands / grip', '클럽헤드': 'Clubhead',
+    '척추각도 유지(어드→탑):': 'Spine-angle retention (Address → Top):', '척추각도: 데이터 부족': 'Spine Angle: insufficient data',
+    '어깨회전(2D):': 'Shoulder Turn (2D):', '어깨회전: 데이터 부족': 'Shoulder Turn: insufficient data',
+    '샤프트 수평(탑):': 'Shaft Level (Top):', '샤프트 수평(탑): 데이터 부족(6단계 그립/클럽헤드 필요)': 'Shaft Level (Top): insufficient data (complete the 6 grip/clubhead points)',
+    '정상 범위': 'normal range', '오버': 'overswing', '부족(레이드오프)': 'insufficient (laid off)',
+    'C7 변위: X ': 'C7 Displacement: X ', '% / Y ': '% / Y ', '% (키 기준, 2% 미만 만점)': '% (height reference; full credit below 2%)',
+    'C7 변위: C7 좌표 부족(A/B 패널 모두에 C7 클릭 필요)': 'C7 Displacement: C7 coordinates missing (mark C7 in both panels)',
+    'C7 변위: 기준선 미지정(기준선 지정 버튼 필요)': 'C7 Displacement: reference line not set (set the reference line first)',
+    '래깅각 변화:': 'Lag-Angle Change:', ' (실제:': ' (measured:', '래깅각: 데이터 부족': 'Lag Angle: insufficient data',
+    '코어-손 압축: ': 'Core-to-Hand Compression: ', '만점 기준 충족': 'target met', '압축': 'compression', '유지/확장': 'maintained/expanded',
+    '코어 이동:': 'Core Shift:', '코어 이동: 데이터 부족': 'Core Shift: insufficient data',
+    '수직신장 변화:': 'Vertical-Extension Change:', ' (B 절대각 ': ' (B absolute angle ', '수직신장: 데이터 부족': 'Vertical Extension: insufficient data',
+    'C7 Sway:': 'C7 Sway:', 'C7 Sway: 데이터 부족': 'C7 Sway: insufficient data',
+    '지면반력 전환:': 'Ground-Force Transition:', '지면반력 전환: 데이터 부족': 'Ground-Force Transition: insufficient data',
+    '선속도 지수:': 'Linear Speed Index:', '선속도 지수: 데이터 부족': 'Linear Speed Index: insufficient data',
+    '스윙 반경 전개:': 'Swing-Radius Expansion:', '스윙 반경 전개: Frame 2 선행 분석 필요': 'Swing-Radius Expansion: analyze Frame 2 first',
+    '팔-샤프트 정렬 변화:': 'Arm-Shaft Alignment Change:', '팔-샤프트: 데이터 부족': 'Arm-Shaft Alignment: insufficient data',
+    '측면기울기 변화:': 'Lateral-Tilt Change:', '측면기울기: 데이터 부족': 'Lateral Tilt: insufficient data',
+    'pt1 손위치: 데이터 부족': 'pt1 Hand Position: insufficient data', 'pt2 C7축: 데이터 부족': 'pt2 C7 Axis: insufficient data',
+    'pt3 골반이동: 데이터 부족': 'pt3 Pelvis Shift: insufficient data', 'pt4 클럽헤드: 데이터 부족': 'pt4 Clubhead: insufficient data',
+    'Δt 템포: 측정 불가 (A/B 패널에 같은 영상 로드 후 P6/P7 시점 설정 필요)': 'Δt Tempo: unavailable (load the same video in A/B and set P6/P7)',
+    '래깅-릴리즈: 데이터 부족': 'Lag-Release: insufficient data', '토크 전환: Frame 1(백스윙탑) 선행 분석 필요': 'Torque Transition: analyze Frame 1 (top of backswing) first',
+    '분석을 시작하기 전에 선수 키(cm)를 먼저 입력하세요. 이동 변위 지표 계산의 정확도를 위해 필요합니다.': 'Enter the player height in centimeters before starting. This is required for displacement metrics.',
+    '먼저 Frame 1을 분석해 기준선(척도 기준)을 확정한 뒤 다른 프레임을 분석하세요. 이후 프레임들은 Frame 1의 기준선을 그대로 사용합니다.': 'Analyze Frame 1 first to lock the scale reference. All later frames use the Frame 1 reference line.',
+    '먼저 Frame 1(어드레스 → 백스윙 탑)을 분석해 기준점(척도 정규화 기준)을 설정한 뒤 다른 프레임을 분석하세요.': 'Analyze Frame 1 (Address → Top of Backswing) first to establish the normalization baseline.',
+    '모든 분석 데이터(영상 포인트, 점수, 기록)를 초기화합니다. 계속하시겠습니까?': 'This clears all analysis data, points, scores, and records. Continue?',
+    '아직 선택하지 않은 포인트가 ': 'There are ', '개 남아있습니다. 안내 문구를 따라 영상 위에 포인트를 모두 클릭하세요.': ' points remaining. Follow the guide and select all points on the video.',
+    'A 영상의 기준선을 먼저 지정하세요.': 'Set the reference line on Video A first.',
+    'B 영상의 기준선을 먼저 지정하세요.': 'Set the reference line on Video B first.',
+    ' 사용자 계정을 삭제하시겠습니까?': ' Do you want to delete this user account?',
+    'Email과 비밀번호를 모두 입력하세요.': 'Enter both an email and a password.',
+    '이미 등록된 사용자입니다.': 'This user is already registered.', '사용자가 추가되었습니다.': 'User added.',
+    'F1 백스윙탑 — 축 고정과 꼬임': 'F1 Top of Backswing — Axis Stability and Coil',
+    '척추각도 변화 ': 'Spine-angle change ', '척추각 항목 만점': 'full credit for spine angle',
+    '척추각 항목 부분 감점': 'partial deduction for spine angle', '척추각 항목 0점': 'zero points for spine angle',
+    '2D 어깨선 각도 변화 ': '2D shoulder-line angle change ', '어깨선 항목 만점': 'full credit for shoulder line',
+    '어깨선 항목 부분 점수': 'partial credit for shoulder line', '어깨선 항목 0점': 'zero points for shoulder line',
+    '실제 회전량과 다름': 'not the actual rotation amount', '어드레스 레버: ': 'Address lever arm: ',
+    '→ 백스윙탑 레버: ': '→ Top-of-backswing lever arm: ', '탑에서 팔이 접혀 각속도 증폭 준비': 'arms fold at the top, preparing to increase angular velocity',
+    '탑에서 레버 유지': 'lever arm maintained at the top', 'F2 래깅/코어이동 — 에너지 저장': 'F2 Lag / Core Shift — Energy Storage',
+    '래깅 각도 변화 ': 'Lag-angle change ', '완전 코킹 유지': 'full lag retained', '부분 코킹': 'partial lag', '조기 릴리즈 경향': 'tendency toward early release',
+    '코어(골반) 이동 ': 'Core (pelvis) shift ', '이동 항목 만점': 'full credit for shift', '이동 항목 부분 점수': 'partial credit for shift',
+    '골반 반대 이동 또는 정지': 'pelvis moved in the opposite direction or remained still',
+    '코어-손 압축: 탑 ': 'Core-to-hand compression: Top ', ' → 다운스윙 ': ' → Downswing ', '압축 충분': 'sufficient compression', '압축 부족': 'insufficient compression',
+    'F3 지면반력 — 하체 에너지 전달': 'F3 Ground Force — Lower-Body Energy Transfer',
+    '수직신장 변화(A→B) ': 'Vertical-extension change (A→B) ', '충분한 신장': 'sufficient extension', '보통 수준': 'moderate', '오히려 굴어짐': 'further flexion',
+    '축 고정 우수': 'excellent axis stability', '허용 범위': 'within the acceptable range', '축 이탈 과다': 'excessive axis movement',
+    '하체 신장으로 레버 확장 확인': 'lever extension observed with lower-body extension', '레버 확장 제한적': 'limited lever extension',
+    'F4 임팩트 — 채찍 효과 & 선속도 지수 최대화': 'F4 Impact — Whip Effect and Linear-Speed Maximization',
+    '스윙 반경 전개 ': 'Swing-radius expansion ', '임팩트 재확장 충분': 'sufficient re-expansion at impact', '부분 재확장': 'partial re-expansion', '반경 확장 부족': 'insufficient radius expansion',
+    '팔-샤프트 정렬 변화 ': 'Arm-shaft alignment change ', '완전 릴리즈': 'full release', '부분 릴리즈': 'partial release', '릴리즈 부족': 'insufficient release',
+    '측면기울기 변화 ': 'Lateral-tilt change ', 'C-shape 형성 우수': 'strong C-shape', '기울기 보통': 'moderate tilt', 'C-shape 미형성': 'C-shape not maintained',
+    '팔-샤프트각: 어드레스 ': 'Arm-shaft angle: Address ', ' → 임팩트 ': ' → Impact ', ' — 힌지 ': ' — hinge ', ' 방출 = v=ω×r 극대화': ' release = maximize v=ω×r',
+    'F5 일관성 리포트 — 종합 ': 'F5 Consistency Report — Overall ', '점 / 100': ' points / 100',
+    'pt1 손위치(어드레스 척추선 고정축 기준) 오프셋 변화 ': 'pt1 Hand-position offset change from the fixed address spine axis ',
+    ' — 원감점 ': ' — raw deduction ', '점 × ': ' points × ', ' = ': ' = ', '점 차감': ' points deducted',
+    'pt2 C7 스웨이 ': 'pt2 C7 sway ', ' / 라이즈 ': ' / rise ', '(일어서는 방향만 감점, ≤30%)': '(only upward movement is penalized, ≤30%)',
+    'pt3 골반 타깃방향 이동 ': 'pt3 Pelvis shift toward target ', '(이상 20~30%)': '(target 20–30%)',
+    'pt4 래깅각 ': 'pt4 Lag angle ', '(이상 70~110°) / 샤프트각 ': '(target 70–110°) / shaft angle ', '(이상 ≥50°, 세워질수록 코킹 유지)': '(target ≥50°; more upright means lag is retained)',
+    '이 지표는 어드레스(P1) 기준 축·시퀀스가 다운스윙 허리높이(P6) 구간에서 얼마나 정확한 상대 위치로 복귀하는지(샷 재현성)를 확인하는 지표입니다.': 'This metric checks how closely the axis and sequence return to their address (P1) positions at downswing waist height (P6), indicating shot reproducibility.',
+    'F6 리듬/템포·시퀀스 — 종합 ': 'F6 Rhythm, Tempo and Sequence — Overall ',
+    'Δt(P6→P7) ': 'Δt (P6→P7) ', '[기준 40~80ms]': '[target 40–80 ms]', ' — 원감점 ': ' — raw deduction ',
+    '래깅-릴리즈 지수 ': 'Lag-Release Index ', '릴리즈 지수 항목 만점': 'full credit for release index', '릴리즈 지수 항목 부분 점수': 'partial credit for release index',
+    '토크 전환 지수 ': 'Torque-Transition Index ', '시퀀스 지수 항목 만점': 'full credit for sequence index', '시퀀스 지수 항목 부분 점수': 'partial credit for sequence index',
+    '임팩트 Side Bend ': 'Impact Side Bend ', ' — 측면 척추 꺾임 (방향성/스퀘어 임팩트 참고 지표)': ' — side bend; reference for direction and square impact',
+    '이 점수는 P6→P7 시간차와 2D 반경·이동 지표를 합산한 추정치입니다. 타구 방향·실제 에너지 전달은 판정하지 않으며, A/B 패널에 같은 영상을 로드해야 Δt가 유효합니다.': 'This estimate combines the P6→P7 interval with 2D radius and movement metrics. It does not determine ball direction or actual energy transfer. Load the same video in A and B for a valid Δt.',
+    '레버 시퀀스: ': 'Lever sequence: ', '분석 결과 접기 ▲': 'Hide Analysis Results ▲',
+    '다음:': 'Next:', '종합 편차 ': 'Overall deviation ', '탑 ': 'Top ', '압축': 'compression', '유지/확장': 'maintained/expanded',
+    '부분 코킹': 'partial lag', '점 / 100': ' points / 100', '점 × ': ' points × ', '점 차감': ' pts deducted', '원감점 ': 'raw deduction ',
+    'F1 백스윙 탑: 점수 ': 'F1 Top of Backswing: score ',
+    '지표 반영, 나머지는 데이터 부족으로 제외': 'metrics included; remaining metrics excluded due to insufficient data',
+    '로 같은 스윙 범위입니다.': ' falls in the same-swing range.', '로 유사 스윙 범위입니다.': ' falls in the similar-swing range.',
+    '로 약간 다른 스윙 범위입니다.': ' falls in the somewhat-different-swing range.', '로 다른 스윙 범위입니다.': ' falls in the different-swing range.',
+    '입니다.': '.', '손목 중심': 'wrist center', '코어 중심': 'core center', '클럽헤드 중심': 'clubhead center',
+  };
+  const UI_TRANSLATION_PREFIX_KEYS = new Set(['점수: ', '다음:', '종합 편차 ', '탑 ', '압축', '유지/확장', '손목 중심', '코어 중심', '클럽헤드 중심', '부분 코킹', '점 / 100', '점 × ', '점 차감', '원감점 ']);
+  const UI_TRANSLATION_KEYS = Object.keys(UI_TRANSLATIONS_EN)
+    .filter(key => key.length >= 8 || (key.length >= 2 && /[:：]$/.test(key)) || UI_TRANSLATION_PREFIX_KEYS.has(key))
+    .sort((a, b) => b.length - a.length);
+  let uiLanguage = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY) === 'en' ? 'en' : 'ko';
+  const originalTextNodes = new WeakMap();
+  const renderedTextNodes = new WeakMap();
+  const originalAttributes = new WeakMap();
+  const renderedAttributes = new WeakMap();
+
+  function translateUiText(value, language = uiLanguage) {
+    if (language !== 'en' || !value) return value;
+    if (UI_TRANSLATIONS_EN[value]) return UI_TRANSLATIONS_EN[value];
+    return UI_TRANSLATION_KEYS.reduce((text, key) => text.split(key).join(UI_TRANSLATIONS_EN[key]), value);
+  }
+
+  function localizeTextNode(node) {
+    const current = node.nodeValue;
+    let source = originalTextNodes.get(node);
+    if (source === undefined || current !== renderedTextNodes.get(node)) {
+      source = current;
+      originalTextNodes.set(node, source);
+    }
+    const translated = translateUiText(source);
+    renderedTextNodes.set(node, translated);
+    if (current !== translated) node.nodeValue = translated;
+  }
+
+  function localizeElement(element) {
+    if (element.matches('script, style, noscript')) return;
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (!node.parentElement.closest('script, style, noscript')) localizeTextNode(node);
+    }
+    ['title', 'aria-label', 'placeholder', 'alt', 'data-tooltip'].forEach(attribute => {
+      if (!element.hasAttribute(attribute)) return;
+      let originals = originalAttributes.get(element);
+      if (!originals) {
+        originals = {};
+        originalAttributes.set(element, originals);
+        renderedAttributes.set(element, {});
+      }
+      const current = element.getAttribute(attribute);
+      const rendered = renderedAttributes.get(element);
+      if (originals[attribute] === undefined || current !== rendered[attribute]) originals[attribute] = current;
+      const translated = translateUiText(originals[attribute]);
+      rendered[attribute] = translated;
+      if (current !== translated) element.setAttribute(attribute, translated);
+    });
+  }
+
+  function setUiLanguage(language) {
+    uiLanguage = language === 'en' ? 'en' : 'ko';
+    localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, uiLanguage);
+    document.documentElement.lang = uiLanguage;
+    localizeElement(document.body);
+  }
+
+  const nativeAlert = window.alert.bind(window);
+  const nativeConfirm = window.confirm.bind(window);
+  window.alert = message => nativeAlert(translateUiText(String(message)));
+  window.confirm = message => nativeConfirm(translateUiText(String(message)));
+
+  const languageSelect = document.getElementById('languageSelect');
+  if (languageSelect) {
+    languageSelect.value = uiLanguage;
+    languageSelect.addEventListener('change', () => {
+      setUiLanguage(languageSelect.value);
+      showGuide();
+      if (swingCompareActive) updateSwingCompareGuide();
+      updateSwingCompareResults();
+      if (backswingActive) updateBackswingGuide();
+      if (backswingClassification) document.getElementById('backswingDecideBtn').click();
+      const reportMatchesLanguage = geminiReportLanguage === uiLanguage;
+      if (geminiReportBlock) geminiReportBlock.style.display = reportMatchesLanguage ? 'block' : 'none';
+      if (downloadGeminiReportBtn) downloadGeminiReportBtn.disabled = !reportMatchesLanguage || !geminiReportText;
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+    });
+  }
+  setUiLanguage(uiLanguage);
+  new MutationObserver(records => {
+    records.forEach(record => {
+      if (record.type === 'characterData') localizeTextNode(record.target);
+      else if (record.type === 'attributes') localizeElement(record.target);
+      else record.addedNodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) localizeTextNode(node);
+        else if (node.nodeType === Node.ELEMENT_NODE) localizeElement(node);
+      });
+    });
+  }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'placeholder', 'alt', 'data-tooltip'] });
+
   const loginOverlay = document.getElementById('loginOverlay');
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
@@ -1607,6 +2235,7 @@
   const geminiReportBlock = document.getElementById('geminiReportBlock');
   const GEMINI_API_KEY_STORAGE_KEY = 'gsap_gemini_api_key';
   let geminiReportText = '';
+  let geminiReportLanguage = null;
 
   if (geminiApiKeyInput) {
     geminiApiKeyInput.value = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY) || '';
@@ -1876,10 +2505,113 @@
       ? (resultReferenceRatio / baselineReferenceRatio * 100) : null;
     // pelvisNormX, c7NormX, rMaxNorm 은 이미 0-1 정규화 좌표 기반값이므로
     // projectionScale 적용 불필요 (적용 시 1 초과 → 133% 등 이상값 발생)
-    result.summary += ` 보정기준: 어드레스 실측 반경 대비 비율 정규화 적용(신장 입력 미사용).`;
+    result.summary += uiLanguage === 'en'
+      ? ' Normalized to the measured address radius (height input is not used).'
+      : ' 보정기준: 어드레스 실측 반경 대비 비율 정규화 적용(신장 입력 미사용).';
   }
 
   function getGuideMessage() {
+    if (uiLanguage === 'en') {
+      const viewLabel = guideView === 'front' ? 'A (Reference)' : 'B (Comparison)';
+      const guides = {
+        frame1: {
+          title: 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top]',
+          steps: guideView === 'front'
+            ? [
+              '(A — Address) Step 1: Mark the projected C7 point. In the front view, click the center of the neck below the chin.',
+              '(A — Address) Step 2: Mark the right shoulder.',
+              '(A — Address) Step 3: Mark the left shoulder to establish the address shoulder-turn baseline.',
+              '(A — Address) Step 4: Mark the pelvis center (mid-hip) to establish the C7-to-pelvis spine-angle baseline.',
+              'Point selection complete. Run the analysis.',
+            ]
+            : [
+              '(B — Top of Backswing) Step 1: Mark the projected C7 point at the top. In the front view, click the center of the neck below the chin.',
+              '(B — Top of Backswing) Step 2: Mark the right shoulder.',
+              '(B — Top of Backswing) Step 3: Mark the left shoulder to calculate the X-Factor (shoulder turn).',
+              '(B — Top of Backswing) Step 4: Mark the pelvis center (mid-hip) to evaluate spine-angle retention.',
+              '(B — Top of Backswing) Step 5: Mark the center of both hands (middle of the grip) to calculate shaft level.',
+              '(B — Top of Backswing) Step 6: Mark the clubhead. Its angle from the grip relative to the ground indicates overswing or layoff.',
+              'Point selection complete. Run the analysis.',
+            ],
+        },
+        frame2: {
+          title: 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing at Waist Height]',
+          steps: [
+            `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At address, mark the center of both hands (middle of the grip).' : 'At the downswing 3/5 point, when the hands reach waist height, mark the center of both hands (middle of the grip).'}`,
+            `(${viewLabel}) Step 2: Mark the clubhead. The hand-center-to-clubhead vector is used to calculate the lag angle.`,
+            `(${viewLabel}) Step 3: Mark the right shoulder to complete the lag-angle calculation from the hand center to the shoulder.`,
+            `(${viewLabel}) Step 4: Mark the pelvis center (mid-hip) to measure lateral pelvis shift from address.`,
+            'Point selection complete. Run the analysis.',
+          ],
+        },
+        frame3: {
+          title: 'Frame 3 — Late Downswing / Ground Force',
+          steps: [
+            `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At the downswing 4/5 point (ground-force phase), mark the left hip.' : 'Just before impact (late downswing), mark the left hip.'}`,
+            `(${viewLabel}) Step 2: Mark the left knee.`,
+            `(${viewLabel}) Step 3: Mark the left ankle. Hip, knee, and ankle points are used to calculate vertical extension.`,
+            `(${viewLabel}) Step 4: Mark the projected C7 point. In the front view, click the center of the neck below the chin. This is used to calculate axis sway.`,
+            ...(guideView === 'side' ? [
+              '(B) Step 5: Mark the pelvis center (mid-hip), the center for the compression/expansion radius.',
+              '(B) Step 6: Mark the clubhead to calculate the pelvis-to-clubhead radius.',
+            ] : []),
+            'Point selection complete. Run the analysis.',
+          ],
+        },
+        frame4: {
+          title: 'Frame 4 — Impact / Linear Speed Index',
+          steps: [
+            `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At address, mark the projected C7 point.' : 'At impact, mark the projected C7 point.'} In the front view, click the center of the neck below the chin.`,
+            `(${viewLabel}) Step 2: Mark the left shoulder.`,
+            `(${viewLabel}) Step 3: Mark the left wrist to calculate arm-shaft alignment.`,
+            `(${viewLabel}) Step 4: Mark the clubhead to calculate the maximum left-shoulder-to-clubhead radius (r_max).`,
+            ...(guideView === 'side' ? [
+              '(B) Step 5: Mark the pelvis center (mid-hip) to calculate the pelvis-to-clubhead expansion radius.',
+            ] : []),
+            'Point selection complete. Run the analysis.',
+          ],
+        },
+        frame5: {
+          title: 'Frame 5 — Consistency Report [Address → Downswing 3/5 Point (Waist Height)]',
+          steps: guideView === 'front'
+            ? [
+              '(P1 — Address) Step 1: At address, mark pt1, the center of both hands (middle of the grip).',
+              '(P1 — Address) Step 2: Mark pt2, the C7 spine point. In the front view, click the center at the back of the neck.',
+              '(P1 — Address) Step 3: Mark pt3, the center of the pelvis.',
+              '(P1 — Address) Step 4: Mark pt4, the clubhead center behind the ball. This completes the four P1 reference points.',
+              'Point selection complete. Run the analysis.',
+            ]
+            : [
+              '(Downswing 3/5 — Waist Height) Step 1: When the hands reach waist height, mark pt1, the center of both hands.',
+              '(Downswing 3/5 — Waist Height) Step 2: At the same phase, mark pt2, the C7 spine point, to measure upper-body axis movement (early extension).',
+              '(Downswing 3/5 — Waist Height) Step 3: At the same phase, mark pt3, the center of the pelvis, to measure target-direction weight shift.',
+              '(Downswing 3/5 — Waist Height) Step 4: At the same phase, mark pt4, the clubhead center, to measure shaft angle and lag (casting).',
+              'Point selection complete. Run the analysis.',
+            ],
+        },
+        frame6: {
+          title: 'Frame 6 — Rhythm, Tempo and Kinematic Sequence [Downswing Midpoint → Impact]',
+          steps: guideView === 'front'
+            ? [
+              '(Downswing Midpoint) Step 1: Set Video A to the shaft-parallel phase and mark pt1, the C7 spine point.',
+              '(Downswing Midpoint) Step 2: Mark pt2, the pelvis center (COM), as the lower-body reference for the torque-transition index.',
+              '(Downswing Midpoint) Step 3: Mark pt3, the center of both hands, to calculate the lag angle (θ_lag).',
+              '(Downswing Midpoint) Step 4: Mark pt4, the clubhead, to calculate the downswing radius (r_downswing).',
+              'Point selection complete. Run the analysis.',
+            ]
+            : [
+              '(P7 — Impact) Step 1: Set Video B to impact and mark pt1, the C7 spine point.',
+              '(P7 — Impact) Step 2: Mark pt2, the pelvis center (COM).',
+              '(P7 — Impact) Step 3: Mark pt3, the center of both hands.',
+              '(P7 — Impact) Step 4: Mark pt4, the clubhead, to calculate the impact radius (r_impact).',
+              'Point selection complete. Run the analysis.',
+            ],
+        },
+      };
+      const guide = guides[selectedSegment] || guides.frame1;
+      if (guideStep === 0) return `Select a swing-analysis button to start landmark selection. Current phase: ${guide.title}`;
+      return guide.steps[guideStep - 1] || guide.steps[guide.steps.length - 1];
+    }
     const viewLabel = guideView === 'front' ? 'A(기준)' : 'B(비교)';
     const maxPts = getFrameMaxPoints(selectedSegment, guideView);
     const frameGuides = {
@@ -3142,27 +3874,48 @@
     // accelerationScore/transferScore/impactScore는 어드레스 기준 비율이 필요하므로
     // applyProjectionNormalization()에서 baseline과 함께 재계산됨 (여기서는 0으로 초기화만)
 
-    const frameName = { frame1: 'Frame1(척추축)', frame2: 'Frame2(래깅)', frame3: 'Frame3(지면반력)', frame4: 'Frame4(임팩트)', frame5: 'Frame5(일관성)', frame6: 'Frame6(템포)' }[selectedSegment] || '';
+    const frameNames = uiLanguage === 'en'
+      ? { frame1: 'Frame 1 (Spine Axis)', frame2: 'Frame 2 (Lag)', frame3: 'Frame 3 (Ground Force)', frame4: 'Frame 4 (Impact)', frame5: 'Frame 5 (Consistency)', frame6: 'Frame 6 (Tempo)' }
+      : { frame1: 'Frame1(척추축)', frame2: 'Frame2(래깅)', frame3: 'Frame3(지면반력)', frame4: 'Frame4(임팩트)', frame5: 'Frame5(일관성)', frame6: 'Frame6(템포)' };
+    const frameName = frameNames[selectedSegment] || '';
     const fmSummary = buildFrameMetricSummary(result.frameMetrics, selectedSegment);
     result.summary = `[${frameName}] ${fmSummary}`;
-    result.detail = `랜드마크 분산 참고값: ${avgDistFromCenter.toFixed(3)}, 최대반경: ${maxSpan.toFixed(3)}, 주각도: ${angleDeg.toFixed(1)}°`;
+    result.detail = uiLanguage === 'en'
+      ? `Landmark dispersion: ${avgDistFromCenter.toFixed(3)}, maximum radius: ${maxSpan.toFixed(3)}, key angle: ${angleDeg.toFixed(1)}°`
+      : `랜드마크 분산 참고값: ${avgDistFromCenter.toFixed(3)}, 최대반경: ${maxSpan.toFixed(3)}, 주각도: ${angleDeg.toFixed(1)}°`;
     return result;
   }
 
   function buildFrameMetricSummary(fm, frameId) {
     if (!fm) return '';
     if (frameId === 'frame1') {
+      if (uiLanguage === 'en') {
+        const spine = fm.spineAngleDeg != null ? `Spine angle ${fm.spineAngleDeg.toFixed(1)}°` : '';
+        const shoulder = fm.shoulderHorzWidth != null ? `Shoulder width ${(fm.shoulderHorzWidth * 100).toFixed(1)}%`
+          : fm.xFactorDeg != null ? `Shoulder tilt ${fm.xFactorDeg.toFixed(1)}°` : '';
+        return [spine, shoulder].filter(Boolean).join(' | ');
+      }
       const spine = fm.spineAngleDeg    != null ? `척추각도 ${fm.spineAngleDeg.toFixed(1)}°` : '';
       const xf   = fm.shoulderHorzWidth != null ? `어깨투영폭 ${(fm.shoulderHorzWidth * 100).toFixed(1)}%` :
                    fm.xFactorDeg       != null ? `어깨기울기 ${fm.xFactorDeg.toFixed(1)}°` : '';
       return [spine, xf].filter(Boolean).join(' | ');
     }
     if (frameId === 'frame2') {
+      if (uiLanguage === 'en') {
+        const lag = fm.laggingAngleDeg != null ? `Lag angle ${fm.laggingAngleDeg.toFixed(1)}°` : '';
+        const pelvis = fm.pelvisNormX != null ? `Core position ${(fm.pelvisNormX * 100).toFixed(1)}%` : '';
+        return [lag, pelvis].filter(Boolean).join(' | ');
+      }
       const lag  = fm.laggingAngleDeg != null ? `래깅각 ${fm.laggingAngleDeg.toFixed(1)}°` : '';
       const pelv = fm.pelvisNormX     != null ? `코어위치 ${(fm.pelvisNormX * 100).toFixed(1)}%` : '';
       return [lag, pelv].filter(Boolean).join(' | ');
     }
     if (frameId === 'frame3') {
+      if (uiLanguage === 'en') {
+        const extension = fm.kneeExtensionDeg != null ? `Extension angle ${fm.kneeExtensionDeg.toFixed(1)}°` : '';
+        const c7 = fm.c7NormX != null ? `C7 position ${(fm.c7NormX * 100).toFixed(1)}%` : '';
+        return [extension, c7].filter(Boolean).join(' | ');
+      }
       const ke = fm.kneeExtensionDeg != null ? `신전각 ${fm.kneeExtensionDeg.toFixed(1)}°` : '';
       const c7 = fm.c7NormX           != null ? `C7위치 ${(fm.c7NormX * 100).toFixed(1)}%` : '';
       return [ke, c7].filter(Boolean).join(' | ');
@@ -3173,11 +3926,21 @@
       return [rm, as].filter(Boolean).join(' | ');
     }
     if (frameId === 'frame5') {
+      if (uiLanguage === 'en') {
+        const radius = fm.rMaxNorm != null ? `r_max ${(fm.rMaxNorm * 100).toFixed(1)}%` : '';
+        const armShaft = fm.armShaftAngleDeg != null ? `Arm-shaft angle ${fm.armShaftAngleDeg.toFixed(1)}°` : '';
+        return [radius, armShaft].filter(Boolean).join(' | ');
+      }
       const off = fm.handOffsetRatio  != null ? `손오프셋 ${(fm.handOffsetRatio * 100).toFixed(1)}%` : '';
       const shf = fm.shaftAngleDeg    != null ? `샤프트각 ${fm.shaftAngleDeg.toFixed(1)}°` : '';
       return [off, shf].filter(Boolean).join(' | ');
     }
     if (frameId === 'frame6') {
+      if (uiLanguage === 'en') {
+        const offset = fm.handOffsetRatio != null ? `Hand offset ${(fm.handOffsetRatio * 100).toFixed(1)}%` : '';
+        const shaft = fm.shaftAngleDeg != null ? `Shaft angle ${fm.shaftAngleDeg.toFixed(1)}°` : '';
+        return [offset, shaft].filter(Boolean).join(' | ');
+      }
       const rad = fm.rotRadius6   != null ? `r ${(fm.rotRadius6 * 100).toFixed(1)}%` : '';
       const lag = fm.lagAngleDeg6 != null ? `래깅각 ${fm.lagAngleDeg6.toFixed(1)}°` : '';
       return [rad, lag].filter(Boolean).join(' | ');
@@ -3186,6 +3949,11 @@
   }
 
   function updateAllFramesMetricBar() {
+      if (uiLanguage === 'en') {
+        const radius = fm.rotRadius6 != null ? `r ${(fm.rotRadius6 * 100).toFixed(1)}%` : '';
+        const lag = fm.lagAngleDeg6 != null ? `Lag angle ${fm.lagAngleDeg6.toFixed(1)}°` : '';
+        return [radius, lag].filter(Boolean).join(' | ');
+      }
     if (!analysisFrontDetail) return;
     const frames = [
       { id: 'frame1', label: 'F1 어드레스' },
@@ -3229,22 +3997,22 @@
     const transferScore = Number.isFinite(result.transferScore) ? result.transferScore : 0;
     const impactScore = Number.isFinite(result.impactScore) ? result.impactScore : 0;
     momentEl.style.display = 'none';
-    radiusEl.textContent = `압축·전개 반경: ${radiusProxy.toFixed(3)}`;
-    timingEl.textContent = `${result.angleLabel || '주요 각도'}: ${angleDeg.toFixed(1)}°`;
+    radiusEl.textContent = `${uiLanguage === 'en' ? 'Compression / Expansion Radius' : '압축·전개 반경'}: ${radiusProxy.toFixed(3)}`;
+    timingEl.textContent = `${uiLanguage === 'en' ? (result.angleLabel === '래깅각' ? 'Lag Angle' : 'Key Angle') : (result.angleLabel || '주요 각도')}: ${angleDeg.toFixed(1)}°`;
     // 키 보정: heightScale 기반 — 타이틀 우측 태그 업데이트
     const hsVal = Number.isFinite(result.heightScale) ? result.heightScale : null;
     const heightCmVal = analysisHeightInput ? parseFloat(analysisHeightInput.value) : NaN;
     const heightTag = document.getElementById('analysisFrontHeightTag');
     if (heightTag) {
       heightTag.textContent = hsVal != null
-        ? `키 보정 ${Math.round(hsVal * 100)}%${Number.isFinite(heightCmVal) && heightCmVal > 0 ? ` (${heightCmVal}cm)` : ''}`
+        ? `${uiLanguage === 'en' ? 'Height scale' : '키 보정'} ${Math.round(hsVal * 100)}%${Number.isFinite(heightCmVal) && heightCmVal > 0 ? ` (${heightCmVal}cm)` : ''}`
         : '';
     }
     accelEl.textContent = '';  // 키 보정 행 숨김 (타이틀 우측으로 이동)
     transferEl.textContent = '';  // 반경 비율 삭제
     // 선속도 지수: 각도 × 반경 (프레임 간 비교용 지표)
     const arcIndex = angleDeg * radiusProxy;
-    impactEl.textContent = `선속도 지수: ${arcIndex.toFixed(1)}`;    
+    impactEl.textContent = `${uiLanguage === 'en' ? 'Linear Speed Index' : '선속도 지수'}: ${arcIndex.toFixed(1)}`;
     const splitIdx = result.summary.indexOf(' 키보정:');
     if (splitIdx !== -1) {
       const mainText = result.summary.slice(0, splitIdx);
@@ -3810,7 +4578,7 @@
   function buildGeminiAnalysisPrompt() {
     const classificationLines = buildTypeClassificationReportLines();
     const classificationSection = classificationLines.length
-      ? `\n유형 분류 결과:\n${classificationLines.join('\n')}\n`
+      ? `\n${uiLanguage === 'en' ? 'Type classifications:' : '유형 분류 결과:'}\n${classificationLines.join('\n')}\n`
       : '';
     const distanceScores = ['frame1', 'frame2', 'frame3', 'frame4']
       .map(id => segmentScoreHistory[id])
@@ -3844,6 +4612,10 @@
       return lines.join('; ');
     }).join('\n');
 
+    if (uiLanguage === 'en') {
+      const englishClassifications = classificationLines.map(line => translateUiText(line)).join('\n');
+      return `You are a golf swing coach. The following are 2D measurements based on video landmarks. Do not provide medical diagnoses or injury-prevention advice. Never infer unmeasured values. Briefly define technical terms and write in clear English for beginner golfers.\n\nUse this format:\n1. Overall summary (2–3 sentences)\n2. Strengths (up to 3)\n3. Top priorities (up to 3, with measured evidence)\n4. Three specific practice drills, each with a cue and a way to verify it\n5. One sentence on limitations of camera angle and manually selected landmarks\n\nDistance Motion Average: ${formatGeminiMetric(distanceAverage)} / 10${classificationLines.length ? `\nType classifications:\n${englishClassifications}\n` : ''}\nFrame-by-frame results:\n${translateUiText(frameResults)}`;
+    }
     return `당신은 골프 스윙 코치입니다. 아래는 영상 랜드마크 기반의 2D 스윙 측정 결과입니다. 의료적 진단이나 부상 예방 조언은 하지 말고, 측정되지 않은 항목은 추측하지 마세요. 전문 용어는 처음에 짧게 풀어 쓰고, 초보 골퍼도 이해할 수 있는 한국어로 설명하세요.\n\n반드시 다음 형식으로 작성하세요:\n1. 한눈에 보는 총평 (2~3문장)\n2. 잘된 점 (최대 3개)\n3. 우선 개선할 점 (최대 3개, 수치 근거 포함)\n4. 다음 연습 3가지 (각각 구체적인 동작 큐와 확인 방법)\n5. 측정 결과 해석 시 유의점 (영상 각도·수동 랜드마크 한계 1문장)\n\n비거리 모션 평균: ${formatGeminiMetric(distanceAverage)} / 10${classificationSection}\n프레임별 결과:\n${frameResults}`;
   }
 
@@ -3862,6 +4634,7 @@
       return;
     }
     geminiAnalysisBtn.disabled = true;
+    if (languageSelect) languageSelect.disabled = true;
     geminiAnalysisBtn.textContent = 'AI 분석 중...';
     if (geminiReportBlock) {
       geminiReportBlock.style.display = 'block';
@@ -3893,6 +4666,7 @@
       const report = candidate?.content?.parts?.map(part => part.text || '').join('\n').trim();
       if (!report) throw new Error('Gemini가 분석 텍스트를 반환하지 않았습니다.');
       geminiReportText = report;
+      geminiReportLanguage = uiLanguage;
       geminiReportBlock.textContent = candidate?.finishReason === 'MAX_TOKENS'
         ? `${report}\n\n(⚠️ 응답 길이 제한으로 마지막 부분이 잘렸습니다. 다시 시도하면 더 짧게 요약될 수 있습니다.)`
         : report;
@@ -3900,21 +4674,26 @@
     } catch (error) {
       console.warn('Gemini 스윙 분석 요청 실패:', error);
       geminiReportText = '';
+      geminiReportLanguage = null;
       if (geminiReportBlock) geminiReportBlock.textContent = `AI 분석을 완료하지 못했습니다: ${error.message}`;
       downloadGeminiReportBtn.disabled = true;
     } finally {
       geminiAnalysisBtn.disabled = false;
+      if (languageSelect) languageSelect.disabled = false;
       geminiAnalysisBtn.textContent = 'AI 분석';
     }
   }
 
   function downloadGeminiReport() {
-    if (!geminiReportText) return;
+    if (!geminiReportText || geminiReportLanguage !== uiLanguage) return;
     const classificationLines = buildTypeClassificationReportLines();
     const classificationSection = classificationLines.length
-      ? `유형 분류 결과:\n${classificationLines.join('\n')}\n\n`
+      ? `${uiLanguage === 'en' ? 'Type classifications:' : '유형 분류 결과:'}\n${classificationLines.map(line => translateUiText(line)).join('\n')}\n\n`
       : '';
-    const blob = new Blob([`SY-GSAP Gemini 스윙 분석 보고서\n생성일: ${new Date().toLocaleString('ko-KR')}\n\n${classificationSection}${geminiReportText}\n`], { type: 'text/plain;charset=utf-8' });
+    const reportTitle = uiLanguage === 'en' ? 'SY-GSAP Gemini Swing Analysis Report' : 'SY-GSAP Gemini 스윙 분석 보고서';
+    const reportDate = new Date().toLocaleString(uiLanguage === 'en' ? 'en-US' : 'ko-KR');
+    const dateLabel = uiLanguage === 'en' ? 'Generated' : '생성일';
+    const blob = new Blob([`${reportTitle}\n${dateLabel}: ${reportDate}\n\n${classificationSection}${geminiReportText}\n`], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `Gemini_Swing_Report_${new Date().toISOString().slice(0, 10)}.txt`;
@@ -4018,6 +4797,7 @@
     if (nb)  { nb.style.display = 'none'; nb.innerHTML = ''; }
     if (nb2) nb2.style.display = 'none';
     geminiReportText = '';
+    geminiReportLanguage = null;
     if (geminiReportBlock) { geminiReportBlock.style.display = 'none'; geminiReportBlock.textContent = ''; }
     if (downloadGeminiReportBtn) downloadGeminiReportBtn.disabled = true;
   }
@@ -4104,9 +4884,12 @@
     if (!backswingActive) return;
     const phase = backswingPhaseSelect.value;
     const count = (backswingFrames[phase]?.points || []).length;
-    const label = backswingPhaseSelect.selectedOptions[0].textContent;
+    const label = translateUiText(backswingPhaseSelect.selectedOptions[0].textContent);
     const labels = getBackswingPointLabels(phase);
-    backswingGuide.textContent = `${label} · ${count}/${labels.length} ${count < labels.length ? `다음: ${labels[count]}` : '입력 완료. 다음 자세를 선택하세요.'}`;
+    const next = count < labels.length
+      ? `${uiLanguage === 'en' ? 'Next: ' : '다음: '}${translateUiText(labels[count])}`
+      : uiLanguage === 'en' ? 'Input complete. Select the next pose.' : '입력 완료. 다음 자세를 선택하세요.';
+    backswingGuide.textContent = `${label} · ${count}/${labels.length} ${next}`;
     frontGuideBubble.textContent = backswingGuide.textContent;
     frontGuideBubble.classList.add('visible');
   }
@@ -4303,13 +5086,22 @@
     const title = document.createElement('button');
     title.type = 'button';
     title.className = 'backswing-result-title';
-    title.textContent = result.type ? `백스윙 유형 ${result.type}` : '백스윙 유형 판정 보류';
+    title.textContent = result.type
+      ? `${uiLanguage === 'en' ? 'Backswing Type ' : '백스윙 유형 '}${translateUiText(result.type)}`
+      : uiLanguage === 'en' ? 'Backswing Type Undetermined' : '백스윙 유형 판정 보류';
     title.setAttribute('aria-expanded', 'false');
     const detail = document.createElement('div');
     detail.className = 'backswing-result-detail';
-    const phaseLabels = { p1: 'P1', p2: 'P2', p3: 'P3', p4: 'P4', top: '탑', transition: '전환' };
+    const phaseLabels = uiLanguage === 'en'
+      ? { p1: 'P1', p2: 'P2', p3: 'P3', p4: 'P4', top: 'Top', transition: 'Transition' }
+      : { p1: 'P1', p2: 'P2', p3: 'P3', p4: 'P4', top: '탑', transition: '전환' };
     const corridorText = BACKSWING_PHASES.slice(1).map((phase, index) => `${phaseLabels[phase]} ${result.planeChecks[index] ? '통과' : '이탈'}`).join(' · ');
-    detail.textContent = `${result.type ? '' : '다섯 패턴의 영상상 조건에 부합하지 않습니다. '}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${corridorText}) · P2 클럽헤드 바깥 ${result.outside ? '해당' : '미해당'} · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`;
+    const translatedCorridor = uiLanguage === 'en'
+      ? BACKSWING_PHASES.slice(1).map((phase, index) => `${phaseLabels[phase]} ${result.planeChecks[index] ? 'passed' : 'deviated'}`).join(' · ')
+      : corridorText;
+    detail.textContent = uiLanguage === 'en'
+      ? `${result.type ? '' : 'The video does not match any of the five defined patterns. '}On-Plane Corridor ${result.plane ? 'passed all phases' : 'has deviations'} (${translatedCorridor}) · Clubhead outside the hands at P2: ${result.outside ? 'yes' : 'no'} · Address reference-line lower angle ${result.lowerAngle.toFixed(1)}° / elbow ${result.elbowAngle.toFixed(1)}° / upper angle ${result.upperAngle.toFixed(1)}° · Top hand height: ${result.upright ? 'high' : 'typical'} · Shaft shallowing at transition: ${result.shallow ? 'yes' : 'no'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`
+      : `${result.type ? '' : '다섯 패턴의 영상상 조건에 부합하지 않습니다. '}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${translatedCorridor}) · P2 클럽헤드 바깥 ${result.outside ? '해당' : '미해당'} · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`;
     detail.hidden = true;
     title.addEventListener('click', () => {
       detail.hidden = !detail.hidden;
@@ -4531,6 +5323,36 @@
 
   function buildSwingCompareOpinion(values, phaseMetrics) {
     const completed = phaseMetrics.filter(item => item.metrics);
+    if (uiLanguage === 'en') {
+      if (!completed.length) return 'Enter A/B points for the six phases to see the overall comparison.';
+      const available = [
+        { label: 'compactness match', value: values.concentration },
+        { label: 'wrist path', value: values.wristPath },
+        { label: 'core path', value: values.corePath },
+        { label: 'lag-angle match', value: values.lagging },
+        { label: 'tempo match', value: values.timing },
+      ].filter(item => Number.isFinite(item.value));
+      const sorted = available.slice().sort((a, b) => b.value - a.value);
+      const deviation = Number.isFinite(values.overall) ? 100 - values.overall : null;
+      const comparisonClass = deviation <= 5 ? 'the same swing'
+        : deviation <= 10 ? 'a similar swing'
+          : deviation <= 20 ? 'a somewhat different swing' : 'a different swing';
+      const classification = Number.isFinite(deviation)
+        ? `Overall deviation is ${deviation.toFixed(1)}%, which falls in the ${comparisonClass} range.` : '';
+      const summary = values.overall >= 85 ? 'The key movements are highly similar overall.'
+        : values.overall >= 70 ? 'The overall patterns are similar, with differences in some phases.'
+          : values.overall >= 50 ? 'The swings share some movements but also show clear differences.'
+            : 'The key-point movement patterns differ substantially.';
+      const strongest = sorted[0] ? `The closest match is ${sorted[0].label} (${Math.round(sorted[0].value)}%).` : '';
+      const weakest = sorted.length > 1 ? `The largest difference is ${sorted[sorted.length - 1].label} (${Math.round(sorted[sorted.length - 1].value)}%).` : '';
+      const weakestPhase = completed.filter(item => Number.isFinite(item.phaseScore))
+        .sort((a, b) => a.phaseScore - b.phaseScore)[0];
+      const phaseText = weakestPhase
+        ? `Review ${translateUiText(weakestPhase.phase.label)} first (average match ${Math.round(weakestPhase.phaseScore)}%).` : '';
+      const coverage = completed.length < SWING_COMPARE_PHASES.length
+        ? ` Currently including ${completed.length}/6 phases.` : '';
+      return [classification, summary, strongest, weakest, phaseText].filter(Boolean).join(' ') + coverage;
+    }
     if (!completed.length) return '6개 시점의 A/B 포인트를 입력하면 종합의견이 표시됩니다.';
     const available = [
       { label: '집중도 일치', value: values.concentration },
@@ -4609,6 +5431,27 @@
 
   function updateSwingCompareGuide() {
     if (!swingCompareStatus) return;
+    if (uiLanguage === 'en') {
+      if (!swingCompareActive) {
+        swingCompareStatus.textContent = 'Start comparison input to open a four-landmark mode separate from the main analysis.';
+        showGuide();
+        return;
+      }
+      const phase = SWING_COMPARE_PHASES.find(item => item.id === swingComparePhase);
+      const phaseLabel = translateUiText(phase.label);
+      const describe = view => {
+        const entry = getSwingCompareEntry(view);
+        const next = SWING_COMPARE_POINT_TYPES[entry.points.length];
+        return `${view === 'front' ? 'A' : 'B'} ${entry.points.length}/4${next ? ` · Next: ${translateUiText(next.label)}` : ' · Complete'}`;
+      };
+      swingCompareStatus.textContent = `Set the video to ${phaseLabel}, then select the points in order. ${describe('front')} | ${describe('side')}`;
+      [[frontGuideBubble, 'front'], [sideGuideBubble, 'side']].forEach(([bubble, view]) => {
+        if (!bubble) return;
+        bubble.textContent = `${phaseLabel} · ${describe(view)}`;
+        bubble.classList.add('visible');
+      });
+      return;
+    }
     if (!swingCompareActive) {
       swingCompareStatus.textContent = '비교 입력 시작을 누르면 기존 분석과 분리된 4개 핵심 포인트 입력 모드가 열립니다.';
       showGuide();
@@ -4804,7 +5647,7 @@
       actionSpan.textContent = entry.action;
       const timeSpan = document.createElement('span');
       timeSpan.style.color = 'rgba(255,255,255,0.65)';
-      timeSpan.textContent = new Date(entry.when).toLocaleString();
+      timeSpan.textContent = new Date(entry.when).toLocaleString(uiLanguage === 'en' ? 'en-US' : 'ko-KR');
       row.appendChild(actionSpan);
       row.appendChild(timeSpan);
       logEl.appendChild(row);
@@ -5300,9 +6143,9 @@
       ctx.font = `bold ${Math.max(11 * scale, 11)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      const ratioLabel = distanceRatio === null ? '기준선 미지정' : `기준선 대비 ${distanceRatio.toFixed(1)}%`;
+      const ratioLabel = distanceRatio === null ? translateUiText('기준선 미지정') : `${translateUiText('기준선 대비 ')}${distanceRatio.toFixed(1)}%`;
       ctx.fillStyle = '#000';
-      ctx.fillText(`거리 ${distancePx.toFixed(1)}px (${ratioLabel})`, midX, midY - 6 * scale);
+      ctx.fillText(`${translateUiText('거리 ')}${distancePx.toFixed(1)}px (${ratioLabel})`, midX, midY - 6 * scale);
       ctx.restore();
     });
     const reference = distanceReferenceLinesByView[view];
@@ -5324,7 +6167,7 @@
       ctx.font = `bold ${Math.max(11 * scale, 11)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillText('기준선', (startX + endX) / 2, (startY + endY) / 2 + 6 * scale);
+      ctx.fillText(translateUiText('기준선'), (startX + endX) / 2, (startY + endY) / 2 + 6 * scale);
       ctx.restore();
     }
     const pending = distancePendingPoints[view];
