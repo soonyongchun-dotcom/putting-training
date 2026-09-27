@@ -3598,7 +3598,7 @@
   function updateSwingTypeCard() {
     if (!analysisSwingType) return;
     const result = classifySwingType();
-    if (!result) {
+    if (!result && !backswingClassification) {
       analysisSwingType.innerHTML = '<strong>스윙 유형 추정:</strong> F1~F4 중 2개 이상 분석하면 표시됩니다. F5/F6은 보조 근거로 반영됩니다.';
       return;
     }
@@ -3613,12 +3613,42 @@
       type3: '하체 눌림(Squat)으로 지면을 압박한 뒤 폭발적으로 차오르며 채찍 효과를 만드는 스윙',
     };
     const typeLabel = key => `<span class="swing-type-label" tabindex="0" title="${descriptions[key]}" aria-label="${labels[key]}. ${descriptions[key]}">${labels[key]}</span>`;
-    const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
-    const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
-      ? `${typeLabel(sorted[0][0])} ${sorted[0][1]}%`
-      : `${typeLabel(sorted[0][0])} ${sorted[0][1]}% + ${typeLabel(sorted[1][0])} ${sorted[1][1]}% 하이브리드`;
-    analysisSwingType.innerHTML = `<strong>스윙 유형 추정:</strong> ${headline}`
-      + `<span class="swing-type-note">F1~F6 지표 기반 상대 적합도: ${typeLabel('type1')} ${result.pct.type1}% · ${typeLabel('type2')} ${result.pct.type2}% · ${typeLabel('type3')} ${result.pct.type3}% · GRF는 2D 동작 proxy 추정치</span>`;
+    const rows = [];
+    if (result) {
+      const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
+      const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
+        ? `${typeLabel(sorted[0][0])} ${sorted[0][1]}%`
+        : `${typeLabel(sorted[0][0])} ${sorted[0][1]}% + ${typeLabel(sorted[1][0])} ${sorted[1][1]}% 하이브리드`;
+      rows.push(`<div><strong>스윙 유형 추정:</strong> ${headline}`
+        + `<span class="swing-type-note">F1~F6 지표 기반 상대 적합도: ${typeLabel('type1')} ${result.pct.type1}% · ${typeLabel('type2')} ${result.pct.type2}% · ${typeLabel('type3')} ${result.pct.type3}% · GRF는 2D 동작 proxy 추정치</span></div>`);
+    }
+    if (backswingClassification) {
+      const backswingLabel = backswingClassification.type || '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)';
+      rows.push(`<div><strong>백스윙 유형:</strong> ${backswingLabel}</div>`);
+    }
+    analysisSwingType.innerHTML = rows.join('');
+  }
+
+  function buildTypeClassificationReportLines() {
+    const lines = [];
+    if (backswingClassification) {
+      lines.push(`백스윙 유형: ${backswingClassification.type || '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)'}`);
+    }
+    const result = classifySwingType();
+    if (result) {
+      const labels = {
+        type1: '축회전 중심 스윙',
+        type2: '하체이동 중심 스윙',
+        type3: '코어압축팽창 중심 스윙',
+      };
+      const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
+      const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
+        ? `${labels[sorted[0][0]]} ${sorted[0][1]}%`
+        : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}% 하이브리드`;
+      lines.push(`스윙 유형 추정: ${headline}`);
+      lines.push(`스윙 유형 상대 적합도: 유형1 ${result.pct.type1}% · 유형2 ${result.pct.type2}% · 유형3 ${result.pct.type3}%`);
+    }
+    return lines;
   }
 
   function updateSegmentScoresDisplay() {
@@ -3662,6 +3692,10 @@
   }
 
   function buildGeminiAnalysisPrompt() {
+    const classificationLines = buildTypeClassificationReportLines();
+    const classificationSection = classificationLines.length
+      ? `\n유형 분류 결과:\n${classificationLines.join('\n')}\n`
+      : '';
     const distanceScores = ['frame1', 'frame2', 'frame3', 'frame4']
       .map(id => segmentScoreHistory[id])
       .filter(Number.isFinite);
@@ -3694,7 +3728,7 @@
       return lines.join('; ');
     }).join('\n');
 
-    return `당신은 골프 스윙 코치입니다. 아래는 영상 랜드마크 기반의 2D 스윙 측정 결과입니다. 의료적 진단이나 부상 예방 조언은 하지 말고, 측정되지 않은 항목은 추측하지 마세요. 전문 용어는 처음에 짧게 풀어 쓰고, 초보 골퍼도 이해할 수 있는 한국어로 설명하세요.\n\n반드시 다음 형식으로 작성하세요:\n1. 한눈에 보는 총평 (2~3문장)\n2. 잘된 점 (최대 3개)\n3. 우선 개선할 점 (최대 3개, 수치 근거 포함)\n4. 다음 연습 3가지 (각각 구체적인 동작 큐와 확인 방법)\n5. 측정 결과 해석 시 유의점 (영상 각도·수동 랜드마크 한계 1문장)\n\n비거리 모션 평균: ${formatGeminiMetric(distanceAverage)} / 10\n프레임별 결과:\n${frameResults}`;
+    return `당신은 골프 스윙 코치입니다. 아래는 영상 랜드마크 기반의 2D 스윙 측정 결과입니다. 의료적 진단이나 부상 예방 조언은 하지 말고, 측정되지 않은 항목은 추측하지 마세요. 전문 용어는 처음에 짧게 풀어 쓰고, 초보 골퍼도 이해할 수 있는 한국어로 설명하세요.\n\n반드시 다음 형식으로 작성하세요:\n1. 한눈에 보는 총평 (2~3문장)\n2. 잘된 점 (최대 3개)\n3. 우선 개선할 점 (최대 3개, 수치 근거 포함)\n4. 다음 연습 3가지 (각각 구체적인 동작 큐와 확인 방법)\n5. 측정 결과 해석 시 유의점 (영상 각도·수동 랜드마크 한계 1문장)\n\n비거리 모션 평균: ${formatGeminiMetric(distanceAverage)} / 10${classificationSection}\n프레임별 결과:\n${frameResults}`;
   }
 
   function waitForGeminiRetry(delayMs) {
@@ -3760,7 +3794,11 @@
 
   function downloadGeminiReport() {
     if (!geminiReportText) return;
-    const blob = new Blob([`SY-GSAP Gemini 스윙 분석 보고서\n생성일: ${new Date().toLocaleString('ko-KR')}\n\n${geminiReportText}\n`], { type: 'text/plain;charset=utf-8' });
+    const classificationLines = buildTypeClassificationReportLines();
+    const classificationSection = classificationLines.length
+      ? `유형 분류 결과:\n${classificationLines.join('\n')}\n\n`
+      : '';
+    const blob = new Blob([`SY-GSAP Gemini 스윙 분석 보고서\n생성일: ${new Date().toLocaleString('ko-KR')}\n\n${classificationSection}${geminiReportText}\n`], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `Gemini_Swing_Report_${new Date().toISOString().slice(0, 10)}.txt`;
@@ -3939,6 +3977,12 @@
   const getBackswingPointLabels = phase => BACKSWING_POINT_LABELS[phase] || BACKSWING_POINT_LABELS.default;
   let backswingActive = false;
   let backswingFrames = {};
+  let backswingClassification = null;
+
+  function invalidateBackswingClassification() {
+    backswingClassification = null;
+    updateSwingTypeCard();
+  }
 
   function updateBackswingGuide() {
     if (!backswingActive) return;
@@ -3951,9 +3995,10 @@
     frontGuideBubble.classList.add('visible');
   }
 
-  function resetBackswing() {
+  function resetBackswing({ preserveClassification = false } = {}) {
     backswingFrames = {};
     backswingResult.textContent = '';
+    if (!preserveClassification) invalidateBackswingClassification();
     backswingPhaseSelect.value = 'address';
     updateBackswingGuide();
     if (backswingActive) drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
@@ -4039,6 +4084,7 @@
       return;
     }
     if (!entry.points.length) entry.time = frontVideo.currentTime;
+    invalidateBackswingClassification();
     entry.points.push(pos);
     backswingFrames[phase] = entry;
     backswingResult.textContent = '';
@@ -4120,7 +4166,10 @@
   });
   document.getElementById('backswingUndoBtn').addEventListener('click', () => {
     const entry = backswingFrames[backswingPhaseSelect.value];
-    if (entry) entry.points.pop();
+    if (entry) {
+      entry.points.pop();
+      invalidateBackswingClassification();
+    }
     backswingResult.textContent = '';
     updateBackswingGuide();
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
@@ -4129,9 +4178,12 @@
   document.getElementById('backswingDecideBtn').addEventListener('click', () => {
     const result = classifyBackswing(backswingFrames);
     if (result.error) {
+      invalidateBackswingClassification();
       backswingResult.textContent = result.error;
       return;
     }
+    backswingClassification = result;
+    updateSwingTypeCard();
     const title = document.createElement('button');
     title.type = 'button';
     title.className = 'backswing-result-title';
@@ -5807,7 +5859,7 @@
       if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
       return;
     }
-    resetBackswing();
+    resetBackswing({ preserveClassification: true });
     clearAnalysisResults();
     resetSwingCompareData();
     baselineFrontResult = null;
@@ -6151,6 +6203,7 @@
 
   clearPointsBtn.addEventListener('click', () => {
     if (backswingActive) {
+      invalidateBackswingClassification();
       delete backswingFrames[backswingPhaseSelect.value];
       backswingResult.textContent = '';
       updateBackswingGuide();
