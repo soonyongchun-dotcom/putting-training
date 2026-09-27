@@ -2050,7 +2050,7 @@ class SheetFormulaEvaluator {
     applyComparison(op, left, right) {
         const l = Number(left);
         const r = Number(right);
-        const bothNumeric = !Number.isNaN(l) && !Number.isNaN(r);
+        const bothNumeric = left !== "" && right !== "" && !Number.isNaN(l) && !Number.isNaN(r);
         const a = bothNumeric ? l : left;
         const b = bothNumeric ? r : right;
         switch (op) {
@@ -4668,7 +4668,7 @@ class PuttingTrainingApp {
                             const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                             const isEditable = this.isMissionCellEditable(file, rowIndex, columnIndex);
                             const sourceStyle = this.getMissionCellStyle(file, rowIndex, columnIndex);
-                            const cellAttrs = `${spanAttrs} class="mission-source-cell${formulasForFile[cellKey] ? " mission-formula-cell" : ""}"${sourceStyle ? ` style="${sourceStyle}"` : ""}`;
+                            const cellAttrs = `${spanAttrs} class="mission-source-cell${formulasForFile[cellKey] ? " mission-formula-cell" : ""}" data-row-index="${rowIndex}" data-column-index="${columnIndex}"${sourceStyle ? ` style="${sourceStyle}"` : ""}`;
                             if (rowIndex === inputHeaderRow) {
                                 if (isEditable) {
                                     return `<th${cellAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></th>`;
@@ -4933,7 +4933,12 @@ class PuttingTrainingApp {
             const text = (Array.isArray(row) ? row : []).map((cell) => String(cell || "").trim().toLowerCase()).join("|");
             return headerTokens.filter((token) => text.includes(token)).length >= 3;
         });
-        if (headerRow < 0) headerRow = rows.findIndex((row) => Array.isArray(row) && row.filter((cell) => String(cell || "").trim()).length >= 3);
+        if (headerRow < 0) {
+            const populated = rows.map((row) => (Array.isArray(row) ? row : [])
+                .filter((cell) => String(cell ?? "").trim()).length);
+            const maxPopulated = Math.max(...populated);
+            headerRow = maxPopulated >= 3 ? populated.indexOf(maxPopulated) : -1;
+        }
         if (headerRow < 0) headerRow = 0;
 
         const headers = Array.isArray(rows[headerRow]) ? rows[headerRow] : [];
@@ -5893,15 +5898,15 @@ class PuttingTrainingApp {
                 if (sheet && sheet["!ref"]) {
                     const range = window.XLSX.utils.decode_range(sheet["!ref"]);
                     const rows = [];
-                    for (let r = range.s.r; r <= range.e.r; r += 1) {
+                    for (let r = 0; r <= range.e.r; r += 1) {
                         const row = [];
-                        for (let c = range.s.c; c <= range.e.c; c += 1) {
+                        for (let c = 0; c <= range.e.c; c += 1) {
                             const cell = sheet[window.XLSX.utils.encode_cell({ r, c })];
                             if (cell && cell.f) {
-                                sourceFormulas[`${r - range.s.r},${c - range.s.c}`] = cell.f;
+                                sourceFormulas[`${r},${c}`] = cell.f;
                             }
                             const style = this.toMissionCellStyle(cell);
-                            if (style) sourceCellStyles[`${r - range.s.r},${c - range.s.c}`] = style;
+                            if (style) sourceCellStyles[`${r},${c}`] = style;
                             row.push(cell ? (cell.w ?? cell.v ?? "") : "");
                         }
                         rows.push(row);
@@ -5909,16 +5914,16 @@ class PuttingTrainingApp {
                     sourceRows = rows;
                     sourceMerges = Array.isArray(sheet["!merges"])
                         ? sheet["!merges"].map((merge) => ({
-                            s: { r: merge.s.r - range.s.r, c: merge.s.c - range.s.c },
-                            e: { r: merge.e.r - range.s.r, c: merge.e.c - range.s.c }
+                            s: { r: merge.s.r, c: merge.s.c },
+                            e: { r: merge.e.r, c: merge.e.c }
                         }))
                         : [];
-                    sourceRowHeights = Array.from({ length: range.e.r - range.s.r + 1 }, (_, index) => {
-                        const row = sheet["!rows"]?.[range.s.r + index];
+                    sourceRowHeights = Array.from({ length: range.e.r + 1 }, (_, index) => {
+                        const row = sheet["!rows"]?.[index];
                         return Number(row?.hpx || (Number(row?.hpt) || 0) * (4 / 3)) || 0;
                     });
-                    sourceColumnWidths = Array.from({ length: range.e.c - range.s.c + 1 }, (_, index) => {
-                        const col = sheet["!cols"]?.[range.s.c + index];
+                    sourceColumnWidths = Array.from({ length: range.e.c + 1 }, (_, index) => {
+                        const col = sheet["!cols"]?.[index];
                         return Number(col?.wch || 0);
                     });
                 }
