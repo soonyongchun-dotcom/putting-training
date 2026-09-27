@@ -937,17 +937,39 @@
   }
   .analysis-swing-type {
     padding: 12px;
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(255, 196, 0, 0.10);
     border: 1px solid rgba(255, 196, 0, 0.35);
     color: #ffe9b0;
     font-size: 0.92rem;
     line-height: 1.5;
   }
-  .analysis-swing-type strong { color: #ffd76a; }
+  .analysis-type-section + .analysis-type-section {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 215, 106, 0.24);
+  }
+  .analysis-type-heading { color: #ffd76a; font-weight: 700; }
+  .analysis-type-list { display: grid; gap: 6px; margin-top: 8px; }
+  .analysis-type-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) auto;
+    align-items: center;
+    gap: 2px 12px;
+  }
+  .analysis-type-row-label { min-width: 0; }
+  .analysis-type-row-value { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .analysis-type-bar {
+    grid-column: 1 / -1;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .analysis-type-bar-fill { display: block; height: 100%; background: #e8b84f; }
   .analysis-swing-type .swing-type-note {
     display: block;
-    margin-top: 4px;
+    margin-top: 7px;
     color: #d8c8a0;
     font-size: 0.82rem;
   }
@@ -977,6 +999,11 @@
   .analysis-guide-step {
     color: #cfd8ff;
     font-size: 0.88rem;
+  }
+  .analysis-point-reuse-status {
+    margin-top: 6px;
+    color: #a9e6cc;
+    font-size: 0.82rem;
   }
   .analysis-height-control {
     display: flex;
@@ -1205,6 +1232,7 @@
           <span class="analysis-guide-step" id="analysisGuideStep"></span>
         </div>
       </div>
+      <div class="analysis-point-reuse-status" id="analysisPointReuseStatus" hidden></div>
       <div class="analysis-height-control">
         <div class="analysis-height-field">
           <input id="geminiApiKeyInput" type="password" autocomplete="off" placeholder="Gemini API 키" aria-label="Gemini API 키" style="min-width:180px;" />
@@ -1493,6 +1521,7 @@
   const analysisHeightInput = document.getElementById('analysisHeightInput');
   const analysisSegmentSelect = document.getElementById('analysisSegmentSelect');
   const analysisGuide = document.getElementById('analysisGuide');
+  const analysisPointReuseStatus = document.getElementById('analysisPointReuseStatus');
   const analysisGuideNextBtn = document.getElementById('analysisGuideNextBtn');
   const distanceReferenceBtn = document.getElementById('distanceReferenceBtn');
   const distanceMeasureBtn = document.getElementById('distanceMeasureBtn');
@@ -1708,12 +1737,83 @@
     if (view === 'side' && FRAME_RADIUS_EXTRA_TYPES[frameId]) return base.concat(FRAME_RADIUS_EXTRA_TYPES[frameId]);
     return base;
   }
+  const FRAME_POINT_SEMANTICS = {
+    front: {
+      frame1: ['c7', 'rightShoulder', 'leftShoulder', 'pelvis'],
+      frame2: ['handCenter', 'clubHead', 'rightShoulder', 'pelvis'],
+      frame4: ['c7', 'leftShoulder', 'leftWrist', 'clubHead'],
+      frame5: ['handCenter', 'c7', 'pelvis', 'clubHead'],
+    },
+    side: {
+      frame2: ['handCenter', 'clubHead', 'rightShoulder', 'pelvis'],
+      frame4: ['c7', 'leftShoulder', 'leftWrist', 'clubHead', 'pelvis'],
+      frame5: ['handCenter', 'c7', 'pelvis', 'clubHead'],
+      frame6: ['c7', 'pelvis', 'handCenter', 'clubHead'],
+    },
+  };
+  function getReusableFrameGroup(frameId, view) {
+    if (view === 'front' && ['frame1', 'frame2', 'frame4', 'frame5'].includes(frameId)) {
+      return ['frame1', 'frame2', 'frame4', 'frame5'];
+    }
+    if (view === 'side' && ['frame2', 'frame5'].includes(frameId)) return ['frame2', 'frame5'];
+    if (view === 'side' && ['frame4', 'frame6'].includes(frameId)) return ['frame4', 'frame6'];
+    return [];
+  }
+  function reuseSharedFramePoints(frameId, view) {
+    const group = getReusableFrameGroup(frameId, view);
+    const targetPoints = view === 'front' ? frontPoints : sidePoints;
+    if (!group.length || targetPoints.length) return { count: 0, sources: [] };
+
+    const semanticPoints = new Map();
+    const sources = [];
+    group.forEach(sourceFrame => {
+      if (sourceFrame === frameId) return;
+      const saved = frameStateHistory[view][sourceFrame];
+      const semantics = FRAME_POINT_SEMANTICS[view][sourceFrame];
+      const types = getFramePointTypesForView(sourceFrame, view);
+      if (!saved || !Array.isArray(saved.points) || !semantics) return;
+      semantics.forEach((semantic, index) => {
+        const sourceType = types[index];
+        const point = saved.points.find(item => item.type === sourceType
+          || (sourceFrame === 'frame2' && index === 0 && item.type === 'wrist'));
+        if (point && !semanticPoints.has(semantic)) {
+          semanticPoints.set(semantic, point);
+          if (!sources.includes(sourceFrame)) sources.push(sourceFrame);
+        }
+      });
+    });
+
+    const targetTypes = getFramePointTypesForView(frameId, view);
+    const targetSemantics = FRAME_POINT_SEMANTICS[view][frameId] || [];
+    targetSemantics.forEach((semantic, index) => {
+      const point = semanticPoints.get(semantic);
+      if (point && targetTypes[index]) {
+        targetPoints.push({ x: point.x, y: point.y, type: targetTypes[index] });
+      }
+    });
+    if (sources.length) {
+      drawOverlay(view === 'front' ? frontCtx : sideCtx, targetPoints,
+        view === 'front' ? frontLines : sideLines,
+        view === 'front' ? frontCanvas : sideCanvas,
+        view === 'front' ? frontVideo : sideVideo,
+        view === 'front' ? frontZoom : sideZoom);
+    }
+    return { count: targetPoints.length, sources };
+  }
+  function hasFramePointType(points, type, frameId) {
+    return points.some(point => point.type === type
+      || (frameId === 'frame2' && type === 'handMid' && point.type === 'wrist'));
+  }
+  function getGuideStepForPoints(points, frameId, view) {
+    const types = getFramePointTypesForView(frameId, view);
+    const nextIndex = types.findIndex(type => !hasFramePointType(points, type, frameId));
+    return nextIndex < 0 ? types.length + 1 : nextIndex + 1;
+  }
   function getAutoPointType(points) {
     const types = getFramePointTypesForView(selectedSegment, guideView);
     // 배열 길이가 아닌 "아직 찍히지 않은 타입"을 기준으로 다음 순서를 판단
     // (중간 포인트를 개별 삭제해도 순서가 어긋나지 않도록)
-    return types.find(type => !points.some(p => p.type === type
-      || (selectedSegment === 'frame2' && type === 'handMid' && p.type === 'wrist'))) || null;
+    return types.find(type => !hasFramePointType(points, type, selectedSegment)) || null;
   }
 
   function getFramePointLabel(frameId, idx, view) {
@@ -2028,14 +2128,23 @@
 
   function setGuideState(view) {
     guideView = view;
-    const points = view === 'front' ? frontPoints : sidePoints;
+    let points = view === 'front' ? frontPoints : sidePoints;
+    const reuseInfo = points.length === 0 ? reuseSharedFramePoints(selectedSegment, view) : { count: 0, sources: [] };
+    points = view === 'front' ? frontPoints : sidePoints;
+    if (analysisPointReuseStatus) {
+      const frameNames = { frame1: 'F1', frame2: 'F2', frame3: 'F3', frame4: 'F4', frame5: 'F5', frame6: 'F6' };
+      analysisPointReuseStatus.hidden = reuseInfo.count === 0;
+      analysisPointReuseStatus.textContent = reuseInfo.count
+        ? `${reuseInfo.sources.map(frame => frameNames[frame]).join(', ')}에서 공통 포인트 ${reuseInfo.count}개를 자동 적용했습니다. 위치를 확인하고 나머지만 선택하세요.`
+        : '';
+    }
     // 이미 입력된 포인트가 있으면 그 지점부터 이어서 진행 — 재진입할 때마다 앞서 찍은 포인트를 초기화하지 않음
     // (기존엔 여기서 무조건 resetViewAnalysis를 호출해 B패널 6단계 중 일부만 완료한 상태로 재방문하면 처음부터 다시 찍어야 했음)
     if (points.length === 0) {
       resetViewAnalysis(view);
     }
     const maxSteps = getFrameMaxPoints(selectedSegment, guideView) + 1;
-    guideStep = Math.min(points.length + 1, maxSteps);
+    guideStep = Math.min(getGuideStepForPoints(points, selectedSegment, guideView), maxSteps);
     showGuide();
     analysisPanel.classList.remove('collapsed');
     if (analysisToggleBtn) analysisToggleBtn.textContent = '접기';
@@ -3603,28 +3712,35 @@
       return;
     }
     const labels = {
-      type1: '스윙타입 1: 축회전 중심 스윙 (Axis-Rotation Driven)',
-      type2: '스윙타입 2: 하체이동 중심 스윙 (Lower-Body Shift Driven)',
-      type3: '스윙타입 3: 코어압축팽창 중심 스윙 (Core Compression-Extension Driven)',
+      type1: '유형 1 · 축회전 중심',
+      type2: '유형 2 · 하체이동 중심',
+      type3: '유형 3 · 코어 압축·팽창 중심',
     };
     const descriptions = {
       type1: 'C7/척추축을 정밀하게 고정한 상태에서 넓은 아크와 수평 회전 토크를 극대화하는 스윙',
       type2: '다운스윙 전환 시 하체(골반/CoM)의 타깃 이동을 선행시켜 묵직한 가속을 만드는 클래식 스윙',
       type3: '하체 눌림(Squat)으로 지면을 압박한 뒤 폭발적으로 차오르며 채찍 효과를 만드는 스윙',
     };
-    const typeLabel = key => `<span class="swing-type-label" tabindex="0" title="${descriptions[key]}" aria-label="${labels[key]}. ${descriptions[key]}">${labels[key]}</span>`;
     const rows = [];
     if (result) {
       const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
       const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
-        ? `${typeLabel(sorted[0][0])} ${sorted[0][1]}%`
-        : `${typeLabel(sorted[0][0])} ${sorted[0][1]}% + ${typeLabel(sorted[1][0])} ${sorted[1][1]}% 하이브리드`;
-      rows.push(`<div><strong>스윙 유형 추정:</strong> ${headline}`
-        + `<span class="swing-type-note">F1~F6 지표 기반 상대 적합도: ${typeLabel('type1')} ${result.pct.type1}% · ${typeLabel('type2')} ${result.pct.type2}% · ${typeLabel('type3')} ${result.pct.type3}% · GRF는 2D 동작 proxy 추정치</span></div>`);
+        ? `${labels[sorted[0][0]]} ${sorted[0][1]}%`
+        : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}%`;
+      const fitRows = Object.entries(result.pct).map(([key, pct]) =>
+        `<div class="analysis-type-row"><span class="analysis-type-row-label" title="${descriptions[key]}">${labels[key]}</span>`
+        + `<span class="analysis-type-row-value">${pct}%</span><div class="analysis-type-bar" aria-hidden="true">`
+        + `<span class="analysis-type-bar-fill" style="width:${pct}%"></span></div></div>`
+      ).join('');
+      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">스윙 유형 추정</div>`
+        + `<div><strong>주요 적합 조합:</strong> ${headline}</div>`
+        + `<div class="analysis-type-list">${fitRows}</div>`
+        + `<span class="swing-type-note">F1~F6 지표 기반 상대 적합도 · GRF는 2D 동작 proxy 추정치</span></section>`);
     }
     if (backswingClassification) {
       const backswingLabel = backswingClassification.type || '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)';
-      rows.push(`<div><strong>백스윙 유형:</strong> ${backswingLabel}</div>`);
+      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">백스윙 유형</div>`
+        + `<div>${backswingLabel}</div></section>`);
     }
     analysisSwingType.innerHTML = rows.join('');
   }
@@ -5431,7 +5547,7 @@
         points.splice(i,1);
         drawOverlay(ctx, points, lines, canvas, video, zoom);
         if (view && guideView === view) {
-          guideStep = Math.max(1, points.length + 1);
+          guideStep = getGuideStepForPoints(points, selectedSegment, guideView);
           showGuide();
         }
         if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
@@ -5449,7 +5565,7 @@
     // 실제 클릭한 점 수에 안내 STEP을 맞춰 "다음" 버튼을 안 눌러도 안내 문구가 밀리지 않도록 동기화
     if (view && guideView === view) {
       const maxSteps = getFrameMaxPoints(selectedSegment, guideView) + 1;
-      guideStep = Math.min(points.length + 1, maxSteps);
+      guideStep = Math.min(getGuideStepForPoints(points, selectedSegment, guideView), maxSteps);
       showGuide();
     }
     // A패널(baselineFrontResult 확정 전)에서 마지막 점을 찍은 순간에도 자동 분석되도록 함
@@ -5863,7 +5979,9 @@
     clearAnalysisResults();
     resetSwingCompareData();
     baselineFrontResult = null;
+    frameStateHistory.front = {};
     segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
+    segmentDeltaHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     loadVideo(frontVideo, file);
@@ -5899,7 +6017,9 @@
     }
     clearAnalysisResults();
     resetSwingCompareData();
+    frameStateHistory.side = {};
     segmentScoreHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
+    segmentDeltaHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     loadVideo(sideVideo, file);
@@ -6220,8 +6340,11 @@
     }
     frontPoints = [];
     sidePoints = [];
+    if (analysisPointReuseStatus) analysisPointReuseStatus.hidden = true;
     frontLines = [];
     sideLines = [];
+    delete frameStateHistory.front[selectedSegment];
+    delete frameStateHistory.side[selectedSegment];
     distanceLinesByView = { front: [], side: [] };
     distancePendingPoints = { front: [], side: [] };
     distanceReferencePendingPoints = { front: [], side: [] };
@@ -6365,6 +6488,7 @@
       drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
       // 이전 프레임의 안내 문구/말풍선이 그대로 남아있지 않도록 가이드 상태를 초기화하고,
       // 새로 선택된 프레임의 제목을 안내에 반영해 "분석 버튼을 눌러 시작하세요"로 갱신
+      if (analysisPointReuseStatus) analysisPointReuseStatus.hidden = true;
       guideView = null;
       guideStep = 0;
       showGuide();
