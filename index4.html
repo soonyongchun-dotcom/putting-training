@@ -37,15 +37,112 @@
     align-items: center;
     gap: 10px;
     z-index: 10001;
-    padding: 6px 12px;
-    background: rgba(0,0,0,0.4);
-    border-radius: 8px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
   }
   h1 .version {
     font-size: 1rem;
     font-weight: 400;
     color: rgba(255, 255, 255, 0.85);
     opacity: 0.85;
+  }
+  .app-title-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.4);
+    color: green;
+    font: inherit;
+    font-size: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .app-title-button:hover { background: rgba(0,0,0,0.58); }
+  .app-title-button:focus-visible { outline: 2px solid #69d8ba; outline-offset: 3px; }
+  .app-title-chevron { color: #91dec9; font-size: 0.75em; }
+  .app-intro-panel {
+    width: min(1180px, calc(100% - 28px));
+    max-height: min(76vh, 900px);
+    margin: 0 auto 18px;
+    overflow: auto;
+    text-align: left;
+    color: #e7f3f2;
+    border: 1px solid rgba(116, 206, 187, 0.32);
+    border-radius: 10px;
+    background: linear-gradient(145deg, rgba(17, 37, 42, 0.98), rgba(16, 24, 34, 0.98));
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+  }
+  .app-intro-panel[hidden] { display: none; }
+  .app-intro-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .app-intro-kicker { color: #83d9c1; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
+  .app-intro-header h2 { margin: 4px 0 0; color: #f5fbfa; font-size: 1.35rem; }
+  .app-intro-close {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    background: rgba(255,255,255,0.06);
+    color: #f4ffff;
+    cursor: pointer;
+  }
+  .app-intro-body { padding: 18px 22px 22px; }
+  .app-profile-formula {
+    margin: 0 0 18px;
+    padding: 12px 14px;
+    border-left: 3px solid #62cbb1;
+    background: rgba(98, 203, 177, 0.08);
+    line-height: 1.55;
+  }
+  .app-code-legends { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .app-code-legend h3, .app-profile-browser h3 { margin: 0 0 9px; color: #d9f6ef; font-size: 0.98rem; }
+  .app-code-list { display: grid; gap: 5px; }
+  .app-code-row { display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 9px; align-items: baseline; font-size: 0.86rem; }
+  .app-code-tag { color: #f5d58a; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .app-code-name { color: #cad8dc; }
+  .app-profile-browser { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.12); }
+  .app-profile-tabs { display: flex; gap: 7px; overflow-x: auto; padding: 2px 1px 10px; }
+  .app-profile-tab {
+    flex: 0 0 auto;
+    padding: 7px 11px;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    color: #d7e5e6;
+    cursor: pointer;
+  }
+  .app-profile-tab[aria-selected="true"] { border-color: #68cbb2; background: rgba(63, 161, 137, 0.22); color: #f3fffc; }
+  .app-profile-group-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 8px 0 10px; }
+  .app-profile-group-heading h4 { margin: 0; color: #f5d58a; font-size: 1rem; }
+  .app-profile-group-heading span { color: #9cafb4; font-size: 0.8rem; }
+  .app-profile-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+  .app-profile-item { min-width: 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .app-profile-item summary { display: flex; align-items: baseline; gap: 9px; padding: 10px 2px; color: #eef7f6; cursor: pointer; list-style: none; }
+  .app-profile-item summary::-webkit-details-marker { display: none; }
+  .app-profile-item summary::before { content: '+'; color: #74d4bc; font-weight: 700; }
+  .app-profile-item[open] summary::before { content: '−'; }
+  .app-profile-number { color: #91a7aa; font-variant-numeric: tabular-nums; }
+  .app-profile-title { min-width: 0; font-weight: 650; }
+  .app-profile-engine { margin-left: auto; color: #f5d58a; font-size: 0.78rem; white-space: nowrap; }
+  .app-profile-details { display: grid; gap: 8px; padding: 0 10px 13px 24px; color: #c8d7da; font-size: 0.84rem; line-height: 1.55; }
+  .app-profile-details p { margin: 0; }
+  .app-profile-details strong { color: #8edbc7; }
+  @media (max-width: 700px) {
+    .app-code-legends, .app-profile-list { grid-template-columns: 1fr; }
+    .app-intro-header { padding: 16px; }
+    .app-intro-body { padding: 14px 16px 18px; }
+    .app-profile-engine { font-size: 0.72rem; }
   }
   .admin-btn {
     display: none;
@@ -1075,7 +1172,7 @@
 </div>
 
 <div class="top-bar">
-  <h1>SY-GSAP (Golf Swing Analysis Platform) <span class="version">ver 26.9.12ff</span></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.9.12ff</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <label class="language-select" for="languageSelect">언어
     <select id="languageSelect" aria-label="언어">
       <option value="ko">한국어</option>
@@ -1085,6 +1182,26 @@
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
   <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
+
+<section class="app-intro-panel" id="appIntroPanel" aria-labelledby="appIntroHeading" hidden>
+  <header class="app-intro-header">
+    <div><div class="app-intro-kicker" id="appIntroKicker">SY-GSAP Swing Profile System</div><h2 id="appIntroHeading">스윙 프로필 분류 체계</h2></div>
+    <button type="button" class="app-intro-close" id="appIntroCloseBtn" aria-label="소개 닫기" title="소개 닫기">×</button>
+  </header>
+  <div class="app-intro-body">
+    <p class="app-profile-formula" id="appProfileFormula"></p>
+    <div class="app-code-legends">
+      <section class="app-code-legend"><h3 id="backswingCodeHeading">백스윙 5대 궤적</h3><div class="app-code-list" id="backswingCodeList"></div></section>
+      <section class="app-code-legend"><h3 id="powerEngineHeading">스윙 파워 7대 기전</h3><div class="app-code-list" id="powerEngineList"></div></section>
+    </div>
+    <section class="app-profile-browser" aria-labelledby="profileBrowserHeading">
+      <h3 id="profileBrowserHeading">35대 SY-GSAP 스윙 프로필</h3>
+      <div class="app-profile-tabs" id="appProfileTabs" role="tablist" aria-label="백스윙 프로필 그룹"></div>
+      <div id="appProfileGroupHeading" class="app-profile-group-heading"></div>
+      <div class="app-profile-list" id="appProfileList"></div>
+    </section>
+  </div>
+</section>
 
 <div class="container">
   <div class="video-wrapper" id="frontWrapper">
@@ -2057,6 +2174,7 @@
     languageSelect.addEventListener('change', () => {
       setUiLanguage(languageSelect.value);
       showGuide();
+      if (appIntroPanel && !appIntroPanel.hidden) renderSwingProfileIntro();
       if (swingCompareActive) updateSwingCompareGuide();
       updateSwingCompareResults();
       if (backswingActive) updateBackswingGuide();
@@ -2079,6 +2197,146 @@
       });
     });
   }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'placeholder', 'alt', 'data-tooltip'] });
+
+  const SWING_BACKSWING_CODES = [
+    { code: 'OPA', ko: '온플레인 정렬', en: 'On-Plane Alignment' },
+    { code: 'USP', ko: '업라이트-샬로잉 루프', en: 'Upright-Shallowing Loop' },
+    { code: 'OFP', ko: '아웃사이드 테이크어웨이 페이스 제어', en: 'Outside-Takeaway Face Control' },
+    { code: 'HAP-A', ko: '듀얼 페이즈 아웃사이드-샬로잉', en: 'Dual-Phase Outside-Shallowing' },
+    { code: 'HAP-B', ko: '듀얼 페이즈 온플레인 샬로잉', en: 'Dual-Phase On-Plane Shallowing' },
+  ];
+  const SWING_POWER_ENGINES = [
+    { code: 'ATE', ko: '축회전 중심', en: 'Axial-Torque Engine' },
+    { code: 'LSE', ko: '하체이동 중심', en: 'Linear-Shift Engine' },
+    { code: 'VEE', ko: '코어압축팽창 중심', en: 'Vertical-Extension Engine' },
+    { code: 'RLH', ko: '회전-선형 하이브리드', en: 'Rotational-Linear Hybrid' },
+    { code: 'RVH', ko: '회전-수직 하이브리드', en: 'Rotational-Vertical Hybrid' },
+    { code: 'LVH', ko: '선형-수직 하이브리드', en: 'Linear-Vertical Hybrid' },
+    { code: 'TKE', ko: '트라이-키네매틱 융합', en: 'Tri-Kinematic Apex' },
+  ];
+  const SWING_PROFILE_GROUPS = [
+    { code: 'OPA', ko: '온플레인 백스윙 기반 프로필', en: 'On-Plane Backswing Profiles' },
+    { code: 'USP', ko: '업라이트-샬로잉 백스윙 기반 프로필', en: 'Upright-Shallowing Backswing Profiles' },
+    { code: 'OFP', ko: '아웃사이드 페이스 제어 백스윙 기반 프로필', en: 'Outside-Takeaway Backswing Profiles' },
+    { code: 'HAP-A', ko: '하이브리드 A 백스윙 기반 프로필', en: 'Hybrid A Backswing Profiles' },
+    { code: 'HAP-B', ko: '하이브리드 B 백스윙 기반 프로필', en: 'Hybrid B Backswing Profiles' },
+  ];
+  const SWING_PROFILE_DATA = [
+    { n: 1, g: 'OPA', e: 'ATE', ko: ['축회전 중심 스윙', '어드레스 샤프트면을 따라 플레인 아크를 그리며, C7 경추축을 고정한 상태에서 수평 회전 토크로 클럽을 가속합니다. 예: 리디아 고, 전인지.', '복귀 재현성(F5)과 정타율이 높고 좌우 오차가 작아 구질 일관성이 뛰어납니다.', '하체 체중 이동과 수직 지면반력 활용이 낮아 클럽 헤드스피드의 상한이 생길 수 있습니다.'], en: ['Pure On-Plane Axial-Torque Swing', 'Follows the address shaft plane while keeping the C7 axis stable and accelerating the club mainly through horizontal rotational torque. Examples: Lydia Ko and Chun In-gee.', 'Offers highly repeatable return positions, strong centered contact, tight left-right dispersion, and consistent shot shape.', 'Limited lower-body shift and vertical ground-force use can cap maximum clubhead speed.'] },
+    { n: 2, g: 'OPA', e: 'LSE', ko: ['하체이동 중심 스윙', '일정한 온플레인 아크로 올라간 뒤 다운스윙 전환에서 골반을 타깃 방향으로 약 20~30% 이동시켜 레버리지를 활용합니다. 예: 아담 스콧.', '상체 흔들림을 억제하면서 체중을 실어 단단한 임팩트 압축과 일정한 구질을 만듭니다.', '골반 이동이 과도하면 C7 축이 무너져 우측 푸시나 블록이 발생할 수 있습니다.'], en: ['On-Plane Linear-Shift Swing', 'Uses a consistent on-plane arc, then shifts the pelvis about 20–30% toward the target during transition. Example: Adam Scott.', 'Combines a stable upper body with lower-body pressure for solid compression and a dependable shot shape.', 'Excessive pelvis shift can destabilize the C7 axis and cause a push or block to the right.'] },
+    { n: 3, g: 'OPA', e: 'VEE', ko: ['코어압축팽창 중심 스윙', '정석 플레인을 유지하며 임팩트 구간에서 하체 스쿼트 후 수직으로 차오르는 지면반력을 주동력으로 사용합니다.', '정확한 궤적과 수직 지면반력의 가속력을 함께 확보합니다.', '수직 상승이 빠르면 얼리 익스텐션, 늦으면 과도한 디봇 등 타이밍 오차가 생길 수 있습니다.'], en: ['On-Plane Vertical-Extension Swing', 'Maintains a classic plane and uses a squat followed by vertical extension and ground force through impact.', 'Combines path accuracy with acceleration from vertical ground force.', 'Rising too early can cause early extension; rising too late can produce excessive divot depth.'] },
+    { n: 4, g: 'OPA', e: 'RLH', ko: ['회전-선형 하이브리드 스윙', '온플레인 궤도에서 C7 축 고정 회전과 약 25%의 정밀한 골반 이동을 시차(sequence)에 맞춰 결합합니다. 예: 넬리 코다, 김효주, 고진영.', '투어 수준의 구질 안정성과 실전 비거리를 함께 얻으며 관절 부하가 비교적 적습니다.', '상·하체 리듬과 템포가 무너지면 키네매틱 시퀀스 손실로 헤드가 늦어질 수 있습니다.'], en: ['On-Plane Rotational-Linear Swing', 'Combines a stable C7-axis turn with a precise, roughly 25% pelvis shift in a well-timed sequence. Examples: Nelly Korda, Hyo Joo Kim, and Jin Young Ko.', 'Balances tour-level directional control with practical distance while keeping joint loading relatively low.', 'If upper- and lower-body rhythm falls out of sync, the kinematic sequence can break down and the clubhead may lag.'] },
+    { n: 5, g: 'OPA', e: 'RVH', ko: ['회전-수직 하이브리드 스윙', '어드레스 플레인을 유지하며 제자리 축회전을 수행하고 임팩트에서 수직 지면반력으로 차오릅니다.', '측면 슬라이딩을 억제하면서 아이언과 드라이버의 발사각을 높일 수 있습니다.', '척추 수직 신전 중 C7 Y축 변위가 커지면 임팩트 때 상체가 일어설 수 있습니다.'], en: ['On-Plane Rotational-Vertical Swing', 'Keeps the address plane and rotates around a stable axis, then adds vertical ground force through impact.', 'Limits lateral sliding while supporting a higher launch with irons and driver.', 'Excessive C7 vertical displacement during extension can make the torso rise at impact.'] },
+    { n: 6, g: 'OPA', e: 'LVH', ko: ['선형-수직 하이브리드 스윙', '온플레인 궤적으로 올라가 하체 체중 이동으로 래깅을 끌고 내려온 뒤 지면을 폭발적으로 차올립니다.', '체중 전달과 수직 가속을 결합해 비거리와 단단한 구질을 함께 노립니다.', '전환 지점(P5)에서 하체 선행이 부족하면 강한 풀 샷이 나올 수 있습니다.'], en: ['On-Plane Linear-Vertical Swing', 'Follows an on-plane backswing, uses lower-body shift to retain lag, then drives upward from the ground.', 'Combines weight transfer with vertical acceleration for distance and a solid shot shape.', 'Insufficient lower-body lead at P5 can produce a strong pull.'] },
+    { n: 7, g: 'OPA', e: 'TKE', ko: ['트라이-키네매틱 융합 스윙', '온플레인 궤적에서 회전·선형 이동·수직 신전의 세 파워 기전을 균형 있게 통합합니다.', '정타율, 볼스피드, 구질 제어력을 함께 추구할 수 있습니다.', '높은 근신경계 통제력과 코어 근력이 필요하며 컨디션 저하 시 템포가 무너질 수 있습니다.'], en: ['On-Plane Tri-Kinematic Apex Swing', 'Integrates rotational, linear-shift, and vertical-extension power in a balanced on-plane motion.', 'Targets centered contact, high ball speed, and strong shot control together.', 'Requires exceptional neuromuscular control and core strength; fatigue can disrupt tempo.'] },
+    { n: 8, g: 'USP', e: 'ATE', ko: ['축회전 중심 스윙', '탑에서 손을 가파르고 높게 올린 뒤 샬로잉으로 떨어뜨리고, C7 축 제자리 회전 토크로 타격합니다.', '높은 탑의 위치 에너지와 축 고정으로 넓은 아크와 좁은 좌우 집탄군을 노립니다.', '하체 리드가 없으면 팔로만 클럽을 떨어뜨려 오버더톱으로 변질될 수 있습니다.'], en: ['Upright-Shallowing Axial-Torque Swing', 'Raises the hands to a steep, high top, shallows the club on the way down, and relies on rotation around a stable C7 axis.', 'Uses the high top for a wide arc while axis stability helps control dispersion.', 'Without a lower-body lead, the arms may pull the club down and create an over-the-top move.'] },
+    { n: 9, g: 'USP', e: 'LSE', ko: ['하체이동 중심 스윙', '가파른 탑에서 하체를 타깃 방향으로 이동시켜 샤프트 드롭과 샬로잉을 유도합니다.', '하체 선행으로 래깅각을 만들고 클럽 헤드를 깊게 릴리즈하기 쉽습니다.', '골반 이동이 과도하면 샤프트가 등 뒤에 갇혀 헤드가 늦게 따라올 수 있습니다.'], en: ['Upright-Shallowing Linear-Shift Swing', 'Shifts the lower body toward the target from a steep top to encourage shaft drop and shallowing.', 'A lower-body lead can help retain lag and release the club through a deeper path.', 'Excessive pelvis shift can leave the shaft stuck behind the body and delay the clubhead.'] },
+    { n: 10, g: 'USP', e: 'VEE', ko: ['코어압축팽창 중심 스윙', '가파른 탑의 위치 에너지에 강한 스쿼트와 수직 차오름을 결합하는 수직 가속 스윙입니다. 예: 렉시 톰슨, 패티 타바타나킷.', '체격 대비 높은 헤드스피드와 드라이버 비거리를 낼 잠재력이 있습니다.', 'C7 Y축 변위가 커 정타율 기복이 생기고 무릎·척추 부하가 높을 수 있습니다.'], en: ['Upright-Shallowing Vertical-Extension Swing', 'Pairs a steep, high top with a forceful squat and vertical drive. Examples: Lexi Thompson and Patty Tavatanakit.', 'Can produce high clubhead speed and driver distance relative to body size.', 'Large C7 vertical movement may affect strike consistency and increase knee or spine loading.'] },
+    { n: 11, g: 'USP', e: 'RLH', ko: ['회전-선형 하이브리드 스윙', '높은 탑에서 하체 체중 이동과 C7 축회전을 결합해 샬로잉을 만듭니다.', '확대된 스윙 아크와 체중 전달력으로 장타와 스퀘어 임팩트를 노립니다.', '전환 구간의 상·하체 시차가 무너지면 오버스윙이 발생할 수 있습니다.'], en: ['Upright-Shallowing Rotational-Linear Swing', 'Combines lower-body shift with C7-axis rotation from a high top to create a shallowing move.', 'The wider arc and weight transfer support distance and a square impact.', 'Poor sequencing through transition can lead to overswinging.'] },
+    { n: 12, g: 'USP', e: 'RVH', ko: ['회전-수직 하이브리드 스윙', '높은 탑에서 제자리 축회전과 수직 지면반력을 함께 폭발시키는 메커니즘입니다.', '측면 슬라이딩을 억제하면서 수직 차오름으로 높은 탄도의 장타를 노립니다.', '골반 체중 이동이 부족하면 수직 차오름이 얼리 익스텐션으로 악화될 수 있습니다.'], en: ['Upright-Shallowing Rotational-Vertical Swing', 'Combines rotation around a stable axis with vertical ground force from a high top.', 'Can produce a high-launching, long shot while limiting lateral slide.', 'Insufficient pelvis shift can turn vertical drive into early extension.'] },
+    { n: 13, g: 'USP', e: 'LVH', ko: ['선형-수직 하이브리드 스윙', '가파른 탑에서 하체 이동 후 폭발적으로 차오르는 투어 장타형 스윙입니다. 예: 윤이나, 황유민, 방신실, 저스틴 토마스.', '수직 지면반력을 극대화해 높은 볼스피드와 비거리를 노립니다.', '샬로잉 드롭과 수직 상승의 타이밍이 어긋나면 큰 푸시나 훅이 날 수 있습니다.'], en: ['Upright-Shallowing Linear-Vertical Swing', 'A tour-style power motion that shifts from a steep top and then drives upward. Examples: Ina Yoon, Min-ji Hwang, Shin-sil Bang, and Justin Thomas.', 'Maximizes vertical ground force to pursue high ball speed and distance.', 'Mistiming the shallowing drop and vertical drive can cause a large push or hook.'] },
+    { n: 14, g: 'USP', e: 'TKE', ko: ['트라이-키네매틱 융합 스윙', '높은 탑의 위치 에너지를 바탕으로 회전·선형·수직 파워를 최대한 활용합니다.', '파워, 스윙 아크, 샬로잉 완성도를 결합해 큰 비거리를 제공합니다.', '하체 근력과 유연성, 지속적인 신체 부하 관리가 필요합니다.'], en: ['Upright-Shallowing Tri-Kinematic Apex Swing', 'Uses the positional energy of a high top to combine rotational, linear, and vertical power.', 'Combines power, arc width, and a complete shallowing move for distance.', 'Requires lower-body strength, flexibility, and careful management of physical load.'] },
+    { n: 15, g: 'OFP', e: 'ATE', ko: ['축회전 중심 스윙', 'P2 테이크어웨이를 바깥으로 빼 페이스 열림을 억제하고 C7 축 중심으로 컴팩트하게 회전합니다. 예: 브룩 헨더슨.', '페이스 스퀘어 유지력이 높아 드라이버 슬라이스를 억제하는 데 유리합니다.', '아크가 컴팩트해져 헤드스피드를 크게 높이기 어려울 수 있습니다.'], en: ['Outside-Takeaway Axial-Torque Swing', 'Takes the club outside at P2 to help prevent the face from opening, then rotates compactly around C7. Example: Brooke Henderson.', 'Strong face control can help reduce driver slices.', 'A compact arc may limit maximum clubhead speed.'] },
+    { n: 16, g: 'OFP', e: 'LSE', ko: ['하체이동 중심 스윙', 'P2에서 페이스를 제어한 뒤 다운스윙에서 묵직한 하체 이동으로 체중을 싣는 정타형 스윙입니다. 예: 최경주, 스코티 셰플러.', '바람에 강한 낮은 탄도와 단단한 구질, 높은 그린 적중률을 노립니다.', '다운스윙에서 하체 이동이 멈추면 상체가 덤비며 캐스팅될 수 있습니다.'], en: ['Outside-Takeaway Linear-Shift Swing', 'Controls the face at P2, then uses a strong lower-body shift to move pressure into impact. Examples: K. J. Choi and Scottie Scheffler.', 'Can produce a penetrating flight, solid shot shape, and reliable greens-in-regulation.', 'If lower-body movement stalls, the upper body may rush and cause casting.'] },
+    { n: 17, g: 'OFP', e: 'VEE', ko: ['코어압축팽창 중심 스윙', 'P2에서 페이스를 스퀘어로 유지한 뒤 임팩트 구간에서 강하게 수직으로 차오릅니다.', '페이스 제어와 지면반력을 결합해 방향 안정성과 비거리를 함께 추구합니다.', '바깥 테이크어웨이와 수직 상승을 결합할 때 척추각 유지가 어려울 수 있습니다.'], en: ['Outside-Takeaway Vertical-Extension Swing', 'Keeps the face square at P2 and adds strong vertical drive through impact.', 'Combines face control and ground force for direction and distance.', 'Maintaining spine angle can be difficult when an outside takeaway is paired with a strong vertical rise.'] },
+    { n: 18, g: 'OFP', e: 'RLH', ko: ['회전-선형 하이브리드 스윙', 'P2 헤드 바깥 유지, C7 고정, 하체 이동을 결합한 안정적 정타 메커니즘입니다. 예: 빅토르 호블란, 브룩스 켑카.', '압박 상황에서도 페이스가 열리는 변수를 줄여 정타율과 타깃 정밀도를 유지합니다.', '손목 힌징·보잉을 유지하는 과정에서 손목과 전완에 부하가 지속될 수 있습니다.'], en: ['Outside-Takeaway Rotational-Linear Swing', 'Combines an outside clubhead at P2 with a stable C7 axis and lower-body shift. Examples: Viktor Hovland and Brooks Koepka.', 'Reduces face-opening variability to support centered contact and target precision under pressure.', 'Maintaining wrist hinge or bowing can place sustained load on the wrists and forearms.'] },
+    { n: 19, g: 'OFP', e: 'RVH', ko: ['회전-수직 하이브리드 스윙', 'P2에서 페이스를 제어하고 C7 회전축을 고정한 채 수직 지면반력으로 차오릅니다.', '좌우 미스샷을 억제하면서 높은 발사각의 페이드나 스트레이트 탄도를 노립니다.', '다운스윙 진입이 지나치게 가파르면 임팩트 때 디봇이 과도해질 수 있습니다.'], en: ['Outside-Takeaway Rotational-Vertical Swing', 'Controls the face at P2, keeps the C7 axis stable, and adds vertical ground force.', 'Can limit left-right misses while producing a high-launching fade or straight flight.', 'An overly steep downswing entry can create excessive divot depth.'] },
+    { n: 20, g: 'OFP', e: 'LVH', ko: ['선형-수직 하이브리드 스윙', 'P2에서 바깥을 유지한 뒤 하체 이동과 수직 지면반력을 연결하는 하체 리드 임팩트입니다.', '슬라이스 위험을 낮추면서 체중 전달과 차오름으로 장타를 노립니다.', '하체 선행이 부족하면 손목으로 클럽을 덮어 악성 훅이 발생할 수 있습니다.'], en: ['Outside-Takeaway Linear-Vertical Swing', 'Keeps the club outside at P2, then links lower-body shift with vertical ground force through impact.', 'Can reduce slice risk while adding weight transfer and upward drive for distance.', 'Without a lower-body lead, the hands may roll the club closed and produce a severe hook.'] },
+    { n: 21, g: 'OFP', e: 'TKE', ko: ['트라이-키네매틱 융합 스윙', 'P2 페이스 제어를 기반으로 회전·선형·수직 파워를 융합하는 실전형 투어 메커니즘입니다.', '페이스 각도 변수를 줄인 상태에서 에너지 전달을 극대화할 수 있습니다.', '테이크어웨이 동선이 일반 온플레인과 달라 P2 지점을 꾸준히 점검해야 합니다.'], en: ['Outside-Takeaway Tri-Kinematic Apex Swing', 'Uses P2 face control as the base for an integrated rotational, linear, and vertical power pattern.', 'Can maximize energy transfer while reducing face-angle variability.', 'Its takeaway differs from a conventional on-plane path, so P2 checkpoints need consistent review.'] },
+    { n: 22, g: 'HAP-A', e: 'ATE', ko: ['축회전 중심 스윙', 'P2 바깥 테이크어웨이 후 가파른 탑을 만들고 C7 제자리 축회전 토크로 감아칩니다.', '페이스 안정성과 탑의 위치 에너지를 확보하고 C7 축 고정으로 집탄군을 좁힙니다.', '하체 리드가 약해지면 상체와 팔 힘에 의존하는 스윙으로 변질될 수 있습니다.'], en: ['Dual-Outside Axial-Torque Swing', 'Takes the club outside at P2, builds a steep top, then coils around a stable C7 axis.', 'Combines face stability and top-of-swing positional energy with controlled dispersion.', 'A weak lower-body lead can make the motion overly dependent on the upper body and arms.'] },
+    { n: 23, g: 'HAP-A', e: 'LSE', ko: ['하체이동 중심 스윙', 'P2 바깥 유지와 가파른 탑에서 강한 하체 이동으로 자연스러운 샬로잉을 연결합니다.', '푸시-슬라이스를 줄이면서 샬로잉 궤도와 묵직한 타구감을 노립니다.', '골반 이동이 지나치면 임팩트 때 상체 척추각이 뒤로 기울 수 있습니다.'], en: ['Dual-Outside Linear-Shift Swing', 'Combines an outside P2 and steep top with a strong lower-body shift to connect naturally into shallowing.', 'Can reduce push-slices while creating a shallow path and solid impact feel.', 'Excessive pelvis shift can tilt the torso back at impact.'] },
+    { n: 24, g: 'HAP-A', e: 'VEE', ko: ['코어압축팽창 중심 스윙', 'P2 페이스 제어와 높은 탑의 위치 에너지에 임팩트의 강한 수직 상승을 더합니다.', '페이스가 열릴 우려를 줄이며 수직 지면반력을 공에 전달합니다.', 'C7 Y축 변위가 커질 수 있어 페이스 중심 타격의 일관성 관리가 필요합니다.'], en: ['Dual-Outside Vertical-Extension Swing', 'Combines P2 face control and a high top with strong vertical drive through impact.', 'Transfers vertical ground force while helping control face opening.', 'C7 vertical displacement can grow, so centered face contact needs monitoring.'] },
+    { n: 25, g: 'HAP-A', e: 'RLH', ko: ['회전-선형 하이브리드 스윙', 'P2 페이스 제어와 가파른 탑에 C7 축회전 및 하체 이동을 조화롭게 결합합니다.', '방향 정밀도와 비거리를 함께 노리는 실전형 고성능 스윙입니다.', '테이크어웨이와 다운스윙 샬로잉 사이의 템포 차이를 관리해야 합니다.'], en: ['Dual-Outside Rotational-Linear Swing', 'Pairs P2 face control and a steep top with coordinated C7 rotation and lower-body shift.', 'A high-performance pattern aimed at combining directional precision with distance.', 'The tempo between takeaway and downswing shallowing needs careful management.'] },
+    { n: 26, g: 'HAP-A', e: 'RVH', ko: ['회전-수직 하이브리드 스윙', 'P2 페이스 제어와 높은 탑에서 축 고정 회전 및 수직 상승을 동시에 사용합니다.', '상체 축을 안정시킨 상태에서 페이스 변수를 줄이고 높은 탄도를 노립니다.', '무릎과 요추 부하가 늘 수 있어 체력과 컨디션 관리가 필요합니다.'], en: ['Dual-Outside Rotational-Vertical Swing', 'Combines P2 face control and a high top with stable-axis rotation and vertical drive.', 'Supports a high launch while stabilizing the upper-body axis and controlling the face.', 'May increase knee and lumbar loading, requiring strength and conditioning management.'] },
+    { n: 27, g: 'HAP-A', e: 'LVH', ko: ['선형-수직 하이브리드 스윙', 'P2 페이스 제어와 가파른 탑에서 하체 이동 후 수직 상승으로 이중 가속을 만듭니다.', '슬라이스 위험을 낮추면서 높은 헤드스피드와 비거리를 노립니다.', '하체 선행이 늦으면 클럽이 뒤처져 우측 블록이 생길 수 있습니다.'], en: ['Dual-Outside Linear-Vertical Swing', 'Combines P2 face control and a steep top with lower-body shift followed by vertical drive.', 'Can pursue tour-level speed and distance with reduced slice risk.', 'A late lower-body lead can leave the club behind and cause a block right.'] },
+    { n: 28, g: 'HAP-A', e: 'TKE', ko: ['트라이-키네매틱 융합 스윙', 'P2 페이스 제어, 높은 탑의 위치 에너지, 회전·선형·수직 파워를 완전히 통합합니다. 예: 로리 매킬로이, 브라이슨 디섐보.', '높은 선속도와 스퀘어 임팩트의 조화를 목표로 합니다.', '관절 부하가 높을 수 있어 지속적인 훈련과 코어 관리가 필요합니다.'], en: ['Outside-Shallowing Tri-Kinematic Swing', 'Fully integrates P2 face control, a high top, and rotational, linear, and vertical power. Examples: Rory McIlroy and Bryson DeChambeau.', 'Aims to combine high linear speed with a square impact.', 'Can impose substantial joint load and requires disciplined training and core management.'] },
+    { n: 29, g: 'HAP-B', e: 'ATE', ko: ['축회전 중심 스윙', 'P1~P3까지 온플레인 아크를 유지하고 샬로잉을 결합해 C7 축 중심으로 수평 회전합니다.', '정석적인 백스윙 아크와 안정된 축으로 높은 일관성을 제공합니다.', '하체 이동과 수직 지면반력 활용이 제한되어 비거리 확장에 한계가 있을 수 있습니다.'], en: ['Dual-OnPlane Axial-Torque Swing', 'Maintains an on-plane arc from P1 to P3, adds shallowing, and rotates horizontally around C7.', 'Pairs a classic backswing arc with axis stability for consistent results.', 'Limited lower-body shift and vertical ground force may constrain distance gains.'] },
+    { n: 30, g: 'HAP-B', e: 'LSE', ko: ['하체이동 중심 스윙', '온플레인 아크와 샬로잉에 하체 체중 이동을 정석적으로 결합합니다.', '부드럽고 수려한 궤도와 안정된 체중 전달력을 제공합니다.', '다운스윙에서 골반이 이동할 때 척추각이 들리지 않도록 수평 제어가 필요합니다.'], en: ['Dual-OnPlane Linear-Shift Swing', 'Combines an on-plane backswing arc and shallowing with a classic lower-body weight shift.', 'Offers a smooth swing path and reliable pressure transfer.', 'Control lateral movement so the spine angle does not rise during the pelvis shift.'] },
+    { n: 31, g: 'HAP-B', e: 'VEE', ko: ['코어압축팽창 중심 스윙', '온플레인 아크와 샬로잉에 수직 상승을 결합해 비거리를 높입니다.', '정석 궤도의 안정감과 수직 지면반력의 추진력을 함께 노립니다.', '수직 상승 중 다운스윙 샤프트 플레인이 가파르게 무너지지 않도록 주의해야 합니다.'], en: ['Dual-OnPlane Vertical-Extension Swing', 'Combines an on-plane arc and shallowing with vertical extension to increase distance.', 'Pairs a stable classic path with propulsion from vertical ground force.', 'Keep the downswing shaft plane from becoming too steep during vertical drive.'] },
+    { n: 32, g: 'HAP-B', e: 'RLH', ko: ['회전-선형 하이브리드 스윙', '온플레인 백스윙과 샬로잉에 C7 축 고정 및 하체 이동을 균형 있게 결합합니다.', '깔끔한 아크와 일관된 비거리를 제공해 투어 프로가 선호하는 유형 중 하나입니다.', '임팩트 구간 템포가 늘어지면 헤드 가속이 줄어들 수 있습니다.'], en: ['Dual-OnPlane Rotational-Linear Swing', 'Balances an on-plane backswing and shallowing with C7-axis stability and lower-body shift.', 'Combines a clean arc with repeatable distance and is a common tour-style pattern.', 'A slow tempo through impact can reduce clubhead acceleration.'] },
+    { n: 33, g: 'HAP-B', e: 'RVH', ko: ['회전-수직 하이브리드 스윙', '온플레인 샬로잉 아크에 축 고정 회전과 수직 지면반력을 더합니다. 예: 타이거 우즈, 저스틴 로즈.', '정밀한 제어력과 강한 임팩트 충격량을 결합한 클래식-현대형 스윙입니다.', '코어와 요추 근력이 부족하면 허리 부하가 커질 수 있습니다.'], en: ['On-Plane Shallowing Rotational-Vertical Swing', 'Adds stable-axis rotation and vertical ground force to an on-plane shallowing arc. Examples: Tiger Woods and Justin Rose.', 'Combines precise control with a powerful impact in a classic-modern pattern.', 'Insufficient core and lumbar strength can increase back strain.'] },
+    { n: 34, g: 'HAP-B', e: 'LVH', ko: ['선형-수직 하이브리드 스윙', '온플레인 샬로잉 아크에 하체 이동과 수직 상승을 유기적으로 연결합니다.', '매끄러운 궤도와 이중 지면반력 가속으로 비거리 향상을 노립니다.', '체중 이동에서 수직 상승으로 전환하는 P5에서 밸런스를 유지해야 합니다.'], en: ['Dual-OnPlane Linear-Vertical Swing', 'Links an on-plane shallowing arc with lower-body shift and vertical drive.', 'A smooth path and two-stage ground-force acceleration support distance.', 'Maintain balance through P5, where pressure shift transitions into vertical extension.'] },
+    { n: 35, g: 'HAP-B', e: 'TKE', ko: ['트라이-키네매틱 융합 스윙', '정석 온플레인 샬로잉 백스윙과 회전·선형·수직 파워가 완전히 조화를 이룹니다.', '간결한 아크와 높은 집탄군, 큰 비거리를 함께 추구하는 완성형 유형입니다.', '완성까지 정밀 모션 트래킹을 통한 지속적인 훈련과 피드백이 필요합니다.'], en: ['Dual-OnPlane Tri-Kinematic Apex Swing', 'Fully harmonizes a classic on-plane shallowing backswing with rotational, linear, and vertical power.', 'A complete pattern targeting an efficient arc, tight dispersion, and strong distance.', 'Requires ongoing practice and precise motion-tracking feedback to master.'] },
+  ];
+
+  let activeSwingProfileGroup = 'OPA';
+
+  function renderSwingProfileIntro() {
+    const isEnglish = uiLanguage === 'en';
+    const text = (ko, en) => isEnglish ? en : ko;
+    const formula = document.getElementById('appProfileFormula');
+    const backswingList = document.getElementById('backswingCodeList');
+    const engineList = document.getElementById('powerEngineList');
+    const tabs = document.getElementById('appProfileTabs');
+    const groupHeading = document.getElementById('appProfileGroupHeading');
+    const profileList = document.getElementById('appProfileList');
+    const heading = document.getElementById('appIntroHeading');
+    const kicker = document.getElementById('appIntroKicker');
+    const backswingHeading = document.getElementById('backswingCodeHeading');
+    const engineHeading = document.getElementById('powerEngineHeading');
+    const browserHeading = document.getElementById('profileBrowserHeading');
+    const closeButton = document.getElementById('appIntroCloseBtn');
+    if (!formula || !backswingList || !engineList || !tabs || !groupHeading || !profileList) return;
+
+    if (heading) heading.textContent = text('스윙 프로필 분류 체계', 'Swing Profile Classification System');
+    if (kicker) kicker.textContent = text('SY-GSAP 스윙 프로필 체계', 'SY-GSAP Swing Profile System');
+    if (backswingHeading) backswingHeading.textContent = text('백스윙 5대 궤적', 'Five Backswing Paths');
+    if (engineHeading) engineHeading.textContent = text('스윙 파워 7대 기전', 'Seven Swing Power Engines');
+    if (browserHeading) browserHeading.textContent = text('35대 SY-GSAP 스윙 프로필', '35 SY-GSAP Swing Profiles');
+    if (closeButton) {
+      closeButton.setAttribute('aria-label', text('소개 닫기', 'Close introduction'));
+      closeButton.title = text('소개 닫기', 'Close introduction');
+    }
+    formula.innerHTML = isEnglish
+      ? '<strong>Profile number.</strong> [Backswing path code :: Power engine code] (official combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Hybrid A Backswing × Tri-Kinematic Apex Swing)'
+      : '<strong>프로필 번호.</strong> [백스윙 궤적 코드 :: 파워 엔진 코드] (한글 조합 공식 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (하이브리드 A 백스윙 × 트라이-키네매틱 융합 스윙)';
+    backswingList.innerHTML = SWING_BACKSWING_CODES.map(item =>
+      `<div class="app-code-row"><span class="app-code-tag">${item.code}</span><span class="app-code-name">${text(item.ko, item.en)}</span></div>`
+    ).join('');
+    engineList.innerHTML = SWING_POWER_ENGINES.map(item =>
+      `<div class="app-code-row"><span class="app-code-tag">${item.code}</span><span class="app-code-name">${text(item.ko, item.en)}</span></div>`
+    ).join('');
+
+    tabs.innerHTML = SWING_PROFILE_GROUPS.map((group, index) => {
+      const first = index * 7 + 1;
+      const last = first + 6;
+      const selected = group.code === activeSwingProfileGroup;
+      const label = `${['I', 'II', 'III', 'IV', 'V'][index]} · ${group.code} (${String(first).padStart(2, '0')}–${String(last).padStart(2, '0')})`;
+      return `<button type="button" class="app-profile-tab" role="tab" aria-selected="${selected}" data-profile-group="${group.code}">${label}</button>`;
+    }).join('');
+    tabs.querySelectorAll('[data-profile-group]').forEach(button => {
+      button.addEventListener('click', () => {
+        activeSwingProfileGroup = button.dataset.profileGroup;
+        renderSwingProfileIntro();
+      });
+    });
+
+    const groupIndex = SWING_PROFILE_GROUPS.findIndex(group => group.code === activeSwingProfileGroup);
+    const currentGroup = SWING_PROFILE_GROUPS[Math.max(0, groupIndex)];
+    const groupProfiles = SWING_PROFILE_DATA.filter(profile => profile.g === currentGroup.code);
+    groupHeading.innerHTML = `<h4>${text(currentGroup.ko, currentGroup.en)}</h4><span>${text('프로필', 'Profiles')} ${String(groupProfiles[0].n).padStart(2, '0')}–${String(groupProfiles[groupProfiles.length - 1].n).padStart(2, '0')}</span>`;
+    profileList.innerHTML = groupProfiles.map(profile => {
+      const engine = SWING_POWER_ENGINES.find(item => item.code === profile.e);
+      const title = text(profile.ko[0], profile.en[0]);
+      const name = isEnglish ? profile.en[0] : profile.ko[0];
+      return `<details class="app-profile-item"><summary><span class="app-profile-number">${String(profile.n).padStart(2, '0')}</span><span class="app-profile-title">${name}</span><span class="app-profile-engine">${profile.g} :: ${profile.e}</span></summary><div class="app-profile-details"><p><strong>${text('영문명', 'English name')}:</strong> ${profile.en[0]}</p><p><strong>${text('특징', 'Profile')}:</strong> ${text(profile.ko[1], profile.en[1])}</p><p><strong>${text('장점', 'Strengths')}:</strong> ${text(profile.ko[2], profile.en[2])}</p><p><strong>${text('단점/리스크', 'Trade-offs / Risks')}:</strong> ${text(profile.ko[3], profile.en[3])}</p><p><strong>${text('파워 엔진', 'Power engine')}:</strong> ${text(engine.ko, engine.en)}</p></div></details>`;
+    }).join('');
+  }
+
+  const appIntroToggleBtn = document.getElementById('appIntroToggleBtn');
+  const appIntroPanel = document.getElementById('appIntroPanel');
+  const appIntroCloseBtn = document.getElementById('appIntroCloseBtn');
+  function setAppIntroOpen(open) {
+    if (!appIntroToggleBtn || !appIntroPanel) return;
+    appIntroPanel.hidden = !open;
+    appIntroToggleBtn.setAttribute('aria-expanded', String(open));
+    const chevron = appIntroToggleBtn.querySelector('.app-title-chevron');
+    if (chevron) chevron.textContent = open ? '▴' : '▾';
+    if (open) renderSwingProfileIntro();
+  }
+  if (appIntroToggleBtn) appIntroToggleBtn.addEventListener('click', () => setAppIntroOpen(appIntroPanel.hidden));
+  if (appIntroCloseBtn) appIntroCloseBtn.addEventListener('click', () => setAppIntroOpen(false));
+  renderSwingProfileIntro();
 
   const loginOverlay = document.getElementById('loginOverlay');
   const loginEmail = document.getElementById('loginEmail');
