@@ -618,7 +618,11 @@
   .backswing-panel select, .backswing-panel button { margin: 4px; padding: 6px 9px; }
   .backswing-panel p { margin: 8px 0; line-height: 1.5; }
   .backswing-panel .backswing-result { color: #c5e5d9; }
-  .backswing-result-title { display: block; width: 100%; margin: 12px 0 6px; padding: 8px 10px; border: 1px solid rgba(113, 230, 138, 0.45); border-left: 3px solid #71e68a; border-radius: 5px; background: rgba(113, 230, 138, 0.08); color: #71e68a; font-size: 1.2rem; font-weight: 800; line-height: 1.4; text-align: left; cursor: pointer; }
+  .backswing-result-title { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 0.38em; width: 100%; margin: 12px 0 6px; padding: 8px 10px; border: 1px solid rgba(113, 230, 138, 0.45); border-left: 3px solid #71e68a; border-radius: 5px; background: rgba(113, 230, 138, 0.08); color: #71e68a; font-size: 1.2rem; font-weight: 800; line-height: 1.4; text-align: center; cursor: pointer; }
+  .backswing-result-code { color: #f5d58a; font-variant-numeric: tabular-nums; }
+  .backswing-result-ko { color: rgba(210, 235, 229, 0.68); font-size: 0.78em; font-weight: 500; }
+  .backswing-type-code { color: #f5d58a; font-variant-numeric: tabular-nums; }
+  .backswing-type-ko { color: rgba(210, 235, 229, 0.68); font-size: 0.86em; font-weight: 500; }
   .backswing-result-title:hover { background: rgba(113, 230, 138, 0.16); }
   .backswing-result-detail { font-size: 0.88rem; line-height: 1.6; }
   .backswing-types { margin-top: 12px; border-top: 1px solid rgba(83, 173, 155, 0.35); padding-top: 10px; font-size: 0.85rem; line-height: 1.6; }
@@ -1210,7 +1214,7 @@
 </div>
 
 <div class="top-bar">
-  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.9.12ff</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.913af</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <label class="language-select" for="languageSelect">언어
     <select id="languageSelect" aria-label="언어">
       <option value="ko">한국어</option>
@@ -1359,11 +1363,11 @@
   <details class="backswing-types">
     <summary>백스윙 유형별 특징</summary>
     <ul>
-      <li><strong>1. 온플레인 패턴 (On-Plane):</strong> 어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적</li>
-      <li><strong>2. 업라이트-샬로잉 패턴 (Upright-Shallowing):</strong> 높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적</li>
-      <li><strong>3. 아웃사이드 페이스 제어 패턴 (Outside Takeaway):</strong> P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적</li>
-      <li><strong>4. 하이브리드 A: 아웃사이드 + 업라이트-샬로잉:</strong> 테이크어웨이는 아웃사이드(3번)로 페이스를 제어하고, 탑 및 다운스윙은 업라이트-샬로잉(2번)으로 파워를 극대화하는 복합 궤적</li>
-      <li><strong>5. 하이브리드 B: 온플레인 + 업라이트-샬로잉:</strong> 정석적인 온플레인(1번) 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉(2번)을 가미하는 복합 궤적</li>
+      <li><strong><span class="backswing-type-code">OPA</span> <span class="backswing-type-ko">(온플레인 패턴)</span>:</strong> 어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적</li>
+      <li><strong><span class="backswing-type-code">USP</span> <span class="backswing-type-ko">(업라이트-샬로잉 패턴)</span>:</strong> 높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적</li>
+      <li><strong><span class="backswing-type-code">OFP</span> <span class="backswing-type-ko">(아웃사이드 페이스 제어 패턴)</span>:</strong> P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적</li>
+      <li><strong><span class="backswing-type-code">HAP-A</span> <span class="backswing-type-ko">(하이브리드 A 패턴)</span>:</strong> 테이크어웨이는 아웃사이드 페이스 제어로, 탑 및 다운스윙은 업라이트-샬로잉으로 파워를 극대화하는 복합 궤적</li>
+      <li><strong><span class="backswing-type-code">HAP-B</span> <span class="backswing-type-ko">(하이브리드 B 패턴)</span>:</strong> 정석적인 온플레인 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉을 가미하는 복합 궤적</li>
     </ul>
   </details>
   <small class="backswing-reference">※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.</small>
@@ -1666,11 +1670,11 @@
     '어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적': 'A classic path where the hand-and-arm plane at the top matches the address shaft plane.',
     '2. 업라이트-샬로잉 패턴 (Upright-Shallowing):': '2. Upright-Shallowing: ',
     '높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적': 'Builds position at a high, steep top, then shallows the shaft during transition.',
-    '3. 아웃사이드 페이스 제어 패턴 (Outside Takeaway):': '3. Outside Takeaway: ',
+    '3. 아웃사이드 페이스 제어 패턴 (Outside-Takeaway Face-Control Pattern):': '3. Outside-Takeaway Face-Control Pattern: ',
     'P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적': 'At P2, the clubhead stays outside the hands to help prevent the face from opening.',
-    '4. 하이브리드 A: 아웃사이드 + 업라이트-샬로잉:': '4. Hybrid A: Outside + Upright-Shallowing: ',
+    '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern):': '4. Dual-Phase Outside-Shallowing Pattern: ',
     '테이크어웨이는 아웃사이드(3번)로 페이스를 제어하고, 탑 및 다운스윙은 업라이트-샬로잉(2번)으로 파워를 극대화하는 복합 궤적': 'Combines an outside takeaway with an upright top and a shallowing transition.',
-    '5. 하이브리드 B: 온플레인 + 업라이트-샬로잉:': '5. Hybrid B: On-Plane + Upright-Shallowing: ',
+    '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern):': '5. Dual-Phase On-Plane Shallowing Pattern: ',
     '정석적인 온플레인(1번) 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉(2번)을 가미하는 복합 궤적': 'Combines an on-plane arc with vertical extension and a shallowing move in the downswing.',
     '※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.': 'Note: 2D side-view video cannot measure club depth or ground reaction force. Outside and on-plane patterns are visual estimates, not definitive measurements of force coupling or face angle.',
     'Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]': 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top]',
@@ -2237,27 +2241,27 @@
   }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'placeholder', 'alt', 'data-tooltip'] });
 
   const SWING_BACKSWING_CODES = [
-    { code: 'OPA', ko: '온플레인 정렬', en: 'On-Plane Alignment' },
-    { code: 'USP', ko: '업라이트-샬로잉 루프', en: 'Upright-Shallowing Loop' },
-    { code: 'OFP', ko: '아웃사이드 테이크어웨이 페이스 제어', en: 'Outside-Takeaway Face Control' },
-    { code: 'HAP-A', ko: '듀얼 페이즈 아웃사이드-샬로잉', en: 'Dual-Phase Outside-Shallowing' },
-    { code: 'HAP-B', ko: '듀얼 페이즈 온플레인 샬로잉', en: 'Dual-Phase On-Plane Shallowing' },
+    { code: 'OPA', ko: '온플레인 패턴', en: 'On-Plane Alignment Pattern' },
+    { code: 'USP', ko: '업라이트-샬로잉 패턴', en: 'Upright-Shallowing Loop Pattern' },
+    { code: 'OFP', ko: '아웃사이드 페이스 제어 패턴', en: 'Outside-Takeaway Face-Control Pattern' },
+    { code: 'HAP-A', ko: '하이브리드 A 패턴', en: 'Dual-Phase Outside-Shallowing Pattern' },
+    { code: 'HAP-B', ko: '하이브리드 B 패턴', en: 'Dual-Phase On-Plane Shallowing Pattern' },
   ];
   const SWING_POWER_ENGINES = [
-    { code: 'ATE', ko: '축회전 중심', en: 'Axial-Torque Engine' },
-    { code: 'LSE', ko: '하체이동 중심', en: 'Linear-Shift Engine' },
-    { code: 'VEE', ko: '코어압축팽창 중심', en: 'Vertical-Extension Engine' },
-    { code: 'RLH', ko: '회전-선형 하이브리드', en: 'Rotational-Linear Hybrid' },
-    { code: 'RVH', ko: '회전-수직 하이브리드', en: 'Rotational-Vertical Hybrid' },
-    { code: 'LVH', ko: '선형-수직 하이브리드', en: 'Linear-Vertical Hybrid' },
-    { code: 'TKE', ko: '트라이-키네매틱 융합', en: 'Tri-Kinematic Apex' },
+    { code: 'ATE', ko: '축회전 중심형', en: 'Axial-Torque Engine' },
+    { code: 'LSE', ko: '하체이동 중심형', en: 'Linear-Shift Engine' },
+    { code: 'VEE', ko: '코어압축팽창 중심형', en: 'Vertical-Extension Engine' },
+    { code: 'RLH', ko: '회전-선형 하이브리드', en: 'Rotational-Linear Hybrid Engine' },
+    { code: 'RVH', ko: '회전-수직 하이브리드', en: 'Rotational-Vertical Hybrid Engine' },
+    { code: 'LVH', ko: '선형-수직 하이브리드', en: 'Linear-Vertical Hybrid Engine' },
+    { code: 'TKE', ko: '트라이-키네매틱 융합형', en: 'Tri-Kinematic Apex Engine' },
   ];
   const SWING_PROFILE_GROUPS = [
-    { code: 'OPA', ko: '온플레인 백스윙 기반 프로필', en: 'On-Plane Backswing Profiles' },
-    { code: 'USP', ko: '업라이트-샬로잉 백스윙 기반 프로필', en: 'Upright-Shallowing Backswing Profiles' },
-    { code: 'OFP', ko: '아웃사이드 페이스 제어 백스윙 기반 프로필', en: 'Outside-Takeaway Backswing Profiles' },
-    { code: 'HAP-A', ko: '하이브리드 A 백스윙 기반 프로필', en: 'Hybrid A Backswing Profiles' },
-    { code: 'HAP-B', ko: '하이브리드 B 백스윙 기반 프로필', en: 'Hybrid B Backswing Profiles' },
+    { code: 'OPA', ko: '온플레인 패턴 프로필', en: 'On-Plane Alignment Pattern Profiles' },
+    { code: 'USP', ko: '업라이트-샬로잉 패턴 프로필', en: 'Upright-Shallowing Loop Pattern Profiles' },
+    { code: 'OFP', ko: '아웃사이드 페이스 제어 패턴 프로필', en: 'Outside-Takeaway Face-Control Pattern Profiles' },
+    { code: 'HAP-A', ko: '하이브리드 A 패턴 프로필', en: 'Dual-Phase Outside-Shallowing Pattern Profiles' },
+    { code: 'HAP-B', ko: '하이브리드 B 패턴 프로필', en: 'Dual-Phase On-Plane Shallowing Pattern Profiles' },
   ];
   const SWING_PROFILE_DATA = [
     { n: 1, g: 'OPA', e: 'ATE', ko: ['축회전 중심 스윙', '어드레스 샤프트면을 따라 플레인 아크를 그리며, C7 경추축을 고정한 상태에서 수평 회전 토크로 클럽을 가속합니다. 예: 리디아 고, 전인지.', '복귀 재현성(F5)과 정타율이 높고 좌우 오차가 작아 구질 일관성이 뛰어납니다.', '하체 체중 이동과 수직 지면반력 활용이 낮아 클럽 헤드스피드의 상한이 생길 수 있습니다.'], en: ['Pure On-Plane Axial-Torque Swing', 'Follows the address shaft plane while keeping the C7 axis stable and accelerating the club mainly through horizontal rotational torque. Examples: Lydia Ko and Chun In-gee.', 'Offers highly repeatable return positions, strong centered contact, tight left-right dispersion, and consistent shot shape.', 'Limited lower-body shift and vertical ground-force use can cap maximum clubhead speed.'] },
@@ -2297,6 +2301,20 @@
     { n: 35, g: 'HAP-B', e: 'TKE', ko: ['트라이-키네매틱 융합 스윙', '정석 온플레인 샬로잉 백스윙과 회전·선형·수직 파워가 완전히 조화를 이룹니다.', '간결한 아크와 높은 집탄군, 큰 비거리를 함께 추구하는 완성형 유형입니다.', '완성까지 정밀 모션 트래킹을 통한 지속적인 훈련과 피드백이 필요합니다.'], en: ['Dual-OnPlane Tri-Kinematic Apex Swing', 'Fully harmonizes a classic on-plane shallowing backswing with rotational, linear, and vertical power.', 'A complete pattern targeting an efficient arc, tight dispersion, and strong distance.', 'Requires ongoing practice and precise motion-tracking feedback to master.'] },
   ];
 
+  function getCanonicalSwingProfileName(profile, language) {
+    const backswing = SWING_BACKSWING_CODES.find(item => item.code === profile.g);
+    const engine = SWING_POWER_ENGINES.find(item => item.code === profile.e);
+    if (!backswing || !engine) return '';
+    return language === 'en'
+      ? `${backswing.en} × ${engine.en}`
+      : `${backswing.ko} × ${engine.ko}`;
+  }
+
+  SWING_PROFILE_DATA.forEach(profile => {
+    profile.ko[0] = getCanonicalSwingProfileName(profile, 'ko');
+    profile.en[0] = getCanonicalSwingProfileName(profile, 'en');
+  });
+
   let activeSwingProfileGroup = 'OPA';
 
   function renderSwingProfileIntro() {
@@ -2326,8 +2344,8 @@
       closeButton.title = text('소개 닫기', 'Close introduction');
     }
     formula.innerHTML = isEnglish
-      ? '<strong>Profile number.</strong> [Backswing path code :: Power engine code] (official combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Hybrid A Backswing × Tri-Kinematic Apex Swing)'
-      : '<strong>프로필 번호.</strong> [백스윙 궤적 코드 :: 파워 엔진 코드] (한글 조합 공식 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (하이브리드 A 백스윙 × 트라이-키네매틱 융합 스윙)';
+      ? '<strong>Profile number.</strong> [Backswing pattern code :: Power engine code] (official combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Dual-Phase Outside-Shallowing Pattern × Tri-Kinematic Apex Engine)'
+      : '<strong>프로필 번호.</strong> [백스윙 패턴 코드 :: 파워 엔진 코드] (공식 조합 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (하이브리드 A 패턴 × 트라이-키네매틱 융합형)';
     backswingList.innerHTML = SWING_BACKSWING_CODES.map(item =>
       `<div class="app-code-row"><span class="app-code-tag">${item.code}</span><span class="app-code-name">${text(item.ko, item.en)}</span></div>`
     ).join('');
@@ -2355,8 +2373,7 @@
     groupHeading.innerHTML = `<h4>${text(currentGroup.ko, currentGroup.en)}</h4><span>${text('프로필', 'Profiles')} ${String(groupProfiles[0].n).padStart(2, '0')}–${String(groupProfiles[groupProfiles.length - 1].n).padStart(2, '0')}</span>`;
     profileList.innerHTML = groupProfiles.map(profile => {
       const engine = SWING_POWER_ENGINES.find(item => item.code === profile.e);
-      const title = text(profile.ko[0], profile.en[0]);
-      const name = isEnglish ? profile.en[0] : profile.ko[0];
+      const name = getCanonicalSwingProfileName(profile, uiLanguage);
       return `<details class="app-profile-item"><summary><span class="app-profile-number">${String(profile.n).padStart(2, '0')}</span><span class="app-profile-title">${name}</span><span class="app-profile-engine">${profile.g} :: ${profile.e}</span></summary><div class="app-profile-details"><p><strong>${text('영문명', 'English name')}:</strong> ${profile.en[0]}</p><p><strong>${text('특징', 'Profile')}:</strong> ${text(profile.ko[1], profile.en[1])}</p><p><strong>${text('장점', 'Strengths')}:</strong> ${text(profile.ko[2], profile.en[2])}</p><p><strong>${text('단점/리스크', 'Trade-offs / Risks')}:</strong> ${text(profile.ko[3], profile.en[3])}</p><p><strong>${text('파워 엔진', 'Power engine')}:</strong> ${text(engine.ko, engine.en)}</p></div></details>`;
     }).join('');
   }
@@ -4821,8 +4838,8 @@
     if (!analysisSwingType) return;
     const result = classifySwingType();
     const labels = uiLanguage === 'en'
-      ? { type1: 'Type 1 · Axial-Rotation Focus', type2: 'Type 2 · Lower-Body Shift', type3: 'Type 3 · Core Compression-Expansion' }
-      : { type1: '유형 1 · 축회전 중심', type2: '유형 2 · 하체이동 중심', type3: '유형 3 · 코어 압축·팽창 중심' };
+      ? { type1: 'Type 1 · ATE · Axial-Torque Engine', type2: 'Type 2 · LSE · Linear-Shift Engine', type3: 'Type 3 · VEE · Vertical-Extension Engine' }
+      : { type1: '유형 1 · ATE · 축회전 중심형', type2: '유형 2 · LSE · 하체이동 중심형', type3: '유형 3 · VEE · 코어압축팽창 중심형' };
     const descriptions = uiLanguage === 'en'
       ? {
         type1: 'A swing focused on a stable C7/spinal axis, a wide arc, and horizontal rotational torque.',
@@ -4866,7 +4883,7 @@
         ? SWING_POWER_ENGINES.find(item => item.code === engineDecision.code) : null;
       const engineIndex = engine ? SWING_POWER_ENGINES.findIndex(item => item.code === engine.code) : -1;
       const engineName = engine
-        ? `${uiLanguage === 'en' ? engine.en : engine.ko} ${uiLanguage === 'en' ? 'Swing' : '스윙'}`
+        ? (uiLanguage === 'en' ? engine.en : engine.ko)
         : uiLanguage === 'en' ? 'Not determined' : '판정 보류';
       rows.push(`<section class="analysis-type-section analysis-profile-match"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Swing Classification' : '스윙 유형 분류'}</div>`
         + `<div class="analysis-classification-grid">`
@@ -4995,13 +5012,7 @@
   }
 
   function getMatchedSwingProfileName(profile) {
-    const backswingNames = uiLanguage === 'en'
-      ? { OPA: 'On-Plane Backswing', USP: 'Upright-Shallowing Backswing', OFP: 'Outside-Takeaway Backswing', 'HAP-A': 'Hybrid A Backswing', 'HAP-B': 'Hybrid B Backswing' }
-      : { OPA: '온플레인 백스윙', USP: '업라이트-샬로잉 백스윙', OFP: '아웃사이드 페이스 제어 백스윙', 'HAP-A': '하이브리드 A 백스윙', 'HAP-B': '하이브리드 B 백스윙' };
-    const engine = SWING_POWER_ENGINES.find(item => item.code === profile.e);
-    return uiLanguage === 'en'
-      ? `${backswingNames[profile.g]} × ${engine.en}`
-      : `${backswingNames[profile.g]} × ${engine.ko} 스윙`;
+    return getCanonicalSwingProfileName(profile, uiLanguage);
   }
 
   function buildTypeClassificationReportLines() {
@@ -5018,8 +5029,8 @@
     const result = classifySwingType();
     if (result) {
       const labels = uiLanguage === 'en'
-        ? { type1: 'Axial-Rotation Focus', type2: 'Lower-Body Shift', type3: 'Core Compression-Expansion' }
-        : { type1: '축회전 중심 스윙', type2: '하체이동 중심 스윙', type3: '코어압축팽창 중심 스윙' };
+        ? { type1: 'ATE · Axial-Torque Engine', type2: 'LSE · Linear-Shift Engine', type3: 'VEE · Vertical-Extension Engine' }
+        : { type1: 'ATE · 축회전 중심형', type2: 'LSE · 하체이동 중심형', type3: 'VEE · 코어압축팽창 중심형' };
       const engineDecision = getPowerEngineDecision(result);
       if (engineDecision && engineDecision.mode === 'fusion') {
         const types = engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ');
@@ -5528,6 +5539,11 @@
     const topC7 = top[0];
     const torso = Math.hypot(topC7.x - ball.x, topC7.y - ball.y);
     if (torso < 0.03) return { error: '어드레스 공과 탑 C7/어깨 기준점이 너무 가깝습니다. 기준점을 다시 찍으세요.' };
+    const p3ReturnDistance = Math.hypot(
+      (p3[0].x - transition[0].x) * getAnalysisAspect(frontVideo),
+      p3[0].y - transition[0].y,
+    ) / torso;
+    const p3ReturnScore = 1 - clamp(p3ReturnDistance / 0.35, 0, 1);
     if (Math.abs(p3[0].y - transition[0].y) / torso > 0.35) {
       return { error: '전환 프레임의 손 높이가 P3와 다릅니다. 내려오는 손이 P3와 비슷한 높이인 프레임을 선택하세요.' };
     }
@@ -5563,35 +5579,36 @@
     const shallowDelta = shaftAngle(p4) - shaftAngle(transition);
     const shallow = shallowDelta >= 12;
     const uprightShallow = upright && shallow;
+    const planeFit = planeChecks.filter(Boolean).length / planeChecks.length;
+    const outsideFit = clamp(outsideRatio / BACKSWING_OUTSIDE_THRESHOLD, 0, 1);
+    const uprightFit = clamp(uprightRatio / 0.3, 0, 1);
+    const shallowFit = clamp(shallowDelta / 12, 0, 1);
+    const onePlaneFit = (planeFit + (1 - shallowFit) + p3ReturnScore) / 3;
+    const candidates = [
+      { code: 'OPA', type: '1. 온플레인 패턴', fit: onePlaneFit },
+      { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: (uprightFit + shallowFit + p3ReturnScore) / 3 },
+      { code: 'OFP', type: '3. 아웃사이드 페이스 제어 패턴', fit: outsideFit },
+      { code: 'HAP-A', type: '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern)', fit: (outsideFit + uprightFit + shallowFit + p3ReturnScore) / 4 },
+      { code: 'HAP-B', type: '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern)', fit: (planeFit + uprightFit + shallowFit + p3ReturnScore) / 4 },
+    ].sort((a, b) => b.fit - a.fit);
+    const bestCandidate = candidates[0];
+    const runnerUpCandidate = candidates[1];
+    const candidateGap = bestCandidate.fit - runnerUpCandidate.fit;
+    const candidateIsClear = bestCandidate.fit >= 0.60 && candidateGap >= 0.10;
     let type = null;
     let profileCode = null;
     let nearMatch = false;
     let nearestScore = null;
-    if (outside && uprightShallow) type = '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)';
-    else if (plane && uprightShallow) type = '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)';
-    else if (uprightShallow) type = '2. 업라이트-샬로잉 패턴';
-    else if (outside) type = '3. 아웃사이드 페이스 제어 패턴';
-    else if (plane) type = '1. 온플레인 패턴';
-    if (!type) {
-      const planeFit = planeChecks.filter(Boolean).length / planeChecks.length;
-      const outsideFit = clamp(outsideRatio / BACKSWING_OUTSIDE_THRESHOLD, 0, 1);
-      const uprightFit = clamp(uprightRatio / 0.3, 0, 1);
-      const shallowFit = clamp(shallowDelta / 12, 0, 1);
-      const candidates = [
-        { code: 'OPA', type: '1. 온플레인 패턴', fit: planeFit },
-        { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: (uprightFit + shallowFit) / 2 },
-        { code: 'OFP', type: '3. 아웃사이드 페이스 제어 패턴', fit: outsideFit },
-        { code: 'HAP-A', type: '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)', fit: (outsideFit + uprightFit + shallowFit) / 3 },
-        { code: 'HAP-B', type: '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)', fit: (planeFit + uprightFit + shallowFit) / 3 },
-      ].sort((a, b) => b.fit - a.fit);
-      if (candidates[0].fit >= 0.60 && candidates[0].fit - candidates[1].fit >= 0.10) {
-        type = candidates[0].type;
-        profileCode = candidates[0].code;
-        nearMatch = true;
-        nearestScore = Math.round(candidates[0].fit * 100);
-      }
+    if (candidateIsClear) {
+      type = bestCandidate.type;
+      profileCode = bestCandidate.code;
+    } else if (bestCandidate.fit >= 0.45) {
+      type = bestCandidate.type;
+      profileCode = bestCandidate.code;
+      nearMatch = true;
+      nearestScore = Math.round(bestCandidate.fit * 100);
     }
-    return { type, profileCode, nearMatch, nearestScore, outside, outsideRatio, plane, upright, shallow, elbowAngle, lowerAngle, upperAngle, planeChecks, p4Angle: shaftAngle(p4), transitionAngle: shaftAngle(transition) };
+    return { type, profileCode, nearMatch, nearestScore, candidateGap, bestCandidateFit: bestCandidate.fit, outside, outsideRatio, plane, upright, shallow, p3ReturnDistance, p3ReturnScore, elbowAngle, lowerAngle, upperAngle, planeChecks, p4Angle: shaftAngle(p4), transitionAngle: shaftAngle(transition) };
   }
 
   backswingToggleBtn.addEventListener('click', () => {
@@ -5627,9 +5644,23 @@
     const title = document.createElement('button');
     title.type = 'button';
     title.className = 'backswing-result-title';
-    title.textContent = result.type
-      ? `${uiLanguage === 'en' ? 'Backswing Type ' : '백스윙 유형 '}${translateUiText(result.type)}${result.nearMatch ? (uiLanguage === 'en' ? ' (near match)' : ' (근접)') : ''}`
-      : uiLanguage === 'en' ? 'Backswing Type Undetermined' : '백스윙 유형 판정 보류';
+    const resultCodeItem = result.profileCode
+      ? SWING_BACKSWING_CODES.find(item => item.code === result.profileCode)
+      : null;
+    if (result.type && resultCodeItem) {
+      const resultPrefix = document.createElement('span');
+      resultPrefix.textContent = uiLanguage === 'en' ? 'Backswing Type' : '백스윙 유형';
+      const resultCode = document.createElement('span');
+      resultCode.className = 'backswing-result-code';
+      resultCode.textContent = resultCodeItem.code;
+      const resultKo = document.createElement('span');
+      resultKo.className = 'backswing-result-ko';
+      resultKo.textContent = `(${resultCodeItem.ko})`;
+      title.append(resultPrefix, resultCode, resultKo);
+      if (result.nearMatch) title.append(document.createTextNode(uiLanguage === 'en' ? ' (near match)' : ' (근접)'));
+    } else {
+      title.textContent = uiLanguage === 'en' ? 'Backswing Type Undetermined' : '백스윙 유형 판정 보류';
+    }
     title.setAttribute('aria-expanded', 'false');
     const detail = document.createElement('div');
     detail.className = 'backswing-result-detail';
@@ -5644,8 +5675,8 @@
       ? uiLanguage === 'en' ? `Closest pattern: ${translateUiText(result.type)} (${result.nearestScore}% fit). ` : `가장 가까운 유형에 근접 판정: ${result.type} (기준 적합도 ${result.nearestScore}%). `
       : result.type ? '' : uiLanguage === 'en' ? 'The video does not match any of the five defined patterns. ' : '다섯 패턴의 영상상 조건에 부합하지 않습니다. ';
     detail.textContent = uiLanguage === 'en'
-      ? `${classificationNote}On-Plane Corridor ${result.plane ? 'passed all phases' : 'has deviations'} (${translatedCorridor}) · Clubhead forward of the hands at P2: ${result.outside ? 'yes' : 'no'} (${(result.outsideRatio * 100).toFixed(1)}% torso; threshold ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · Address reference-line lower angle ${result.lowerAngle.toFixed(1)}° / elbow ${result.elbowAngle.toFixed(1)}° / upper angle ${result.upperAngle.toFixed(1)}° · Top hand height: ${result.upright ? 'high' : 'typical'} · Shaft shallowing at transition: ${result.shallow ? 'yes' : 'no'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`
-      : `${classificationNote}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${translatedCorridor}) · P2 클럽헤드 전방 위치 ${result.outside ? '해당' : '미해당'} (손 대비 ${(result.outsideRatio * 100).toFixed(1)}% 몸통 길이, 판정 기준 ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`;
+      ? `${classificationNote}On-Plane Corridor ${result.plane ? 'passed all phases' : 'has deviations'} (${translatedCorridor}) · Clubhead forward of the hands at P2: ${result.outside ? 'yes' : 'no'} (${(result.outsideRatio * 100).toFixed(1)}% torso; threshold ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · Address reference-line lower angle ${result.lowerAngle.toFixed(1)}° / elbow ${result.elbowAngle.toFixed(1)}° / upper angle ${result.upperAngle.toFixed(1)}° · Top hand height: ${result.upright ? 'high' : 'typical'} · Shaft shallowing at transition: ${result.shallow ? 'yes' : 'no'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°) · P3 hand return consistency: ${(result.p3ReturnScore * 100).toFixed(1)}% (${result.p3ReturnDistance.toFixed(3)} torso lengths).`
+      : `${classificationNote}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${translatedCorridor}) · P2 클럽헤드 전방 위치 ${result.outside ? '해당' : '미해당'} (손 대비 ${(result.outsideRatio * 100).toFixed(1)}% 몸통 길이, 판정 기준 ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°) · P3 손 복귀 일치도 ${(result.p3ReturnScore * 100).toFixed(1)}% (몸통 길이 대비 편차 ${result.p3ReturnDistance.toFixed(3)}).`;
     detail.hidden = true;
     title.addEventListener('click', () => {
       detail.hidden = !detail.hidden;
