@@ -4837,7 +4837,7 @@
     const rows = [];
     const engineDecision = result ? getPowerEngineDecision(result) : null;
     if (result) {
-      let headline = getSwingUiText('편차가 단독·혼합·TKE 판정 기준에 해당하지 않아 판정 보류', 'Undetermined: the fit spread does not meet the single, hybrid, or TKE criteria.');
+      let headline = getSwingUiText('후보 유형 간 차이가 작아 판정 보류', 'Undetermined: competing type combinations are too close.');
       if (engineDecision && engineDecision.mode === 'fusion') {
         headline = `${getSwingUiText('세 유형 융합(TKE): ', 'Three-way fusion (TKE): ')}${engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ')}`;
       } else if (engineDecision && engineDecision.mode === 'single') {
@@ -4931,7 +4931,9 @@
     }
 
     const leadPair = ranked.slice(0, 2);
-    if (leadPair[0][1] - leadPair[1][1] > 0.10 + thresholdEpsilon) {
+    const leadGap = leadPair[0][1] - leadPair[1][1];
+    if ((leadGap >= 0.135 - thresholdEpsilon && leadGap > 0.10 + thresholdEpsilon)
+      || ranked[1][1] - ranked[2][1] <= 0.02 + thresholdEpsilon) {
       return { code: null, mode: 'undetermined', types: [] };
     }
     const pairKey = leadPair.map(([type]) => type).sort().join('+');
@@ -4964,10 +4966,10 @@
         const ranked = Object.entries(swingResult.share).sort((a, b) => b[1] - a[1]);
         if (ranked.length === 3) {
           const leadGap = (ranked[0][1] - ranked[1][1]) * 100;
-          const fullSpread = (ranked[0][1] - ranked[2][1]) * 100;
+          const runnerUpGap = (ranked[1][1] - ranked[2][1]) * 100;
           warnings.push(getSwingUiText(
-            `엔진 판정 경계에 해당하지 않습니다: 최고-2위 차이 ${leadGap.toFixed(1)}%p, 전체 편차 ${fullSpread.toFixed(1)}%p. 단독은 최고 50% 초과 또는 2위와 14%p 이상 차이, 혼합은 최고·2위 차이 10%p 이내, TKE는 세 유형 전체 편차 10%p 이내일 때 판정합니다.`,
-            `No engine rule matched: the lead over second place is ${leadGap.toFixed(1)} pp and the full spread is ${fullSpread.toFixed(1)} pp. A single type requires a score above 50% or a lead of at least 14 pp; a hybrid requires the top two to be within 10 pp; TKE requires all three to be within 10 pp.`,
+            `엔진 후보 간 차이가 작습니다: 최고-2위 차이 ${leadGap.toFixed(1)}%p, 2위-3위 차이 ${runnerUpGap.toFixed(1)}%p. 단독 경계(14%p)와 0.5%p 이내이거나 혼합 상대인 2위·3위가 2%p 이내여서 보류합니다.`,
+            `Engine candidates are too close: the lead over second place is ${leadGap.toFixed(1)} pp and the gap between second and third is ${runnerUpGap.toFixed(1)} pp. Classification is held when the lead is within 0.5 pp of the single-type boundary (14 pp) or the hybrid partners are within 2 pp.`,
           ));
         } else {
           warnings.push(getSwingUiText('엔진 적합도 데이터 형식이 올바르지 않습니다. F1~F4를 다시 분석하세요.', 'The engine-fit data is invalid. Reanalyze F1-F4.'));
@@ -5029,7 +5031,7 @@
         const types = engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ');
         lines.push(`${getSwingUiText('스윙 유형 추정: ', 'Swing type estimate: ')}${types} (${getSwingUiText('혼합', 'hybrid')})`);
       } else {
-        lines.push(getSwingUiText('스윙 유형 추정: 편차가 단독·혼합·TKE 판정 기준에 해당하지 않아 판정 보류', 'Swing type estimate: Undetermined; the fit spread does not meet the single, hybrid, or TKE criteria.'));
+        lines.push(getSwingUiText('스윙 유형 추정: 후보 유형 간 차이가 작아 판정 보류', 'Swing type estimate: Undetermined; competing type combinations are too close.'));
       }
       lines.push(`${getSwingUiText('스윙 유형 상대 적합도: 유형1', 'Relative swing-type fit: Type 1')} ${result.pct.type1}% · ${getSwingUiText('유형2', 'Type 2')} ${result.pct.type2}% · ${getSwingUiText('유형3', 'Type 3')} ${result.pct.type3}%`);
     }
