@@ -5573,23 +5573,29 @@
     };
     const planeChecks = BACKSWING_PHASES.slice(1).map(phaseOnPlane);
     const plane = planeChecks.every(Boolean);
+    const topPlaneCheck = planeChecks[4] ? 1 : 0;
+    const intermediatePlaneChecks = planeChecks.filter((check, index) => index !== 4);
+    const intermediatePlaneFit = intermediatePlaneChecks.filter(Boolean).length / intermediatePlaneChecks.length;
+    // 어드레스와 탑을 주 앵커로 사용하고, P1~P4·전환은 촬영·선택 편차를 고려해 보조 근거로 반영한다.
+    const planeFit = topPlaneCheck * 0.70 + intermediatePlaneFit * 0.30;
+    const p3ReturnFit = 0.75 + p3ReturnScore * 0.25;
     const elbowAngle = angleFromBall(elbow);
     const uprightRatio = (addressHand.y - top[1].y) / torso;
-    const upright = uprightRatio > 0.3;
+    const uprightThreshold = 0.45;
+    const upright = uprightRatio > uprightThreshold;
     const shallowDelta = shaftAngle(p4) - shaftAngle(transition);
     const shallow = shallowDelta >= 12;
     const uprightShallow = upright && shallow;
-    const planeFit = planeChecks.filter(Boolean).length / planeChecks.length;
     const outsideFit = clamp(outsideRatio / BACKSWING_OUTSIDE_THRESHOLD, 0, 1);
-    const uprightFit = clamp(uprightRatio / 0.3, 0, 1);
+    const uprightFit = clamp(uprightRatio / uprightThreshold, 0, 1);
     const shallowFit = clamp(shallowDelta / 12, 0, 1);
-    const onePlaneFit = (planeFit + (1 - shallowFit) + p3ReturnScore) / 3;
+    const onePlaneFit = Math.min(planeFit, clamp(1 - shallowFit, 0, 1), p3ReturnFit);
     const candidates = [
       { code: 'OPA', type: '1. 온플레인 패턴', fit: onePlaneFit },
-      { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: (uprightFit + shallowFit + p3ReturnScore) / 3 },
+      { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: Math.min(uprightFit, shallowFit, p3ReturnFit) },
       { code: 'OFP', type: '3. 아웃사이드 페이스 제어 패턴', fit: outsideFit },
-      { code: 'HAP-A', type: '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern)', fit: (outsideFit + uprightFit + shallowFit + p3ReturnScore) / 4 },
-      { code: 'HAP-B', type: '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern)', fit: (planeFit + uprightFit + shallowFit + p3ReturnScore) / 4 },
+      { code: 'HAP-A', type: '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern)', fit: Math.min(outsideFit, uprightFit, shallowFit, p3ReturnFit) },
+      { code: 'HAP-B', type: '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern)', fit: Math.min(planeFit, uprightFit, shallowFit, p3ReturnFit) },
     ].sort((a, b) => b.fit - a.fit);
     const bestCandidate = candidates[0];
     const runnerUpCandidate = candidates[1];
