@@ -1052,10 +1052,38 @@
     border-radius: 7px;
     background: rgba(40, 125, 105, 0.14);
   }
+  .analysis-profile-warning {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 137, 112, 0.42);
+    border-radius: 7px;
+    background: rgba(128, 48, 36, 0.18);
+  }
+  .analysis-profile-warning .analysis-type-heading { color: #ffad98; }
+  .analysis-profile-warning > div + div { margin-top: 4px; }
   .analysis-profile-match .analysis-type-heading { color: #8ee0c9; }
+  .analysis-classification-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .analysis-classification-item { min-width: 0; }
+  .analysis-classification-item + .analysis-classification-item {
+    padding-left: 12px;
+    border-left: 1px solid rgba(111, 211, 188, 0.3);
+  }
   .analysis-profile-code { margin-top: 4px; color: #ffe2a0; font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; }
   .analysis-profile-name { margin-top: 3px; color: #effaf6; font-weight: 650; }
   .analysis-profile-basis { display: block; margin-top: 4px; color: #b8cccb; font-size: 0.8rem; }
+  @media (max-width: 640px) {
+    .analysis-classification-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .analysis-classification-item + .analysis-classification-item {
+      padding-left: 0;
+      padding-top: 8px;
+      border-left: 0;
+      border-top: 1px solid rgba(111, 211, 188, 0.3);
+    }
+  }
   .analysis-type-heading { color: #ffd76a; font-weight: 700; }
   .analysis-type-list { display: grid; gap: 6px; margin-top: 8px; }
   .analysis-type-row {
@@ -4643,7 +4671,60 @@
     return valid.reduce((sum, p) => sum + p.value * p.weight, 0) / w;
   }
 
+  function getSwingUiText(korean, english) {
+    return uiLanguage === 'en' ? english : korean;
+  }
+
+  function getSwingTypeReadiness() {
+    const frames = Object.fromEntries(['frame1', 'frame2', 'frame3', 'frame4'].map(frame => [
+      frame,
+      segmentDeltaHistory[frame] && segmentDeltaHistory[frame].fm,
+    ]));
+    const missingFrames = Object.entries(frames).filter(([, metrics]) => !metrics).map(([frame]) => frame.replace('frame', 'F'));
+    if (missingFrames.length) {
+      return { ready: false, missing: [getSwingUiText(
+        `필수 프레임 분석 누락: ${missingFrames.join(', ')}. 해당 프레임의 A/B 포인트를 완료하고 분석하세요.`,
+        `Required frame analyses are missing: ${missingFrames.join(', ')}. Complete the A/B points for those frames and analyze them.`,
+      )] };
+    }
+
+    const f1 = frames.frame1;
+    const f2 = frames.frame2;
+    const f3 = frames.frame3;
+    const f4 = frames.frame4;
+    const f5 = segmentDeltaHistory.frame5 && segmentDeltaHistory.frame5.fm;
+    const c7Displacement = hasMetric(f1.c7XPercent) && hasMetric(f1.c7YPercent)
+      ? Math.hypot(f1.c7XPercent, f1.c7YPercent) : null;
+    const hasAxisEvidence = hasMetric(c7Displacement) || hasMetric(f3.c7SwayPercent) || hasMetric(f3.c7RisePercent);
+    const hasUpperTurnEvidence = hasMetric(f1.xFactorDelta);
+    const hasLegDriveEvidence = hasMetric(f3.hipDropPercent)
+      || hasMetric(f3.kneeExtDelta) || hasMetric(f3.leadLegBraceRatioB);
+
+    const radiusTop = frameMetricsHistory.frame1 && frameMetricsHistory.frame1._swingRadiusB;
+    const radiusF2 = frameMetricsHistory.frame2 && frameMetricsHistory.frame2._swingRadiusB;
+    const radiusF4 = frameMetricsHistory.frame4 && frameMetricsHistory.frame4._swingRadiusB;
+    const swingCompression = hasMetric(radiusTop) && radiusTop > 0 && hasMetric(radiusF2)
+      ? (radiusTop - radiusF2) / radiusTop : null;
+    const swingExpansion = hasMetric(radiusF2) && radiusF2 > 0 && hasMetric(radiusF4)
+      ? (radiusF4 - radiusF2) / radiusF2 : null;
+    const hasCompressionEvidence = hasMetric(f2.radiusCompressionRatio)
+      || hasMetric(swingCompression) || hasMetric(swingExpansion);
+    const shiftRatio = f5 && hasMetric(f5.pelvisShiftRatio) ? Math.abs(f5.pelvisShiftRatio)
+      : hasMetric(f2.pelvisLateralDelta) ? Math.abs(f2.pelvisLateralDelta) : null;
+    const hasReleaseEvidence = hasMetric(f4.armShaftDelta);
+    const missing = [];
+
+    if (!hasAxisEvidence) missing.push(getSwingUiText('축 안정성: F1 C7 X/Y 변위 또는 F3 C7 Sway/Rise 지표가 필요합니다. 기준선과 해당 포인트를 확인하세요.', 'Axis stability: F1 C7 X/Y displacement or F3 C7 sway/rise data is missing. Check the reference line and relevant points.'));
+    if (!hasUpperTurnEvidence) missing.push(getSwingUiText('상체 회전: F1 어깨 회전(X-Factor) 지표가 없습니다. F1 A/B 분석을 다시 확인하세요.', 'Upper-body rotation: F1 shoulder rotation (X-Factor) data is missing. Check the F1 A/B analysis.'));
+    if (!hasLegDriveEvidence) missing.push(getSwingUiText('하체 구동: F3 고관절 하강·무릎 신전·리드레그 브레이싱 지표가 없습니다. F3 B패널 포인트를 확인하세요.', 'Leg drive: F3 hip drop, knee extension, or lead-leg bracing data is missing. Check the F3 B-panel points.'));
+    if (!hasCompressionEvidence) missing.push(getSwingUiText('압축·전개: F2 코어-손 압축 또는 F1/F2/F4 공통 반경 지표가 없습니다. 해당 프레임의 추가 포인트와 분석 결과를 확인하세요.', 'Compression/expansion: F2 core-to-hand compression or a shared F1/F2/F4 radius metric is missing. Check the additional points and analysis for those frames.'));
+    if (!hasMetric(shiftRatio)) missing.push(getSwingUiText('골반 이동: F5 골반 이동 또는 F2 코어 이동 지표가 없습니다. F2/F5 결과를 확인하세요.', 'Pelvis shift: F5 pelvis shift or F2 core movement data is missing. Check the F2/F5 results.'));
+    if (!hasReleaseEvidence) missing.push(getSwingUiText('릴리즈: F4 팔-샤프트 정렬 변화가 없습니다. F4 A/B 포인트를 확인하세요.', 'Release: F4 arm-shaft alignment change is missing. Check the F4 A/B points.'));
+    return { ready: missing.length === 0, missing };
+  }
+
   function classifySwingType() {
+    if (!getSwingTypeReadiness().ready) return null;
     const f1 = segmentDeltaHistory.frame1 && segmentDeltaHistory.frame1.fm;
     const f2 = segmentDeltaHistory.frame2 && segmentDeltaHistory.frame2.fm;
     const f3 = segmentDeltaHistory.frame3 && segmentDeltaHistory.frame3.fm;
@@ -4651,7 +4732,6 @@
     const f5 = segmentDeltaHistory.frame5 && segmentDeltaHistory.frame5.fm;
     const f6 = segmentDeltaHistory.frame6 && segmentDeltaHistory.frame6.fm;
     const analyzedCount = [f1, f2, f3, f4].filter(Boolean).length;
-    if (analyzedCount < 2) return null;
 
     const c7Displacement = f1 && hasMetric(f1.c7XPercent) && hasMetric(f1.c7YPercent)
       ? Math.hypot(f1.c7XPercent, f1.c7YPercent) : null;
@@ -4705,7 +4785,6 @@
         : f4.armShaftDelta >= 0 ? 0.5 + 0.5 * smoothstep01(f4.armShaftDelta / 100)
           : rampScore(f4.armShaftDelta, -60, 0) * 0.5)
       : null;
-
     // 유형1 — 낮은 하체 구동 proxy, 고정축, 상체 회전 중심
     const type1 = weightedAvg01([
       { value: axisStability, weight: 0.50 },
@@ -4726,73 +4805,101 @@
       { value: tempoFit, weight: 0.10 },
     ]);
 
-    const raw = { type1: type1 || 0, type2: type2 || 0, type3: type3 || 0 };
-    const total = raw.type1 + raw.type2 + raw.type3;
+    const scores = { type1, type2, type3 };
+    if (Object.values(scores).some(score => !hasMetric(score))) return null;
+    const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
     if (total <= 0) return null;
 
-    const pct = {
-      type1: Math.round(raw.type1 / total * 100),
-      type2: Math.round(raw.type2 / total * 100),
-      type3: Math.round(raw.type3 / total * 100),
-    };
-    const correctionType = Object.entries(raw).sort((a, b) => b[1] - a[1])[0][0];
-    pct[correctionType] += 100 - (pct.type1 + pct.type2 + pct.type3);
-    return { pct, analyzedCount };
+    const share = Object.fromEntries(Object.entries(scores).map(([type, score]) => [type, score / total]));
+    const pct = Object.fromEntries(Object.entries(share).map(([type, ratio]) => [type, Math.round(ratio * 1000) / 10]));
+    const correctionType = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+    pct[correctionType] = Math.round((pct[correctionType] + 100 - Object.values(pct).reduce((sum, value) => sum + value, 0)) * 10) / 10;
+    return { pct, share, analyzedCount };
   }
 
   function updateSwingTypeCard() {
     if (!analysisSwingType) return;
     const result = classifySwingType();
-    if (!result && !backswingClassification) {
-      analysisSwingType.innerHTML = '<strong>스윙 유형 추정:</strong> F1~F4 중 2개 이상 분석하면 표시됩니다. F5/F6은 보조 근거로 반영됩니다.';
-      return;
-    }
-    const labels = {
-      type1: '유형 1 · 축회전 중심',
-      type2: '유형 2 · 하체이동 중심',
-      type3: '유형 3 · 코어 압축·팽창 중심',
-    };
-    const descriptions = {
-      type1: 'C7/척추축을 정밀하게 고정한 상태에서 넓은 아크와 수평 회전 토크를 극대화하는 스윙',
-      type2: '다운스윙 전환 시 하체(골반/CoM)의 타깃 이동을 선행시켜 묵직한 가속을 만드는 클래식 스윙',
-      type3: '하체 눌림(Squat)으로 지면을 압박한 뒤 폭발적으로 차오르며 채찍 효과를 만드는 스윙',
-    };
+    const labels = uiLanguage === 'en'
+      ? { type1: 'Type 1 · Axial-Rotation Focus', type2: 'Type 2 · Lower-Body Shift', type3: 'Type 3 · Core Compression-Expansion' }
+      : { type1: '유형 1 · 축회전 중심', type2: '유형 2 · 하체이동 중심', type3: '유형 3 · 코어 압축·팽창 중심' };
+    const descriptions = uiLanguage === 'en'
+      ? {
+        type1: 'A swing focused on a stable C7/spinal axis, a wide arc, and horizontal rotational torque.',
+        type2: 'A classic swing that leads the downswing transition with targetward movement of the pelvis and center of mass.',
+        type3: 'A swing that loads the ground through a squat, then drives upward to create a whip-like release.',
+      }
+      : {
+        type1: 'C7/척추축을 정밀하게 고정한 상태에서 넓은 아크와 수평 회전 토크를 극대화하는 스윙',
+        type2: '다운스윙 전환 시 하체(골반/CoM)의 타깃 이동을 선행시켜 묵직한 가속을 만드는 클래식 스윙',
+        type3: '하체 눌림(Squat)으로 지면을 압박한 뒤 폭발적으로 차오르며 채찍 효과를 만드는 스윙',
+      };
     const rows = [];
+    const engineDecision = result ? getPowerEngineDecision(result) : null;
     if (result) {
-      const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
-      const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
-        ? `${labels[sorted[0][0]]} ${sorted[0][1]}%`
-        : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}%`;
+      let headline = getSwingUiText('편차가 단독·혼합·TKE 판정 기준에 해당하지 않아 판정 보류', 'Undetermined: the fit spread does not meet the single, hybrid, or TKE criteria.');
+      if (engineDecision && engineDecision.mode === 'fusion') {
+        headline = `${getSwingUiText('세 유형 융합(TKE): ', 'Three-way fusion (TKE): ')}${engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ')}`;
+      } else if (engineDecision && engineDecision.mode === 'single') {
+        const type = engineDecision.types[0];
+        headline = `${labels[type]} ${result.pct[type]}% (${getSwingUiText('단독', 'single')})`;
+      } else if (engineDecision && engineDecision.mode === 'hybrid') {
+        headline = `${engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ')} (${getSwingUiText('혼합', 'hybrid')})`;
+      }
       const fitRows = Object.entries(result.pct).map(([key, pct]) =>
         `<div class="analysis-type-row"><span class="analysis-type-row-label" title="${descriptions[key]}">${labels[key]}</span>`
         + `<span class="analysis-type-row-value">${pct}%</span><div class="analysis-type-bar" aria-hidden="true">`
         + `<span class="analysis-type-bar-fill" style="width:${pct}%"></span></div></div>`
       ).join('');
-      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">스윙 유형 추정</div>`
-        + `<div><strong>주요 적합 조합:</strong> ${headline}</div>`
+      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('스윙 유형 추정', 'Swing Type Estimate')}</div>`
+        + `<div><strong>${getSwingUiText('주요 적합 조합:', 'Leading fit:')}</strong> ${headline}</div>`
         + `<div class="analysis-type-list">${fitRows}</div>`
-        + `<span class="swing-type-note">F1~F6 지표 기반 상대 적합도 · GRF는 2D 동작 proxy 추정치</span></section>`);
+        + `<span class="swing-type-note">${getSwingUiText('F1~F4 주 지표 + F5 이동 보조 근거 · GRF는 2D 동작 proxy 추정치', 'Primary evidence from F1-F4 plus F5 pelvis-shift support · GRF is estimated from 2D motion proxies.')}</span></section>`);
     }
-    if (backswingClassification) {
-      const backswingLabel = backswingClassification.type || '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)';
-      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">백스윙 유형</div>`
-        + `<div>${backswingLabel}</div></section>`);
+    if (backswingClassification || result) {
+      const backswingCode = getBackswingProfileCode(backswingClassification);
+      const backswingIndex = SWING_BACKSWING_CODES.findIndex(item => item.code === backswingCode);
+      const backswingLabel = backswingClassification && backswingClassification.type
+        ? `${translateUiText(backswingClassification.type)}${backswingClassification.nearMatch ? (uiLanguage === 'en' ? ' (near match)' : ' (근접)') : ''}`
+        : uiLanguage === 'en' ? 'Unclassified' : '판정 보류';
+      const engine = engineDecision && engineDecision.code
+        ? SWING_POWER_ENGINES.find(item => item.code === engineDecision.code) : null;
+      const engineIndex = engine ? SWING_POWER_ENGINES.findIndex(item => item.code === engine.code) : -1;
+      const engineName = engine
+        ? `${uiLanguage === 'en' ? engine.en : engine.ko} ${uiLanguage === 'en' ? 'Swing' : '스윙'}`
+        : uiLanguage === 'en' ? 'Not determined' : '판정 보류';
+      rows.push(`<section class="analysis-type-section analysis-profile-match"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Swing Classification' : '스윙 유형 분류'}</div>`
+        + `<div class="analysis-classification-grid">`
+        + `<div class="analysis-classification-item"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Backswing Type' : '백스윙 유형'}</div>`
+        + `<div class="analysis-profile-code">${backswingIndex >= 0 ? `${String(backswingIndex + 1).padStart(2, '0')} · ${backswingCode}` : '—'}</div>`
+        + `<div class="analysis-profile-name">${backswingLabel}</div></div>`
+        + `<div class="analysis-classification-item"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Swing Power Engine' : '스윙 파워 엔진'}</div>`
+        + `<div class="analysis-profile-code">${engine ? `${String(engineIndex + 1).padStart(2, '0')} · ${engine.code}` : '—'}</div>`
+        + `<div class="analysis-profile-name">${engineName}</div></div></div></section>`);
     }
     const matchedProfile = getMatchedSwingProfile(backswingClassification, result);
     if (matchedProfile) {
       const profileName = getMatchedSwingProfileName(matchedProfile);
-      const basis = uiLanguage === 'en'
-        ? 'Matched from the backswing path and swing power-engine classifications.'
-        : '백스윙 궤적 분류와 스윙 파워 엔진 분류를 조합한 결과';
-      rows.push(`<section class="analysis-type-section analysis-profile-match"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Matched Swing Profile' : '매칭 스윙 프로필'}</div>`
+      const isNearMatch = Boolean(backswingClassification && backswingClassification.nearMatch);
+      const basis = isNearMatch
+        ? uiLanguage === 'en' ? 'Nearest profile candidate based on the backswing path and swing power-engine classifications.' : '백스윙 궤적의 근접 후보와 스윙 파워 엔진 분류를 조합한 가장 가까운 프로필 후보'
+        : uiLanguage === 'en' ? 'Matched from the backswing path and swing power-engine classifications.' : '백스윙 궤적 분류와 스윙 파워 엔진 분류를 조합한 결과';
+      rows.push(`<section class="analysis-type-section analysis-profile-match"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Matched Swing Profile' : '매칭 스윙 프로필'}${isNearMatch ? (uiLanguage === 'en' ? ' (nearest candidate)' : ' (근접 후보)') : ''}</div>`
         + `<div class="analysis-profile-code">Profile ${String(matchedProfile.n).padStart(2, '0')} · [${matchedProfile.g} :: ${matchedProfile.e}]</div>`
         + `<div class="analysis-profile-name">${profileName}</div><span class="analysis-profile-basis">${basis}</span></section>`);
+    }
+    const profileWarnings = getSwingProfileWarnings(backswingClassification, result);
+    if (profileWarnings.length) {
+      rows.push(`<section class="analysis-type-section analysis-profile-warning"><div class="analysis-type-heading">${getSwingUiText('매칭 스윙 프로필 판정 안내', 'Matched Swing Profile Diagnostic')}</div>`
+        + profileWarnings.map(warning => `<div>${warning}</div>`).join('')
+        + `<div>${getSwingUiText('누락된 분석을 보완하면 결과가 자동으로 다시 판정됩니다.', 'Complete the missing analysis and the result will be recalculated automatically.')}</div></section>`);
     }
     analysisSwingType.innerHTML = rows.join('');
   }
 
   function getBackswingProfileCode(result) {
     if (!result) return null;
+    if (result.profileCode) return result.profileCode;
     if (result.outside && result.upright && result.shallow) return 'HAP-A';
     if (result.plane && result.upright && result.shallow) return 'HAP-B';
     if (result.upright && result.shallow) return 'USP';
@@ -4802,19 +4909,80 @@
   }
 
   function getPowerEngineCode(result) {
-    if (!result || !result.pct) return null;
-    const ranked = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
+    return getPowerEngineDecision(result)?.code || null;
+  }
+
+  function getPowerEngineDecision(result) {
+    if (!result || !result.share) return null;
+    const ranked = Object.entries(result.share).sort((a, b) => b[1] - a[1]);
+    if (ranked.length !== 3 || ranked.some(([, ratio]) => !hasMetric(ratio))) return null;
     const engineForType = { type1: 'ATE', type2: 'LSE', type3: 'VEE' };
-    if (ranked[0][1] >= 80 || ranked[1][1] < 15) return engineForType[ranked[0][0]];
-    const active = ranked.filter(([, percentage]) => percentage >= 15).map(([type]) => type);
-    if (active.length >= 3) return 'TKE';
-    const pairKey = active.sort().join('+');
     const hybridEngines = {
       'type1+type2': 'RLH',
       'type1+type3': 'RVH',
       'type2+type3': 'LVH',
     };
-    return hybridEngines[pairKey] || engineForType[ranked[0][0]];
+    const thresholdEpsilon = 1e-9;
+    if (ranked[0][1] - ranked[2][1] <= 0.10 + thresholdEpsilon) {
+      return { code: 'TKE', mode: 'fusion', types: ranked.map(([type]) => type) };
+    }
+    if (ranked[0][1] > 0.50 || ranked[0][1] - ranked[1][1] >= 0.14 - thresholdEpsilon) {
+      return { code: engineForType[ranked[0][0]], mode: 'single', types: [ranked[0][0]] };
+    }
+
+    const leadPair = ranked.slice(0, 2);
+    if (leadPair[0][1] - leadPair[1][1] > 0.10 + thresholdEpsilon) {
+      return { code: null, mode: 'undetermined', types: [] };
+    }
+    const pairKey = leadPair.map(([type]) => type).sort().join('+');
+    return { code: hybridEngines[pairKey], mode: 'hybrid', types: leadPair.map(([type]) => type) };
+  }
+
+  function getSwingProfileWarnings(backResult, swingResult) {
+    const warnings = [];
+    const backswingCode = getBackswingProfileCode(backResult);
+    let engineDecision = null;
+
+    if (backResult && backResult.nearMatch) {
+      warnings.push(getSwingUiText(
+        `백스윙은 ${backResult.type}에 근접합니다(기준 적합도 ${backResult.nearestScore}%). 확정 판정이 아닌 가장 가까운 프로필 후보입니다.`,
+        `Backswing is closest to ${translateUiText(backResult.type)} (${backResult.nearestScore}% fit). This is the nearest profile candidate, not a definitive classification.`,
+      ));
+    } else if (!backResult) {
+      warnings.push(getSwingUiText('백스윙 궤적 분류가 없습니다. 백스윙 유형 결정에서 7개 시점을 완료하세요.', 'No backswing-path classification is available. Complete all seven checkpoints in Backswing Type Classification.'));
+    } else if (!backswingCode) {
+      warnings.push(getSwingUiText('백스윙 측정값이 5개 프로필 그룹 중 하나로 분류되지 않았습니다. P2, 탑, 전환 포인트를 확인하고 백스윙 유형을 다시 판정하세요.', 'The backswing measurements do not match any of the five profile groups. Check the P2, top, and transition points, then classify the backswing again.'));
+    }
+
+    if (!swingResult) {
+      const readiness = getSwingTypeReadiness();
+      if (readiness.missing.length) warnings.push(...readiness.missing);
+      else warnings.push(getSwingUiText('근거 지표는 준비됐지만 세 유형 점수 합계가 0이어서 엔진을 판정하지 못했습니다. 입력 좌표와 기준선을 확인한 뒤 프레임을 다시 분석하세요.', 'The evidence is available, but all three type scores sum to zero. Check the points and reference line, then reanalyze the frames.'));
+    } else {
+      engineDecision = getPowerEngineDecision(swingResult);
+      if (!engineDecision || !engineDecision.code) {
+        const ranked = Object.entries(swingResult.share).sort((a, b) => b[1] - a[1]);
+        if (ranked.length === 3) {
+          const leadGap = (ranked[0][1] - ranked[1][1]) * 100;
+          const fullSpread = (ranked[0][1] - ranked[2][1]) * 100;
+          warnings.push(getSwingUiText(
+            `엔진 판정 경계에 해당하지 않습니다: 최고-2위 차이 ${leadGap.toFixed(1)}%p, 전체 편차 ${fullSpread.toFixed(1)}%p. 단독은 최고 50% 초과 또는 2위와 14%p 이상 차이, 혼합은 최고·2위 차이 10%p 이내, TKE는 세 유형 전체 편차 10%p 이내일 때 판정합니다.`,
+            `No engine rule matched: the lead over second place is ${leadGap.toFixed(1)} pp and the full spread is ${fullSpread.toFixed(1)} pp. A single type requires a score above 50% or a lead of at least 14 pp; a hybrid requires the top two to be within 10 pp; TKE requires all three to be within 10 pp.`,
+          ));
+        } else {
+          warnings.push(getSwingUiText('엔진 적합도 데이터 형식이 올바르지 않습니다. F1~F4를 다시 분석하세요.', 'The engine-fit data is invalid. Reanalyze F1-F4.'));
+        }
+      }
+    }
+
+    if (backswingCode && engineDecision && engineDecision.code
+      && !SWING_PROFILE_DATA.some(profile => profile.g === backswingCode && profile.e === engineDecision.code)) {
+      warnings.push(getSwingUiText(
+        `분류 조합 [${backswingCode} :: ${engineDecision.code}]에 해당하는 프로필 번호가 목록에 없습니다.`,
+        `No profile number is registered for the classification pair [${backswingCode} :: ${engineDecision.code}].`,
+      ));
+    }
+    return warnings;
   }
 
   function getMatchedSwingProfile(backResult = backswingClassification, swingResult = classifySwingType()) {
@@ -4837,27 +5005,44 @@
   function buildTypeClassificationReportLines() {
     const lines = [];
     if (backswingClassification) {
-      lines.push(`백스윙 유형: ${backswingClassification.type || '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)'}`);
+      const nearLabel = backswingClassification.nearMatch
+        ? getSwingUiText(` (근접 후보 ${backswingClassification.nearestScore}%)`, ` (nearest candidate, ${backswingClassification.nearestScore}% fit)`)
+        : '';
+      const backswingType = backswingClassification.type
+        ? translateUiText(backswingClassification.type)
+        : getSwingUiText('판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)', 'Undetermined (does not match any of the five defined patterns)');
+      lines.push(`${getSwingUiText('백스윙 유형: ', 'Backswing type: ')}${backswingType}${nearLabel}`);
     }
     const result = classifySwingType();
     if (result) {
-      const labels = {
-        type1: '축회전 중심 스윙',
-        type2: '하체이동 중심 스윙',
-        type3: '코어압축팽창 중심 스윙',
-      };
-      const sorted = Object.entries(result.pct).sort((a, b) => b[1] - a[1]);
-      const headline = sorted[0][1] >= 80 || sorted[1][1] < 15
-        ? `${labels[sorted[0][0]]} ${sorted[0][1]}%`
-        : `${labels[sorted[0][0]]} ${sorted[0][1]}% + ${labels[sorted[1][0]]} ${sorted[1][1]}% 하이브리드`;
-      lines.push(`스윙 유형 추정: ${headline}`);
-      lines.push(`스윙 유형 상대 적합도: 유형1 ${result.pct.type1}% · 유형2 ${result.pct.type2}% · 유형3 ${result.pct.type3}%`);
+      const labels = uiLanguage === 'en'
+        ? { type1: 'Axial-Rotation Focus', type2: 'Lower-Body Shift', type3: 'Core Compression-Expansion' }
+        : { type1: '축회전 중심 스윙', type2: '하체이동 중심 스윙', type3: '코어압축팽창 중심 스윙' };
+      const engineDecision = getPowerEngineDecision(result);
+      if (engineDecision && engineDecision.mode === 'fusion') {
+        const types = engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ');
+        lines.push(`${getSwingUiText('스윙 유형 추정: 세 유형 융합(TKE) ', 'Swing type estimate: Three-way fusion (TKE) ')}${types}`);
+      } else if (engineDecision && engineDecision.mode === 'single') {
+        const type = engineDecision.types[0];
+        lines.push(`${getSwingUiText('스윙 유형 추정: ', 'Swing type estimate: ')}${labels[type]} ${result.pct[type]}% (${getSwingUiText('단독', 'single')})`);
+      } else if (engineDecision && engineDecision.mode === 'hybrid') {
+        const types = engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ');
+        lines.push(`${getSwingUiText('스윙 유형 추정: ', 'Swing type estimate: ')}${types} (${getSwingUiText('혼합', 'hybrid')})`);
+      } else {
+        lines.push(getSwingUiText('스윙 유형 추정: 편차가 단독·혼합·TKE 판정 기준에 해당하지 않아 판정 보류', 'Swing type estimate: Undetermined; the fit spread does not meet the single, hybrid, or TKE criteria.'));
+      }
+      lines.push(`${getSwingUiText('스윙 유형 상대 적합도: 유형1', 'Relative swing-type fit: Type 1')} ${result.pct.type1}% · ${getSwingUiText('유형2', 'Type 2')} ${result.pct.type2}% · ${getSwingUiText('유형3', 'Type 3')} ${result.pct.type3}%`);
     }
     const matchedProfile = getMatchedSwingProfile();
     if (matchedProfile) {
+      const nearLabel = backswingClassification && backswingClassification.nearMatch
+        ? getSwingUiText(' (근접 후보)', ' (nearest candidate)') : '';
       lines.push(uiLanguage === 'en'
-        ? `Matched swing profile: ${String(matchedProfile.n).padStart(2, '0')}. [${matchedProfile.g} :: ${matchedProfile.e}] ${getMatchedSwingProfileName(matchedProfile)}`
-        : `매칭 스윙 프로필: ${String(matchedProfile.n).padStart(2, '0')}. [${matchedProfile.g} :: ${matchedProfile.e}] ${getMatchedSwingProfileName(matchedProfile)}`);
+        ? `Matched swing profile${nearLabel}: ${String(matchedProfile.n).padStart(2, '0')}. [${matchedProfile.g} :: ${matchedProfile.e}] ${getMatchedSwingProfileName(matchedProfile)}`
+        : `매칭 스윙 프로필${nearLabel}: ${String(matchedProfile.n).padStart(2, '0')}. [${matchedProfile.g} :: ${matchedProfile.e}] ${getMatchedSwingProfileName(matchedProfile)}`);
+    } else {
+      const warningPrefix = getSwingUiText('매칭 프로필 판정 안내: ', 'Matched profile diagnostic: ');
+      lines.push(...getSwingProfileWarnings(backswingClassification, result).map(warning => `${warningPrefix}${warning}`));
     }
     return lines;
   }
@@ -5192,6 +5377,7 @@
 
   let frontPoints = [];
   const BACKSWING_PHASES = ['address', 'p1', 'p2', 'p3', 'p4', 'top', 'transition'];
+  const BACKSWING_OUTSIDE_THRESHOLD = 0.05;
   const BACKSWING_POINT_LABELS = {
     address: ['공/클럽헤드 위치', '어드레스 손/그립', '오른 팔꿈치'],
     top: ['탑 C7/어깨 기준점', '탑 손/그립', '탑 클럽헤드'],
@@ -5276,7 +5462,6 @@
     const top = backswingFrames.top?.points || [];
     const ball = address[0];
     const addressHand = address[1];
-    const addressHead = address[0];
     const elbow = address[2];
     const topC7 = top[0];
     const drawRay = (from, to, color, dash) => {
@@ -5292,7 +5477,7 @@
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
       ctx.restore();
     };
-    drawRay(ball, addressHead || addressHand, '#53e5b5');
+    drawRay(ball, addressHand, '#53e5b5');
     drawRay(ball, elbow, '#ffd166', [6 * scale, 4 * scale]);
     drawRay(ball, topC7, '#ff6b6b');
     ctx.restore();
@@ -5337,7 +5522,6 @@
     const transition = frames.transition.points;
     const ball = address[0];
     const addressHand = address[1];
-    const addressHead = address[0];
     const elbow = address[2];
     const topC7 = top[0];
     const torso = Math.hypot(topC7.x - ball.x, topC7.y - ball.y);
@@ -5347,10 +5531,14 @@
     }
     const backswingAspect = getAnalysisAspect(frontVideo);
     const shaftAngle = points => Math.atan2(Math.abs(points[1].y - points[0].y), Math.abs(points[1].x - points[0].x) * backswingAspect) * 180 / Math.PI;
-    const outside = (Math.abs(p2[1].x - ball.x) - Math.abs(p2[0].x - ball.x)) / torso > 0.15;
+    const addressFrontDirection = Math.sign(ball.x - elbow.x) || Math.sign(ball.x - addressHand.x);
+    if (!addressFrontDirection) return { error: '어드레스 공과 손/팔꿈치의 좌우 방향을 구분할 수 없습니다. 어드레스 기준점을 다시 선택하세요.' };
+    const torsoAspect = Math.hypot((topC7.x - ball.x) * backswingAspect, topC7.y - ball.y);
+    const outsideRatio = ((p2[1].x - p2[0].x) * addressFrontDirection * backswingAspect) / torsoAspect;
+    const outside = outsideRatio > BACKSWING_OUTSIDE_THRESHOLD;
     const angleFromBall = point => Math.atan2(point.y - ball.y, (point.x - ball.x) * backswingAspect) * 180 / Math.PI;
     const normalizeAngle = angle => ((angle + 540) % 360) - 180;
-    const lowerAngle = angleFromBall(addressHead || addressHand);
+    const lowerAngle = angleFromBall(addressHand);
     const upperAngle = angleFromBall(topC7);
     // 각도는 -180/180 경계를 넘을 수 있으므로 min/max가 아니라
     // 하한에서 상한까지의 진행 방향으로 비교한다.
@@ -5368,16 +5556,40 @@
     const planeChecks = BACKSWING_PHASES.slice(1).map(phaseOnPlane);
     const plane = planeChecks.every(Boolean);
     const elbowAngle = angleFromBall(elbow);
-    const upright = (addressHand.y - top[1].y) / torso > 0.3;
-    const shallow = shaftAngle(p4) - shaftAngle(transition) >= 12;
+    const uprightRatio = (addressHand.y - top[1].y) / torso;
+    const upright = uprightRatio > 0.3;
+    const shallowDelta = shaftAngle(p4) - shaftAngle(transition);
+    const shallow = shallowDelta >= 12;
     const uprightShallow = upright && shallow;
     let type = null;
+    let profileCode = null;
+    let nearMatch = false;
+    let nearestScore = null;
     if (outside && uprightShallow) type = '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)';
     else if (plane && uprightShallow) type = '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)';
     else if (uprightShallow) type = '2. 업라이트-샬로잉 패턴';
     else if (outside) type = '3. 아웃사이드 페이스 제어 패턴';
     else if (plane) type = '1. 온플레인 패턴';
-    return { type, outside, plane, upright, shallow, elbowAngle, lowerAngle, upperAngle, planeChecks, p4Angle: shaftAngle(p4), transitionAngle: shaftAngle(transition) };
+    if (!type) {
+      const planeFit = planeChecks.filter(Boolean).length / planeChecks.length;
+      const outsideFit = clamp(outsideRatio / BACKSWING_OUTSIDE_THRESHOLD, 0, 1);
+      const uprightFit = clamp(uprightRatio / 0.3, 0, 1);
+      const shallowFit = clamp(shallowDelta / 12, 0, 1);
+      const candidates = [
+        { code: 'OPA', type: '1. 온플레인 패턴', fit: planeFit },
+        { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: (uprightFit + shallowFit) / 2 },
+        { code: 'OFP', type: '3. 아웃사이드 페이스 제어 패턴', fit: outsideFit },
+        { code: 'HAP-A', type: '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)', fit: (outsideFit + uprightFit + shallowFit) / 3 },
+        { code: 'HAP-B', type: '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)', fit: (planeFit + uprightFit + shallowFit) / 3 },
+      ].sort((a, b) => b.fit - a.fit);
+      if (candidates[0].fit >= 0.60 && candidates[0].fit - candidates[1].fit >= 0.10) {
+        type = candidates[0].type;
+        profileCode = candidates[0].code;
+        nearMatch = true;
+        nearestScore = Math.round(candidates[0].fit * 100);
+      }
+    }
+    return { type, profileCode, nearMatch, nearestScore, outside, outsideRatio, plane, upright, shallow, elbowAngle, lowerAngle, upperAngle, planeChecks, p4Angle: shaftAngle(p4), transitionAngle: shaftAngle(transition) };
   }
 
   backswingToggleBtn.addEventListener('click', () => {
@@ -5414,7 +5626,7 @@
     title.type = 'button';
     title.className = 'backswing-result-title';
     title.textContent = result.type
-      ? `${uiLanguage === 'en' ? 'Backswing Type ' : '백스윙 유형 '}${translateUiText(result.type)}`
+      ? `${uiLanguage === 'en' ? 'Backswing Type ' : '백스윙 유형 '}${translateUiText(result.type)}${result.nearMatch ? (uiLanguage === 'en' ? ' (near match)' : ' (근접)') : ''}`
       : uiLanguage === 'en' ? 'Backswing Type Undetermined' : '백스윙 유형 판정 보류';
     title.setAttribute('aria-expanded', 'false');
     const detail = document.createElement('div');
@@ -5426,9 +5638,12 @@
     const translatedCorridor = uiLanguage === 'en'
       ? BACKSWING_PHASES.slice(1).map((phase, index) => `${phaseLabels[phase]} ${result.planeChecks[index] ? 'passed' : 'deviated'}`).join(' · ')
       : corridorText;
+    const classificationNote = result.nearMatch
+      ? uiLanguage === 'en' ? `Closest pattern: ${translateUiText(result.type)} (${result.nearestScore}% fit). ` : `가장 가까운 유형에 근접 판정: ${result.type} (기준 적합도 ${result.nearestScore}%). `
+      : result.type ? '' : uiLanguage === 'en' ? 'The video does not match any of the five defined patterns. ' : '다섯 패턴의 영상상 조건에 부합하지 않습니다. ';
     detail.textContent = uiLanguage === 'en'
-      ? `${result.type ? '' : 'The video does not match any of the five defined patterns. '}On-Plane Corridor ${result.plane ? 'passed all phases' : 'has deviations'} (${translatedCorridor}) · Clubhead outside the hands at P2: ${result.outside ? 'yes' : 'no'} · Address reference-line lower angle ${result.lowerAngle.toFixed(1)}° / elbow ${result.elbowAngle.toFixed(1)}° / upper angle ${result.upperAngle.toFixed(1)}° · Top hand height: ${result.upright ? 'high' : 'typical'} · Shaft shallowing at transition: ${result.shallow ? 'yes' : 'no'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`
-      : `${result.type ? '' : '다섯 패턴의 영상상 조건에 부합하지 않습니다. '}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${translatedCorridor}) · P2 클럽헤드 바깥 ${result.outside ? '해당' : '미해당'} · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`;
+      ? `${classificationNote}On-Plane Corridor ${result.plane ? 'passed all phases' : 'has deviations'} (${translatedCorridor}) · Clubhead forward of the hands at P2: ${result.outside ? 'yes' : 'no'} (${(result.outsideRatio * 100).toFixed(1)}% torso; threshold ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · Address reference-line lower angle ${result.lowerAngle.toFixed(1)}° / elbow ${result.elbowAngle.toFixed(1)}° / upper angle ${result.upperAngle.toFixed(1)}° · Top hand height: ${result.upright ? 'high' : 'typical'} · Shaft shallowing at transition: ${result.shallow ? 'yes' : 'no'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`
+      : `${classificationNote}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${translatedCorridor}) · P2 클럽헤드 전방 위치 ${result.outside ? '해당' : '미해당'} (손 대비 ${(result.outsideRatio * 100).toFixed(1)}% 몸통 길이, 판정 기준 ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · 전환 샤프트 완만화 ${result.shallow ? '해당' : '미해당'} (${result.p4Angle.toFixed(1)}° → ${result.transitionAngle.toFixed(1)}°).`;
     detail.hidden = true;
     title.addEventListener('click', () => {
       detail.hidden = !detail.hidden;
