@@ -5574,6 +5574,8 @@
     const planeChecks = BACKSWING_PHASES.slice(1).map(phaseOnPlane);
     const plane = planeChecks.every(Boolean);
     const topPlaneCheck = planeChecks[4] ? 1 : 0;
+    const earlyPlaneChecks = planeChecks.slice(0, 3);
+    const earlyPlaneFit = earlyPlaneChecks.filter(Boolean).length / earlyPlaneChecks.length;
     const intermediatePlaneChecks = planeChecks.filter((check, index) => index !== 4);
     const intermediatePlaneFit = intermediatePlaneChecks.filter(Boolean).length / intermediatePlaneChecks.length;
     // 어드레스와 탑을 주 앵커로 사용하고, P1~P4·전환은 촬영·선택 편차를 고려해 보조 근거로 반영한다.
@@ -5589,13 +5591,14 @@
     const outsideFit = clamp(outsideRatio / BACKSWING_OUTSIDE_THRESHOLD, 0, 1);
     const uprightFit = clamp(uprightRatio / uprightThreshold, 0, 1);
     const shallowFit = clamp(shallowDelta / 12, 0, 1);
-    const onePlaneFit = Math.min(planeFit, clamp(1 - shallowFit, 0, 1), p3ReturnFit);
+    const onePlaneFit = Math.min(planeFit, earlyPlaneFit, clamp(1 - shallowFit, 0, 1), p3ReturnFit);
+    const uprightLoopFit = Math.min(uprightFit, clamp(1 - earlyPlaneFit, 0, 1), p3ReturnFit, 0.75 + shallowFit * 0.25);
     const candidates = [
       { code: 'OPA', type: '1. 온플레인 패턴', fit: onePlaneFit },
-      { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: Math.min(uprightFit, shallowFit, p3ReturnFit) },
+      { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: uprightLoopFit },
       { code: 'OFP', type: '3. 아웃사이드 페이스 제어 패턴', fit: outsideFit },
       { code: 'HAP-A', type: '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern)', fit: Math.min(outsideFit, uprightFit, shallowFit, p3ReturnFit) },
-      { code: 'HAP-B', type: '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern)', fit: Math.min(planeFit, uprightFit, shallowFit, p3ReturnFit) },
+      { code: 'HAP-B', type: '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern)', fit: Math.min(planeFit, earlyPlaneFit, uprightFit, shallowFit, p3ReturnFit) },
     ].sort((a, b) => b.fit - a.fit);
     const bestCandidate = candidates[0];
     const runnerUpCandidate = candidates[1];
@@ -5608,6 +5611,8 @@
     if (candidateIsClear) {
       type = bestCandidate.type;
       profileCode = bestCandidate.code;
+      nearMatch = bestCandidate.code === 'USP' && !shallow;
+      nearestScore = nearMatch ? Math.round(bestCandidate.fit * 100) : null;
     } else if (bestCandidate.fit >= 0.45) {
       type = bestCandidate.type;
       profileCode = bestCandidate.code;
@@ -5661,7 +5666,11 @@
       resultCode.textContent = resultCodeItem.code;
       const resultKo = document.createElement('span');
       resultKo.className = 'backswing-result-ko';
-      resultKo.textContent = `(${resultCodeItem.ko})`;
+      const hybridComponents = {
+        'HAP-A': 'OFP + USP',
+        'HAP-B': 'OPA + USP',
+      };
+      resultKo.textContent = `(${hybridComponents[resultCodeItem.code] || resultCodeItem.ko})`;
       title.append(resultPrefix, resultCode, resultKo);
       if (result.nearMatch) title.append(document.createTextNode(uiLanguage === 'en' ? ' (near match)' : ' (근접)'));
     } else {
