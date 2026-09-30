@@ -1236,6 +1236,35 @@
   .r10-outlier-tag { color: #ff9b8c; }
   .r10-empty-row { padding: 12px 4px; color: #9eb6b1; font-size: 0.8rem; }
   .r10-note { margin: 10px 0 0; color: #9db6b0; font-size: 0.75rem; line-height: 1.5; }
+  .r10-report-open { width: 100%; margin-top: 12px; padding: 10px 12px !important; border-color: rgba(245, 213, 138, 0.55) !important; background: rgba(174, 129, 48, 0.2) !important; color: #ffebbd !important; font-weight: 700; }
+  .r10-report-preview[hidden] { display: none; }
+  .r10-report-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 14px 0 8px; }
+  .r10-report-sheet { max-width: 900px; margin: 0 auto; padding: 30px; background: #fff; color: #1d2b2a; border-radius: 6px; box-shadow: 0 8px 28px rgba(0,0,0,0.2); font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; text-align: left; line-height: 1.55; }
+  .r10-report-sheet * { box-sizing: border-box; }
+  .r10-report-kicker { color: #427767; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+  .r10-report-sheet h2 { margin: 4px 0 4px; color: #173a32; font-size: 1.48rem; }
+  .r10-report-sheet h3 { margin: 0 0 8px; color: #235849; font-size: 0.98rem; }
+  .r10-report-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 9px 0 13px; border-bottom: 2px solid #dcebe5; color: #596d67; font-size: 0.78rem; }
+  .r10-report-lead { margin: 13px 0; padding: 11px 13px; border-left: 3px solid #39856e; background: #eff7f3; color: #294b41; font-size: 0.88rem; }
+  .r10-report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .r10-report-section { min-width: 0; padding: 12px; border: 1px solid #dce6e2; border-radius: 5px; break-inside: avoid; }
+  .r10-report-section p { margin: 5px 0; color: #334640; font-size: 0.82rem; }
+  .r10-report-section ul { margin: 5px 0 0; padding-left: 18px; color: #334640; font-size: 0.81rem; }
+  .r10-report-evidence { display: block; margin-top: 5px; color: #71817c; font-size: 0.68rem; }
+  .r10-report-score { color: #17634d; font-size: 1.28rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .r10-report-drill { padding: 7px 0; border-top: 1px solid #e4ebe8; }
+  .r10-report-footer { margin-top: 12px; padding-top: 8px; border-top: 1px solid #dce6e2; color: #71817c; font-size: 0.68rem; }
+  .r10-profile-dialog { width: min(92vw, 420px); border: 1px solid #7bb9a5; border-radius: 8px; padding: 0; background: #172d2d; color: #eff8f5; box-shadow: 0 16px 50px rgba(0,0,0,0.45); }
+  .r10-profile-dialog::backdrop { background: rgba(4, 12, 14, 0.72); }
+  .r10-profile-dialog form { display: grid; gap: 12px; padding: 20px; }
+  .r10-profile-dialog h2 { margin: 0; color: #f6dfaa; font-size: 1.1rem; }
+  .r10-profile-dialog p { margin: 0; color: #bfd0cb; font-size: 0.82rem; }
+  .r10-profile-dialog input { width: 100%; min-height: 42px; padding: 8px 10px; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+  .r10-profile-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  @media (max-width: 640px) {
+    .r10-report-sheet { padding: 18px; }
+    .r10-report-grid { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (max-width: 760px) {
     .r10-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
     .r10-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1720,10 +1749,31 @@
           <th id="r10ShotColumn">샷</th><th id="r10DistanceColumn">거리</th><th id="r10SideColumn">좌우</th><th id="r10ReasonColumn">판정</th>
         </tr></thead><tbody id="r10OutlierRows"></tbody></table></div>
         <p class="r10-note" id="r10MethodNote">세션 샷 중심의 2D 타원 안에 들어오는 샷 비율입니다. 샷별 이탈 방향과 D-Plane 수치는 영상 모션 분석의 보조 자료이며 원인을 단독 확정하지 않습니다.</p>
+        <button type="button" class="r10-report-open" id="r10ReportOpenBtn" disabled>스윙 종합보고서 생성</button>
       </div>
     </div>
+    <section class="r10-report-preview" id="r10ReportPreview" hidden aria-live="polite">
+      <div class="r10-report-actions">
+        <button type="button" id="r10ReportPdfBtn">PDF 다운로드</button>
+        <button type="button" id="r10ReportCloseBtn" aria-label="보고서 접기">접기</button>
+      </div>
+      <div class="r10-report-sheet" id="r10ReportSheet"></div>
+    </section>
   </div>
 </section>
+
+<dialog class="r10-profile-dialog" id="r10ProfileDialog" aria-labelledby="r10ProfileDialogTitle">
+  <form id="r10ProfileForm">
+    <h2 id="r10ProfileDialogTitle">스윙 프로필 번호</h2>
+    <p>분석 기준으로 사용할 SY-GSAP 프로필 번호를 입력하세요. (01~35)</p>
+    <label for="r10ProfileNumber">프로필 번호</label>
+    <input id="r10ProfileNumber" type="number" min="1" max="35" step="1" inputmode="numeric" required />
+    <div class="r10-profile-dialog-actions">
+      <button type="button" id="r10ProfileCancelBtn">취소</button>
+      <button type="button" id="r10ProfileGenerateBtn">보고서 생성</button>
+    </div>
+  </form>
+</dialog>
 
 <div class="controls" style="margin-top:15px;">
   <div class="zoom-controls playback-controls">
@@ -8238,6 +8288,12 @@
   const r10Canvas = document.getElementById('r10DispersionCanvas');
   const r10OutlierRows = document.getElementById('r10OutlierRows');
   const r10SelectedShot = document.getElementById('r10SelectedShot');
+  const r10ReportOpenBtn = document.getElementById('r10ReportOpenBtn');
+  const r10ProfileDialog = document.getElementById('r10ProfileDialog');
+  const r10ProfileNumber = document.getElementById('r10ProfileNumber');
+  const r10ReportPreview = document.getElementById('r10ReportPreview');
+  const r10ReportSheet = document.getElementById('r10ReportSheet');
+  const r10ReportPdfBtn = document.getElementById('r10ReportPdfBtn');
   let r10Shots = [];
   let r10Analysis = null;
   let r10SourceName = '';
@@ -8246,6 +8302,7 @@
   let r10SideKey = 'carrySide';
   let r10SelectedShotNo = null;
   let r10CanvasPoints = [];
+  let r10GeneratedReport = null;
 
   function r10Text(korean, english) {
     return uiLanguage === 'en' ? english : korean;
@@ -8256,6 +8313,8 @@
       ? {
         title: 'R10 Impact Support', subtitle: 'Shot-center consistency · miss pattern · motion-analysis context',
         file: 'Choose Garmin R10 CSV', clear: 'Clear', status: 'Load a CSV to use it as supporting evidence for the motion analysis.',
+        reportButton: 'Create swing report', profileTitle: 'Swing profile number', profilePrompt: 'Enter the SY-GSAP profile number to use as the analysis reference. (01–35)',
+        profileLabel: 'Profile number', generate: 'Generate report', cancel: 'Cancel', pdf: 'Download PDF', closeReport: 'Collapse',
         model: 'Consistency model', distance: 'Distance metric', side: 'Lateral deviation', threshold: 'Outlier threshold k',
         modelA: 'A · Valid shot ratio', modelB: 'B · Coefficient of variation', modelC: 'C · D-Plane composite index',
         carry: 'Carry distance', total: 'Total distance', carrySide: 'Carry offline distance', totalSide: 'Total offline distance',
@@ -8282,6 +8341,8 @@
       : {
         title: 'R10 임팩트 보조 분석', subtitle: '샷 중심 일관성 · 미스샷 패턴 · 영상 분석 참고',
         file: 'Garmin R10 CSV 선택', clear: '초기화', status: 'CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.',
+        reportButton: '스윙 종합보고서 생성', profileTitle: '스윙 프로필 번호', profilePrompt: '분석 기준으로 사용할 SY-GSAP 프로필 번호를 입력하세요. (01~35)',
+        profileLabel: '프로필 번호', generate: '보고서 생성', cancel: '취소', pdf: 'PDF 다운로드', closeReport: '접기',
         model: '일관성 모델', distance: '거리 지표', side: '좌우 편차', threshold: '아웃라이어 기준 k',
         modelA: 'A · 유효 타격 비율', modelB: 'B · 변동계수 점수', modelC: 'C · D-Plane 복합 지수',
         carry: '캐리 거리', total: '총 거리', carrySide: '캐리 편차 거리', totalSide: '총 편차 거리',
@@ -8309,6 +8370,16 @@
     setText('r10AnalysisTitle', copy.title);
     const subtitle = document.querySelector('.r10-subtitle');
     if (subtitle) subtitle.textContent = copy.subtitle;
+    r10ReportOpenBtn.textContent = copy.reportButton;
+    setText('r10ProfileDialogTitle', copy.profileTitle);
+    const profilePrompt = r10ProfileDialog.querySelector('p');
+    if (profilePrompt) profilePrompt.textContent = copy.profilePrompt;
+    const profileLabel = r10ProfileDialog.querySelector('label[for="r10ProfileNumber"]');
+    if (profileLabel) profileLabel.textContent = copy.profileLabel;
+    setText('r10ProfileGenerateBtn', copy.generate);
+    setText('r10ProfileCancelBtn', copy.cancel);
+    r10ReportPdfBtn.textContent = copy.pdf;
+    setText('r10ReportCloseBtn', copy.closeReport);
     r10EvaluationToggleBtn.title = uiLanguage === 'en' ? 'Garmin R10 CSV support analysis' : 'Garmin R10 CSV 보조 평가';
     r10EvaluationToggleBtn.setAttribute('aria-label', r10EvaluationToggleBtn.title);
     r10CsvInput.setAttribute('aria-label', copy.file);
@@ -8331,6 +8402,10 @@
     setText('r10MethodNote', copy.note);
     if (!r10Shots.length) setText('r10Status', copy.status);
     if (r10Analysis) renderR10Analysis();
+    if (r10GeneratedReport && r10Analysis) {
+      r10GeneratedReport = buildR10SwingReport(r10GeneratedReport.profile.n);
+      r10ReportSheet.innerHTML = r10GeneratedReport.html;
+    }
   }
 
   function normalizeR10Header(value) {
@@ -8389,10 +8464,14 @@
       faceAngle: ['클럽페이스', '클럽페이스각', 'clubface', 'faceangle'],
       faceToPath: ['클럽페이스경로', '페이스경로', 'facepathtoclubpath', 'clubfacetopath', 'facepath'],
       attackAngle: ['타구각', '입사각', 'attackangle'],
+      launchAngle: ['런치각도', '발사각', 'launchangle'],
       smash: ['스매시팩터', 'smashfactor'],
       spinAxis: ['스핀축', 'spinaxis'],
       ballSpeed: ['볼속도', 'ballspeed'],
       clubSpeed: ['클럽속도', 'clubspeed'],
+      clubType: ['클럽유형', '클럽', 'clubtype', 'club'],
+      shotDate: ['날짜', '일시', 'date', 'datetime'],
+      playerName: ['플레이어', '선수', 'player', 'playername'],
     };
     return Object.fromEntries(Object.entries(aliases).map(([key, names]) => [key,
       normalized.findIndex(headerName => names.some(name => normalizeR10Header(name) === headerName))]));
@@ -8411,6 +8490,9 @@
     r10SelectedShotNo = null;
     r10Dashboard.hidden = true;
     r10ClearBtn.disabled = true;
+    r10ReportOpenBtn.disabled = true;
+    r10ReportPreview.hidden = true;
+    r10GeneratedReport = null;
     if (!file || !file.name.toLowerCase().endsWith('.csv') || file.size > 20 * 1024 * 1024) {
       setR10Status(r10Text('20 MB 이하의 CSV 파일을 선택하세요.', 'Select a .csv file smaller than 20 MB.'), 'error');
       return;
@@ -8446,7 +8528,11 @@
         let skipped = 0;
         rows.slice(startIndex).forEach(row => {
           const values = {};
-          Object.entries(columns).forEach(([key, index]) => { values[key] = index >= 0 ? parseR10Number(row[index]) : null; });
+          Object.entries(columns).forEach(([key, index]) => {
+            if (index < 0) values[key] = null;
+            else if (['clubType', 'shotDate', 'playerName'].includes(key)) values[key] = String(row[index] || '').trim();
+            else values[key] = parseR10Number(row[index]);
+          });
           if (![values.carry, values.total].some(Number.isFinite)
             || ![values.carrySide, values.totalSide].some(Number.isFinite)) {
             if (row.some(value => String(value || '').trim())) skipped += 1;
@@ -8464,6 +8550,9 @@
         r10SelectedShotNo = null;
         r10Dashboard.hidden = false;
         r10ClearBtn.disabled = false;
+        r10ReportOpenBtn.disabled = false;
+        r10GeneratedReport = null;
+        r10ReportPreview.hidden = true;
         renderR10Analysis();
         const skippedText = skipped ? ` · ${skipped} ${r10Text('개 행 제외', 'rows skipped')}` : '';
         setR10Status(`${file.name} · ${r10Shots.length} ${r10Text('개 샷 분석', 'shots loaded')}${skippedText}`);
@@ -8721,7 +8810,247 @@
     });
   }
 
+  function escapeR10ReportText(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[character]));
+  }
+
+  function getR10MetricStats(key, shots = r10Analysis ? r10Analysis.shots : []) {
+    return r10Stats(shots.map(shot => shot[key]).filter(Number.isFinite));
+  }
+
+  function formatR10ReportMetric(stats, unit = '', digits = 1) {
+    if (!stats || !Number.isFinite(stats.mean)) return r10Text('측정 없음', 'Not measured');
+    return `${stats.mean.toFixed(digits)}${unit ? ` ${unit}` : ''}${Number.isFinite(stats.sd) ? ` (σ ${stats.sd.toFixed(digits)})` : ''}`;
+  }
+
+  function buildR10SwingReport(profileNumber) {
+    if (!r10Analysis) return null;
+    const profile = SWING_PROFILE_DATA.find(item => item.n === profileNumber);
+    if (!profile) return null;
+    const shots = r10Analysis.shots;
+    const clubTypes = [...new Set(shots.map(shot => shot.clubType).filter(Boolean))];
+    const clubLabel = clubTypes.length === 1 ? clubTypes[0] : clubTypes.length > 1
+      ? r10Text('복수 클럽 혼합', 'Mixed clubs') : r10Text('CSV에 클럽 정보 없음', 'Club not specified');
+    const singleClub = clubTypes.length === 1;
+    const driverSession = singleClub && /driver|드라이버/i.test(clubTypes[0]);
+    const clubPath = getR10MetricStats('clubPath');
+    const faceToPath = getR10MetricStats('faceToPath');
+    const faceAngle = getR10MetricStats('faceAngle');
+    const spinAxis = r10CircularStats(shots.map(shot => shot.spinAxis).filter(Number.isFinite));
+    const attackAngle = getR10MetricStats('attackAngle');
+    const smash = getR10MetricStats('smash');
+    const launchAngle = getR10MetricStats('launchAngle');
+    const ballSpeed = getR10MetricStats('ballSpeed');
+    const pathValue = clubPath.mean;
+    const facePathValue = faceToPath.mean;
+    let directionIssue = 'NO_CLEAR_DIRECTION_PATTERN';
+    let directionTitle = r10Text('뚜렷한 방향성 임계 패턴 없음', 'No strong directional threshold pattern');
+    let directionInterpretation = r10Text(
+      '이번 세션 평균은 지정한 방향성 임계 조건에 해당하지 않습니다. 이는 스윙 방향이 완벽하다는 뜻이 아니라, 이 규칙으로 분류할 뚜렷한 패턴이 없다는 의미입니다.',
+      'Session averages do not meet the selected directional thresholds. This does not mean the swing is perfect; no strong pattern was classified by these rules.'
+    );
+    let directionCorrection = r10Text('영상 분석에서 다운스윙 전환과 임팩트 정렬을 확인하고, 다음 세션에서 같은 클럽의 분산이 줄어드는지 비교하세요.', 'Review transition and impact alignment in video, then compare same-club dispersion in the next session.');
+    if (singleClub && Number.isFinite(pathValue) && Number.isFinite(facePathValue)) {
+      if (pathValue < -3 && facePathValue < 0) {
+        directionIssue = 'OUT_TO_IN_CLOSED_FACE_PATTERN';
+        directionTitle = r10Text('아웃-투-인 + 닫힌 페이스 경향', 'Out-to-in path + closed-face tendency');
+        directionInterpretation = r10Text(
+          'R10 평균 지표가 OTT 유사 임팩트 패턴과 일치합니다. 하체 선행 지연이나 상체 조기 회전은 가능한 영상 점검 가설일 뿐, R10만으로 확인되지는 않습니다.',
+          'R10 averages match an OTT-like impact pattern. Delayed lower-body lead or early upper-body rotation are video-review hypotheses, not facts established by R10.'
+        );
+        directionCorrection = r10Text('측면 영상에서 P4→P5 전환과 P5→P6 손·샤프트 경로를 확인하세요. 샬로잉 펌프 동작 후 동일 클럽 Club Path가 0° 쪽으로 이동하는지 재측정합니다.', 'Review P4→P5 transition and P5→P6 hand/shaft path in side-view video. After a shallowing pump drill, check whether same-club path moves toward 0°.');
+      } else if (pathValue > 3 && facePathValue > 2.5) {
+        directionIssue = 'IN_TO_OUT_OPEN_FACE_PATTERN';
+        directionTitle = r10Text('인-투-아웃 + 열린 페이스 경향', 'In-to-out path + open-face tendency');
+        directionInterpretation = r10Text(
+          'R10 평균 지표가 열린 페이스 방향 미스 패턴과 일치합니다. 손이탈이나 릴리스 지연은 영상으로 확인해야 할 가설입니다.',
+          'R10 averages match an open-face directional pattern. Hand separation or delayed release remain hypotheses to verify on video.'
+        );
+        directionCorrection = r10Text('측면 영상의 P5→P6 손 경로를 확인하고, 겨드랑이 연결을 유지한 허리 높이 펌프 동작 후 페이스-경로와 좌우 분산을 비교하세요.', 'Review the P5→P6 hand path, rehearse waist-high pumps with arm connection, then compare face-to-path and lateral dispersion.');
+      }
+    }
+    const highLaunchLowSmash = Number.isFinite(launchAngle.sd) && launchAngle.sd > 0 && Number.isFinite(smash.sd) && smash.sd > 0
+      ? shots.filter(shot => Number.isFinite(shot.launchAngle) && Number.isFinite(shot.smash)
+        && shot.launchAngle > launchAngle.mean + launchAngle.sd && shot.smash < smash.mean - smash.sd)
+      : [];
+    let distanceIssue = 'NO_CLEAR_POWER_PATTERN';
+    let distanceTitle = r10Text('뚜렷한 비거리 손실 임계 패턴 없음', 'No strong distance-loss threshold pattern');
+    let distanceInterpretation = r10Text(
+      '이번 세션 지표만으로 특정 파워 손실 패턴을 분류하지 않았습니다. 평균값은 클럽 종류와 타격 조건을 함께 고려해 비교하세요.',
+      'This session does not meet a specific power-loss rule. Interpret averages with club type and strike conditions.'
+    );
+    let distanceCorrection = r10Text('무리하게 스윙을 바꾸기보다 현재 프로필의 위험 특성을 영상으로 확인하고, 동일 클럽의 볼스피드와 중심 일관성을 추적하세요.', 'Verify the profile risk trait on video and track same-club ball speed and center consistency before changing mechanics.');
+    if (driverSession && Number.isFinite(attackAngle.mean) && Number.isFinite(smash.mean)
+      && attackAngle.mean < -3.5 && smash.mean < 1.38) {
+      distanceIssue = 'DRIVER_STEEP_LOW_SMASH_PATTERN';
+      distanceTitle = r10Text('가파른 드라이버 입사각 + 낮은 스매시 경향', 'Steep driver attack + low-smash tendency');
+      distanceInterpretation = r10Text(
+        '드라이버 세션 평균이 가파른 입사각과 낮은 스매시 기준을 함께 벗어났습니다. 캐스팅이나 상체 쏠림은 영상에서 별도 확인이 필요합니다.',
+        'Driver-session averages cross both steep-attack and low-smash thresholds. Casting or upper-body lunge must be verified separately on video.'
+      );
+      distanceCorrection = r10Text('P4 탑과 P5 전환 구간에서 코킹 유지 및 C7 이동을 영상으로 확인하세요. 티 높이·볼 위치는 한 번에 하나만 바꾸고 스매시와 입사각 변화를 비교합니다.', 'Check lag retention and C7 movement from P4 top through P5. Change tee height or ball position one at a time and compare smash and attack angle.');
+    } else if (driverSession && highLaunchLowSmash.length >= 2) {
+      distanceIssue = 'HIGH_LAUNCH_LOW_SMASH_CLUSTER';
+      distanceTitle = r10Text('상대적 고탄도·저스매시 샷 군집', 'Relative high-launch / low-smash shot cluster');
+      distanceInterpretation = r10Text(
+        `평균보다 발사각이 1σ 이상 높고 스매시가 1σ 이상 낮은 샷이 ${highLaunchLowSmash.length}개 함께 나타났습니다. 얼리 익스텐션/C7 상승은 가능한 영상 점검 가설이며 이 CSV가 직접 측정한 결과는 아닙니다.`,
+        `${highLaunchLowSmash.length} shots combine launch angle above +1 SD with smash below −1 SD. Early extension/C7 rise are video-review hypotheses, not measurements in this CSV.`
+      );
+      distanceCorrection = r10Text('F3/F4 영상에서 골반 전진과 C7 상승이 실제로 동반되는지 확인하세요. 관찰되지 않으면 해당 원인 진단은 적용하지 않습니다.', 'Check whether pelvis thrust and C7 rise actually co-occur in F3/F4 video. Do not apply that cause if it is not observed.');
+    }
+    const directionEvidenceCount = [clubPath.mean, faceToPath.mean, spinAxis.mean].filter(Number.isFinite).length;
+    const distanceEvidenceCount = [attackAngle.mean, smash.mean, launchAngle.mean, ballSpeed.mean].filter(Number.isFinite).length;
+    const f2 = segmentDeltaHistory.frame2 && segmentDeltaHistory.frame2.fm || {};
+    const f3 = segmentDeltaHistory.frame3 && segmentDeltaHistory.frame3.fm || {};
+    const f5 = segmentDeltaHistory.frame5 && segmentDeltaHistory.frame5.fm || {};
+    let observedBackswing = null;
+    let observedEngine = null;
+    try {
+      observedBackswing = getBackswingProfileCode(backswingClassification);
+      observedEngine = getPowerEngineCode(classifySwingType());
+    } catch (error) {}
+    const videoProfileMatches = observedBackswing && observedEngine
+      ? observedBackswing === profile.g && observedEngine === profile.e : null;
+    const motionEvidence = [];
+    if (observedBackswing) motionEvidence.push(`${r10Text('영상 백스윙 분류', 'Video backswing classification')}: ${observedBackswing} (${observedBackswing === profile.g ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
+    if (observedEngine) motionEvidence.push(`${r10Text('영상 엔진 분류', 'Video engine classification')}: ${observedEngine} (${observedEngine === profile.e ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
+    if (hasMetric(f2.laggingAngleDelta)) motionEvidence.push(`${r10Text('F2 래깅각 변화', 'F2 lag-angle change')}: ${f2.laggingAngleDelta.toFixed(1)}°`);
+    if (hasMetric(f3.c7RisePercent)) motionEvidence.push(`${r10Text('F3 C7 상하 변위', 'F3 C7 vertical displacement')}: ${f3.c7RisePercent.toFixed(1)}%`);
+    if (hasMetric(f5.handOffsetDelta)) motionEvidence.push(`${r10Text('F5 손 이탈', 'F5 hand separation')}: ${(f5.handOffsetDelta * 100).toFixed(1)}%`);
+    const drillItems = [];
+    if (directionIssue === 'OUT_TO_IN_CLOSED_FACE_PATTERN') drillItems.push({ title: r10Text('전환 샬로잉 펌프', 'Transition shallowing pumps'), text: r10Text('3세트 × 8회. P4에서 P5까지 하체 리드를 느끼고, P6 허리 높이에서 손과 팔꿈치가 몸 앞에 유지되는지 측면 영상으로 확인합니다.', '3 × 8 reps. Feel the lower-body lead from P4 to P5; use side video to check that hands and elbow stay in front at P6 waist height.') });
+    if (directionIssue === 'IN_TO_OUT_OPEN_FACE_PATTERN') drillItems.push({ title: r10Text('연결 유지 후 릴리스', 'Connected-arm release'), text: r10Text('3세트 × 8회. 허리 높이 하프스윙으로 손-몸 간격을 유지하고, 페이스-경로 및 좌우 편차를 비교합니다.', '3 × 8 reps. Use waist-high half swings to maintain hand-body spacing, then compare face-to-path and lateral deviation.') });
+    if (distanceIssue === 'DRIVER_STEEP_LOW_SMASH_PATTERN') drillItems.push({ title: r10Text('티 높이 단일 변수 테스트', 'Single-variable tee-height test'), text: r10Text('각 조건 5타씩 번갈아 치고 티 높이만 바꿉니다. 볼스피드와 스매시가 함께 개선되는지 확인합니다.', 'Alternate five shots per condition, changing tee height only. Check whether ball speed and smash improve together.') });
+    if (distanceIssue === 'HIGH_LAUNCH_LOW_SMASH_CLUSTER') drillItems.push({ title: r10Text('임팩트 프레임 축 확인', 'Impact-frame axis check'), text: r10Text('F3/F4 영상에서 골반 전진과 C7 상승을 확인한 뒤, 관찰된 경우에만 척추각 유지 하프스윙을 3세트 × 6회 수행합니다.', 'Check pelvis thrust and C7 rise in F3/F4 video; only if observed, perform 3 × 6 half swings maintaining spine angle.') });
+    if (!drillItems.length) drillItems.push({ title: r10Text('프로필 위험 특성 영상 점검', 'Video review of profile risk'), text: `${profile.ko[3]} ${r10Text('다음 세션에서는 동일 클럽·같은 목표선으로 5타 이상 기록해 비교하세요.', 'Record at least five shots with the same club and target line next session.')}` });
+    const visualNodes = [];
+    if (directionIssue === 'OUT_TO_IN_CLOSED_FACE_PATTERN' || directionIssue === 'IN_TO_OUT_OPEN_FACE_PATTERN') {
+      visualNodes.push({ node: 'hand_path_p5_p6', frame: 'F2 / F5', measured: hasMetric(f5.handOffsetDelta), value: hasMetric(f5.handOffsetDelta) ? `${(f5.handOffsetDelta * 100).toFixed(1)}%` : null, label: r10Text('전환부터 P6까지 손 경로와 몸통 간격 확인', 'Review hand path and torso spacing through P6') });
+    }
+    if (distanceIssue === 'DRIVER_STEEP_LOW_SMASH_PATTERN' || distanceIssue === 'HIGH_LAUNCH_LOW_SMASH_CLUSTER') {
+      visualNodes.push({ node: 'c7_spine_axis', frame: 'F3 / F4', measured: hasMetric(f3.c7RisePercent), value: hasMetric(f3.c7RisePercent) ? `${f3.c7RisePercent.toFixed(1)}%` : null, label: r10Text('임팩트 구간 C7 상하축과 척추각 확인', 'Review C7 vertical axis and spine angle through impact') });
+    }
+    if (!visualNodes.length) visualNodes.push({ node: 'profile_risk_review', frame: r10Text('해당 프레임 영상 입력 필요', 'Video frames required'), measured: false, value: null, label: profile.ko[3] });
+    const evidenceLevel = count => count >= 3 && shots.length >= 8 ? r10Text('보통', 'Moderate') : count >= 2 && shots.length >= 4 ? r10Text('제한적', 'Limited') : r10Text('부족', 'Insufficient');
+    const metric = (label, stats, unit = '', digits = 1) => `<li><strong>${escapeR10ReportText(label)}</strong>: ${escapeR10ReportText(formatR10ReportMetric(stats, unit, digits))}</li>`;
+    const outlierRows = shots.filter(shot => shot.isOutlier).slice(0, 6).map(shot => {
+      const reasons = shot.reasons.map(getR10ReasonLabel).join(', ') || r10Text('중심 타원 이탈', 'Outside center ellipse');
+      return `<li>#${shot.shotNo}: ${escapeR10ReportText(reasons)} · ${r10Text('거리', 'Distance')} ${r10Format(shot.distance)} ${escapeR10ReportText(r10Unit(r10Analysis.distanceKey))} · ${r10Text('편차', 'Offset')} ${r10Format(shot.side)} ${escapeR10ReportText(r10Unit(r10Analysis.sideKey))}${Number.isFinite(shot.clubPath) ? ` · Path ${shot.clubPath.toFixed(1)}°` : ''}${Number.isFinite(shot.faceToPath) ? ` · F2P ${shot.faceToPath.toFixed(1)}°` : ''}</li>`;
+    });
+    const profileName = getCanonicalSwingProfileName(profile, uiLanguage);
+    const dateLabel = shots.find(shot => shot.shotDate)?.shotDate || new Date().toLocaleDateString(uiLanguage === 'en' ? 'en-US' : 'ko-KR');
+    const consistencyText = `${r10Format(r10Analysis.validRatio)}%`;
+    const clubGate = !singleClub
+      ? r10Text('여러 클럽이 섞여 있어 클럽별 임계 진단은 보류했습니다.', 'Mixed clubs detected; club-specific thresholds were not applied.')
+      : driverSession ? '' : r10Text('드라이버 전용 비거리 임계값은 적용하지 않았습니다.', 'Driver-only distance thresholds were not applied.');
+    const profileMatchText = videoProfileMatches == null
+      ? r10Text('영상 유형 분류 미완료: 입력 프로필을 기준으로 R10 결과를 보조 해석합니다.', 'Video type classification incomplete; R10 is interpreted against the selected profile.')
+      : videoProfileMatches
+        ? r10Text('완료된 영상 분류가 선택 프로필과 일치합니다.', 'Completed video classification matches the selected profile.')
+        : `${r10Text('영상 분류와 선택 프로필이 다릅니다. 입력 번호를 확인하세요.', 'Video classification differs from selected profile; verify the entered number.')} (${observedBackswing || '—'}::${observedEngine || '—'})`;
+    const visualHtml = visualNodes.map(node => `<li><strong>${escapeR10ReportText(node.node)}</strong> · ${escapeR10ReportText(node.frame)} · ${escapeR10ReportText(node.label)} <small>${node.measured ? `${r10Text('영상 측정', 'Video measured')}: ${escapeR10ReportText(node.value)}` : r10Text('영상 포인트 미측정 · 안내 위치', 'No video point measurement · review guide')}</small></li>`).join('');
+    const drillHtml = drillItems.map((drill, index) => `<div class="r10-report-drill"><strong>${index + 1}. ${escapeR10ReportText(drill.title)}</strong><p>${escapeR10ReportText(drill.text)}</p></div>`).join('');
+    const outlierHtml = outlierRows.length ? `<ul>${outlierRows.join('')}</ul>` : `<p>${r10Text('중심 이탈 샷 없음', 'No center outliers')}.</p>`;
+    const videoHtml = motionEvidence.length ? `<ul>${motionEvidence.map(line => `<li>${escapeR10ReportText(line)}</li>`).join('')}</ul>` : `<p>${r10Text('연결 가능한 F1~F6 영상 모션 근거가 없습니다. 원인 모션은 미확인으로 표시합니다.', 'No linked F1–F6 video evidence; motion causes remain unverified.')}</p>`;
+    return {
+      profile,
+      html: `<div class="r10-report-kicker">SY-GSAP · ${r10Text('스윙 종합 분석', 'Swing Synthesis Report')}</div>
+        <h2>${escapeR10ReportText(r10Text('스윙 보완 리포트', 'Swing Development Report'))}</h2>
+        <div class="r10-report-meta"><span>${r10Text('프로필', 'Profile')} ${String(profile.n).padStart(2, '0')} · ${escapeR10ReportText(profile.g)}::${escapeR10ReportText(profile.e)}</span><span>${escapeR10ReportText(profileName)}</span><span>${r10Text('클럽', 'Club')}: ${escapeR10ReportText(clubLabel)}</span><span>${escapeR10ReportText(dateLabel)}</span><span>${shots.length} ${r10Text('샷', 'shots')}</span></div>
+        <div class="r10-report-lead">${escapeR10ReportText(profileMatchText)} <small>${r10Text('입력 프로필은 분석 기준이며 R10에서 역판정한 결과가 아닙니다.', 'Selected profile is the analysis reference, not inferred from R10.')}</small></div>
+        <div class="r10-report-grid">
+          <section class="r10-report-section"><h3>${r10Text('방향성 보완', 'Directional review')}</h3><strong>${escapeR10ReportText(directionTitle)}</strong><p>${escapeR10ReportText(directionInterpretation)}</p><ul>${metric(r10Text('Club Path 평균', 'Mean Club Path'), clubPath, '°')}${metric(r10Text('Face to Path 평균', 'Mean Face to Path'), faceToPath, '°')}${metric(r10Text('Spin Axis 원형 평균', 'Circular mean Spin Axis'), spinAxis, '°')}${metric(r10Text('클럽 페이스 평균', 'Mean Face Angle'), faceAngle, '°')}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(directionCorrection)}</p><small class="r10-report-evidence">${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(directionEvidenceCount)} (${directionEvidenceCount}/3 ${r10Text('지표,', 'metrics,')} ${shots.length} ${r10Text('샷; 인과 모션은 영상 확인 필요', 'shots; causal motion requires video verification')})</small></section>
+          <section class="r10-report-section"><h3>${r10Text('비거리·에너지 전달', 'Distance and energy transfer')}</h3><strong>${escapeR10ReportText(distanceTitle)}</strong><p>${escapeR10ReportText(distanceInterpretation)}</p><ul>${metric(r10Text('Attack Angle 평균', 'Mean Attack Angle'), attackAngle, '°')}${metric(r10Text('Smash Factor 평균', 'Mean Smash Factor'), smash, '', 3)}${metric(r10Text('Launch Angle 평균', 'Mean Launch Angle'), launchAngle, '°')}${metric(r10Text('Ball Speed 평균', 'Mean Ball Speed'), ballSpeed, r10Unit('ballSpeed'))}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(distanceCorrection)}</p><small class="r10-report-evidence">${escapeR10ReportText(clubGate || `${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(distanceEvidenceCount)} (${distanceEvidenceCount}/4 ${r10Text('지표', 'metrics')})`)}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('프로필 기준 특성', 'Profile reference traits')}</h3><p><strong>${r10Text('강점', 'Strengths')}:</strong> ${escapeR10ReportText(profile.ko[2])}</p><p><strong>${r10Text('주의점', 'Trade-off')}:</strong> ${escapeR10ReportText(profile.ko[3])}</p><small class="r10-report-evidence">${r10Text('프로필 설명은 참고 특성입니다. 이번 세션에서 실제로 관측됐다는 뜻은 아닙니다.', 'Profile description is reference context, not proof it occurred in this session.')}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('일관성·아웃라이어', 'Consistency and outliers')}</h3><div class="r10-report-score">${consistencyText}</div><p>${shots.length - r10Analysis.outlierCount}/${shots.length} ${r10Text('샷이', 'shots are')} ${r10Analysis.k}σ ${r10Text('중심 타원 안에 포함됩니다.', 'inside the center ellipse.')}</p>${outlierHtml}<small class="r10-report-evidence">${r10Text('중심 포함 비율은 세션 내 상대 분산입니다. 샷 위치만으로 타격 위치(Duff/Thin)는 판정할 수 없습니다.', 'Center inclusion is within-session dispersion. Strike location (duff/thin) cannot be determined from shot coordinates.')}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('영상 모션 교차 확인', 'Video motion cross-check')}</h3>${videoHtml}<small class="r10-report-evidence">${r10Text('실제 영상 입력 지표만 측정 근거로 표기합니다.', 'Only measured video-input metrics are treated as motion evidence.')}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('교정 드릴', 'Practice prescriptions')}</h3>${drillHtml}</section>
+          <section class="r10-report-section"><h3>${r10Text('GSAP 시각화 가이드', 'GSAP visual review guide')}</h3><ul>${visualHtml}</ul><small class="r10-report-evidence">${r10Text('안내 노드는 확인할 지점이며, 해당 프레임 모션이 이미 측정되었다는 표시는 아닙니다.', 'Guide nodes indicate review locations, not proof those frame motions were measured.')}</small></section>
+        </div>
+        <footer class="r10-report-footer">${r10Text('분석 기준', 'Method')}: Garmin R10 D-Plane session statistics + selected SY-GSAP profile reference. ${r10Text('정확도 수치는 보정된 판정 데이터가 없어 표시하지 않습니다.', 'No accuracy percentage is shown because no calibrated validation set is available.')}</footer>`,
+    };
+  }
+
+  function generateR10SwingReport() {
+    const profileNumber = Number(r10ProfileNumber.value);
+    if (!Number.isInteger(profileNumber) || profileNumber < 1 || profileNumber > 35) {
+      r10ProfileNumber.setCustomValidity(r10Text('프로필 번호는 1~35 사이의 정수여야 합니다.', 'Enter a whole profile number from 1 to 35.'));
+      r10ProfileNumber.reportValidity();
+      return;
+    }
+    r10ProfileNumber.setCustomValidity('');
+    const report = buildR10SwingReport(profileNumber);
+    if (!report) {
+      alert(r10Text('프로필 또는 R10 분석 결과를 확인할 수 없습니다.', 'Profile or R10 analysis is unavailable.'));
+      return;
+    }
+    r10GeneratedReport = report;
+    r10ReportSheet.innerHTML = report.html;
+    r10ReportPreview.hidden = false;
+    r10ProfileDialog.close();
+    r10ReportPreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function downloadR10SwingReportPDF() {
+    if (!r10GeneratedReport) return;
+    if (!window.jspdf || !window.html2canvas) {
+      alert(r10Text('PDF 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.', 'PDF libraries are unavailable. Check the network connection.'));
+      return;
+    }
+    r10ReportPdfBtn.disabled = true;
+    const clone = r10ReportSheet.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = '-10000px';
+    clone.style.top = '0';
+    clone.style.width = '780px';
+    clone.style.maxWidth = 'none';
+    clone.style.margin = '0';
+    clone.style.boxShadow = 'none';
+    document.body.appendChild(clone);
+    try {
+      const canvas = await html2canvas(clone, { scale: 1.5, backgroundColor: '#ffffff' });
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth() - 64;
+      const pageHeight = doc.internal.pageSize.getHeight() - 64;
+      const sourcePageHeight = Math.floor(pageHeight * canvas.width / pageWidth);
+      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
+        const sourceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        pageCanvas.getContext('2d').drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+        if (sourceY > 0) doc.addPage();
+        doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.88), 'JPEG', 32, 32, pageWidth, sourceHeight * pageWidth / canvas.width);
+      }
+      doc.save(`SY-GSAP_Profile_${String(r10GeneratedReport.profile.n).padStart(2, '0')}_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.warn('R10 종합보고서 PDF 생성 오류', error);
+      alert(r10Text('PDF 생성에 실패했습니다. 다시 시도해주세요.', 'Could not generate the PDF. Please try again.'));
+    } finally {
+      clone.remove();
+      r10ReportPdfBtn.disabled = false;
+    }
+  }
+
   r10CsvInput.addEventListener('change', event => loadR10Csv(event.target.files && event.target.files[0]));
+  r10ReportOpenBtn.addEventListener('click', () => {
+    r10ProfileNumber.value = '';
+    r10ProfileNumber.setCustomValidity('');
+    r10ProfileDialog.showModal();
+    r10ProfileNumber.focus();
+  });
+  document.getElementById('r10ProfileForm').addEventListener('submit', event => {
+    event.preventDefault();
+    generateR10SwingReport();
+  });
+  document.getElementById('r10ProfileGenerateBtn').addEventListener('click', generateR10SwingReport);
+  document.getElementById('r10ProfileCancelBtn').addEventListener('click', () => r10ProfileDialog.close());
+  r10ProfileNumber.addEventListener('input', () => r10ProfileNumber.setCustomValidity(''));
+  r10ReportPdfBtn.addEventListener('click', downloadR10SwingReportPDF);
+  document.getElementById('r10ReportCloseBtn').addEventListener('click', () => { r10ReportPreview.hidden = true; });
   r10EvaluationToggleBtn.addEventListener('click', () => {
     const open = r10AnalysisPanel.hidden;
     r10AnalysisPanel.hidden = !open;
@@ -8734,10 +9063,16 @@
   r10ClearBtn.addEventListener('click', () => {
     r10CsvInput.value = '';
     r10Shots = []; r10Analysis = null; r10SourceName = ''; r10Units = {}; r10SelectedShotNo = null;
-    r10Dashboard.hidden = true; r10ClearBtn.disabled = true;
+    r10Dashboard.hidden = true; r10ClearBtn.disabled = true; r10ReportOpenBtn.disabled = true;
+    r10ReportPreview.hidden = true; r10GeneratedReport = null;
     setR10Status(r10Text('CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.', 'Load a CSV to use it as supporting evidence for the motion analysis.'));
   });
-  r10OutlierK.addEventListener('change', () => { if (r10Shots.length) renderR10Analysis(); });
+  r10OutlierK.addEventListener('change', () => {
+    if (!r10Shots.length) return;
+    r10GeneratedReport = null;
+    r10ReportPreview.hidden = true;
+    renderR10Analysis();
+  });
   r10Canvas.addEventListener('click', event => {
     if (!r10Analysis || !r10CanvasPoints.length) return;
     const rect = r10Canvas.getBoundingClientRect();
