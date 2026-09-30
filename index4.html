@@ -1794,6 +1794,7 @@
     '인증 서버에서 사용자 정보를 받지 못했습니다.': 'Authentication returned no user profile.',
     '인증 계정과 연결된 SY-GSAP 프로필이 없습니다. 관리자에게 확인하세요.': 'No SY-GSAP profile is linked to this authenticated account. Contact an administrator.',
     '이 계정은 스윙 분석 앱에 접근할 권한이 없습니다.': 'This account does not have access to the swing analysis app.',
+    '코치 관리자 계정만 이 앱에 접근할 수 있습니다.': 'Only coach administrator accounts can access this app.',
     '비활성화된 선수 계정입니다. 코치에게 문의하세요.': 'This player account is inactive. Contact a coach.',
     '코치 승인 대기 중인 선수 계정입니다.': 'This player account is awaiting coach approval.',
     '프로필 확인에 실패했습니다. 네트워크 또는 Supabase 접근 정책을 확인하세요.': 'Could not verify the account profile. Check your connection or access policy.',
@@ -6495,17 +6496,9 @@
           return;
         }
         const role = String(profile.role || '').trim().toLowerCase();
-        const approval = String(profile.approval_status || '').trim().toLowerCase();
-        if(role !== 'coach' && role !== 'player'){
+        if(role !== 'coach'){
           await safeAuthSignOut();
-          if(loginStatus) loginStatus.textContent = text('이 계정은 스윙 분석 앱에 접근할 권한이 없습니다.', 'This account does not have access to the swing analysis app.');
-          return;
-        }
-        if(role === 'player' && approval !== 'approved'){
-          await safeAuthSignOut();
-          if(loginStatus) loginStatus.textContent = approval === 'inactive'
-            ? text('비활성화된 선수 계정입니다. 코치에게 문의하세요.', 'This player account is inactive. Contact a coach.')
-            : text('코치 승인 대기 중인 선수 계정입니다.', 'This player account is awaiting coach approval.');
+          if(loginStatus) loginStatus.textContent = text('코치 관리자 계정만 이 앱에 접근할 수 있습니다.', 'Only coach administrator accounts can access this app.');
           return;
         }
         currentUser = { id: profile.id, name: profile.name, role };
