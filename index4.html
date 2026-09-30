@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1174,6 +1175,80 @@
     border-radius: 10px;
     background: rgba(255,255,255,0.04);
   }
+  .r10-panel {
+    width: min(95vw, 1180px);
+    margin: 0 auto 20px;
+    padding: 16px;
+    border: 1px solid rgba(117, 205, 180, 0.28);
+    border-radius: 10px;
+    background: linear-gradient(145deg, rgba(14, 42, 42, 0.88), rgba(18, 29, 36, 0.94));
+    color: #eef7f5;
+    text-align: left;
+  }
+  .r10-panel[hidden] { display: none; }
+  .r10-header, .r10-toolbar, .r10-summary, .r10-chart-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .r10-header { align-items: flex-start; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  .r10-title { margin: 0; color: #effbf7; font-size: 1.12rem; }
+  .r10-subtitle { margin: 4px 0 0; color: #a9c1bd; font-size: 0.82rem; }
+  .r10-file-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .r10-file-actions input[type="file"] { max-width: min(100%, 330px); color: #d6e6e2; }
+  .r10-panel button { border: 1px solid rgba(142, 219, 199, 0.45); border-radius: 5px; background: rgba(42, 128, 106, 0.28); color: #f4fffc; padding: 7px 10px; cursor: pointer; }
+  .r10-panel button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .r10-toolbar { justify-content: flex-start; flex-wrap: wrap; padding: 12px 0; }
+  .r10-field { display: grid; gap: 4px; color: #aec5c0; font-size: 0.76rem; }
+  .r10-field select, .r10-field input { min-width: 112px; }
+  .r10-status { min-height: 1.25em; margin: 0 0 8px; color: #aadbcf; font-size: 0.82rem; }
+  .r10-status[data-kind="error"] { color: #ffad98; }
+  .r10-dashboard[hidden] { display: none; }
+  .r10-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 8px; }
+  .r10-stat { min-width: 0; padding: 10px 12px; border-left: 2px solid #65c9ad; background: rgba(255,255,255,0.045); }
+  .r10-stat-label { color: #a9c1bd; font-size: 0.75rem; }
+  .r10-stat-value { margin-top: 4px; color: #f5d58a; font-size: 1.18rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .r10-gauge-row { display: flex; align-items: center; gap: 10px; margin: 10px 0 14px; }
+  .r10-gauge-row progress { flex: 1; width: 100%; height: 10px; accent-color: #68c9ad; }
+  .r10-gauge-value { min-width: 52px; color: #8de0c8; font-weight: 750; text-align: right; font-variant-numeric: tabular-nums; }
+  .r10-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr); gap: 12px; }
+  .r10-chart-block, .r10-detail-block, .r10-outlier-block { min-width: 0; padding: 11px; border-top: 1px solid rgba(255,255,255,0.14); background: rgba(0,0,0,0.12); }
+  .r10-chart-heading { justify-content: flex-start; flex-wrap: wrap; color: #f1d58f; font-size: 0.86rem; font-weight: 700; }
+  .r10-chart-wrap { position: relative; width: 100%; height: 360px; margin-top: 8px; }
+  #r10DispersionCanvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+  .r10-legend { display: flex; flex-wrap: wrap; gap: 12px; color: #bdcfcb; font-size: 0.75rem; }
+  .r10-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+  .r10-dot { width: 9px; height: 9px; border-radius: 50%; background: #63d5b5; }
+  .r10-dot-outlier { background: #ff806f; box-shadow: 0 0 0 3px rgba(255,128,111,0.16); }
+  .r10-dot-ellipse { width: 14px; height: 9px; border: 1px solid #8edac8; border-radius: 50%; background: rgba(104,201,173,0.14); }
+  .r10-detail-block { margin-top: 10px; color: #cfddda; font-size: 0.82rem; line-height: 1.55; }
+  .r10-detail-title { margin: 0 0 6px; color: #f4d58b; font-size: 0.9rem; }
+  .r10-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; font-variant-numeric: tabular-nums; }
+  .r10-detail-grid strong { color: #f4f7f6; }
+  .r10-caveat { margin: 8px 0 0; color: #98b4af; font-size: 0.74rem; }
+  .r10-table-wrap { max-height: 330px; overflow: auto; }
+  .r10-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+  .r10-table th, .r10-table td { padding: 7px 5px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: right; white-space: nowrap; }
+  .r10-table th:first-child, .r10-table td:first-child { text-align: left; }
+  .r10-table th { position: sticky; top: 0; background: #172c2d; color: #b9d3cc; }
+  .r10-shot-select { padding: 2px 5px !important; background: transparent !important; border-color: transparent !important; color: #f1d58f !important; text-decoration: underline; }
+  .r10-outlier-tag { color: #ff9b8c; }
+  .r10-empty-row { padding: 12px 4px; color: #9eb6b1; font-size: 0.8rem; }
+  .r10-note { margin: 10px 0 0; color: #9db6b0; font-size: 0.75rem; line-height: 1.5; }
+  @media (max-width: 760px) {
+    .r10-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+    .r10-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .r10-chart-wrap { height: 300px; }
+  }
+  @media (max-width: 440px) {
+    .r10-panel { padding: 12px; }
+    .r10-summary { gap: 6px; }
+    .r10-stat { padding: 8px; }
+    .r10-stat-label { font-size: 0.68rem; }
+    .r10-stat-value { font-size: 0.95rem; }
+    .r10-chart-wrap { height: 260px; }
+  }
 </style>
 </head>
 <body class="login-page">
@@ -1214,7 +1289,7 @@
 </div>
 
 <div class="top-bar">
-  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.913af</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.101ff</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <label class="language-select" for="languageSelect">언어
     <select id="languageSelect" aria-label="언어">
       <option value="ko">한국어</option>
@@ -1378,6 +1453,7 @@
     <div class="analysis-panel-header-top">
       <span class="analysis-title">Motion Analysis</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button type="button" id="r10EvaluationToggleBtn" title="Garmin R10 CSV 보조 평가" aria-label="Garmin R10 CSV 보조 평가" aria-expanded="false">📊</button>
         <button type="button" id="swingCompareToggleBtn" title="서로 다른 A/B 스윙의 6개 주요 시점을 비교">A/B 스윙 비교</button>
         <button type="button" id="backswingToggleBtn" title="A 영상의 측면 스윙으로 백스윙 궤적 분류">백스윙 유형 결정</button>
         <button type="button" id="distanceReferenceBtn" title="비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정">기준선 지정</button>
@@ -1601,6 +1677,53 @@
     </div>
   </div>
 </div>
+
+<section class="r10-panel" id="r10AnalysisPanel" aria-labelledby="r10AnalysisTitle" hidden>
+  <header class="r10-header">
+    <div>
+      <h2 class="r10-title" id="r10AnalysisTitle">R10 임팩트 보조 분석</h2>
+      <p class="r10-subtitle">샷 중심 일관성 · 미스샷 패턴 · 영상 분석 참고</p>
+    </div>
+    <div class="r10-file-actions">
+      <input type="file" id="r10CsvInput" accept=".csv,text/csv" aria-label="Garmin R10 CSV 파일 선택" />
+      <button type="button" id="r10ClearBtn" disabled>초기화</button>
+    </div>
+  </header>
+  <div class="r10-toolbar" aria-label="분석 설정">
+    <label class="r10-field"><span>중심 이탈 임계값</span>
+      <select id="r10OutlierK"><option value="1.5" selected>1.5σ</option><option value="2">2.0σ</option></select>
+    </label>
+  </div>
+  <p class="r10-status" id="r10Status" role="status" aria-live="polite">CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.</p>
+  <div class="r10-dashboard" id="r10Dashboard" hidden>
+    <div class="r10-summary">
+      <div class="r10-stat"><div class="r10-stat-label" id="r10ShotsLabel">분석 샷</div><div class="r10-stat-value" id="r10ShotsValue">-</div></div>
+      <div class="r10-stat"><div class="r10-stat-label" id="r10ConsistencyLabel">중심 일관성</div><div class="r10-stat-value" id="r10ConsistencyValue">-</div></div>
+      <div class="r10-stat"><div class="r10-stat-label" id="r10OutlierLabel">중심 이탈 샷</div><div class="r10-stat-value" id="r10OutlierValue">-</div></div>
+    </div>
+    <div class="r10-gauge-row"><progress id="r10ConsistencyGauge" max="100" value="0" aria-label="중심 일관성"></progress></div>
+    <div class="r10-dashboard-grid">
+      <div>
+        <div class="r10-chart-block">
+          <div class="r10-chart-heading"><span id="r10ChartTitle">낙하지점 분산</span><span class="r10-legend">
+            <span class="r10-legend-item"><i class="r10-dot" aria-hidden="true"></i><span id="r10NormalLegend">정상 샷</span></span>
+            <span class="r10-legend-item"><i class="r10-dot r10-dot-outlier" aria-hidden="true"></i><span id="r10OutlierLegend">아웃라이어</span></span>
+            <span class="r10-legend-item"><i class="r10-dot-ellipse" aria-hidden="true"></i><span id="r10EllipseLegend">2D kσ 타원</span></span>
+          </span></div>
+          <div class="r10-chart-wrap"><canvas id="r10DispersionCanvas" role="img" aria-label="R10 샷 비거리 및 좌우 편차 분산 차트"></canvas></div>
+        </div>
+        <div class="r10-detail-block" id="r10SelectedShot" aria-live="polite"></div>
+      </div>
+      <div class="r10-outlier-block">
+        <div class="r10-chart-heading" id="r10OutlierTableTitle">아웃라이어 샷</div>
+        <div class="r10-table-wrap"><table class="r10-table"><thead><tr>
+          <th id="r10ShotColumn">샷</th><th id="r10DistanceColumn">거리</th><th id="r10SideColumn">좌우</th><th id="r10ReasonColumn">판정</th>
+        </tr></thead><tbody id="r10OutlierRows"></tbody></table></div>
+        <p class="r10-note" id="r10MethodNote">세션 샷 중심의 2D 타원 안에 들어오는 샷 비율입니다. 샷별 이탈 방향과 D-Plane 수치는 영상 모션 분석의 보조 자료이며 원인을 단독 확정하지 않습니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 <div class="controls" style="margin-top:15px;">
   <div class="zoom-controls playback-controls">
@@ -3121,6 +3244,10 @@
   }
 
   function performAnalysis() {
+    if (motionAnalysisFrame !== null) {
+      cancelAnimationFrame(motionAnalysisFrame);
+      motionAnalysisFrame = null;
+    }
     // Frame 1 분석 시점의 기준선을 확정 — 다른 프레임에서 기준선을 다시 지정해도 이 스냅샷은 덮어쓰지 않음
     if (selectedSegment === 'frame1') captureFrame1ReferenceSnapshot();
     const currentFrontResult = createAnalysisResult(frontPoints, frontLines, 'front', 'A');
@@ -5730,6 +5857,7 @@
   let firstDualPlay = true;
   let lastMovedVideo = null;
   let activePointer = null;
+  let motionAnalysisFrame = null;
   let pointerIsDragging = false;
   let lastTapTime = 0;
   let lastTapView = null;
@@ -6977,7 +7105,7 @@
       if(dist2 < threshold*threshold){
         lines.splice(i, 1);
         drawOverlay(ctx, points, lines, canvas, video, zoom);
-        if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
+        if (view && points.length >= getFramePointTypesForView(selectedSegment, view).length && frontVideo.src && sideVideo.src) scheduleMotionAnalysis();
         return true;
       }
     }
@@ -6993,11 +7121,19 @@
           guideStep = getGuideStepForPoints(points, selectedSegment, guideView);
           showGuide();
         }
-        if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
+        if (view && points.length >= getFramePointTypesForView(selectedSegment, view).length && frontVideo.src && sideVideo.src) scheduleMotionAnalysis();
         return true;
       }
     }
     return false;
+  }
+
+  function scheduleMotionAnalysis() {
+    if (motionAnalysisFrame !== null) return;
+    motionAnalysisFrame = requestAnimationFrame(() => {
+      motionAnalysisFrame = null;
+      performAnalysis();
+    });
   }
 
   function addPoint(points, lines, pos, ctx, canvas, video, zoom, view){
@@ -7011,11 +7147,8 @@
       guideStep = Math.min(getGuideStepForPoints(points, selectedSegment, guideView), maxSteps);
       showGuide();
     }
-    // A패널(baselineFrontResult 확정 전)에서 마지막 점을 찍은 순간에도 자동 분석되도록 함
-    // (이전엔 baselineFrontResult가 있어야만 자동 실행되어, A패널을 다 찍고 "분석 실행"을 누르지 않은 채
-    //  B패널로 넘어가면 baseline이 끝내 확정되지 않아 코어-손 압축 같은 스케일 보정 지표가 계속 누락됐음)
     const viewComplete = view ? points.length >= getFramePointTypesForView(selectedSegment, view).length : false;
-    if (frontVideo.src && sideVideo.src && (baselineFrontResult || viewComplete)) performAnalysis();
+    if (frontVideo.src && sideVideo.src && viewComplete) scheduleMotionAnalysis();
   }
 
   function onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter, view){
@@ -7136,17 +7269,21 @@
   }
 
   function startPointer(event, points, lines, ctx, canvas, video, zoomGetter, view){
+    if (activePointer || event.isPrimary === false) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
     const zoom = zoomGetter();
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
     if (backswingActive && view === 'front') {
-      activePointer = { backswingMode: true, canvas, video, zoomGetter, startPos: pos };
-      canvas.setPointerCapture(event.pointerId);
+      activePointer = { backswingMode: true, canvas, video, zoomGetter, startPos: pos, pointerId: event.pointerId };
+      if (!captureActivePointer(event, canvas)) return;
       return;
     }
     if (swingCompareActive) {
-      activePointer = { compareMode: true, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
+      activePointer = { compareMode: true, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos, pointerId: event.pointerId };
       pointerIsDragging = false;
       longPressTriggered = false;
       clearTimeout(longPressTimer);
@@ -7154,7 +7291,7 @@
         if (!activePointer || !activePointer.compareMode || pointerIsDragging) return;
         longPressTriggered = deleteSwingComparePoint(view, pos);
       }, LONG_PRESS_MS);
-      canvas.setPointerCapture(event.pointerId);
+      if (!captureActivePointer(event, canvas)) return;
       return;
     }
     if (distanceReferenceActive || distanceMeasureActive) {
@@ -7166,7 +7303,7 @@
       activePointer = {
         distanceMode: true,
         points, lines, ctx, canvas, video, zoomGetter, view,
-        startPos: pos, currentPos: pos
+        startPos: pos, currentPos: pos, pointerId: event.pointerId
       };
       pointerIsDragging = false;
       longPressTriggered = false;
@@ -7175,10 +7312,10 @@
         if(!activePointer || activePointer.distanceMode !== true || pointerIsDragging) return;
         longPressTriggered = deleteDistanceSelection(view, pos, ctx, canvas, video, zoom);
       }, LONG_PRESS_MS);
-      canvas.setPointerCapture(event.pointerId);
+      if (!captureActivePointer(event, canvas)) return;
       return;
     }
-    activePointer = { points, lines, ctx, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos };
+    activePointer = { points, lines, ctx, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos, pointerId: event.pointerId };
     pointerIsDragging = false;
     longPressTriggered = false;
     clearTimeout(longPressTimer);
@@ -7188,7 +7325,38 @@
       longPressTriggered = true;
       deletePoint(points, lines, pos, ctx, canvas, video, zoom, 0.03, view);
     }, LONG_PRESS_MS);
-    canvas.setPointerCapture(event.pointerId);
+    if (!captureActivePointer(event, canvas)) return;
+  }
+
+  function releasePointerCaptureSafely(canvas, pointerId) {
+    if (!canvas || pointerId == null || typeof canvas.hasPointerCapture !== 'function') return;
+    try {
+      if (canvas.hasPointerCapture(pointerId)) canvas.releasePointerCapture(pointerId);
+    } catch (error) {}
+  }
+
+  function captureActivePointer(event, canvas) {
+    try {
+      canvas.setPointerCapture(event.pointerId);
+      return true;
+    } catch (error) {
+      cancelPointer(event);
+      return false;
+    }
+  }
+
+  function cancelPointer(event) {
+    if (!activePointer) return;
+    if (event && event.pointerId != null && activePointer.pointerId !== event.pointerId) return;
+    const pointer = activePointer;
+    clearTimeout(longPressTimer);
+    activePointer = null;
+    pointerIsDragging = false;
+    longPressTriggered = false;
+    if (pointer.ctx && pointer.points && pointer.lines && pointer.canvas && pointer.video && pointer.zoomGetter) {
+      drawOverlay(pointer.ctx, pointer.points, pointer.lines, pointer.canvas, pointer.video, pointer.zoomGetter());
+    }
+    releasePointerCaptureSafely(pointer.canvas, pointer.pointerId);
   }
 
   function movePointer(event){
@@ -7223,14 +7391,15 @@
   }
 
   function endPointer(event){
-    clearTimeout(longPressTimer);
     if(!activePointer) return;
+    if (event.pointerId != null && activePointer.pointerId !== event.pointerId) return;
+    clearTimeout(longPressTimer);
     if (activePointer.backswingMode) {
       const { canvas, video, zoomGetter, startPos } = activePointer;
       const pos = getNormalizedCoords(event, canvas, video, zoomGetter());
       if (pos && Math.hypot(pos.x - startPos.x, pos.y - startPos.y) < 0.01) addBackswingPoint(pos);
       activePointer = null;
-      canvas.releasePointerCapture(event.pointerId);
+      releasePointerCaptureSafely(canvas, event.pointerId);
       return;
     }
     if (activePointer.compareMode) {
@@ -7240,7 +7409,7 @@
       longPressTriggered = false;
       activePointer = null;
       pointerIsDragging = false;
-      if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+      releasePointerCaptureSafely(canvas, event.pointerId);
       return;
     }
     if (activePointer.distanceMode) {
@@ -7249,7 +7418,7 @@
         longPressTriggered = false;
         activePointer = null;
         pointerIsDragging = false;
-        if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+        releasePointerCaptureSafely(canvas, event.pointerId);
         return;
       }
       const zoom = zoomGetter();
@@ -7269,7 +7438,7 @@
       }
       activePointer = null;
       pointerIsDragging = false;
-      if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+      releasePointerCaptureSafely(canvas, event.pointerId);
       return;
     }
     const { points, lines, ctx, canvas, video, zoomGetter, view, startPos, currentPos } = activePointer;
@@ -7277,7 +7446,7 @@
       longPressTriggered = false;
       activePointer = null;
       pointerIsDragging = false;
-      if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+      releasePointerCaptureSafely(canvas, event.pointerId);
       return;
     }
     const zoom = zoomGetter();
@@ -7298,7 +7467,7 @@
     if(pointerIsDragging && dist > 0.01){
       lines.push({ start: startPos, end: endPos });
       drawOverlay(ctx, points, lines, canvas, video, zoom);
-      if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
+      if (view && points.length >= getFramePointTypesForView(selectedSegment, view).length && frontVideo.src && sideVideo.src) scheduleMotionAnalysis();
     } else if(wasDoubleTap){
       setSelectedView(view);
       lastTapTime = 0;
@@ -7313,21 +7482,21 @@
 
     activePointer = null;
     pointerIsDragging = false;
-    if(event.pointerId) canvas.releasePointerCapture(event.pointerId);
+    releasePointerCaptureSafely(canvas, event.pointerId);
   }
 
   frontCanvas.addEventListener('pointerdown', e => startPointer(e, frontPoints, frontLines, frontCtx, frontCanvas, frontVideo, () => frontZoom, 'front'));
   frontCanvas.addEventListener('pointermove', movePointer);
   frontCanvas.addEventListener('pointerup', endPointer);
-  frontCanvas.addEventListener('pointercancel', endPointer);
-  frontCanvas.addEventListener('pointerleave', endPointer);
+  frontCanvas.addEventListener('pointercancel', cancelPointer);
+  frontCanvas.addEventListener('lostpointercapture', cancelPointer);
   frontCanvas.addEventListener('contextmenu', e => onCanvasContextMenu(e, frontPoints, frontLines, frontCtx, frontCanvas, frontVideo, () => frontZoom, 'front'));
 
   sideCanvas.addEventListener('pointerdown', e => startPointer(e, sidePoints, sideLines, sideCtx, sideCanvas, sideVideo, () => sideZoom, 'side'));
   sideCanvas.addEventListener('pointermove', movePointer);
   sideCanvas.addEventListener('pointerup', endPointer);
-  sideCanvas.addEventListener('pointercancel', endPointer);
-  sideCanvas.addEventListener('pointerleave', endPointer);
+  sideCanvas.addEventListener('pointercancel', cancelPointer);
+  sideCanvas.addEventListener('lostpointercapture', cancelPointer);
   sideCanvas.addEventListener('contextmenu', e => onCanvasContextMenu(e, sidePoints, sideLines, sideCtx, sideCanvas, sideVideo, () => sideZoom, 'side'));
 
   // 안내 말풍선이 클릭해야 할 랜드마크 위치를 가릴 수 있어, 사용자가 직접 끌어서 다른 위치로 옮길 수 있게 함
@@ -8058,6 +8227,535 @@
       URL.revokeObjectURL(url);
     });
   });
+
+  const r10EvaluationToggleBtn = document.getElementById('r10EvaluationToggleBtn');
+  const r10AnalysisPanel = document.getElementById('r10AnalysisPanel');
+  const r10CsvInput = document.getElementById('r10CsvInput');
+  const r10ClearBtn = document.getElementById('r10ClearBtn');
+  const r10Status = document.getElementById('r10Status');
+  const r10Dashboard = document.getElementById('r10Dashboard');
+  const r10OutlierK = document.getElementById('r10OutlierK');
+  const r10Canvas = document.getElementById('r10DispersionCanvas');
+  const r10OutlierRows = document.getElementById('r10OutlierRows');
+  const r10SelectedShot = document.getElementById('r10SelectedShot');
+  let r10Shots = [];
+  let r10Analysis = null;
+  let r10SourceName = '';
+  let r10Units = {};
+  let r10DistanceKey = 'carry';
+  let r10SideKey = 'carrySide';
+  let r10SelectedShotNo = null;
+  let r10CanvasPoints = [];
+
+  function r10Text(korean, english) {
+    return uiLanguage === 'en' ? english : korean;
+  }
+
+  function setR10LanguageCopy() {
+    const copy = uiLanguage === 'en'
+      ? {
+        title: 'R10 Impact Support', subtitle: 'Shot-center consistency · miss pattern · motion-analysis context',
+        file: 'Choose Garmin R10 CSV', clear: 'Clear', status: 'Load a CSV to use it as supporting evidence for the motion analysis.',
+        model: 'Consistency model', distance: 'Distance metric', side: 'Lateral deviation', threshold: 'Outlier threshold k',
+        modelA: 'A · Valid shot ratio', modelB: 'B · Coefficient of variation', modelC: 'C · D-Plane composite index',
+        carry: 'Carry distance', total: 'Total distance', carrySide: 'Carry offline distance', totalSide: 'Total offline distance',
+        shots: 'Analyzed shots', outliers: 'Outliers', meanCarry: 'Mean distance', stdSide: 'Lateral SD',
+        gauge: 'Consistency factor', chart: 'Landing dispersion', normal: 'Inliers', ellipse: '2D kσ ellipse',
+        outlierTable: 'Outlier shots', shot: 'Shot', dist: 'Distance', lateral: 'Lateral', reason: 'Flag',
+        note: 'A uses the union of selected 1D kσ and 2D Mahalanobis kσ outliers. B/C use CV-based penalties. The 2D kσ ellipse has different coverage from a 1D kσ interval.',
+        noData: 'No R10 CSV loaded.', noOutliers: 'No outlier shots at the selected threshold.',
+        selected: 'Selected shot', profileCaveat: 'R10 reports impact outcomes; it cannot establish a SY-GSAP motion cause or diagnose a specific profile defect.',
+        noCanvas: 'Select a point on the chart or an outlier row to inspect the shot.',
+        loaded: 'shots loaded', skipped: 'rows skipped', invalidFile: 'Select a .csv file smaller than 20 MB.',
+        parserMissing: 'CSV parser did not load. Check the network connection and reload the page.',
+        missingColumns: 'CSV must include a distance column and a lateral-deviation column.',
+        noShots: 'No numeric shot rows were found. Check the CSV header and units row.',
+        short: 'Short', long: 'Long', lowSide: 'Lateral below mean', highSide: 'Lateral above mean', ellipseOut: 'Outside 2D ellipse',
+        distanceLabel: 'Distance', sideLabel: 'Lateral deviation', path: 'Club path', face: 'Face angle', facePath: 'Face to path',
+        attack: 'Attack angle', smash: 'Smash factor', spinAxis: 'Spin axis', ballSpeed: 'Ball speed', clubSpeed: 'Club speed',
+        sd: 'SD', z: 'Z', profileReference: 'Video-derived profile context (not proof of shot cause)',
+        source: 'R10-only analysis · profile cause not inferred', reliability: 'Small sessions are descriptive; consistency is not a profile classification.',
+        ratioLabel: 'Valid-shot ratio', cvLabel: 'CV consistency score', compositeLabel: 'D-Plane composite factor',
+        compositeNote: 'Composite defaults: spin-axis SD 2° and smash-factor SD 0.05 are zero-score limits; missing components are reweighted.',
+        unitShots: 'shots', noEllipse: '2D ellipse unavailable (at least 3 non-collinear shots required).',
+      }
+      : {
+        title: 'R10 임팩트 보조 분석', subtitle: '샷 중심 일관성 · 미스샷 패턴 · 영상 분석 참고',
+        file: 'Garmin R10 CSV 선택', clear: '초기화', status: 'CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.',
+        model: '일관성 모델', distance: '거리 지표', side: '좌우 편차', threshold: '아웃라이어 기준 k',
+        modelA: 'A · 유효 타격 비율', modelB: 'B · 변동계수 점수', modelC: 'C · D-Plane 복합 지수',
+        carry: '캐리 거리', total: '총 거리', carrySide: '캐리 편차 거리', totalSide: '총 편차 거리',
+        shots: '분석 샷', outliers: '아웃라이어', meanCarry: '평균 거리', stdSide: '좌우 편차 σ',
+        gauge: '일관성 팩터', chart: '낙하지점 분산', normal: '정상 샷', ellipse: '2D kσ 타원',
+        outlierTable: '아웃라이어 샷', shot: '샷', dist: '거리', lateral: '좌우', reason: '판정',
+        note: 'A는 선택한 1D kσ와 2D Mahalanobis kσ 이탈의 합집합 비율입니다. B/C는 CV 감점식입니다. 2D kσ 타원의 포함률은 1D kσ 구간과 다릅니다.',
+        noData: 'R10 CSV가 아직 없습니다.', noOutliers: '선택한 임계값을 벗어난 샷이 없습니다.',
+        selected: '선택 샷', profileCaveat: 'R10은 임팩트 결과를 측정하며 SY-GSAP 동작 원인이나 특정 프로필 결함을 확정하지 않습니다.',
+        noCanvas: '차트의 점이나 아웃라이어 행을 선택하면 샷 상세를 확인할 수 있습니다.',
+        loaded: '개 샷 분석', skipped: '개 행 제외', invalidFile: '20 MB 이하의 CSV 파일을 선택하세요.',
+        parserMissing: 'CSV 파서가 로드되지 않았습니다. 네트워크 연결을 확인한 뒤 새로고침하세요.',
+        missingColumns: 'CSV에 거리 열과 좌우 편차 열이 필요합니다.',
+        noShots: '숫자 샷 데이터를 찾지 못했습니다. CSV 헤더와 단위 행을 확인하세요.',
+        short: '짧은 샷', long: '긴 샷', lowSide: '평균보다 낮은 편차', highSide: '평균보다 높은 편차', ellipseOut: '2D 타원 이탈',
+        distanceLabel: '거리', sideLabel: '좌우 편차', path: '클럽 경로', face: '클럽 페이스', facePath: '페이스-경로',
+        attack: '타구각', smash: '스매시 팩터', spinAxis: '스핀 축', ballSpeed: '볼 속도', clubSpeed: '클럽 속도',
+        sd: '표준편차', z: 'Z', profileReference: '영상 분석 프로필 참고 (샷 원인 증거 아님)',
+        source: 'R10 결과 분석 · 프로필 원인은 추정하지 않음', reliability: '샷 수가 적을 때는 세션 기술통계로 해석하며 프로필 분류에 사용하지 않습니다.',
+        ratioLabel: '유효 샷 비율', cvLabel: 'CV 일관성 점수', compositeLabel: 'D-Plane 복합 팩터',
+        compositeNote: '복합 점수 기본값: 스핀 축 σ 2°, 스매시 팩터 σ 0.05를 0점 기준으로 사용하며 누락 항목은 가중치를 재배분합니다.',
+        unitShots: '샷', noEllipse: '2D 타원 계산 불가 (비공선 샷 3개 이상 필요).',
+      };
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setText('r10AnalysisTitle', copy.title);
+    const subtitle = document.querySelector('.r10-subtitle');
+    if (subtitle) subtitle.textContent = copy.subtitle;
+    r10EvaluationToggleBtn.title = uiLanguage === 'en' ? 'Garmin R10 CSV support analysis' : 'Garmin R10 CSV 보조 평가';
+    r10EvaluationToggleBtn.setAttribute('aria-label', r10EvaluationToggleBtn.title);
+    r10CsvInput.setAttribute('aria-label', copy.file);
+    r10ClearBtn.textContent = copy.clear;
+    const fieldLabels = document.querySelectorAll('.r10-toolbar .r10-field span');
+    if (fieldLabels[0]) fieldLabels[0].textContent = uiLanguage === 'en' ? 'Center-outlier threshold' : '중심 이탈 임계값';
+    setText('r10ShotsLabel', copy.shots);
+    setText('r10OutlierLabel', copy.outliers);
+    setText('r10ConsistencyLabel', uiLanguage === 'en' ? 'Center consistency' : '중심 일관성');
+    document.getElementById('r10ConsistencyGauge').setAttribute('aria-label', copy.gauge);
+    setText('r10ChartTitle', copy.chart);
+    setText('r10NormalLegend', copy.normal);
+    setText('r10OutlierLegend', copy.outliers);
+    setText('r10EllipseLegend', copy.ellipse);
+    setText('r10OutlierTableTitle', copy.outlierTable);
+    setText('r10ShotColumn', copy.shot);
+    setText('r10DistanceColumn', copy.dist);
+    setText('r10SideColumn', copy.lateral);
+    setText('r10ReasonColumn', copy.reason);
+    setText('r10MethodNote', copy.note);
+    if (!r10Shots.length) setText('r10Status', copy.status);
+    if (r10Analysis) renderR10Analysis();
+  }
+
+  function normalizeR10Header(value) {
+    return String(value || '').replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[^a-z0-9가-힣]/gi, '');
+  }
+
+  function parseR10Number(value) {
+    if (value == null || String(value).trim() === '') return null;
+    const parsed = Number(String(value).trim().replace(/,/g, ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function r10Mean(values) {
+    return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+  }
+
+  function r10Stats(values) {
+    const mean = r10Mean(values);
+    if (mean == null) return { mean: null, sd: null };
+    const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+    return { mean, sd: Math.sqrt(variance) };
+  }
+
+  function r10CircularStats(degrees) {
+    if (!degrees.length) return { mean: null, sd: null };
+    const radians = degrees.map(value => value * Math.PI / 180);
+    const meanSin = radians.reduce((sum, value) => sum + Math.sin(value), 0) / radians.length;
+    const meanCos = radians.reduce((sum, value) => sum + Math.cos(value), 0) / radians.length;
+    const resultant = Math.min(1, Math.hypot(meanSin, meanCos));
+    const sdRadians = resultant > 1e-12 ? Math.sqrt(-2 * Math.log(resultant)) : Math.PI;
+    return { mean: Math.atan2(meanSin, meanCos) * 180 / Math.PI, sd: sdRadians * 180 / Math.PI };
+  }
+
+  function r10Clamp(value, min = 0, max = 100) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function r10Format(value, digits = 1) {
+    return Number.isFinite(value) ? value.toFixed(digits) : '—';
+  }
+
+  function r10Unit(key) {
+    return r10Units[key] || ({ carry: 'yd', total: 'yd', carrySide: 'yd', totalSide: 'yd',
+      clubPath: '°', faceAngle: '°', faceToPath: '°', attackAngle: '°', spinAxis: '°', smash: '',
+      ballSpeed: 'mph', clubSpeed: 'mph' }[key] || '');
+  }
+
+  function r10FieldColumns(header) {
+    const normalized = header.map(normalizeR10Header);
+    const aliases = {
+      carry: ['캐리거리', 'carrydistance', 'carry'],
+      total: ['총거리', 'totaldistance', 'total'],
+      carrySide: ['캐리편차거리', '캐리오프라인거리', 'carrydeviationdistance', 'carryofflinedistance', 'carryoffline', 'carrysideoffset'],
+      totalSide: ['총편차거리', '총오프라인거리', 'totaldeviationdistance', 'totalofflinedistance', 'totaloffline', 'totalsideoffset'],
+      clubPath: ['클럽헤드경로', '클럽경로', 'clubpath', 'clubheadpath'],
+      faceAngle: ['클럽페이스', '클럽페이스각', 'clubface', 'faceangle'],
+      faceToPath: ['클럽페이스경로', '페이스경로', 'facepathtoclubpath', 'clubfacetopath', 'facepath'],
+      attackAngle: ['타구각', '입사각', 'attackangle'],
+      smash: ['스매시팩터', 'smashfactor'],
+      spinAxis: ['스핀축', 'spinaxis'],
+      ballSpeed: ['볼속도', 'ballspeed'],
+      clubSpeed: ['클럽속도', 'clubspeed'],
+    };
+    return Object.fromEntries(Object.entries(aliases).map(([key, names]) => [key,
+      normalized.findIndex(headerName => names.some(name => normalizeR10Header(name) === headerName))]));
+  }
+
+  function setR10Status(message, kind = 'info') {
+    r10Status.textContent = message;
+    r10Status.dataset.kind = kind;
+  }
+
+  function loadR10Csv(file) {
+    r10Shots = [];
+    r10Analysis = null;
+    r10SourceName = '';
+    r10Units = {};
+    r10SelectedShotNo = null;
+    r10Dashboard.hidden = true;
+    r10ClearBtn.disabled = true;
+    if (!file || !file.name.toLowerCase().endsWith('.csv') || file.size > 20 * 1024 * 1024) {
+      setR10Status(r10Text('20 MB 이하의 CSV 파일을 선택하세요.', 'Select a .csv file smaller than 20 MB.'), 'error');
+      return;
+    }
+    if (!window.Papa) {
+      setR10Status(r10Text('CSV 파서가 로드되지 않았습니다. 네트워크 연결을 확인한 뒤 새로고침하세요.', 'CSV parser did not load. Check the network connection and reload the page.'), 'error');
+      return;
+    }
+    setR10Status(`${file.name} · ${r10Text('파일 읽는 중...', 'Reading file...')}`);
+    Papa.parse(file, {
+      skipEmptyLines: 'greedy',
+      complete: result => {
+        const rows = result.data;
+        if (!Array.isArray(rows) || rows.length < 2) {
+          setR10Status(r10Text('CSV 헤더와 샷 데이터가 필요합니다.', 'CSV header and shot data are required.'), 'error');
+          return;
+        }
+        const columns = r10FieldColumns(rows[0]);
+        const distanceKeys = ['carry', 'total'].filter(key => columns[key] >= 0);
+        const sideKeys = ['carrySide', 'totalSide'].filter(key => columns[key] >= 0);
+        if (!distanceKeys.length || !sideKeys.length) {
+          setR10Status(r10Text('CSV에 거리 열과 좌우 편차 열이 필요합니다.', 'CSV must include a distance column and a lateral-deviation column.'), 'error');
+          return;
+        }
+        const unitRow = rows[1] || [];
+        const hasUnitRow = distanceKeys.some(key => parseR10Number(unitRow[columns[key]]) == null);
+        if (hasUnitRow) {
+          Object.entries(columns).forEach(([key, index]) => {
+            if (index >= 0 && unitRow[index]) r10Units[key] = String(unitRow[index]).replace(/[\[\]]/g, '').trim();
+          });
+        }
+        const startIndex = hasUnitRow ? 2 : 1;
+        let skipped = 0;
+        rows.slice(startIndex).forEach(row => {
+          const values = {};
+          Object.entries(columns).forEach(([key, index]) => { values[key] = index >= 0 ? parseR10Number(row[index]) : null; });
+          if (![values.carry, values.total].some(Number.isFinite)
+            || ![values.carrySide, values.totalSide].some(Number.isFinite)) {
+            if (row.some(value => String(value || '').trim())) skipped += 1;
+            return;
+          }
+          r10Shots.push({ shotNo: r10Shots.length + 1, ...values });
+        });
+        if (r10Shots.length < 2) {
+          setR10Status(r10Text('유효한 숫자 샷이 2개 이상 필요합니다.', 'At least two numeric shots are required.'), 'error');
+          return;
+        }
+        r10SourceName = file.name;
+        r10DistanceKey = distanceKeys.includes('carry') ? 'carry' : 'total';
+        r10SideKey = sideKeys.includes('carrySide') ? 'carrySide' : 'totalSide';
+        r10SelectedShotNo = null;
+        r10Dashboard.hidden = false;
+        r10ClearBtn.disabled = false;
+        renderR10Analysis();
+        const skippedText = skipped ? ` · ${skipped} ${r10Text('개 행 제외', 'rows skipped')}` : '';
+        setR10Status(`${file.name} · ${r10Shots.length} ${r10Text('개 샷 분석', 'shots loaded')}${skippedText}`);
+      },
+      error: error => setR10Status(error.message || r10Text('CSV 읽기에 실패했습니다.', 'Could not read the CSV.'), 'error'),
+    });
+  }
+
+  function calculateR10Analysis() {
+    const distanceKey = r10DistanceKey;
+    const sideKey = r10SideKey;
+    const selected = r10Shots.filter(shot => Number.isFinite(shot[distanceKey]) && Number.isFinite(shot[sideKey]));
+    if (selected.length < 2) return null;
+    const distanceValues = selected.map(shot => shot[distanceKey]);
+    const sideValues = selected.map(shot => shot[sideKey]);
+    const distanceStats = r10Stats(distanceValues);
+    const sideStats = r10Stats(sideValues);
+    const k = Number(r10OutlierK.value) || 1.5;
+    const meanDistance = distanceStats.mean;
+    const meanSide = sideStats.mean;
+    const varianceDistance = distanceStats.sd ** 2;
+    const varianceSide = sideStats.sd ** 2;
+    const covariance = selected.reduce((sum, shot) => sum + (shot[distanceKey] - meanDistance) * (shot[sideKey] - meanSide), 0) / selected.length;
+    const determinant = varianceDistance * varianceSide - covariance ** 2;
+    const ellipseAvailable = selected.length >= 3 && determinant > 1e-12;
+    const shots = selected.map(shot => {
+      const deltaDistance = shot[distanceKey] - meanDistance;
+      const deltaSide = shot[sideKey] - meanSide;
+      const distanceZ = distanceStats.sd > 0 ? deltaDistance / distanceStats.sd : 0;
+      const sideZ = sideStats.sd > 0 ? deltaSide / sideStats.sd : 0;
+      const mahalanobisSquared = ellipseAvailable
+        ? (varianceSide * deltaDistance ** 2 - 2 * covariance * deltaDistance * deltaSide + varianceDistance * deltaSide ** 2) / determinant
+        : null;
+      const distanceOutlier = Math.abs(distanceZ) > k;
+      const sideOutlier = Math.abs(sideZ) > k;
+      const ellipseOutlier = ellipseAvailable && mahalanobisSquared > k ** 2;
+      const reasons = [];
+      if (distanceOutlier) reasons.push(deltaDistance < 0 ? 'short' : 'long');
+      if (sideOutlier) reasons.push(deltaSide < 0 ? 'lowSide' : 'highSide');
+      if (ellipseOutlier) reasons.push('ellipseOut');
+      const isOutlier = ellipseAvailable ? ellipseOutlier : distanceOutlier || sideOutlier;
+      return { ...shot, distance: shot[distanceKey], side: shot[sideKey], distanceZ, sideZ,
+        mahalanobis: mahalanobisSquared == null ? null : Math.sqrt(Math.max(0, mahalanobisSquared)),
+        distanceOutlier, sideOutlier, ellipseOutlier, isOutlier, reasons };
+    });
+    const outlierCount = shots.filter(shot => shot.isOutlier).length;
+    const validRatio = (shots.length - outlierCount) / shots.length * 100;
+    return { shots, distanceKey, sideKey, distanceStats, sideStats, k, ellipseAvailable,
+      outlierCount, validRatio, factor: validRatio,
+      meanDistance, meanSide, varianceDistance, varianceSide, covariance };
+  }
+
+  function getR10EllipsePoints(analysis, steps = 96) {
+    if (!analysis || !analysis.ellipseAvailable) return [];
+    const a = analysis.varianceSide;
+    const c = analysis.varianceDistance;
+    const b = analysis.covariance;
+    const root = Math.sqrt((a - c) ** 2 + 4 * b ** 2);
+    const lambda1 = Math.max(0, (a + c + root) / 2);
+    const lambda2 = Math.max(0, (a + c - root) / 2);
+    const angle = 0.5 * Math.atan2(2 * b, a - c);
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return Array.from({ length: steps }, (_, index) => {
+      const t = index / steps * Math.PI * 2;
+      const u = analysis.k * Math.sqrt(lambda1) * Math.cos(t);
+      const v = analysis.k * Math.sqrt(lambda2) * Math.sin(t);
+      return { x: analysis.meanSide + u * cos - v * sin, y: analysis.meanDistance + u * sin + v * cos };
+    });
+  }
+
+  function getR10ReasonLabel(reason) {
+    const labels = {
+      short: r10Text('거리 짧은 미스', 'Short-distance miss'), long: r10Text('거리 긴 미스', 'Long-distance miss'),
+      lowSide: r10Text('좌우 편차(−)', 'Negative lateral deviation'),
+      highSide: r10Text('좌우 편차(+)', 'Positive lateral deviation'),
+      ellipseOut: r10Text('중심 타원 이탈', 'Outside center ellipse'),
+    };
+    return labels[reason] || reason;
+  }
+
+  function renderR10Analysis() {
+    const analysis = calculateR10Analysis();
+    if (!analysis) {
+      setR10Status(r10Text('선택한 지표에 유효한 샷 데이터가 2개 이상 필요합니다.', 'At least two valid shots are required for the selected metrics.'), 'error');
+      return;
+    }
+    r10Analysis = analysis;
+    const copy = uiLanguage === 'en'
+      ? { shots: 'Shots in session', outliers: 'Shots outside center',
+        note: 'Consistency is the share of shots inside the session-centered 2D kσ ellipse. Individual distance and lateral Z-scores label miss tendencies; they do not establish swing causes.',
+        noEllipse: '2D ellipse unavailable; using 1D distance/lateral thresholds.' }
+      : { shots: '세션 샷 수', outliers: '중심 이탈 샷',
+        note: '중심 일관성은 세션 평균 중심의 2D kσ 타원 안에 든 샷 비율입니다. 거리·좌우 Z-Score는 미스 경향을 설명하는 보조 지표이며 스윙 원인을 확정하지 않습니다.',
+        noEllipse: '2D 타원을 계산할 수 없어 1D 거리·좌우 임계값을 사용합니다.' };
+    document.getElementById('r10ShotsLabel').textContent = copy.shots;
+    document.getElementById('r10ShotsValue').textContent = `${analysis.shots.length}`;
+    document.getElementById('r10OutlierLabel').textContent = `${copy.outliers} · ${analysis.k}σ`;
+    document.getElementById('r10OutlierValue').textContent = `${analysis.outlierCount}`;
+    const gauge = document.getElementById('r10ConsistencyGauge');
+    gauge.value = analysis.factor;
+    gauge.setAttribute('aria-valuetext', `${r10Format(analysis.factor)}%`);
+    document.getElementById('r10ConsistencyValue').textContent = `${r10Format(analysis.factor)}%`;
+    document.getElementById('r10MethodNote').textContent = `${copy.note}${analysis.ellipseAvailable ? '' : ` ${copy.noEllipse}`}`;
+    renderR10OutlierTable(analysis);
+    if (!analysis.shots.some(shot => shot.shotNo === r10SelectedShotNo)) r10SelectedShotNo = analysis.shots.find(shot => shot.isOutlier)?.shotNo || analysis.shots[0].shotNo;
+    renderR10SelectedShot(analysis);
+    drawR10Dispersion(analysis);
+  }
+
+  function renderR10OutlierTable(analysis) {
+    r10OutlierRows.replaceChildren();
+    const outliers = analysis.shots.filter(shot => shot.isOutlier);
+    if (!outliers.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 4;
+      cell.className = 'r10-empty-row';
+      cell.textContent = r10Text('선택한 임계값을 벗어난 샷이 없습니다.', 'No outlier shots at the selected threshold.');
+      row.appendChild(cell);
+      r10OutlierRows.appendChild(row);
+      return;
+    }
+    outliers.forEach(shot => {
+      const row = document.createElement('tr');
+      const shotCell = document.createElement('td');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'r10-shot-select';
+      button.textContent = `#${shot.shotNo}`;
+      button.addEventListener('click', () => {
+        r10SelectedShotNo = shot.shotNo;
+        renderR10SelectedShot(analysis);
+        drawR10Dispersion(analysis);
+      });
+      shotCell.appendChild(button);
+      const distanceCell = document.createElement('td');
+      distanceCell.textContent = `${r10Format(shot.distance)} ${r10Unit(analysis.distanceKey)}`.trim();
+      const sideCell = document.createElement('td');
+      sideCell.textContent = `${r10Format(shot.side)} ${r10Unit(analysis.sideKey)}`.trim();
+      const reasonCell = document.createElement('td');
+      reasonCell.className = 'r10-outlier-tag';
+      reasonCell.textContent = shot.reasons.map(getR10ReasonLabel).join(', ');
+      row.append(shotCell, distanceCell, sideCell, reasonCell);
+      r10OutlierRows.appendChild(row);
+    });
+  }
+
+  function renderR10SelectedShot(analysis) {
+    const shot = analysis.shots.find(item => item.shotNo === r10SelectedShotNo);
+    if (!shot) {
+      r10SelectedShot.textContent = r10Text('차트의 점이나 아웃라이어 행을 선택하면 샷 상세를 확인할 수 있습니다.', 'Select a point on the chart or an outlier row to inspect the shot.');
+      return;
+    }
+    const item = (label, value, unit = '') => `<div>${label}: <strong>${value == null ? '—' : `${r10Format(value, 2)} ${unit}`.trim()}</strong></div>`;
+    let profileReference = '';
+    try {
+      if (typeof getMatchedSwingProfile === 'function' && typeof backswingClassification !== 'undefined') {
+        const profile = getMatchedSwingProfile();
+        if (profile) profileReference = `<p class="r10-caveat">${uiLanguage === 'en' ? 'Video-derived profile context (not proof of shot cause)' : '영상 분석 프로필 참고 (샷 원인 증거 아님)'}: ${profile.n} · ${profile.g}::${profile.e}. ${profile.ko[3]}</p>`;
+      }
+    } catch (error) {
+      profileReference = '';
+    }
+    const reasons = shot.isOutlier ? shot.reasons.map(getR10ReasonLabel).join(', ') : r10Text('정상 범위', 'Within range');
+    r10SelectedShot.innerHTML = `<h3 class="r10-detail-title">${r10Text('선택 샷', 'Selected shot')} #${shot.shotNo} · ${reasons}</h3>`
+      + `<div class="r10-detail-grid">`
+      + item(r10Text('거리', 'Distance'), shot.distance, r10Unit(analysis.distanceKey))
+      + item(r10Text('좌우 편차', 'Lateral deviation'), shot.side, r10Unit(analysis.sideKey))
+      + item(r10Text('클럽 경로', 'Club path'), shot.clubPath, r10Unit('clubPath'))
+      + item(r10Text('클럽 페이스', 'Face angle'), shot.faceAngle, r10Unit('faceAngle'))
+      + item(r10Text('페이스-경로', 'Face to path'), shot.faceToPath, r10Unit('faceToPath'))
+      + item(r10Text('타구각', 'Attack angle'), shot.attackAngle, r10Unit('attackAngle'))
+      + item(r10Text('스매시 팩터', 'Smash factor'), shot.smash)
+      + item(r10Text('스핀 축', 'Spin axis'), shot.spinAxis, r10Unit('spinAxis'))
+      + item(r10Text('거리 Z', 'Distance Z'), shot.distanceZ)
+      + item(r10Text('좌우 Z', 'Lateral Z'), shot.sideZ)
+      + `</div><p class="r10-caveat">${r10Text('R10 결과만으로 Duff/Thin, Push-Slice 또는 SY-GSAP 프로필 결함을 확정하지 않습니다.', 'R10 outcomes alone cannot confirm a duff/thin strike, push-slice, or SY-GSAP profile defect.')}</p>${profileReference}`;
+  }
+
+  function drawR10Dispersion(analysis) {
+    const canvas = r10Canvas;
+    if (!canvas || !analysis) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(280, rect.width || 700);
+    const height = Math.max(240, rect.height || 340);
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(5, 18, 20, 0.55)';
+    ctx.fillRect(0, 0, width, height);
+    const ellipsePoints = getR10EllipsePoints(analysis);
+    const allX = analysis.shots.map(shot => shot.side).concat(ellipsePoints.map(point => point.x));
+    const allY = analysis.shots.map(shot => shot.distance).concat(ellipsePoints.map(point => point.y));
+    const range = values => {
+      let min = Math.min(...values), max = Math.max(...values);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return [-1, 1];
+      if (max - min < 1e-6) { min -= 1; max += 1; }
+      const pad = (max - min) * 0.10;
+      return [min - pad, max + pad];
+    };
+    const [minX, maxX] = range(allX);
+    const [minY, maxY] = range(allY);
+    const plot = { left: 58, right: 16, top: 14, bottom: 46 };
+    const plotWidth = width - plot.left - plot.right;
+    const plotHeight = height - plot.top - plot.bottom;
+    const toX = value => plot.left + (value - minX) / (maxX - minX) * plotWidth;
+    const toY = value => plot.top + (maxY - value) / (maxY - minY) * plotHeight;
+    ctx.font = '11px Segoe UI, sans-serif';
+    ctx.strokeStyle = 'rgba(220, 240, 235, 0.13)';
+    ctx.fillStyle = '#9fb8b2';
+    ctx.lineWidth = 1;
+    for (let tick = 0; tick <= 4; tick += 1) {
+      const x = plot.left + plotWidth * tick / 4;
+      const y = plot.top + plotHeight * tick / 4;
+      ctx.beginPath(); ctx.moveTo(x, plot.top); ctx.lineTo(x, plot.top + plotHeight); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(plot.left, y); ctx.lineTo(plot.left + plotWidth, y); ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.fillText((minX + (maxX - minX) * tick / 4).toFixed(0), x, height - 27);
+      ctx.textAlign = 'right';
+      ctx.fillText((maxY - (maxY - minY) * tick / 4).toFixed(0), plot.left - 7, y + 4);
+    }
+    ctx.fillStyle = '#c0d2ce';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${r10Text('좌우 편차', 'Lateral deviation')} (${r10Unit(analysis.sideKey)})`, plot.left + plotWidth / 2, height - 7);
+    ctx.save();
+    ctx.translate(14, plot.top + plotHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(`${analysis.distanceKey === 'carry' ? r10Text('캐리 거리', 'Carry distance') : r10Text('총 거리', 'Total distance')} (${r10Unit(analysis.distanceKey)})`, 0, 0);
+    ctx.restore();
+    if (ellipsePoints.length) {
+      ctx.beginPath();
+      ellipsePoints.forEach((point, index) => index ? ctx.lineTo(toX(point.x), toY(point.y)) : ctx.moveTo(toX(point.x), toY(point.y)));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(94, 201, 169, 0.12)';
+      ctx.strokeStyle = 'rgba(121, 222, 193, 0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.fill(); ctx.stroke();
+    }
+    r10CanvasPoints = [];
+    analysis.shots.forEach(shot => {
+      const x = toX(shot.side), y = toY(shot.distance);
+      r10CanvasPoints.push({ shotNo: shot.shotNo, x, y });
+      ctx.beginPath();
+      ctx.arc(x, y, shot.shotNo === r10SelectedShotNo ? 6 : 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = shot.isOutlier ? '#ff806f' : '#65d4b4';
+      ctx.fill();
+      if (shot.shotNo === r10SelectedShotNo) {
+        ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffe08b'; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+    });
+  }
+
+  r10CsvInput.addEventListener('change', event => loadR10Csv(event.target.files && event.target.files[0]));
+  r10EvaluationToggleBtn.addEventListener('click', () => {
+    const open = r10AnalysisPanel.hidden;
+    r10AnalysisPanel.hidden = !open;
+    r10EvaluationToggleBtn.setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    if (r10Analysis) drawR10Dispersion(r10Analysis);
+    r10AnalysisPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!r10Shots.length) r10CsvInput.click();
+  });
+  r10ClearBtn.addEventListener('click', () => {
+    r10CsvInput.value = '';
+    r10Shots = []; r10Analysis = null; r10SourceName = ''; r10Units = {}; r10SelectedShotNo = null;
+    r10Dashboard.hidden = true; r10ClearBtn.disabled = true;
+    setR10Status(r10Text('CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.', 'Load a CSV to use it as supporting evidence for the motion analysis.'));
+  });
+  r10OutlierK.addEventListener('change', () => { if (r10Shots.length) renderR10Analysis(); });
+  r10Canvas.addEventListener('click', event => {
+    if (!r10Analysis || !r10CanvasPoints.length) return;
+    const rect = r10Canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left, y = event.clientY - rect.top;
+    let nearest = null, minDistance = 15;
+    r10CanvasPoints.forEach(point => {
+      const distance = Math.hypot(point.x - x, point.y - y);
+      if (distance < minDistance) { nearest = point; minDistance = distance; }
+    });
+    if (nearest) {
+      r10SelectedShotNo = nearest.shotNo;
+      renderR10SelectedShot(r10Analysis);
+      drawR10Dispersion(r10Analysis);
+    }
+  });
+  window.addEventListener('resize', () => { if (r10Analysis) drawR10Dispersion(r10Analysis); });
+  if (languageSelect) languageSelect.addEventListener('change', setR10LanguageCopy);
+  setR10LanguageCopy();
 </script>
 
 </body>
