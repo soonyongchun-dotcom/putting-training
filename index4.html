@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SY-GSAP (Golf Swing Analysis Platform)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+<script src="supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -165,14 +166,11 @@
     align-items: center;
     justify-content: center;
   }
-  .admin-mode .admin-btn {
+  .authenticated .admin-btn {
     display: block;
   }
   #logoutBtn {
     right: 58px;
-  }
-  #userMgmtBtn {
-    right: 12px;
   }
   /* User management styling */
   #userMgmtOverlay .login-box {
@@ -1309,35 +1307,10 @@
 <div id="loginOverlay" class="login-overlay">
   <div class="login-box">
     <h2>Login</h2>
-    <input id="loginEmail" type="text" placeholder="ID" autocomplete="username" />
+    <input id="loginEmail" type="text" placeholder="로그인 아이디" autocomplete="username" aria-label="로그인 아이디" />
     <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
     <button id="loginBtn" type="button">Login</button>
-    <div id="loginStatus" style="margin-top:8px; font-size:0.85rem; color:#666;">Enter admin credentials to unlock.</div>
-  </div>
-</div>
-
-<div id="userMgmtOverlay" class="login-overlay" style="display:none;">
-  <div class="login-box" style="max-width:820px; width:min(90vw,820px);">
-    <h2>User Management</h2>
-    <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
-      <div style="flex:1; min-width:260px;">
-        <div style="font-weight:600; margin-bottom:6px;">Users</div>
-        <div id="userList" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow:auto; text-align:left; padding:8px; border:1px solid rgba(0,0,0,0.12); border-radius:8px; background: rgba(0,0,0,0.18);"></div>
-      </div>
-      <div style="flex:1; min-width:260px;">
-        <div style="font-weight:600; margin-bottom:6px;">Login history</div>
-        <div id="userLog" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto; padding:8px; border:1px solid rgba(0,0,0,0.12); border-radius:8px; background: rgba(0,0,0,0.18);"></div>
-      </div>
-    </div>
-    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-      <input id="addUserEmail" type="email" placeholder="User ID" style="flex:1; min-width:180px;" />
-      <input id="addUserPassword" type="password" placeholder="Password" style="flex:1; min-width:180px;" />
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button id="addUserBtn" type="button">Add user</button>
-      <button type="button" onclick="closeUserMgmt()">Close</button>
-    </div>
-    <div style="margin-top:8px; font-size:0.8rem; color:#666;">관리자 전용 사용자 계정 등록/삭제 및 로그인 기록 확인 기능입니다.</div>
+    <div id="loginStatus" style="margin-top:8px; font-size:0.85rem; color:#666;">SY-GSAP 계정으로 로그인하세요.</div>
   </div>
 </div>
 
@@ -1350,7 +1323,6 @@
     </select>
   </label>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
-  <button id="userMgmtBtn" class="admin-btn" title="User management">👥</button>
 </div>
 
 <section class="app-intro-panel" id="appIntroPanel" aria-labelledby="appIntroHeading" hidden>
@@ -1572,7 +1544,7 @@
             <option value="frame1">Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]</option>
             <option value="frame2">Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]</option>
             <option value="frame3">Frame 3 — 다운스윙 후기 (외부토크/지면반력)</option>
-            <option value="frame4">Frame 4 — 임팩트/선속도 지수</option>
+            <option value="frame4">Frame 4 — 임팩트/각도·반경 참고 지수</option>
             <option value="frame5">Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]</option>
             <option value="frame6">Frame 6 — 리듬/템포·시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]</option>
           </select>
@@ -1613,7 +1585,7 @@
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF1">
           <div class="analysis-segment-compare-title">Frame 1 — 백스윙탑/축고정과 꼬임</div>
           <div class="analysis-metric" id="analysisDeltaCardF1Score"
-               data-tooltip="척추축/X-Factor/샤프트수평/C7변위 점수 (0~10점)&#10;가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%&#10;점수가 높을수록 C7(축)이 입력한 키 대비 거의 이동하지 않고, 어깨를 충분히 회전하며, 탑에서 샤프트가 지면과 평행에 가까움">점수: -</div>
+               data-tooltip="척추축/X-Factor/샤프트수평/C7변위 점수 (0~10점)&#10;가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%&#10;점수가 높을수록 A/B 기준선 길이 대비 C7 변위가 작고, 어깨를 충분히 회전하며, 탑에서 샤프트가 지면과 평행에 가까움">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1SpineAngle"
             data-tooltip="어드레스 → 백스윙 탑 척추각도 변화&#10;◎ |변화| ≤5°: 이 항목 만점&#10;◎ 5~18°: 완만한 감점&#10;◎ |변화| ≥18°: 이 항목 0점&#10;프레임 점수는 다른 4개 지표와 가중합&#10;음수: 앞으로 기울어짐 / 양수: 뒤로 기울어짐">척추각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1XFactor"
@@ -1621,7 +1593,7 @@
           <div class="analysis-metric" id="analysisDeltaCardF1TopShaft"
             data-tooltip="백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)&#10;산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각&#10;◎ -3°~+3°: 정상 범위&#10;◎ 음수(−): 오버스윙(클럽헤드가 평행선 아래로 넘어감)&#10;◎ 양수(+): 부족/레이드오프(클럽헤드가 평행선 위에 머묾)&#10;점수는 상태표시 기준과 동일하게 |각도| ≤3° 만점, ≥20° 0점">샤프트 수평(탑): -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1C7XY"
-               data-tooltip="어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %&#10;기준선: &quot;기준선 지정&quot; 버튼으로 A/B 영상에 각각 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
+               data-tooltip="어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 기준선 길이 대비 %&#10;같은 파일 A/B는 A 기준선을 공통 사용하고, 다른 파일은 A/B 각 기준선을 적용합니다. 기준선은 크기만 보정하며 영상 구도·원점은 자동 정렬하지 않습니다.&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF2">
           <div class="analysis-segment-compare-title">Frame 2 — 래깅/코어이동</div>
@@ -1637,20 +1609,20 @@
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
           <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Score"
-            data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%&#10;전환 지수는 100점 만점 리포트의 70/100을 만점 기준으로 환산(70 이상=만점)&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합">점수: -</div>
+            data-tooltip="외부토크/지면반력 점수 (0~10점)&#10;가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%&#10;전환 지수는 100점 만점 리포트의 70/100을 만점 기준으로 환산(70 이상=만점)&#10;전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·F4 각도·반경 참고 지수를 결합하며 실제 힘·속도를 측정하지 않습니다.">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3Thrust"
                data-tooltip="고관절-무릎-발목 수직신장 각도 변화량(A→B) 기준 — 지면반력으로 다리가 펴지는 정도를 측정&#10;◎ 변화 0°: 0점&#10;◎ 변화 0°~30°: 선형 가산&#10;◎ 변화 30° 이상: 10점 만점&#10;◎ 음수(다리가 오히려 굽어짐): 0점">수직신장 각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3AxisSway"
             data-tooltip="다운스윙 중 C7(목 뒤) 수평 이동량 (캔버스 정규화 좌표 기준)&#10;◎ 0%: 만점 (회전축 완벽 고정)&#10;◎ 0~10%: 선형 감점&#10;◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)&#10;A·B 패널의 C7 x좌표 차이로 계산">축 고정 지수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF3GroundForceTransition"
-            data-tooltip="지면반력 전환 지수 (0~100)&#10;리드레그 브레이싱 25% | 고관절 하강 로딩 20% | C7 조기상승 억제 10% | F2→F3 골반-클럽 반경 전개 15% | F3→F4 골반-클럽 반경 전개 10% | F4 임팩트 선속도 20%&#10;F3에서는 눌러 들어가는 로딩을 평가하고, 상승·폭발은 F3→F4 전개와 F4 선속도에서 평가&#10;F4 미분석 시 측정 가능한 항목만 재정규화">지면반력 전환 지수: -</div>
+            data-tooltip="지면반력 전환 지수 (0~100)&#10;리드레그 브레이싱 25% | 고관절 하강 로딩 20% | C7 조기상승 억제 10% | F2→F3 골반-클럽 반경 전개 15% | F3→F4 골반-클럽 반경 전개 10% | F4 각도·반경 참고 지수 20%&#10;F3는 로딩 지표이며, F3→F4 변화와 F4 지수는 2D 참고값으로 실제 지면반력·선속도를 측정하지 않습니다.&#10;F4 미분석 시 측정 가능한 항목만 재정규화">지면반력 전환 지수: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF4">
-          <div class="analysis-segment-compare-title">Frame 4 — 임팩트/선속도 지수</div>
+          <div class="analysis-segment-compare-title">Frame 4 — 임팩트/각도·반경 참고 지수</div>
           <div class="analysis-metric" id="analysisDeltaCardF4Score"
-            data-tooltip="임팩트 반경/선속도 지수/C7변위 점수 (0~10점)&#10;가중치: 핵심(선속도) 45% | 팔-샤프트 10% | 스윙 반경 전개 10% | 측면기울기 10% | C7 X변위 12.5% | C7 Y변위 12.5%">점수: -</div>
+            data-tooltip="임팩트 반경/2D 각도·반경 참고 지수/C7 변위 점수 (0~10점)&#10;가중치: 각도·반경 참고 지수 45% | 팔-샤프트 10% | 스윙 반경 전개 10% | 측면기울기 10% | C7 X변위 12.5% | C7 Y변위 12.5%&#10;시간당 각도 변화를 측정하지 않으므로 실제 선속도나 파워가 아닙니다.">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4Arc"
-            data-tooltip="임팩트 선속도 지수(v=ω×r)와 F3→F4 변화량&#10;◎ 선속도 지수 40 이상: 절대 선속도 지수 만점&#10;◎ 변화량(F4−F3) 40 이상: 변화량 만점&#10;두 항목은 최종 F4 점수의 핵심 45%를 5:5로 반영">선속도 지수: -</div>
+            data-tooltip="참고 지수 = 프레임별 대표 2D 각도 × 어드레스 대비 정규화 반경&#10;시간당 각도 변화(각속도)를 추적하지 않으므로 실제 선속도·파워가 아닙니다.&#10;F3→F4 차이는 참고 비교이며 프레임별 각도 정의가 같지 않아 독립적인 에너지 전달 증거가 아닙니다.">각도·반경 참고 지수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4RMax"
             data-tooltip="Frame 2 압축 시점→Frame 4 임팩트의 골반 중심-클럽헤드 반경 재확장률&#10;산출: (Frame 4 반경 − Frame 2 반경) / Frame 2 반경&#10;◎ 25% 이상 증가: 만점&#10;◎ 0~25%: 전개율에 따라 가점&#10;◎ 0% 이하: 0점 (재확장 없음)">스윙 반경 전개: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4ArmShaft"
@@ -1658,7 +1630,7 @@
           <div class="analysis-metric" id="analysisDeltaCardF4Lean"
                data-tooltip="임팩트 측면 기울기 변화 (C7&#8594;왼어깨 수직편각)&#10;&#9679; +100&#176; 이상: 만점 (B 스윙이 더 trail-side lean)&#10;&#9679; 0&#176;: 중립 (0.5점 기여)&#10;&#9679; 음수: B에서 상체가 더 서있음 (Early Extension 의심)&#10;정면 촬영 전용 지표 &#8212; 임팩트 C-shape 유지 여부">측면기울기: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF4C7XY"
-               data-tooltip="어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %&#10;기준선: &quot;기준선 지정&quot; 버튼으로 A 영상에 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
+               data-tooltip="어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — A/B 기준선 길이 대비 %&#10;같은 파일 A/B는 A 기준선을 공통 사용하고, 다른 파일은 A/B 각 기준선을 적용합니다. 기준선은 크기만 보정하며 영상 구도·원점은 자동 정렬하지 않습니다.&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF5">
           <div class="analysis-segment-compare-title">Frame 5 &#8212; 일관성 리포트 (P1&#8594;P6, 100점)</div>
@@ -1686,7 +1658,7 @@
               <div class="analysis-metric" id="analysisDeltaCardF6Release"
                    data-tooltip="래깅-릴리즈 효율 지수 &#8212; 가중치 30%&#10;Release Index = (r_impact / r_downswing) &#215; (180&#176; &#8722; &#952;_lag)&#10;r: C7&#8594;클럽헤드 거리 (P6 vs P7, 영상 종횡비 보정)&#10;&#952;_lag: P6 래깅각 (C7&#8594;손 vs 손&#8594;클럽헤드)&#10;래깅이 좁고 임팩트 반경이 극대화될수록 고지수 = 비거리 잠재력&#10;지수 &#8805;110 만점 / &#8804;40 0점">래깅-릴리즈: -</div>
               <div class="analysis-metric" id="analysisDeltaCardF6Sequence"
-                   data-tooltip="토크 전환 템포 지수 &#8212; 가중치 30%&#10;Sequence Index = &#916;X_COM(탑&#8594;P6) / (&#916;X_C7(탑&#8594;P7) + &#949;)&#10;탑(백스윙탑) 좌표는 Frame 1 B패널 분석 결과에서 자동 참조 (F1 선행 분석 필요)&#10;COM(골반)이 먼저 이동하고 C7 축이 고정될수록 고지수 = 하체 선행 후 상체 회전&#10;지수 &#8805;1.5 만점 / &#8804;0 0점">토크 전환: -</div>
+                   data-tooltip="상대 변위 비율 &#8212; 가중치 30%&#10;|골반의 탑&#8594;P6 수평 변위| / (|C7의 탑&#8594;P7 수평 변위| + ε)&#10;탑 좌표는 Frame 1 B패널에서 참조 (F1 선행 분석 필요)&#10;절대 변위 크기 비율이며 방향·실제 시간 순서는 측정하지 않습니다.&#10;비율 &#8805;1.5 만점 / 0 이하 0점">상대 변위 비율: -</div>
             </div>
             <div class="analysis-f5-score-box" id="analysisDeltaCardF6Score"
                  data-tooltip="리듬/템포 종합 점수 (100점 만점)&#10;Score = 100 &#8722; (W1&#183;S_tempo + W2&#183;S_release + W3&#183;S_sequence)&#10;가중치: &#916;t 40% | 릴리즈 30% | 시퀀스 30%&#10;측정 불가 항목은 제외하고 나머지 가중치를 재정규화&#10;90+: A(Tour Pro) | 80~89: B(Advanced) | 70~79: C(Intermediate) | &lt;70: D(Needs Improvement)">점수: -</div>
@@ -1816,6 +1788,16 @@
   const UI_LANGUAGE_STORAGE_KEY = 'gsap_ui_language';
   const UI_TRANSLATIONS_EN = {
     '언어': 'Language', '한국어': 'Korean', '정면 A': 'Front A', '정면 B': 'Front B',
+    '로그인 아이디': 'Login ID', 'SY-GSAP 계정으로 로그인하세요.': 'Sign in with your SY-GSAP account.',
+    '로그인 아이디와 비밀번호를 입력하세요.': 'Enter your login ID and password.',
+    '로그인 중...': 'Signing in...', '아이디 또는 비밀번호가 올바르지 않습니다.': 'Invalid login ID or password.',
+    '인증 서버에서 사용자 정보를 받지 못했습니다.': 'Authentication returned no user profile.',
+    '인증 계정과 연결된 SY-GSAP 프로필이 없습니다. 관리자에게 확인하세요.': 'No SY-GSAP profile is linked to this authenticated account. Contact an administrator.',
+    '이 계정은 스윙 분석 앱에 접근할 권한이 없습니다.': 'This account does not have access to the swing analysis app.',
+    '비활성화된 선수 계정입니다. 코치에게 문의하세요.': 'This player account is inactive. Contact a coach.',
+    '코치 승인 대기 중인 선수 계정입니다.': 'This player account is awaiting coach approval.',
+    '프로필 확인에 실패했습니다. 네트워크 또는 Supabase 접근 정책을 확인하세요.': 'Could not verify the account profile. Check your connection or access policy.',
+    '로그아웃되었습니다.': 'You are signed out.',
     'A/B 스윙 핵심 포인트 비교': 'A/B Swing Keypoint Comparison',
     'A/B 스윙 비교': 'A/B Swing Comparison', '백스윙 유형 결정': 'Classify Backswing Type',
     '백스윙 입력 종료': 'Finish Backswing Input', '기준선 지정': 'Set Reference Line',
@@ -1828,6 +1810,7 @@
     'A영상 분석': 'Front A Analysis', '분석 결과 보기 ▼': 'Show Analysis Results ▼',
     '분석 결과 접기 ▲': 'Hide Analysis Results ▲', '프레임별 비교 분석': 'Frame-by-Frame Comparison',
     '비거리 모션 평균: -': 'Distance Motion Average: -', '일관성 모션 평균: -': 'Consistency Motion Average: -',
+    '비거리 모션 평균: 측정 불가': 'Distance Motion Average: not measurable', '일관성 모션 평균: 측정 불가': 'Consistency Motion Average: not measurable',
     '현재 자세 마지막 점 취소': 'Undo Last Point for Current Pose', '백스윙 입력 초기화': 'Reset Backswing Input',
     '유형 판정': 'Classify Type', '백스윙 유형별 특징': 'Backswing Type Guide',
     '측면 백스윙 궤적 분류 · A 영상': 'Side-View Backswing Path Classification · Video A',
@@ -1840,6 +1823,7 @@
     '분석을 시작하기 전에 "기준선 지정" 버튼으로 A 영상에서 머리~발끝 기준선을 먼저 표시하세요. C7 변위(%) 계산의 기준(=입력한 키 100%)이 됩니다.': 'Set a head-to-toe reference line on Video A before starting. It is used as the 100% scale for C7 displacement.',
     '먼저 Frame 1을 분석해 기준선(척도 기준)을 확정한 뒤 다른 프레임을 분석하세요. 이후 프레임들은 Frame 1의 기준선을 그대로 사용합니다.': 'Analyze Frame 1 first to lock the scale reference line. All subsequent frames use the Frame 1 reference.',
     '먼저 Frame 1(어드레스 → 백스윙 탑)을 분석해 기준점(척도 정규화 기준)을 설정한 뒤 다른 프레임을 분석하세요.': 'Analyze Frame 1 (Address → Top of Backswing) first to establish the scale normalization baseline.',
+    '먼저 Frame 1에서 A/B 영상 기준선을 확정한 뒤 다른 프레임을 분석하세요. 같은 영상이면 A 기준선을 공통 사용합니다.': 'Set the Frame 1 reference lines for A and B before analyzing later phases. If both panels use the same file, the A reference is shared.',
     '모든 분석 데이터(영상 포인트, 점수, 기록)를 초기화합니다. 계속하시겠습니까?': 'This will clear all analysis data, points, scores, and records. Continue?',
     '프레임을 선택하고 랜드마크를 입력하세요.': 'Select a frame and add landmarks.',
     'PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.': 'The libraries required to generate a PDF have not loaded.',
@@ -1887,7 +1871,7 @@
     'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]': 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing]',
     'Frame 3 — 다운스윙 후기 (외부토크/지면반력)': 'Frame 3 — Late Downswing (External Torque / Ground Force)',
     'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점': 'Frame 3 — Late Downswing (External Torque / Ground Force) — Shaft-Parallel Phase',
-    'Frame 4 — 임팩트/선속도 지수': 'Frame 4 — Impact / Linear Speed Index',
+    'Frame 4 — 임팩트/각도·반경 참고 지수': 'Frame 4 — Impact / 2D Angle-Radius Reference Index',
     'Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]': 'Frame 5 — Consistency Report [Address → Downswing 3/5 (Waist Height)]',
     'Frame 6 — 리듬/템포·시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]': 'Frame 6 — Rhythm, Tempo and Sequence [Downswing Midpoint → Impact]',
     'Frame 5 — 일관성 리포트 (P1→P6, 100점)': 'Frame 5 — Consistency Report (P1→P6, 100 points)',
@@ -1899,7 +1883,7 @@
     '코킹(래깅)각도: -': 'Lag Angle: -', '코어-손 압축: -': 'Core-to-Hand Compression: -',
     '코어(골반) 이동: -': 'Core (Pelvis) Shift: -', '수직신장 각도: -': 'Vertical Extension: -',
     '축 고정 지수: -': 'Axis Stability Index: -', '지면반력 전환 지수: -': 'Ground-Force Transition Index: -',
-    '선속도 지수: -': 'Linear Speed Index: -', '스윙 반경 전개: -': 'Swing Radius Expansion: -',
+    '각도·반경 참고 지수: -': 'Angle-Radius Reference Index: -', '스윙 반경 전개: -': 'Swing Radius Expansion: -',
     '팔-샤프트 정렬: -': 'Arm-Shaft Alignment: -', '측면기울기: -': 'Lateral Tilt: -',
     'pt1 손위치: -': 'pt1 Hand Position: -', 'pt2 C7축: -': 'pt2 C7 Axis: -', 'pt3 골반이동: -': 'pt3 Pelvis Shift: -',
     'pt4 클럽헤드: -': 'pt4 Clubhead: -', 'Δt 템포: -': 'Δt Tempo: -', '래깅-릴리즈: -': 'Lag-Release: -', '토크 전환: -': 'Torque Transition: -',
@@ -1966,7 +1950,7 @@
     '골반 중심(Mid-Hip)을 찍으세요. 골반 중심→클럽헤드 전개 반경을 산출합니다.': 'Mark the pelvis center (mid-hip) to calculate the pelvis-to-clubhead expansion radius.',
     '다운스윙 3/5 지점 — 허리높이': 'Downswing 3/5 Point — Waist Height', '다운스윙 3/5 지점 — 중기': 'Downswing Midpoint',
     '같은 시점의': 'at the same phase,', '클럽헤드 중심(공 뒤쪽)': 'clubhead center (behind the ball)',
-    '양 골반 중심점': 'center of the pelvis', '토크 전환 지수의 하체 이동 기준점입니다.': 'This is the lower-body movement reference for the torque-transition index.',
+    '양 골반 중심점': 'center of the pelvis', '상대 변위 비율의 골반 이동 기준점입니다.': 'This is the pelvis-movement reference for the relative displacement ratio.',
     '래깅각(θ_lag)을 산출합니다.': 'This is used to calculate the lag angle (θ_lag).',
     '다운스윙 회전 반경(r_downswing)을 산출합니다.': 'This is used to calculate the downswing radius (r_downswing).',
     '임팩트 순간으로 B영상을 맞추고': 'Set Video B to impact and', '임팩트 회전 반경(r_impact)을 산출합니다.': 'This is used to calculate the impact radius (r_impact).',
@@ -1975,15 +1959,16 @@
     '어드레스 → 백스윙 탑 척추각도 변화': 'Spine-angle change from address to the top',
     '어드레스→백스윙 탑 어깨 회전각 (X-Factor, 측면 카메라 기준)': 'Shoulder-turn angle (X-Factor) from address to the top, side-view estimate',
     '백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)': 'Club-shaft angle at the top (0° = level with the ground)',
-    '어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address to the top, as % of the reference height',
+    '어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 기준선 길이 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address to the top, relative to the reference-line length',
+    '같은 파일 A/B는 A 기준선을 공통 사용하고, 다른 파일은 A/B 각 기준선을 적용합니다. 기준선은 크기만 보정하며 영상 구도·원점은 자동 정렬하지 않습니다.': 'The same file in A/B uses the A reference line; different files use their respective lines. Reference lines correct scale only, not framing or image origin.',
     '래깅+코어이동+코어-손압축 점수 (0~10점)': 'Lag, core shift, and core-to-hand compression score (0–10)',
     '외부토크/지면반력 점수 (0~10점)': 'External torque / ground-force score (0–10)',
-    '임팩트 반경/선속도 지수/C7변위 점수 (0~10점)': 'Impact radius / linear-speed index / C7 displacement score (0–10)',
+    '임팩트 반경/2D 각도·반경 참고 지수/C7 변위 점수 (0~10점)': 'Impact radius / 2D angle-radius reference index / C7 displacement score (0–10)',
     '종합 일관성 점수 (100점 만점)': 'Overall consistency score (out of 100)',
     '리듬/템포 종합 점수 (100점 만점)': 'Overall rhythm and tempo score (out of 100)',
     '가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%': 'Weights: shaft level at top 30% | C7 displacement (X+Y) 35% (17.5% each) | coil (X-Factor) 17.5% | spine angle 17.5%',
     '가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%': 'Weights: ground-force transition 50% | vertical extension 25% | axis sway 25%',
-    '가중치: 핵심(선속도) 45% | 팔-샤프트 10% | 스윙 반경 전개 10% | 측면기울기 10% | C7 X변위 12.5% | C7 Y변위 12.5%': 'Weights: linear speed 45% | arm-shaft alignment 10% | swing-radius expansion 10% | lateral tilt 10% | C7 X displacement 12.5% | C7 Y displacement 12.5%',
+    '가중치: 각도·반경 참고 지수 45% | 팔-샤프트 10% | 스윙 반경 전개 10% | 측면기울기 10% | C7 X변위 12.5% | C7 Y변위 12.5%': 'Weights: angle-radius reference index 45% | arm-shaft alignment 10% | swing-radius expansion 10% | lateral tilt 10% | C7 X displacement 12.5% | C7 Y displacement 12.5%',
     '래깅각도 35% + 코어(골반)좌측이동 35% + 코어-손 압축 30%': 'Lag angle 35% + leftward core (pelvis) shift 35% + core-to-hand compression 30%',
     '일관성 리포트': 'Consistency report', '다운스윙 손 허리높이': 'downswing hands at waist height',
     '키 기준': 'height-based', '만점 기준 충족': 'target met', '정상 범위': 'within normal range',
@@ -1994,7 +1979,7 @@
     'C7 좌표 부족': 'C7 coordinates missing', 'A/B 패널 모두에 C7 클릭 필요': 'mark C7 in both A and B panels',
     'A 패널에 C7 클릭 필요': 'mark C7 in the A panel', '코어 이동': 'Core Shift', 'C7 변위': 'C7 Displacement',
     '래깅각 변화': 'Lag-Angle Change', '실제:': 'measured:', '변화:': 'change:',
-    '키 기준, 2% 미만 만점': 'height reference; under 2% earns full credit',
+    '기준선 대비, 2% 미만 만점': 'relative to the reference-line length; under 2% earns full credit',
     '브레이싱': 'bracing', '고관절↓': 'hip drop', 'C7 조기상승': 'early C7 rise', '반경 F2→F3': 'radius F2→F3', 'F4 대기': 'awaiting F4',
     '종합점수': 'Overall Score', '원감점': 'raw deduction', '점 차감': 'pts deducted',
     '실제 회전량과 다름': 'not the actual rotation amount', '어드레스 레버': 'Address lever arm',
@@ -2011,8 +1996,8 @@
     '지표 항목 만점': 'metric at full credit', '지표 항목 부분 점수': 'metric at partial credit',
     '측정 불가 (같은 영상의 P6/P7 시점 필요)': 'not measurable (P6 and P7 must be set on the same video)',
     '기준 구간보다 짧음': 'below the target range', '기준 구간 내': 'within the target range', '기준 구간보다 김': 'above the target range',
-    '래깅-릴리즈 지수': 'Lag-Release Index', '토크 전환 지수': 'Torque-Transition Index',
-    '시퀀스 지수': 'sequence index', '임팩트 Side Bend': 'Impact Side Bend', '측면 척추 꺾임': 'side bend of the spine',
+    '래깅-릴리즈 지수': 'Lag-Release Index', '상대 변위 비율': 'Relative Displacement Ratio',
+    '시퀀스 지수': 'relative displacement ratio', '임팩트 Side Bend': 'Impact Side Bend', '측면 척추 꺾임': 'side bend of the spine',
     '방향성/스퀘어 임팩트 참고 지표': 'reference metric for direction and a square impact',
     '이 점수는 P6→P7 시간차와 2D 반경·이동 지표를 합산한 추정치입니다. 타구 방향·실제 에너지 전달은 판정하지 않으며, A/B 패널에 같은 영상을 로드해야 Δt가 유효합니다.': 'This estimate combines the P6-to-P7 time interval with 2D radius and displacement metrics. It does not determine ball direction or actual energy transfer. Load the same video in A and B for a valid Δt.',
     '레버 시퀀스:': 'Lever sequence:', '추정치입니다.': 'This is an estimate.', '영상을 불러오세요': 'Load a video',
@@ -2052,13 +2037,13 @@
     '랜드마크와 라인을 3개 이상 입력하면 물리적 분석이 가능합니다.': 'At least three landmarks or lines are required for physical analysis.',
     '보정기준: 어드레스 실측 반경 대비 비율 정규화 적용(신장 입력 미사용).': 'Normalization uses the measured address radius as the reference (height input is not used).',
     '점수: ': 'Score: ', '종합점수: ': 'Overall Score: ', 'Generated:': 'Generated:',
-    '선속도 지수: ': 'Linear Speed Index: ', '압축·전개 반경: ': 'Compression / Expansion Radius: ',
+    '각도·반경 참고 지수: ': 'Angle-Radius Reference Index: ', '압축·전개 반경: ': 'Compression / Expansion Radius: ',
     '주요 각도': 'Key Angle', '래깅각': 'Lag Angle', '키 보정 ': 'Height scale ',
     '척추각도 ': 'Spine angle ', '어깨투영폭 ': 'Shoulder projected width ', '어깨기울기 ': 'Shoulder tilt ',
     '래깅각 ': 'Lag angle ', '코어위치 ': 'Core position ', '신전각 ': 'Extension angle ', 'C7위치 ': 'C7 position ',
     '손오프셋 ': 'Hand offset ', '샤프트각 ': 'Shaft angle ', 'r_max ': 'r_max ',
     'Frame 1(백스윙탑)': 'Frame 1 (Top of Backswing)', 'Frame 2(다운스윙)': 'Frame 2 (Downswing)',
-    '선속도 지수 F3:': 'Linear Speed Index F3:', '기준선 대비 ': 'of reference line ', '거리 ': 'Distance ',
+    '각도·반경 지수 F3:': 'Angle-Radius Index F3:', '기준선 대비 ': 'of reference line ', '거리 ': 'Distance ',
     '기준선': 'Reference Line', '키 기준': 'height-based', '만점 기준 충족': 'target met',
     '정상 범위': 'within normal range', '부족(레이드오프)': 'insufficient (laid off)', '데이터 부족': 'insufficient data',
     '측정 불가': 'not measurable', '선행 분석 필요': 'prior analysis required', '완료': 'Complete',
@@ -2084,12 +2069,12 @@
     'F3 다운스윙 후기: 지면반력과 축 고정': 'F3 Late Downswing: Ground Force and Axis Stability',
     'F4 임팩트: 반경 확장과 릴리즈': 'F4 Impact: Radius Expansion and Release',
     'F5 일관성: 어드레스 대비 다운스윙 재현성': 'F5 Consistency: Downswing Reproducibility vs. Address',
-    'F6 리듬/템포: Δt 템포와 래깅-릴리즈·토크 전환 지수': 'F6 Rhythm and Tempo: Δt, Lag-Release, and Torque-Transition Indices',
+    'F6 리듬/템포: Δt 템포와 래깅-릴리즈·상대 변위 비율': 'F6 Rhythm and Tempo: Δt, Lag-Release, and Relative Displacement Ratio',
     '척추각 변화 ': 'Spine-angle change ', '어깨 회전 ': 'shoulder turn ', '래깅각 변화 ': 'lag-angle change ',
     '골반 이동 ': 'pelvis shift ', '무릎 신전 변화 ': 'knee-extension change ', 'C7 스웨이 ': 'C7 sway ',
     '반경 변화 ': 'radius change ', '팔-샤프트 정렬 변화 ': 'arm-shaft alignment change ', '측면 기울기 변화 ': 'lateral-tilt change ',
     '일관성 ': 'consistency ', '손 이탈 ': 'hand offset ', '리듬/템포 ': 'rhythm/tempo ',
-    'Release Index ': 'Release Index ', 'Sequence Index ': 'Sequence Index ',
+    'Release Index ': 'Release Index ', '상대 변위 비율 ': 'Relative Displacement Ratio ', 'Sequence Index ': 'Relative Displacement Ratio ',
     ' 아직 분석하지 않음': ' not analyzed yet', '점수 ': 'score ', '등급 없음': 'no grade',
     'Frame 1(백스윙탑) 선행 분석 필요': 'Analyze Frame 1 (top of backswing) first',
     '정면 A 분석': 'Front A Analysis', '측면 B 분석': 'Side B Analysis',
@@ -2100,7 +2085,7 @@
     '두 점 사이의 화면상 거리를 측정': 'Measure the on-screen distance between two points',
     '서로 다른 A/B 스윙의 6개 주요 시점을 비교': 'Compare six key phases from different swings in A and B',
     '비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정': 'Click two points or drag once to set the head-to-toe reference line for ratio calculations',
-    '어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height',
+    '어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — A/B 기준선 길이 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, relative to the A/B reference-line lengths',
     '기준선: "기준선 지정" 버튼으로 A 영상에 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값': 'Reference: head-to-toe line set on Video A; the ratio is independent of display and video size.',
     '각도 × 반경 (로데이터 조합)': 'Angle × radius (raw-data combination)',
     '• 주요각도(팔-샤프트 꺾임)와 최대반경을 함께 표시': '• Shows the key angle (arm-shaft bend) and maximum radius together',
@@ -2167,7 +2152,7 @@
     'Frame 3 — 외부토크/지면반력': 'Frame 3 — External Torque / Ground Force',
     'Frame 3 — 다운스윙 후기 (외부토크/지면반력)': 'Frame 3 — Late Downswing (External Torque / Ground Force)',
     'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점': 'Frame 3 — Late Downswing (External Torque / Ground Force) — Shaft-Parallel Phase',
-    'Frame 4 — 임팩트/선속도 지수': 'Frame 4 — Impact / Linear Speed Index',
+    'Frame 4 — 임팩트/각도·반경 참고 지수': 'Frame 4 — Impact / 2D Angle-Radius Reference Index',
     'C7 수평(X)/수직(Y) 변위 — 입력 키 대비 %': 'C7 Horizontal (X) / Vertical (Y) Displacement — % of Reference Height',
     'C7 horizontal (X) / vertical (Y) displacement from address to the top, as % of the reference height': 'C7 horizontal (X) / vertical (Y) displacement from address to the top, as % of the reference height',
     '기준선: "기준선 지정" 버튼으로 A/B 영상에 각각 표시한 머리~발끝 선 — 화면/영상 크기와 무관한 비율값': 'Reference: head-to-toe line set separately on A and B; ratio is independent of screen and video size.',
@@ -2199,7 +2184,7 @@
     'External torque / ground-force score (0–10)': 'External torque / ground-force score (0–10)',
     '가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%': 'Weights: ground-force transition 50% | vertical extension 25% | axis sway 25%',
     '전환 지수는 100점 만점 리포트의 70/100을 만점 기준으로 환산(70 이상=만점)': 'The transition index is scaled to a full score at 70/100 on its report.',
-    '전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·선속도 상승을 결합': 'Combines lead-leg bracing, hip-drop loading, early C7-rise control, F2→F3→F4 radius expansion, and linear-speed gain.',
+    '전환 지수는 리드레그 브레이싱·고관절 하강 로딩·C7 조기상승 억제·F2→F3→F4 반경 전개·F4 각도·반경 참고 지수를 결합하며 실제 힘·속도를 측정하지 않습니다.': 'Combines lead-leg bracing, hip-drop loading, early C7-rise control, radius expansion, and the F4 angle-radius reference index; it does not measure force or speed.',
     'Frame 2 압축 시점→Frame 4 임팩트의 골반 중심-클럽헤드 반경 재확장률': 'Pelvis-to-clubhead radius re-expansion from Frame 2 compression to Frame 4 impact',
     '산출: (Frame 4 반경 − Frame 2 반경) / Frame 2 반경': 'Calculation: (Frame 4 radius − Frame 2 radius) / Frame 2 radius',
     '◎ 25% 이상 증가: 만점': '◎ Increase of 25% or more: full credit', '◎ 0~25%: 전개율에 따라 가점': '◎ 0–25%: credit scales with expansion',
@@ -2208,17 +2193,20 @@
     '다운스윙 중 C7(목 뒤) 수평 이동량 (캔버스 정규화 좌표 기준)': 'Horizontal movement of C7 (back of neck) during the downswing (normalized canvas coordinates)',
     '◎ 0%: 만점 (회전축 완벽 고정)': '◎ 0%: full credit (axis remains fixed)', '◎ 0~10%: 선형 감점': '◎ 0–10%: linearly decreasing score',
     '◎ ≥10%: 0점 (축 큰 Sway 또는 Slide)': '◎ ≥10%: 0 points (substantial sway or slide)', 'A·B 패널의 C7 x좌표 차이로 계산': 'Calculated from the difference in C7 x-coordinates between panels A and B',
-    'Sequence Index = ΔX_COM(탑→P6) / (ΔX_C7(탑→P7) + ε)': 'Sequence Index = ΔX_COM (Top→P6) / (ΔX_C7 (Top→P7) + ε)',
+    '상대 변위 비율 = |ΔX_COM(탑→P6)| / (|ΔX_C7(탑→P7)| + ε)': 'Relative Displacement Ratio = |ΔX_COM (Top→P6)| / (|ΔX_C7 (Top→P7)| + ε)',
     '탑(백스윙탑) 좌표는 Frame 1 B패널 분석 결과에서 자동 참조 (F1 선행 분석 필요)': 'Top-of-backswing coordinates are referenced from Frame 1, panel B (analyze F1 first).',
     'COM(골반)이 먼저 이동하고 C7 축이 고정될수록 고지수 = 하체 선행 후 상체 회전': 'A higher index indicates the pelvis moves first while the C7 axis stays stable, followed by upper-body rotation.',
     '지수 ≥1.5 만점 / ≤0 0점': 'Index ≥1.5: full credit / ≤0: zero',
-    'Sequence Index = ΔX_COM(탑→P6) / (ΔX_C7(탑→P7) + ε)': 'Sequence Index = ΔX_COM (Top→P6) / (ΔX_C7 (Top→P7) + ε)',
+    '상대 변위 비율 = |ΔX_COM(탑→P6)| / (|ΔX_C7(탑→P7)| + ε)': 'Relative Displacement Ratio = |ΔX_COM (Top→P6)| / (|ΔX_C7 (Top→P7)| + ε)',
     '리드레그 브레이싱 25% | 고관절 하강 로딩 20% | C7 조기상승 억제 10% | F2→F3 골반-클럽 반경 전개 15% | F3→F4 골반-클럽 반경 전개 10% | F4 임팩트 선속도 20%': 'Lead-leg bracing 25% | hip-drop loading 20% | early C7-rise control 10% | F2→F3 pelvis-to-club radius expansion 15% | F3→F4 expansion 10% | F4 impact linear speed 20%',
     'F3에서는 눌러 들어가는 로딩을 평가하고, 상승·폭발은 F3→F4 전개와 F4 선속도에서 평가': 'F3 evaluates loading; upward drive and acceleration are evaluated through F3→F4 expansion and F4 linear speed.',
     'F4 미분석 시 측정 가능한 항목만 재정규화': 'If F4 has not been analyzed, available metrics are reweighted.',
     '토크 전환 템포 지수 — 가중치 30%': 'Torque-transition tempo index — 30% weight',
-    '임팩트 선속도 지수(v=ω×r)와 F3→F4 변화량': 'Impact linear-speed index (v=ω×r) and change from F3 to F4',
-    '◎ 선속도 지수 40 이상: 절대 선속도 지수 만점': '◎ Linear-speed index ≥40: full credit for absolute speed',
+    '참고 지수 = 프레임별 대표 2D 각도 × 어드레스 대비 정규화 반경': 'Reference index = representative 2D angle per phase × radius normalized to address',
+    '시간당 각도 변화(각속도)를 추적하지 않으므로 실제 선속도·파워가 아닙니다.': 'Angular change over time is not tracked, so this is not actual linear speed or power.',
+    'F3→F4 차이는 참고 비교이며 프레임별 각도 정의가 같지 않아 독립적인 에너지 전달 증거가 아닙니다.': 'The F3→F4 difference is only a reference comparison; phase angle definitions differ and it is not independent evidence of energy transfer.',
+    '절대 변위 크기 비율이며 방향·실제 시간 순서는 측정하지 않습니다.': 'This is a ratio of displacement magnitudes; direction and actual temporal order are not measured.',
+    '◎ 각도·반경 참고 지수 40 이상: 참고 지수 항목 만점': '◎ Angle-radius reference index ≥40: full credit for this reference metric',
     '◎ 변화량(F4−F3) 40 이상: 변화량 만점': '◎ Change (F4−F3) ≥40: full credit for speed gain',
     '두 항목은 최종 F4 점수의 핵심 45%를 5:5로 반영': 'These two metrics split the core 45% of the final F4 score equally.',
     '래깅-릴리즈 효율 지수 — 가중치 30%': 'Lag-release efficiency index — 30% weight',
@@ -2232,7 +2220,7 @@
     '비거리 모션 분석': 'Distance Motion Analysis', '일관성 모션 분석': 'Consistency Motion Analysis',
     '비율 계산에 사용할 기준선(머리~발끝)의 두 점을 클릭하거나, 한 번에 드래그해서 지정': 'Click two points or drag once to set the head-to-toe reference line for ratio calculations',
     'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height',
-    '어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — 입력한 키(기준선 100%) 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, as % of reference height',
+    '어드레스(Frame1)→임팩트 C7 좌우(X)/상하(Y) 변위 — A/B 기준선 길이 대비 %': 'C7 horizontal (X) / vertical (Y) displacement from address (Frame 1) to impact, relative to the A/B reference-line lengths',
     '기준선:': 'Reference line:',
     '• 압축·전개 반경은 Frame 1 어드레스 실측 반경으로 정규화됩니다': '• Compression/expansion radius is normalized by the measured Frame 1 address radius',
     '◎ 100% = 170cm 기준 (참고 표시용)': '◎ 100% = 170 cm reference (display only)',
@@ -2282,7 +2270,7 @@
     '어깨회전(2D):': 'Shoulder Turn (2D):', '어깨회전: 데이터 부족': 'Shoulder Turn: insufficient data',
     '샤프트 수평(탑):': 'Shaft Level (Top):', '샤프트 수평(탑): 데이터 부족(6단계 그립/클럽헤드 필요)': 'Shaft Level (Top): insufficient data (complete the 6 grip/clubhead points)',
     '정상 범위': 'normal range', '오버': 'overswing', '부족(레이드오프)': 'insufficient (laid off)',
-    'C7 변위: X ': 'C7 Displacement: X ', '% / Y ': '% / Y ', '% (키 기준, 2% 미만 만점)': '% (height reference; full credit below 2%)',
+    'C7 변위: X ': 'C7 Displacement: X ', '% / Y ': '% / Y ', '% (기준선 대비, 2% 미만 만점)': '% (relative to reference lines; full credit below 2%)',
     'C7 변위: C7 좌표 부족(A/B 패널 모두에 C7 클릭 필요)': 'C7 Displacement: C7 coordinates missing (mark C7 in both panels)',
     'C7 변위: 기준선 미지정(기준선 지정 버튼 필요)': 'C7 Displacement: reference line not set (set the reference line first)',
     '래깅각 변화:': 'Lag-Angle Change:', ' (실제:': ' (measured:', '래깅각: 데이터 부족': 'Lag Angle: insufficient data',
@@ -2291,14 +2279,14 @@
     '수직신장 변화:': 'Vertical-Extension Change:', ' (B 절대각 ': ' (B absolute angle ', '수직신장: 데이터 부족': 'Vertical Extension: insufficient data',
     'C7 Sway:': 'C7 Sway:', 'C7 Sway: 데이터 부족': 'C7 Sway: insufficient data',
     '지면반력 전환:': 'Ground-Force Transition:', '지면반력 전환: 데이터 부족': 'Ground-Force Transition: insufficient data',
-    '선속도 지수:': 'Linear Speed Index:', '선속도 지수: 데이터 부족': 'Linear Speed Index: insufficient data',
+    '각도·반경 참고 지수:': 'Angle-Radius Reference Index:', '각도·반경 참고 지수: 데이터 부족': 'Angle-Radius Reference Index: insufficient data',
     '스윙 반경 전개:': 'Swing-Radius Expansion:', '스윙 반경 전개: Frame 2 선행 분석 필요': 'Swing-Radius Expansion: analyze Frame 2 first',
     '팔-샤프트 정렬 변화:': 'Arm-Shaft Alignment Change:', '팔-샤프트: 데이터 부족': 'Arm-Shaft Alignment: insufficient data',
     '측면기울기 변화:': 'Lateral-Tilt Change:', '측면기울기: 데이터 부족': 'Lateral Tilt: insufficient data',
     'pt1 손위치: 데이터 부족': 'pt1 Hand Position: insufficient data', 'pt2 C7축: 데이터 부족': 'pt2 C7 Axis: insufficient data',
     'pt3 골반이동: 데이터 부족': 'pt3 Pelvis Shift: insufficient data', 'pt4 클럽헤드: 데이터 부족': 'pt4 Clubhead: insufficient data',
     'Δt 템포: 측정 불가 (A/B 패널에 같은 영상 로드 후 P6/P7 시점 설정 필요)': 'Δt Tempo: unavailable (load the same video in A/B and set P6/P7)',
-    '래깅-릴리즈: 데이터 부족': 'Lag-Release: insufficient data', '토크 전환: Frame 1(백스윙탑) 선행 분석 필요': 'Torque Transition: analyze Frame 1 (top of backswing) first',
+    '래깅-릴리즈: 데이터 부족': 'Lag-Release: insufficient data', '상대 변위 비율: Frame 1(백스윙탑) 선행 분석 필요': 'Relative Displacement Ratio: analyze Frame 1 (top of backswing) first',
     '분석을 시작하기 전에 선수 키(cm)를 먼저 입력하세요. 이동 변위 지표 계산의 정확도를 위해 필요합니다.': 'Enter the player height in centimeters before starting. This is required for displacement metrics.',
     '먼저 Frame 1을 분석해 기준선(척도 기준)을 확정한 뒤 다른 프레임을 분석하세요. 이후 프레임들은 Frame 1의 기준선을 그대로 사용합니다.': 'Analyze Frame 1 first to lock the scale reference. All later frames use the Frame 1 reference line.',
     '먼저 Frame 1(어드레스 → 백스윙 탑)을 분석해 기준점(척도 정규화 기준)을 설정한 뒤 다른 프레임을 분석하세요.': 'Analyze Frame 1 (Address → Top of Backswing) first to establish the normalization baseline.',
@@ -2325,11 +2313,11 @@
     '수직신장 변화(A→B) ': 'Vertical-extension change (A→B) ', '충분한 신장': 'sufficient extension', '보통 수준': 'moderate', '오히려 굴어짐': 'further flexion',
     '축 고정 우수': 'excellent axis stability', '허용 범위': 'within the acceptable range', '축 이탈 과다': 'excessive axis movement',
     '하체 신장으로 레버 확장 확인': 'lever extension observed with lower-body extension', '레버 확장 제한적': 'limited lever extension',
-    'F4 임팩트 — 채찍 효과 & 선속도 지수 최대화': 'F4 Impact — Whip Effect and Linear-Speed Maximization',
+    'F4 임팩트 — 채찍 효과 & 각도·반경 참고 지수': 'F4 Impact — Whip Effect and Angle-Radius Reference Index',
     '스윙 반경 전개 ': 'Swing-radius expansion ', '임팩트 재확장 충분': 'sufficient re-expansion at impact', '부분 재확장': 'partial re-expansion', '반경 확장 부족': 'insufficient radius expansion',
     '팔-샤프트 정렬 변화 ': 'Arm-shaft alignment change ', '완전 릴리즈': 'full release', '부분 릴리즈': 'partial release', '릴리즈 부족': 'insufficient release',
     '측면기울기 변화 ': 'Lateral-tilt change ', 'C-shape 형성 우수': 'strong C-shape', '기울기 보통': 'moderate tilt', 'C-shape 미형성': 'C-shape not maintained',
-    '팔-샤프트각: 어드레스 ': 'Arm-shaft angle: Address ', ' → 임팩트 ': ' → Impact ', ' — 힌지 ': ' — hinge ', ' 방출 = v=ω×r 극대화': ' release = maximize v=ω×r',
+    '팔-샤프트각: 어드레스 ': 'Arm-shaft angle: Address ', ' → 임팩트 ': ' → Impact ', ' — 힌지 ': ' — hinge ', ' 방출 = v=ω×r 극대화': ' release cue; not a measured speed value',
     'F5 일관성 리포트 — 종합 ': 'F5 Consistency Report — Overall ', '점 / 100': ' points / 100',
     'pt1 손위치(어드레스 척추선 고정축 기준) 오프셋 변화 ': 'pt1 Hand-position offset change from the fixed address spine axis ',
     ' — 원감점 ': ' — raw deduction ', '점 × ': ' points × ', ' = ': ' = ', '점 차감': ' points deducted',
@@ -2337,10 +2325,10 @@
     'pt3 골반 타깃방향 이동 ': 'pt3 Pelvis shift toward target ', '(이상 20~30%)': '(target 20–30%)',
     'pt4 래깅각 ': 'pt4 Lag angle ', '(이상 70~110°) / 샤프트각 ': '(target 70–110°) / shaft angle ', '(이상 ≥50°, 세워질수록 코킹 유지)': '(target ≥50°; more upright means lag is retained)',
     '이 지표는 어드레스(P1) 기준 축·시퀀스가 다운스윙 허리높이(P6) 구간에서 얼마나 정확한 상대 위치로 복귀하는지(샷 재현성)를 확인하는 지표입니다.': 'This metric checks how closely the axis and sequence return to their address (P1) positions at downswing waist height (P6), indicating shot reproducibility.',
-    'F6 리듬/템포·시퀀스 — 종합 ': 'F6 Rhythm, Tempo and Sequence — Overall ',
+    'F6 리듬/템포·상대 변위 비율 — 종합 ': 'F6 Rhythm, Tempo and Relative Displacement Ratio — Overall ',
     'Δt(P6→P7) ': 'Δt (P6→P7) ', '[기준 40~80ms]': '[target 40–80 ms]', ' — 원감점 ': ' — raw deduction ',
     '래깅-릴리즈 지수 ': 'Lag-Release Index ', '릴리즈 지수 항목 만점': 'full credit for release index', '릴리즈 지수 항목 부분 점수': 'partial credit for release index',
-    '토크 전환 지수 ': 'Torque-Transition Index ', '시퀀스 지수 항목 만점': 'full credit for sequence index', '시퀀스 지수 항목 부분 점수': 'partial credit for sequence index',
+    '상대 변위 비율 ': 'Relative Displacement Ratio ', '시퀀스 지수 항목 만점': 'full credit for relative displacement ratio', '시퀀스 지수 항목 부분 점수': 'partial credit for relative displacement ratio',
     '임팩트 Side Bend ': 'Impact Side Bend ', ' — 측면 척추 꺾임 (방향성/스퀘어 임팩트 참고 지표)': ' — side bend; reference for direction and square impact',
     '이 점수는 P6→P7 시간차와 2D 반경·이동 지표를 합산한 추정치입니다. 타구 방향·실제 에너지 전달은 판정하지 않으며, A/B 패널에 같은 영상을 로드해야 Δt가 유효합니다.': 'This estimate combines the P6→P7 interval with 2D radius and movement metrics. It does not determine ball direction or actual energy transfer. Load the same video in A and B for a valid Δt.',
     '레버 시퀀스: ': 'Lever sequence: ', '분석 결과 접기 ▲': 'Hide Analysis Results ▲',
@@ -2348,6 +2336,7 @@
     '부분 코킹': 'partial lag', '점 / 100': ' points / 100', '점 × ': ' points × ', '점 차감': ' pts deducted', '원감점 ': 'raw deduction ',
     'F1 백스윙 탑: 점수 ': 'F1 Top of Backswing: score ',
     '지표 반영, 나머지는 데이터 부족으로 제외': 'metrics included; remaining metrics excluded due to insufficient data',
+    '지표 반영': 'metrics included', '지표 측정': 'metrics measured',
     '로 같은 스윙 범위입니다.': ' falls in the same-swing range.', '로 유사 스윙 범위입니다.': ' falls in the similar-swing range.',
     '로 약간 다른 스윙 범위입니다.': ' falls in the somewhat-different-swing range.', '로 다른 스윙 범위입니다.': ' falls in the different-swing range.',
     '입니다.': '.', '손목 중심': 'wrist center', '코어 중심': 'core center', '클럽헤드 중심': 'clubhead center',
@@ -2604,7 +2593,6 @@
   const loginBtn = document.getElementById('loginBtn');
   const loginStatus = document.getElementById('loginStatus');
   const logoutBtn = document.getElementById('logoutBtn');
-  const userMgmtBtn = document.getElementById('userMgmtBtn');
   const mainContainer = document.querySelector('.container');
   const mainControls = document.querySelector('.controls');
 
@@ -2754,12 +2742,14 @@
   let geminiReportLanguage = null;
 
   if (geminiApiKeyInput) {
-    geminiApiKeyInput.value = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY) || '';
+    localStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+    geminiApiKeyInput.value = sessionStorage.getItem(GEMINI_API_KEY_STORAGE_KEY) || '';
     geminiApiKeyInput.addEventListener('input', () => {
       const apiKey = geminiApiKeyInput.value.trim();
-      if (apiKey) localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, apiKey);
-      else localStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+      if (apiKey) sessionStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, apiKey);
+      else sessionStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
     });
+    window.addEventListener('pagehide', () => sessionStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY), { once: true });
   }
 
   function clamp(value, min, max) {
@@ -2802,6 +2792,13 @@
   // Frame 1 분석 시점에 확정한 기준선 길이 — 이후 다른 프레임에서 기준선을 재지정/변경해도
   // C7 변위(%) 계산은 항상 Frame 1(어드레스, A/front 영상)에서 캡처한 값만 사용(프레임마다 재지정할 필요 없음)
   let frame1ReferenceSnapshot = { front: null, side: null };
+  let videoFileIdentity = { front: null, side: null };
+  function getVideoFileIdentity(file) {
+    return file ? `${file.name}|${file.size}|${file.lastModified}` : null;
+  }
+  function areVideoSourcesSame() {
+    return !!videoFileIdentity.front && videoFileIdentity.front === videoFileIdentity.side;
+  }
   function captureFrame1ReferenceSnapshot() {
     frame1ReferenceSnapshot.front = getReferenceLineLengthNorm('front');
     frame1ReferenceSnapshot.side  = getReferenceLineLengthNorm('side');
@@ -2823,11 +2820,14 @@
     if (!hasMetric(aX) || !hasMetric(aY) || !hasMetric(bX) || !hasMetric(bY)) {
       return { xPercent: null, yPercent: null, reason: 'coords' };
     }
-    const refLen = getLockedReferenceLineLength('front');
-    if (!hasMetric(refLen) || refLen <= 0.0005) return { xPercent: null, yPercent: null, reason: 'reference' };
+    const frontRefLen = getLockedReferenceLineLength('front');
+    const sideRefLen = areVideoSourcesSame() ? frontRefLen : getLockedReferenceLineLength('side');
+    if (!hasMetric(frontRefLen) || frontRefLen <= 0.0005 || !hasMetric(sideRefLen) || sideRefLen <= 0.0005) {
+      return { xPercent: null, yPercent: null, reason: 'reference' };
+    }
     return {
-      xPercent: Math.abs(bX - aX) / refLen * 100,
-      yPercent: Math.abs(bY - aY) / refLen * 100,
+      xPercent: Math.abs(bX / sideRefLen - aX / frontRefLen) * 100,
+      yPercent: Math.abs(bY / sideRefLen - aY / frontRefLen) * 100,
       reason: null,
     };
   }
@@ -3075,7 +3075,7 @@
           ],
         },
         frame4: {
-          title: 'Frame 4 — Impact / Linear Speed Index',
+          title: 'Frame 4 — Impact / 2D Angle-Radius Reference Index',
           steps: [
             `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At address, mark the projected C7 point.' : 'At impact, mark the projected C7 point.'} In the front view, click the center of the neck below the chin.`,
             `(${viewLabel}) Step 2: Mark the left shoulder.`,
@@ -3176,7 +3176,7 @@
         ],
       },
       frame4: {
-        title: 'Frame 4 — 임팩트/선속도 지수',
+        title: 'Frame 4 — 임팩트/각도·반경 참고 지수',
         steps: [
           `(${viewLabel}) 1단계: ${guideView === 'front' ? '어드레스 자세에서' : '임팩트 순간에서'} C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
           `(${viewLabel}) 2단계: 왼쪽 어깨를 점으로 찍으세요.`,
@@ -3211,7 +3211,7 @@
         steps: guideView === 'front'
           ? [
             `(다운스윙 3/5 지점 — 중기) 1단계: 샤프트가 지면과 수평이 되는 시점으로 A영상을 맞추고 pt1 C7 경추점을 찍으세요.`,
-            `(다운스윙 3/5 지점 — 중기) 2단계: pt2 골반 중심점(COM)을 찍으세요. 토크 전환 지수의 하체 이동 기준점입니다.`,
+            `(다운스윙 3/5 지점 — 중기) 2단계: pt2 골반 중심점(COM)을 찍으세요. 상대 변위 비율의 골반 이동 기준점입니다.`,
             `(다운스윙 3/5 지점 — 중기) 3단계: pt3 양손의 중심점(그립 중앙)을 찍으세요. 래깅각(θ_lag)을 산출합니다.`,
             `(다운스윙 3/5 지점 — 중기) 4단계: pt4 클럽 헤드를 찍으세요. 다운스윙 회전 반경(r_downswing)을 산출합니다.`,
             `포인트 선택 완료. 분석을 실행합니다.`,
@@ -3237,7 +3237,7 @@
       frame1: { front: 'A — 어드레스 (척추축/X-Factor 기준)', side: 'B — 백스윙 탑 (척추축/X-Factor 확인)' },
       frame2: { front: 'A — 어드레스 (기준)', side: 'B — 다운스윙 손 허리높이 (래깅/코어이동)' },
       frame3: { front: 'A — 다운스윙 4/5 지점 기준', side: 'B — 임팩트 직전 (지면반력)' },
-      frame4: { front: 'A — 어드레스 기준', side: 'B — 임팩트 (선속도 지수)' },
+      frame4: { front: 'A — 어드레스 기준', side: 'B — 임팩트 (각도·반경 참고 지수)' },
       frame5: { front: 'P1 — 어드레스 (일관성 기준)', side: '다운스윙 3/5 지점 — 허리높이 (일관성 비교)' },
       frame6: { front: '다운스윙 3/5 지점 — 중기 (템포 기준)', side: 'B — 임팩트 (릴리즈 확인)' },
     };
@@ -3560,7 +3560,7 @@
 
   function combineMetricScores(parts) {
     const validParts = parts.filter(part => hasMetric(part.value) && part.weight > 0);
-    if (!validParts.length) return 0;
+    if (!validParts.length) return null;
     const totalWeight = validParts.reduce((sum, part) => sum + part.weight, 0);
     const weightedScore = validParts.reduce((sum, part) => sum + part.value * part.weight, 0);
     return 10 * (weightedScore / totalWeight);
@@ -3807,32 +3807,44 @@
    * fm은 createDeltaResult의 frame5 델타(P1→P6)를 담은 객체
    */
   function computeConsistencyReport(fm) {
+    const weightedMean = parts => {
+      const available = parts.filter(part => hasMetric(part.value));
+      const weightSum = available.reduce((sum, part) => sum + part.weight, 0);
+      return weightSum > 0
+        ? available.reduce((sum, part) => sum + part.value * part.weight, 0) / weightSum
+        : null;
+    };
     // ① S_hand(40%): P1 대비 P6 손 위치가 이상 영역(척추선 기준 오프셋 10~100%, 골반선 부근 이하)을 벗어난 정도
     // 다운스윙 시 손은 어드레스 대비 척추 길이의 100% 안팎까지 자연스럽게 이동하므로 상한을 넉넉히 설정
     const idealOffsetMin = 0.10, idealOffsetMax = 1.00;
     const offsetVal = hasMetric(fm.handOffsetDelta) ? Math.abs(fm.handOffsetDelta) : null;
-    let dHandOffset = 1;
-    if (offsetVal != null) {
-      dHandOffset = offsetVal < idealOffsetMin ? (idealOffsetMin - offsetVal) / idealOffsetMin
-                  : offsetVal > idealOffsetMax ? clamp((offsetVal - idealOffsetMax) / idealOffsetMax, 0, 1)
-                  : 0;
-    }
+    const dHandOffset = offsetVal == null ? null
+      : offsetVal < idealOffsetMin ? (idealOffsetMin - offsetVal) / idealOffsetMin
+      : offsetVal > idealOffsetMax ? clamp((offsetVal - idealOffsetMax) / idealOffsetMax, 0, 1)
+      : 0;
     const alongVal = hasMetric(fm.handAlongDelta) ? fm.handAlongDelta : null;
     // 손이 P1 대비 오히려 위로(골반선 위) 올라간 경우만 감점 — P6 정의상 대체로 골반선 이하 도달 (허용폭 0.7, 완화 적용)
-    const dHandAlong = alongVal != null ? clamp(alongVal < 0 ? -alongVal / 0.7 : 0, 0, 1) : 1;
-    const sHand = clamp(0.6 * dHandOffset + 0.4 * dHandAlong, 0, 1) * 100;
+    const dHandAlong = alongVal != null ? clamp(alongVal < 0 ? -alongVal / 0.7 : 0, 0, 1) : null;
+    const sHand = weightedMean([
+      { value: dHandOffset, weight: 0.6 },
+      { value: dHandAlong, weight: 0.4 },
+    ]);
+    const sHand100 = sHand == null ? null : sHand * 100;
 
     // ② S_C7(20%): 어드레스 척추선 고정축 기준 좌우 스웨이 50% + 상하 라이즈(얼리 익스텐션) 50%
     // 스웨이(offset)는 방향 무관 변위량, 라이즈(along)는 "일어서는" 방향(양수)만 감점 — 척추각 유지/추가 숙임은 정상
     const swayAbs = hasMetric(fm.c7SwayRatio) ? Math.abs(fm.c7SwayRatio) : null;
-    const dC7Sway = swayAbs != null ? clamp(swayAbs / 0.35, 0, 1) * 100 : 100;
+    const dC7Sway = swayAbs != null ? clamp(swayAbs / 0.35, 0, 1) * 100 : null;
     const riseVal = hasMetric(fm.c7RiseRatio) ? fm.c7RiseRatio : null;
-    const dC7Rise = riseVal != null ? clamp(riseVal > 0 ? riseVal / 0.30 : 0, 0, 1) * 100 : 100;
-    const sC7 = 0.5 * dC7Sway + 0.5 * dC7Rise;
+    const dC7Rise = riseVal != null ? clamp(riseVal > 0 ? riseVal / 0.30 : 0, 0, 1) * 100 : null;
+    const sC7 = weightedMean([
+      { value: dC7Sway, weight: 0.5 },
+      { value: dC7Rise, weight: 0.5 },
+    ]);
 
     // ③ S_pelvis(20%): P1→P6 골반 중심 타깃 방향 이동 비율 — 이상 범위 20~30%
     const pelvisAbs = hasMetric(fm.pelvisShiftRatio) ? Math.abs(fm.pelvisShiftRatio) : null;
-    let sPelvis = 100;
+    let sPelvis = null;
     if (pelvisAbs != null) {
       sPelvis = pelvisAbs < 0.20 ? clamp((0.20 - pelvisAbs) / 0.20, 0, 1) * 100
               : pelvisAbs > 0.30 ? clamp((pelvisAbs - 0.30) / 0.30, 0, 1) * 100
@@ -3845,29 +3857,42 @@
     const idealShaftMin = 50;
     const shaftErr = hasMetric(fm.shaftAngleB)
       ? rampScore(idealShaftMin - fm.shaftAngleB, 0, idealShaftMin) * 100
-      : 100;
-    let lagErr = 100;
+      : null;
+    let lagErr = null;
     if (hasMetric(fm.lagAngleB)) {
       lagErr = fm.lagAngleB < 70 ? rampScore(70 - fm.lagAngleB, 0, 70) * 100
              : fm.lagAngleB > 110 ? rampScore(fm.lagAngleB - 110, 0, 70) * 100
              : 0;
     }
-    const sHead = 0.6 * lagErr + 0.4 * shaftErr;
+    const sHead = weightedMean([
+      { value: lagErr, weight: 0.6 },
+      { value: shaftErr, weight: 0.4 },
+    ]);
 
     // 손이탈 비중 40%로 상향, 나머지(C7/골반/래깅·샤프트)는 동일 비율 20%씩 (2026-09-24)
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 1점 단위로 반올림
-    const score100 = roundToStep(clamp(100 - (0.40 * sHand + 0.20 * sC7 + 0.20 * sPelvis + 0.20 * sHead), 0, 100), 1);
-    const grade = score100 >= 90 ? 'A - Tour Pro Level'
+    const parts = [
+      { value: sHand100, weight: 0.40 },
+      { value: sC7, weight: 0.20 },
+      { value: sPelvis, weight: 0.20 },
+      { value: sHead, weight: 0.20 },
+    ].filter(part => hasMetric(part.value));
+    const totalWeight = parts.reduce((sum, part) => sum + part.weight, 0);
+    const score100 = totalWeight > 0
+      ? roundToStep(clamp(100 - parts.reduce((sum, part) => sum + part.value * part.weight, 0) / totalWeight, 0, 100), 1)
+      : null;
+    const grade = score100 == null ? '측정 불가'
+                : score100 >= 90 ? 'A - Tour Pro Level'
                 : score100 >= 80 ? 'B - Advanced'
                 : score100 >= 70 ? 'C - Intermediate'
                 : 'D - Needs Improvement';
-    return { score100, grade, sHand, sC7, sPelvis, sHead };
+    return { score100, grade, sHand: sHand100, sC7, sPelvis, sHead, availableMetrics: parts.length, totalMetrics: 4 };
   }
 
   /**
    * Frame 6 — 리듬/템포·키네매틱 시퀀스 리포트 (100점 만점, 감점 방식)
    * Score = 100 − (W1·S_tempo + W2·S_release + W3·S_sequence)
-   * 가중치: Δt 템포 40% | 래깅-릴리즈 지수 30% | 토크 전환 지수 30% (측정 불가 항목은 제외 후 재정규화)
+  * 가중치: Δt 템포 40% | 래깅-릴리즈 지수 30% | 상대 변위 비율 30% (측정 불가 항목은 제외 후 재정규화)
    */
   function computeTempoSequenceReport(fm) {
     // ① S_tempo(40%): Δt = P7(임팩트) − P6(다운스윙 중기) 시간차 — 최적 구간 0.04~0.08s
@@ -3899,15 +3924,16 @@
       { s: sSequence, w: 0.30 },
     ].filter(p => p.s != null);
     const wSum = parts.reduce((sum, p) => sum + p.w, 0);
-    const weighted = wSum > 0 ? parts.reduce((sum, p) => sum + p.w * p.s, 0) / wSum : 100;
+    const weighted = wSum > 0 ? parts.reduce((sum, p) => sum + p.w * p.s, 0) / wSum : null;
 
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 1점 단위로 반올림
-    let score100 = roundToStep(clamp(100 - weighted, 0, 100), 1);
-    const grade = score100 >= 90 ? 'A - Tour Pro Level'
+    const score100 = weighted == null ? null : roundToStep(clamp(100 - weighted, 0, 100), 1);
+    const grade = score100 == null ? '측정 불가'
+          : score100 >= 90 ? 'A - Tour Pro Level'
                 : score100 >= 80 ? 'B - Advanced'
                 : score100 >= 70 ? 'C - Intermediate'
                 : 'D - Needs Improvement';
-    return { score100, grade, sTempo, sRelease, sSequence, tempoZone };
+    return { score100, grade, sTempo, sRelease, sSequence, tempoZone, availableMetrics: parts.length, totalMetrics: 3 };
   }
 
   /**
@@ -4074,17 +4100,19 @@
     } else if (segment === 'frame6') {
       // frame6: 리듬/템포·시퀀스 리포트 (100점 만점) — computeTempoSequenceReport 결과를 /10으로 환산
       const rep = (deltaResult.fm && deltaResult.fm._tempo) || computeTempoSequenceReport(deltaResult.fm || {});
+      if (!hasMetric(rep.score100)) return null;
       score = rep.score100 / 10;
       return clamp(score, 0, 10);
     } else {
       // frame5: 일관성 리포트 (100점 만점) — computeConsistencyReport 결과를 /10으로 환산
       const rep = (deltaResult.fm && deltaResult.fm._consistency) || computeConsistencyReport(deltaResult.fm || {});
+      if (!hasMetric(rep.score100)) return null;
       score = rep.score100 / 10;
       // F5는 100점 만점의 정수 원점수를 그대로 표시해야 카드/요약 값이 일치한다.
       return clamp(score, 0, 10);
     }
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 0.5점 단위로 반올림
-    return roundToStep(clamp(score, 0, 10), 0.5);
+    return hasMetric(score) ? roundToStep(clamp(score, 0, 10), 0.5) : null;
   }
 
   function createDeltaResult(frontResult, sideResult, segment = 'frame1') {
@@ -4493,7 +4521,7 @@
         const arcF3 = fmF3 && fmF3._arcB != null ? fmF3._arcB.toFixed(1) : null;
         const arcF4 = fm && fm._arcB != null ? fm._arcB.toFixed(1) : null;
         if (arcF3 != null || arcF4 != null) {
-          arcTxt = `선속도 지수 F3:${arcF3 ?? '—'} → F4:${arcF4 ?? '—'}`;
+          arcTxt = `각도·반경 지수 F3:${arcF3 ?? '—'} → F4:${arcF4 ?? '—'}`;
         }
       }
       const fullSummary = [summary, arcTxt].filter(Boolean).join(' | ');
@@ -4530,9 +4558,9 @@
     }
     accelEl.textContent = '';  // 키 보정 행 숨김 (타이틀 우측으로 이동)
     transferEl.textContent = '';  // 반경 비율 삭제
-    // 선속도 지수: 각도 × 반경 (프레임 간 비교용 지표)
+    // 2D 참고 지수: 대표 각도 × 정규화 반경 (각속도 시간 추적 없음)
     const arcIndex = angleDeg * radiusProxy;
-    impactEl.textContent = `${uiLanguage === 'en' ? 'Linear Speed Index' : '선속도 지수'}: ${arcIndex.toFixed(1)}`;
+    impactEl.textContent = `${uiLanguage === 'en' ? 'Angle-Radius Reference Index' : '각도·반경 참고 지수'}: ${arcIndex.toFixed(1)}`;
     const splitIdx = result.summary.indexOf(' 키보정:');
     if (splitIdx !== -1) {
       const mainText = result.summary.slice(0, splitIdx);
@@ -4604,14 +4632,26 @@
     if (scoreEl) {
       if (segment === 'frame5' && fm._consistency) {
         const rep = fm._consistency;
-        scoreEl.innerHTML = `<span class="analysis-f5-score-part">종합점수: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">(${rep.grade})</span>`;
+        if (!hasMetric(rep.score100)) {
+          scoreEl.textContent = `종합점수: 측정 불가 (0/${rep.totalMetrics} 지표 측정)`;
+        } else {
+          const coverage = rep.availableMetrics < rep.totalMetrics ? ` (${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)` : '';
+          scoreEl.innerHTML = `<span class="analysis-f5-score-part">종합점수: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">(${rep.grade})${coverage}</span>`;
+        }
       } else if (segment === 'frame6' && fm._tempo) {
         const rep = fm._tempo;
-        scoreEl.innerHTML = `<span class="analysis-f5-score-part">종합점수: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">(${rep.grade})</span>`;
+        if (!hasMetric(rep.score100)) {
+          scoreEl.textContent = `종합점수: 측정 불가 (0/${rep.totalMetrics} 지표 측정)`;
+        } else {
+          const coverage = rep.availableMetrics < rep.totalMetrics ? ` (${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)` : '';
+          scoreEl.innerHTML = `<span class="analysis-f5-score-part">종합점수: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">(${rep.grade})${coverage}</span>`;
+        }
       } else {
         const avail = countAvailableMetrics(segment, fm);
         const availNote = avail && avail.available < avail.total ? ` (${avail.available}/${avail.total} 지표 반영, 나머지는 데이터 부족으로 제외)` : '';
-        scoreEl.textContent = `점수: ${deltaResult.segmentScore.toFixed(1)}${availNote}`;
+        scoreEl.textContent = hasMetric(deltaResult.segmentScore)
+          ? `점수: ${deltaResult.segmentScore.toFixed(1)}${availNote}`
+          : `점수: 측정 불가 (0/${avail ? avail.total : 0} 지표 측정)`;
       }
     }
 
@@ -4630,7 +4670,7 @@
           : '샤프트 수평(탑): 데이터 부족(6단계 그립/클럽헤드 필요)';
       if (analysisDeltaCardF1C7XY) analysisDeltaCardF1C7XY.textContent =
         (fm.c7XPercent != null && fm.c7YPercent != null)
-          ? `C7 변위: X ${fm.c7XPercent.toFixed(1)}% / Y ${fm.c7YPercent.toFixed(1)}% (키 기준, 2% 미만 만점)`
+          ? `C7 변위: X ${fm.c7XPercent.toFixed(1)}% / Y ${fm.c7YPercent.toFixed(1)}% (기준선 대비, 2% 미만 만점)`
           : fm.c7DispReason === 'coords'
             ? 'C7 변위: C7 좌표 부족(A/B 패널 모두에 C7 클릭 필요)'
             : 'C7 변위: 기준선 미지정(기준선 지정 버튼 필요)';
@@ -4665,9 +4705,9 @@
         const c7Rise = hasMetric(fm.c7RisePercent) ? formatPercent(fm.c7RisePercent) : '-';
         const earlyRadius = hasMetric(fm.radiusExpansionRatio) ? formatPercent(fm.radiusExpansionRatio * 100) : '-';
         const lateRadius = rep && hasMetric(rep.lateRadiusRatio) ? formatPercent(rep.lateRadiusRatio * 100) : 'F4 대기';
-        const impactSpeed = rep && hasMetric(rep.impactSpeed) ? rep.impactSpeed.toFixed(1) : 'F4 대기';
+        const angleRadiusIndex = rep && hasMetric(rep.impactSpeed) ? rep.impactSpeed.toFixed(1) : 'F4 대기';
         analysisDeltaCardF3GroundForceTransition.textContent = rep && hasMetric(rep.score100)
-          ? `지면반력 전환: ${rep.score100.toFixed(0)}/100 (브레이싱 ${brace}, 고관절↓ ${hipDrop}, C7 조기상승 ${c7Rise}, 반경 F2→F3 ${earlyRadius}, F3→F4 ${lateRadius}, F4 선속도 ${impactSpeed})`
+          ? `지면반력 전환: ${rep.score100.toFixed(0)}/100 (브레이싱 ${brace}, 고관절↓ ${hipDrop}, C7 조기상승 ${c7Rise}, 반경 F2→F3 ${earlyRadius}, F3→F4 ${lateRadius}, F4 각도·반경 참고 ${angleRadiusIndex})`
           : '지면반력 전환: 데이터 부족';
       }
     } else if (segment === 'frame4') {
@@ -4677,8 +4717,8 @@
       const arcDelta = (arcF3 != null && arcAbs != null) ? (arcAbs - arcF3) : null;
       if (analysisDeltaCardF4Arc) analysisDeltaCardF4Arc.textContent =
         arcAbs != null
-          ? `선속도 지수: ${arcAbs.toFixed(1)}${arcDelta != null ? ` (F4−F3 ${formatDelta(arcDelta)})` : ''}`
-          : '선속도 지수: 데이터 부족';
+          ? `각도·반경 참고 지수: ${arcAbs.toFixed(1)}${arcDelta != null ? ` (F4−F3 참고 차이 ${formatDelta(arcDelta)})` : ''}`
+          : '각도·반경 참고 지수: 데이터 부족';
       if (analysisDeltaCardF4RMax) analysisDeltaCardF4RMax.textContent =
         fm.radiusExpansionRatio != null
           ? `스윙 반경 전개: ${formatPercent(fm.radiusExpansionRatio * 100)} (F2 ${fm.radiusF2.toFixed(3)}→F4 ${fm.radiusCurrent.toFixed(3)})`
@@ -4689,7 +4729,7 @@
         fm.lateralLeanDelta != null ? `측면기울기 변화: ${formatDelta(fm.lateralLeanDelta)}°` : '측면기울기: 데이터 부족';
       if (analysisDeltaCardF4C7XY) analysisDeltaCardF4C7XY.textContent =
         (fm.c7XPercent != null && fm.c7YPercent != null)
-          ? `C7 변위: X ${fm.c7XPercent.toFixed(1)}% / Y ${fm.c7YPercent.toFixed(1)}% (키 기준, 2% 미만 만점)`
+          ? `C7 변위: X ${fm.c7XPercent.toFixed(1)}% / Y ${fm.c7YPercent.toFixed(1)}% (기준선 대비, 2% 미만 만점)`
           : fm.c7DispReason === 'noAddress'
             ? 'C7 변위: Frame 1(어드레스) 선행 분석 필요'
             : fm.c7DispReason === 'coords'
@@ -4729,8 +4769,8 @@
           : '래깅-릴리즈: 데이터 부족';
       if (analysisDeltaCardF6Sequence) analysisDeltaCardF6Sequence.textContent =
         fm.sequenceIndex != null
-          ? `Sequence Index ${fm.sequenceIndex.toFixed(2)}(COM이동 ${fm.comShiftTop6 != null ? (fm.comShiftTop6 * 100).toFixed(1) + '%' : '-'} / C7이동 ${fm.c7ShiftTop6 != null ? (fm.c7ShiftTop6 * 100).toFixed(1) + '%' : '-'}) → 원감점 ${hasMetric(rep.sSequence) ? rep.sSequence.toFixed(0) : '-'}점 × 30% = ${hasMetric(rep.sSequence) ? (rep.sSequence * 0.30).toFixed(1) : '-'}점 차감`
-          : '토크 전환: Frame 1(백스윙탑) 선행 분석 필요';
+          ? `상대 변위 비율 ${fm.sequenceIndex.toFixed(2)}(골반 이동 ${fm.comShiftTop6 != null ? (fm.comShiftTop6 * 100).toFixed(1) + '%' : '-'} / C7 이동 ${fm.c7ShiftTop6 != null ? (fm.c7ShiftTop6 * 100).toFixed(1) + '%' : '-'}) → 원감점 ${hasMetric(rep.sSequence) ? rep.sSequence.toFixed(0) : '-'}점 × 30% = ${hasMetric(rep.sSequence) ? (rep.sSequence * 0.30).toFixed(1) : '-'}점 차감`
+          : '상대 변위 비율: Frame 1(백스윙탑) 선행 분석 필요';
     }
       // B-frame 기본 지표 표시
     const bSecMap = {
@@ -4746,7 +4786,7 @@
       const bLbl = '<div class=' + String.fromCharCode(34) + 'analysis-b-label' + String.fromCharCode(34) + '>' + sLbl + '</div>';
       const bArcIndex = bM.angle * bM.radius;
       const showArc = segment === 'frame3' || segment === 'frame4';
-      const bImpactTxt = showArc ? `선속도 지수: ${bArcIndex.toFixed(1)}` : null;
+      const bImpactTxt = showArc ? `각도·반경 참고 지수: ${bArcIndex.toFixed(1)}` : null;
       const expansion = deltaResult.fm && hasMetric(deltaResult.fm.radiusExpansionRatio)
         ? ` (F2 대비 ${formatPercent(deltaResult.fm.radiusExpansionRatio * 100)})` : '';
       bSecEl.innerHTML = bLbl
@@ -4814,7 +4854,7 @@
       const expansion = fm.radiusExpansionRatio;
       const armS  = fm.armShaftDelta;
       const lean  = fm.lateralLeanDelta;
-      lines.push(`${bold('F4 임팩트 — 채찍 효과 & 선속도 지수 최대화')}`);
+      lines.push(`${bold('F4 임팩트 — 채찍 효과 & 각도·반경 참고 지수')}`);
       lines.push(`스윙 반경 전개 ${expansion != null ? formatPercent(expansion * 100) : '—'} — ${expansion != null && expansion >= 0.25 ? hl('임팩트 재확장 충분 (≥25%)', true) : expansion != null && expansion > 0 ? hl('부분 재확장', false) : hl('반경 확장 부족', false)}`);
       lines.push(`팔-샤프트 정렬 변화 ${deg(armS)} — ${armS != null && armS >= 100 ? hl('완전 릴리즈 (≥100°) — 채찍 효과 발생', true) : armS != null && armS >= 60 ? hl('부분 릴리즈 (60~100°)', false) : hl('릴리즈 부족 (<60°)', false)}`);
       lines.push(`측면기울기 변화 ${deg(lean)} — ${lean != null && lean >= 100 ? hl('C-shape 형성 우수 (≥100°)', true) : lean != null && lean >= 50 ? hl('기울기 보통 (50~100°)', false) : hl('C-shape 미형성 (<50°)', false)}`);
@@ -4822,28 +4862,37 @@
         const baseAng = fmA.armShaftAngleDeg;
         const impAng  = fmB.armShaftAngleDeg;
         if (baseAng != null && impAng != null) {
-          lines.push(`팔-샤프트각: 어드레스 ${deg(baseAng)} → 임팩트 ${deg(impAng)} — 힌지 ${deg(armS)} 방출 = v=ω×r 극대화`);
+          lines.push(`팔-샤프트각: 어드레스 ${deg(baseAng)} → 임팩트 ${deg(impAng)} — 힌지 ${deg(armS)} 방출 참고 (실제 선속도는 시간 추적 필요)`);
         }
       }
     }
     else if (segment === 'frame5') {
       const rep = fm._consistency || computeConsistencyReport(fm);
-      lines.push(`${bold(`F5 일관성 리포트 — 종합 ${rep.score100.toFixed(1)}점 / 100 (${rep.grade})`)}`);
+      const scoreText = hasMetric(rep.score100)
+        ? `${rep.score100.toFixed(1)}점 / 100 (${rep.grade}, ${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)`
+        : `측정 불가 (${rep.availableMetrics}/${rep.totalMetrics} 지표 측정)`;
+      const deductionText = (value, weight) => hasMetric(value)
+        ? `원감점 ${value.toFixed(0)}점 × ${weight}% = ${(value * weight / 100).toFixed(1)}점 차감`
+        : '데이터 부족으로 미반영';
+      lines.push(`${bold(`F5 일관성 리포트 — 종합 ${scoreText}`)}`);
       const offPct = fm.handOffsetDelta != null ? (fm.handOffsetDelta * 100).toFixed(1) : null;
-      lines.push(`pt1 손위치(어드레스 척추선 고정축 기준) 오프셋 변화 ${offPct != null ? offPct + '%' : '—'} — 원감점 ${rep.sHand.toFixed(0)}점 × 40% = ${(rep.sHand * 0.40).toFixed(1)}점 차감`);
+      lines.push(`pt1 손위치(어드레스 척추선 고정축 기준) 오프셋 변화 ${offPct != null ? offPct + '%' : '—'} — ${deductionText(rep.sHand, 40)}`);
       const swayPct = fm.c7SwayRatio != null ? (fm.c7SwayRatio * 100).toFixed(1) : null;
       const risePct = fm.c7RiseRatio != null ? (fm.c7RiseRatio * 100).toFixed(1) : null;
-      lines.push(`pt2 C7 스웨이 ${swayPct != null ? swayPct + '%' : '—'}(≤35%) / 라이즈 ${risePct != null ? risePct + '%' : '—'}(일어서는 방향만 감점, ≤30%) — 원감점 ${rep.sC7.toFixed(0)}점 × 20% = ${(rep.sC7 * 0.20).toFixed(1)}점 차감`);
+      lines.push(`pt2 C7 스웨이 ${swayPct != null ? swayPct + '%' : '—'}(≤35%) / 라이즈 ${risePct != null ? risePct + '%' : '—'}(일어서는 방향만 감점, ≤30%) — ${deductionText(rep.sC7, 20)}`);
       const pelvPct = fm.pelvisShiftRatio != null ? (fm.pelvisShiftRatio * 100).toFixed(1) : null;
-      lines.push(`pt3 골반 타깃방향 이동 ${pelvPct != null ? pelvPct + '%' : '—'} (이상 20~30%) — 원감점 ${rep.sPelvis.toFixed(0)}점 × 20% = ${(rep.sPelvis * 0.20).toFixed(1)}점 차감`);
+      lines.push(`pt3 골반 타깃방향 이동 ${pelvPct != null ? pelvPct + '%' : '—'} (이상 20~30%) — ${deductionText(rep.sPelvis, 20)}`);
       const shaftTxt = fm.shaftAngleB != null ? fm.shaftAngleB.toFixed(1) + '°' : '—';
       const lagTxt   = fm.lagAngleB   != null ? fm.lagAngleB.toFixed(1)   + '°' : '—';
-      lines.push(`pt4 래깅각 ${lagTxt}(이상 70~110°) / 샤프트각 ${shaftTxt}(이상 ≥50°, 세워질수록 코킹 유지) — 원감점 ${rep.sHead.toFixed(0)}점 × 20% = ${(rep.sHead * 0.20).toFixed(1)}점 차감`);
+      lines.push(`pt4 래깅각 ${lagTxt}(이상 70~110°) / 샤프트각 ${shaftTxt}(이상 ≥50°, 세워질수록 코킹 유지) — ${deductionText(rep.sHead, 20)}`);
       lines.push(`이 지표는 어드레스(P1) 기준 축·시퀀스가 다운스윙 허리높이(P6) 구간에서 얼마나 정확한 상대 위치로 복귀하는지(샷 재현성)를 확인하는 지표입니다.`);
     }
     else if (segment === 'frame6') {
       const rep = fm._tempo || computeTempoSequenceReport(fm);
-      lines.push(`${bold(`F6 리듬/템포·시퀀스 — 종합 ${rep.score100.toFixed(1)}점 / 100 (${rep.grade})`)}`);
+      const scoreText = hasMetric(rep.score100)
+        ? `${rep.score100.toFixed(1)}점 / 100 (${rep.grade}, ${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)`
+        : `측정 불가 (${rep.availableMetrics}/${rep.totalMetrics} 지표 측정)`;
+      lines.push(`${bold(`F6 리듬/템포·상대 변위 비율 — 종합 ${scoreText}`)}`);
       const dtMs = fm.timeDeltaSec != null ? (fm.timeDeltaSec * 1000).toFixed(1) : null;
       const zoneTxt = rep.tempoZone === 'early'   ? hl('기준 구간보다 짧음', false)
             : rep.tempoZone === 'optimal' ? hl('기준 구간 내', true)
@@ -4852,7 +4901,7 @@
       const relTxt = fm.releaseIndex != null ? fm.releaseIndex.toFixed(0) : null;
       lines.push(`래깅-릴리즈 지수 ${relTxt != null ? relTxt : '—'} [r_impact/r_downswing × (180°−θ_lag), ≥110 만점] — ${relTxt != null && fm.releaseIndex >= 110 ? hl('릴리즈 지수 항목 만점', true) : relTxt != null ? hl('릴리즈 지수 항목 부분 점수', false) : '측정 불가'}${rep.sRelease != null ? ` — 원감점 ${rep.sRelease.toFixed(0)}점 × 30% = ${(rep.sRelease * 0.30).toFixed(1)}점 차감` : ''}`);
       const seqTxt = fm.sequenceIndex != null ? fm.sequenceIndex.toFixed(2) : null;
-      lines.push(`토크 전환 지수 ${seqTxt != null ? seqTxt : '—'} [ΔX_COM(탑→P6) / ΔX_C7(탑→P7), ≥1.5 만점] — ${seqTxt != null && fm.sequenceIndex >= 1.5 ? hl('시퀀스 지수 항목 만점', true) : seqTxt != null ? hl('시퀀스 지수 항목 부분 점수', false) : 'Frame 1(백스윙탑) 선행 분석 필요'}${rep.sSequence != null ? ` — 원감점 ${rep.sSequence.toFixed(0)}점 × 30% = ${(rep.sSequence * 0.30).toFixed(1)}점 차감` : ''}`);
+      lines.push(`상대 변위 비율 ${seqTxt != null ? seqTxt : '—'} [|ΔX_COM(탑→P6)| / (|ΔX_C7(탑→P7)| + ε), ≥1.5 만점; 방향·실제 시간 순서는 미측정] — ${seqTxt != null && fm.sequenceIndex >= 1.5 ? hl('시퀀스 지수 항목 만점', true) : seqTxt != null ? hl('시퀀스 지수 항목 부분 점수', false) : 'Frame 1(백스윙탑) 선행 분석 필요'}${rep.sSequence != null ? ` — 원감점 ${rep.sSequence.toFixed(0)}점 × 30% = ${(rep.sSequence * 0.30).toFixed(1)}점 차감` : ''}`);
       if (fm.sideBendB6 != null) lines.push(`임팩트 Side Bend ${fm.sideBendB6.toFixed(1)}° — 측면 척추 꺾임 (방향성/스퀘어 임팩트 참고 지표)`);
       lines.push(`이 점수는 P6→P7 시간차와 2D 반경·이동 지표를 합산한 추정치입니다. 타구 방향·실제 에너지 전달은 판정하지 않으며, A/B 패널에 같은 영상을 로드해야 Δt가 유효합니다.`);
     }
@@ -5269,23 +5318,28 @@
 
   function updateSegmentScoresDisplay() {
     updateSwingTypeCard();
-    if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = `F1: ${segmentScoreHistory.frame1 !== null ? segmentScoreHistory.frame1.toFixed(1) : '-'}`;
-    if (analysisSegmentScoreF2) analysisSegmentScoreF2.textContent = `F2: ${segmentScoreHistory.frame2 !== null ? segmentScoreHistory.frame2.toFixed(1) : '-'}`;
-    if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = `F3: ${segmentScoreHistory.frame3 !== null ? segmentScoreHistory.frame3.toFixed(1) : '-'}`;
-    if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = `F4: ${segmentScoreHistory.frame4 !== null ? segmentScoreHistory.frame4.toFixed(1) : '-'}`;
+    const scoreLabel = (frame, scale = 1) => hasMetric(segmentScoreHistory[frame])
+      ? (segmentScoreHistory[frame] * scale).toFixed(1)
+      : segmentDeltaHistory[frame] ? '측정 불가' : '-';
+    if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = `F1: ${scoreLabel('frame1')}`;
+    if (analysisSegmentScoreF2) analysisSegmentScoreF2.textContent = `F2: ${scoreLabel('frame2')}`;
+    if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = `F3: ${scoreLabel('frame3')}`;
+    if (analysisSegmentScoreF4) analysisSegmentScoreF4.textContent = `F4: ${scoreLabel('frame4')}`;
     // F5·F6(일관성)은 100점 만점 독립 지표 — F1~F4 평균에 포함하지 않음
-    if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = `F5: ${segmentScoreHistory.frame5 !== null ? (segmentScoreHistory.frame5 * 10).toFixed(1) : '-'}`;
-    if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = `F6: ${segmentScoreHistory.frame6 !== null ? (segmentScoreHistory.frame6 * 10).toFixed(1) : '-'}`;
+    if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = `F5: ${scoreLabel('frame5', 10)}`;
+    if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = `F6: ${scoreLabel('frame6', 10)}`;
     if (analysisConsistencyAverage) {
-      const cScores = [segmentScoreHistory.frame5, segmentScoreHistory.frame6].filter(v => v !== null);
+      const cScores = [segmentScoreHistory.frame5, segmentScoreHistory.frame6].filter(hasMetric);
       const cAvg = cScores.length ? cScores.reduce((sum, v) => sum + v, 0) / cScores.length * 10 : null;
-      analysisConsistencyAverage.textContent = cAvg !== null ? `일관성 모션 평균: ${cAvg.toFixed(1)} / 100` : '일관성 모션 평균: -';
+      const analyzed = segmentDeltaHistory.frame5 || segmentDeltaHistory.frame6;
+      analysisConsistencyAverage.textContent = cAvg !== null ? `일관성 모션 평균: ${cAvg.toFixed(1)} / 100` : `일관성 모션 평균: ${analyzed ? '측정 불가' : '-'}`;
     }
     if (analysisSegmentAverage) {
       const { frame5, frame6, ...restScores } = segmentScoreHistory;
-      const scores = Object.values(restScores).filter(v => v !== null);
+      const scores = Object.values(restScores).filter(hasMetric);
       const avg = scores.length ? scores.reduce((sum, v) => sum + v, 0) / scores.length : 0;
-      analysisSegmentAverage.textContent = scores.length ? `비거리 모션 평균: ${avg.toFixed(1)}` : '비거리 모션 평균: -';
+      const analyzed = ['frame1', 'frame2', 'frame3', 'frame4'].some(id => segmentDeltaHistory[id]);
+      analysisSegmentAverage.textContent = scores.length ? `비거리 모션 평균: ${avg.toFixed(1)}` : `비거리 모션 평균: ${analyzed ? '측정 불가' : '-'}`;
     }
   }
 
@@ -5323,7 +5377,7 @@
       frame3: 'F3 다운스윙 후기: 지면반력과 축 고정',
       frame4: 'F4 임팩트: 반경 확장과 릴리즈',
       frame5: 'F5 일관성: 어드레스 대비 다운스윙 재현성',
-      frame6: 'F6 리듬/템포: Δt 템포와 래깅-릴리즈·토크 전환 지수',
+      frame6: 'F6 리듬/템포: Δt 템포와 래깅-릴리즈·상대 변위 비율',
     };
     const frameResults = Object.entries(segmentDeltaHistory).map(([id, result]) => {
       if (!result) return `${frameLabels[id]}: 아직 분석하지 않음`;
@@ -5339,7 +5393,7 @@
       }
       if (id === 'frame6') {
         const tempo = metrics._tempo || {};
-        lines.push(`리듬/템포 ${formatGeminiMetric(tempo.score100)} / 100 (${tempo.grade || '등급 없음'}), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, Sequence Index ${formatGeminiMetric(metrics.sequenceIndex, 2)}`);
+        lines.push(`리듬/템포 ${formatGeminiMetric(tempo.score100)} / 100 (${tempo.grade || '등급 없음'}), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, 상대 변위 비율 ${formatGeminiMetric(metrics.sequenceIndex, 2)}`);
       }
       return lines.join('; ');
     }).join('\n');
@@ -5525,9 +5579,12 @@
         alert('분석을 시작하기 전에 "기준선 지정" 버튼으로 A 영상에서 머리~발끝 기준선을 먼저 표시하세요. C7 변위(%) 계산의 기준(=입력한 키 100%)이 됩니다.');
         return;
       }
-    } else if (!frame1ReferenceSnapshot.front) {
-      // Frame 1에서 확정한 기준선만 사용 — 다른 프레임에서는 기준선을 재지정할 필요도, 효과도 없음
-      alert('먼저 Frame 1을 분석해 기준선(척도 기준)을 확정한 뒤 다른 프레임을 분석하세요. 이후 프레임들은 Frame 1의 기준선을 그대로 사용합니다.');
+      if (!areVideoSourcesSame() && !distanceReferenceLinesByView.side) {
+        alert('B 영상의 기준선을 먼저 지정하세요.');
+        return;
+      }
+    } else if (!frame1ReferenceSnapshot.front || (!areVideoSourcesSame() && !frame1ReferenceSnapshot.side)) {
+      alert('먼저 Frame 1에서 A/B 영상 기준선을 확정한 뒤 다른 프레임을 분석하세요. 같은 영상이면 A 기준선을 공통 사용합니다.');
       return;
     }
     if (selectedSegment !== 'frame1' && !baselineFrontResult) {
@@ -6343,287 +6400,139 @@
     ctx.restore();
   }
 
-  const STORAGE_KEY = 'gsap_logged_in';
-  const ADMIN_HASH = '3e486d3b54a67521a2e0849299b9c3e270247a6ed37c43770dc913eea5b118e8';
-
-  async function sha256(str){
-    const buf = new TextEncoder().encode(str);
-    const hash = await crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+  const authMemoryStorage = (() => {
+    const store = {};
+    return {
+      getItem: key => Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null,
+      setItem: (key, value) => { store[key] = String(value); },
+      removeItem: key => { delete store[key]; },
+    };
+  })();
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { storage: authMemoryStorage, storageKey: 'gsap_sb_auth', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+  });
+  const AUTH_ALIAS_DOMAIN = 'syegtp.app';
+  const AUTH_ALIAS_LEGACY_DOMAIN = 'syegtp.local';
+  function normalizeLoginId(value) {
+    return String(value || '').trim().toLowerCase();
   }
-
+  function toUtf8Hex(value) {
+    return Array.from(new TextEncoder().encode(String(value || '')))
+      .map(byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  function buildAuthEmailCandidates(loginId) {
+    const input = String(loginId || '').trim().toLowerCase();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
+      return input.endsWith(`@${AUTH_ALIAS_DOMAIN}`) || input.endsWith(`@${AUTH_ALIAS_LEGACY_DOMAIN}`) ? [input] : [];
+    }
+    const normalized = normalizeLoginId(input);
+    const asciiLocal = normalized.replace(/[^a-z0-9._-]/g, '');
+    const fallbackLocal = (`id${toUtf8Hex(normalized)}`).slice(0, 48);
+    const local = (asciiLocal || fallbackLocal).replace(/^\.+|\.+$/g, '');
+    if (!local) return [];
+    return [`${local}@${AUTH_ALIAS_DOMAIN}`, `${local}@${AUTH_ALIAS_LEGACY_DOMAIN}`];
+  }
+  async function safeAuthSignOut() {
+    try { await sb.auth.signOut({ scope: 'local' }); }
+    catch (error) { console.warn('Supabase sign-out failed:', error); }
+  }
   let currentUser = null;
-  let isAdmin = false;
-  let selectedUserEmail = null;
-
-  function loadUsers(){
-    const raw = localStorage.getItem('gsap_users');
-    if(!raw) return [];
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return [];
-    }
-  }
-
-  function saveUsers(users){
-    localStorage.setItem('gsap_users', JSON.stringify(users));
-  }
-
-  function loadUserLogs(){
-    const raw = localStorage.getItem('gsap_user_logs');
-    if(!raw) return {};
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return {};
-    }
-  }
-
-  function saveUserLogs(logs){
-    localStorage.setItem('gsap_user_logs', JSON.stringify(logs));
-  }
-
-  function addUserLog(email, action){
-    if(!email) return;
-    const logs = loadUserLogs();
-    const now = new Date().toISOString();
-    const entry = { when: now, action };
-    logs[email] = logs[email] || [];
-    logs[email].unshift(entry);
-    if(logs[email].length > 50) logs[email] = logs[email].slice(0, 50); // 로그 엔트리 최대 50개 유지
-    saveUserLogs(logs);
-  }
-
-  function getUserLogs(email){
-    const logs = loadUserLogs();
-    return logs[email] || [];
-  }
-
-  function showUserLogs(email){
-    selectedUserEmail = email;
-    const logEl = document.getElementById('userLog');
-    if(!logEl) return;
-    logEl.innerHTML = '';
-    const logs = getUserLogs(email);
-    if(logs.length === 0){
-      const empty = document.createElement('div');
-      empty.style.color = '#999';
-      empty.textContent = '로그 기록이 없습니다.';
-      logEl.appendChild(empty);
-      return;
-    }
-    logs.slice(0, 20).forEach(entry => {
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.justifyContent = 'space-between';
-      row.style.fontSize = '0.85rem';
-      row.style.padding = '2px 0';
-      const actionSpan = document.createElement('span');
-      actionSpan.textContent = entry.action;
-      const timeSpan = document.createElement('span');
-      timeSpan.style.color = 'rgba(255,255,255,0.65)';
-      timeSpan.textContent = new Date(entry.when).toLocaleString(uiLanguage === 'en' ? 'en-US' : 'ko-KR');
-      row.appendChild(actionSpan);
-      row.appendChild(timeSpan);
-      logEl.appendChild(row);
-    });
-  }
-
-  function setAdminMode(enabled){
-    isAdmin = !!enabled;
-    document.body.classList.toggle('admin-mode', isAdmin);
-    if(userMgmtBtn) userMgmtBtn.style.display = isAdmin ? 'block' : 'none';
-  }
 
   function setLoggedIn(isLoggedIn){
-    if(isLoggedIn){
-      localStorage.setItem(STORAGE_KEY, '1');
-      document.body.classList.remove('login-page');
-      loginOverlay.style.display = 'none';
-      if(mainContainer) mainContainer.style.display = '';
-      if(mainControls) mainControls.style.display = '';
-      if(logoutBtn) logoutBtn.style.display = '';
-      if(loginStatus) loginStatus.textContent = '';
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-      document.body.classList.add('login-page');
-      loginOverlay.style.display = 'flex';
-      if(mainContainer) mainContainer.style.display = 'none';
-      if(mainControls) mainControls.style.display = 'none';
-      if(logoutBtn) logoutBtn.style.display = 'none';
-      if(loginStatus) loginStatus.textContent = 'Enter admin credentials to unlock.';
-      currentUser = null;
-      selectedUserEmail = null;
-      setAdminMode(false);
-    }
+    document.body.classList.toggle('authenticated', isLoggedIn);
+    document.body.classList.toggle('login-page', !isLoggedIn);
+    loginOverlay.style.display = isLoggedIn ? 'none' : 'flex';
+    if(mainContainer) mainContainer.style.display = isLoggedIn ? '' : 'none';
+    if(mainControls) mainControls.style.display = isLoggedIn ? '' : 'none';
+    if(logoutBtn) logoutBtn.style.display = isLoggedIn ? '' : 'none';
+    if(!isLoggedIn) currentUser = null;
   }
 
   async function initLogin(){
-    // Always require login on page load (do not auto-unlock from storage)
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('gsap_logged_in');
+    localStorage.removeItem('gsap_users');
+    localStorage.removeItem('gsap_user_logs');
+    const text = (ko, en) => uiLanguage === 'en' ? en : ko;
     setLoggedIn(false);
-    setAdminMode(false);
-
-    if(userMgmtBtn) {
-      userMgmtBtn.addEventListener('click', () => {
-        openUserMgmt();
-      });
-    }
-
-    if(logoutBtn){
-      logoutBtn.addEventListener('click', () => {
-        setLoggedIn(false);
-        window.location.href = 'about:blank';
-      });
-    }
-
+    if(loginStatus) loginStatus.textContent = text('SY-GSAP 계정으로 로그인하세요.', 'Sign in with your SY-GSAP account.');
     loginBtn.addEventListener('click', async () => {
-      const email = loginEmail.value.trim();
+      const loginId = loginEmail.value.trim();
       const password = loginPassword.value;
-      if(!email || !password){
-        if(loginStatus) loginStatus.textContent = 'Please enter email and password.';
+      const authEmails = buildAuthEmailCandidates(loginId);
+      if(!authEmails.length || !password){
+        if(loginStatus) loginStatus.textContent = text('로그인 아이디와 비밀번호를 입력하세요.', 'Enter your login ID and password.');
         return;
       }
-
-      const hash = await sha256(`${email}:${password}`);
-      if(hash === ADMIN_HASH){
-        currentUser = { email, isAdmin: true };
-        setAdminMode(true);
+      loginBtn.disabled = true;
+      if(loginStatus) loginStatus.textContent = text('로그인 중...', 'Signing in...');
+      try {
+        let authResult = null;
+        for (const email of authEmails) {
+          authResult = await sb.auth.signInWithPassword({ email, password });
+          if (!authResult.error) break;
+        }
+        if(!authResult || authResult.error){
+          if(loginStatus) loginStatus.textContent = text('아이디 또는 비밀번호가 올바르지 않습니다.', 'Invalid login ID or password.');
+          return;
+        }
+        const authUser = authResult.data && authResult.data.user;
+        if(!authUser){
+          await safeAuthSignOut();
+          if(loginStatus) loginStatus.textContent = text('인증 서버에서 사용자 정보를 받지 못했습니다.', 'Authentication returned no user profile.');
+          return;
+        }
+        const { data: profiles, error: profileError } = await sb.from('sytpt_users')
+          .select('id,name,role,approval_status')
+          .limit(2000);
+        if(profileError) throw profileError;
+        const authEmail = String(authUser.email || '').toLowerCase();
+        const profile = (profiles || []).find(user => buildAuthEmailCandidates(user.id).includes(authEmail));
+        if(!profile){
+          await safeAuthSignOut();
+          if(loginStatus) loginStatus.textContent = text('인증 계정과 연결된 SY-GSAP 프로필이 없습니다. 관리자에게 확인하세요.', 'No SY-GSAP profile is linked to this authenticated account. Contact an administrator.');
+          return;
+        }
+        const role = String(profile.role || '').trim().toLowerCase();
+        const approval = String(profile.approval_status || '').trim().toLowerCase();
+        if(role !== 'coach' && role !== 'player'){
+          await safeAuthSignOut();
+          if(loginStatus) loginStatus.textContent = text('이 계정은 스윙 분석 앱에 접근할 권한이 없습니다.', 'This account does not have access to the swing analysis app.');
+          return;
+        }
+        if(role === 'player' && approval !== 'approved'){
+          await safeAuthSignOut();
+          if(loginStatus) loginStatus.textContent = approval === 'inactive'
+            ? text('비활성화된 선수 계정입니다. 코치에게 문의하세요.', 'This player account is inactive. Contact a coach.')
+            : text('코치 승인 대기 중인 선수 계정입니다.', 'This player account is awaiting coach approval.');
+          return;
+        }
+        currentUser = { id: profile.id, name: profile.name, role };
         setLoggedIn(true);
-        addUserLog(email, 'admin login');
-        if(loginStatus) loginStatus.textContent = 'Admin login successful.';
-        return;
+        if(loginStatus) loginStatus.textContent = '';
+      } catch(error) {
+        console.error('Supabase login failed:', error);
+        await safeAuthSignOut();
+        if(loginStatus) loginStatus.textContent = text('프로필 확인에 실패했습니다. 네트워크 또는 Supabase 접근 정책을 확인하세요.', 'Could not verify the account profile. Check your connection or access policy.');
+      } finally {
+        loginBtn.disabled = false;
       }
-
-      const users = loadUsers();
-      const match = users.find(u => u.hash === hash && u.email === email);
-      if(match){
-        currentUser = { email, isAdmin: false };
-        setAdminMode(false);
-        setLoggedIn(true);
-        selectedUserEmail = email;
-        addUserLog(email, 'login');
-        if(loginStatus) loginStatus.textContent = 'User login successful.';
-        return;
-      }
-
-      if(loginStatus) loginStatus.textContent = 'Invalid credentials.';
     });
-
     loginPassword.addEventListener('keyup', e => {
       if(e.key === 'Enter') loginBtn.click();
     });
-  }
-
-  function openUserMgmt(){
-    const overlay = document.getElementById('userMgmtOverlay');
-    if(!overlay) return;
-    overlay.style.display = 'flex';
-    renderUserMgmt();
-    if(selectedUserEmail) showUserLogs(selectedUserEmail);
-  }
-
-  function closeUserMgmt(){
-    const overlay = document.getElementById('userMgmtOverlay');
-    if(!overlay) return;
-    overlay.style.display = 'none';
-  }
-
-  function renderUserMgmt(){
-    const list = document.getElementById('userList');
-    const addEmail = document.getElementById('addUserEmail');
-    const addPass = document.getElementById('addUserPassword');
-    if(!list || !addEmail || !addPass) return;
-
-    const users = loadUsers();
-    list.innerHTML = '';
-    if(users.length === 0){
-      const empty = document.createElement('div');
-      empty.style.color = '#999';
-      empty.style.fontSize = '0.9rem';
-      empty.textContent = '등록된 사용자가 없습니다.';
-      list.appendChild(empty);
-    } else {
-      users.forEach(user => {
-        const row = document.createElement('div');
-        row.className = 'user-row';
-        row.style.display = 'flex';
-        row.style.justifyContent = 'space-between';
-        row.style.alignItems = 'center';
-        row.style.padding = '6px 8px';
-        row.style.borderRadius = '6px';
-        row.style.cursor = 'pointer';
-        row.style.background = selectedUserEmail === user.email ? 'rgba(0, 123, 255, 0.18)' : 'transparent';
-
-        const label = document.createElement('span');
-        label.textContent = user.email;
-        row.appendChild(label);
-
-        const buttonGroup = document.createElement('span');
-        buttonGroup.style.display = 'flex';
-        buttonGroup.style.gap = '6px';
-
-        const selectBtn = document.createElement('button');
-        selectBtn.type = 'button';
-        selectBtn.innerHTML = '✅';
-        selectBtn.title = '선택';
-        selectBtn.className = 'user-action-btn';
-        selectBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          showUserLogs(user.email);
-          renderUserMgmt();
-        });
-        buttonGroup.appendChild(selectBtn);
-
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.innerHTML = '🗑️';
-      del.title = '삭제';
-      del.className = 'user-action-btn';
-      del.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const confirmed = confirm(`${user.email} 사용자 계정을 삭제하시겠습니까?`);
-        if(!confirmed) return;
-        const remaining = loadUsers().filter(u => u.email !== user.email);
-        saveUsers(remaining);
-        if(selectedUserEmail === user.email){
-          selectedUserEmail = null;
-          const userLog = document.getElementById('userLog');
-          if(userLog) userLog.innerHTML = '';
-        }
-        renderUserMgmt();
-      });
-      buttonGroup.appendChild(del);
-      row.appendChild(buttonGroup);
-      list.appendChild(row);
+    if(logoutBtn) logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+      await safeAuthSignOut();
+      setLoggedIn(false);
+      loginPassword.value = '';
+      if(loginStatus) loginStatus.textContent = text('로그아웃되었습니다.', 'You are signed out.');
+      logoutBtn.disabled = false;
     });
-    }
-
-    const addBtn = document.getElementById('addUserBtn');
-    if(addBtn){
-      addBtn.onclick = async () => {
-        const email = addEmail.value.trim();
-        const password = addPass.value.trim();
-        if(!email || !password){
-          if(loginStatus) loginStatus.textContent = 'Email과 비밀번호를 모두 입력하세요.';
-          return;
-        }
-        const hash = await sha256(`${email}:${password}`);
-        const users = loadUsers();
-        if(users.find(u => u.email === email)){
-          if(loginStatus) loginStatus.textContent = '이미 등록된 사용자입니다.';
-          return;
-        }
-        users.push({ email, hash });
-        saveUsers(users);
-        addEmail.value = '';
-        addPass.value = '';
-        if(loginStatus) loginStatus.textContent = '사용자가 추가되었습니다.';
-        renderUserMgmt();
-        showUserLogs(email);
-      };
-    }
+    sb.auth.onAuthStateChange((event, session) => {
+      if(event === 'SIGNED_OUT' || !session) setLoggedIn(false);
+    });
   }
 
   initLogin();
@@ -7635,6 +7544,7 @@
       if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
       return;
     }
+    videoFileIdentity.front = getVideoFileIdentity(file);
     resetBackswing({ preserveClassification: true });
     clearAnalysisResults();
     resetSwingCompareData();
@@ -7675,6 +7585,7 @@
       if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
       return;
     }
+    videoFileIdentity.side = getVideoFileIdentity(file);
     clearAnalysisResults();
     resetSwingCompareData();
     frameStateHistory.side = {};
