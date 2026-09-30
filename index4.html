@@ -588,8 +588,15 @@
     text-align: right;
   }
   .video-header button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     font-size: 1.1rem;
-    padding: 6px 10px;
+    line-height: 1;
   }
   .analysis-btn {
     background: #ff8c00;
@@ -785,6 +792,17 @@
     background: #005fa3;
     padding: 5px 12px;
     font-size: 0.9rem;
+  }
+  #r10EvaluationToggleBtn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 1.1rem;
+    line-height: 1;
   }
   #distanceReferenceBtn, #distanceMeasureBtn {
     background: #006b5e;
@@ -1185,6 +1203,12 @@
     color: #eef7f5;
     text-align: left;
   }
+  .analysis-panel > .r10-panel {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    margin: 0 auto 12px;
+  }
   .r10-panel[hidden] { display: none; }
   .r10-header, .r10-toolbar, .r10-summary, .r10-chart-heading {
     display: flex;
@@ -1489,7 +1513,6 @@
         <button type="button" id="distanceMeasureBtn" title="두 점 사이의 화면상 거리를 측정">거리 산출</button>
         <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
         <button type="button" id="geminiAnalysisBtn" title="Gemini로 최종 스윙 결과를 쉬운 말로 분석">AI 분석</button>
-        <button type="button" id="downloadGeminiReportBtn" disabled title="Gemini 분석 결과를 텍스트 파일로 다운로드">AI 보고서 다운로드</button>
         <button type="button" id="downloadPdfBtn">PDF 다운로드</button>
         <button type="button" id="analysisToggleBtn">펼치기</button>
       </div>
@@ -1797,7 +1820,7 @@
     'A/B 스윙 비교': 'A/B Swing Comparison', '백스윙 유형 결정': 'Classify Backswing Type',
     '백스윙 입력 종료': 'Finish Backswing Input', '기준선 지정': 'Set Reference Line',
     '거리 산출': 'Measure Distance', '전체 초기화': 'Reset All',
-    'AI 분석': 'AI Analysis', 'AI 분석 중...': 'Analyzing...', 'AI 보고서 다운로드': 'Download AI Report',
+    'AI 분석': 'AI Analysis', 'AI 분석 중...': 'Analyzing...',
     'PDF 다운로드': 'Download PDF', '펼치기': 'Expand', '접기': 'Collapse',
     '분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.': 'Select an analysis button to start the step-by-step swing guide.',
     '다음': 'Next', '분석 실행': 'Analyze', '포인트 선택 필요': 'Select Points',
@@ -2406,7 +2429,6 @@
       if (backswingClassification) document.getElementById('backswingDecideBtn').click();
       const reportMatchesLanguage = geminiReportLanguage === uiLanguage;
       if (geminiReportBlock) geminiReportBlock.style.display = reportMatchesLanguage ? 'block' : 'none';
-      if (downloadGeminiReportBtn) downloadGeminiReportBtn.disabled = !reportMatchesLanguage || !geminiReportText;
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
     });
@@ -2727,10 +2749,8 @@
   const downloadPdfBtn = document.getElementById('downloadPdfBtn');
   const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
   const geminiAnalysisBtn = document.getElementById('geminiAnalysisBtn');
-  const downloadGeminiReportBtn = document.getElementById('downloadGeminiReportBtn');
   const geminiReportBlock = document.getElementById('geminiReportBlock');
   const GEMINI_API_KEY_STORAGE_KEY = 'gsap_gemini_api_key';
-  let geminiReportText = '';
   let geminiReportLanguage = null;
 
   if (geminiApiKeyInput) {
@@ -5377,40 +5397,19 @@
       const candidate = payload?.candidates?.[0];
       const report = candidate?.content?.parts?.map(part => part.text || '').join('\n').trim();
       if (!report) throw new Error('Gemini가 분석 텍스트를 반환하지 않았습니다.');
-      geminiReportText = report;
       geminiReportLanguage = uiLanguage;
       geminiReportBlock.textContent = candidate?.finishReason === 'MAX_TOKENS'
         ? `${report}\n\n(⚠️ 응답 길이 제한으로 마지막 부분이 잘렸습니다. 다시 시도하면 더 짧게 요약될 수 있습니다.)`
         : report;
-      downloadGeminiReportBtn.disabled = false;
     } catch (error) {
       console.warn('Gemini 스윙 분석 요청 실패:', error);
-      geminiReportText = '';
       geminiReportLanguage = null;
       if (geminiReportBlock) geminiReportBlock.textContent = `AI 분석을 완료하지 못했습니다: ${error.message}`;
-      downloadGeminiReportBtn.disabled = true;
     } finally {
       geminiAnalysisBtn.disabled = false;
       if (languageSelect) languageSelect.disabled = false;
       geminiAnalysisBtn.textContent = 'AI 분석';
     }
-  }
-
-  function downloadGeminiReport() {
-    if (!geminiReportText || geminiReportLanguage !== uiLanguage) return;
-    const classificationLines = buildTypeClassificationReportLines();
-    const classificationSection = classificationLines.length
-      ? `${uiLanguage === 'en' ? 'Type classifications:' : '유형 분류 결과:'}\n${classificationLines.map(line => translateUiText(line)).join('\n')}\n\n`
-      : '';
-    const reportTitle = uiLanguage === 'en' ? 'SY-GSAP Gemini Swing Analysis Report' : 'SY-GSAP Gemini 스윙 분석 보고서';
-    const reportDate = new Date().toLocaleString(uiLanguage === 'en' ? 'en-US' : 'ko-KR');
-    const dateLabel = uiLanguage === 'en' ? 'Generated' : '생성일';
-    const blob = new Blob([`${reportTitle}\n${dateLabel}: ${reportDate}\n\n${classificationSection}${geminiReportText}\n`], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Gemini_Swing_Report_${new Date().toISOString().slice(0, 10)}.txt`;
-    link.click();
-    URL.revokeObjectURL(link.href);
   }
 
   async function downloadAnalysisPDF() {
@@ -5424,6 +5423,7 @@
 
     const clone = analysisPanel.cloneNode(true);
     clone.classList.remove('collapsed');
+    clone.querySelector('#r10AnalysisPanel')?.remove();
     clone.style.position = 'fixed';
     clone.style.top = '-9999px';
     clone.style.left = '-9999px';
@@ -5508,10 +5508,8 @@
     const nb2 = document.getElementById('swingNarrativeToggleBtn');
     if (nb)  { nb.style.display = 'none'; nb.innerHTML = ''; }
     if (nb2) nb2.style.display = 'none';
-    geminiReportText = '';
     geminiReportLanguage = null;
     if (geminiReportBlock) { geminiReportBlock.style.display = 'none'; geminiReportBlock.textContent = ''; }
-    if (downloadGeminiReportBtn) downloadGeminiReportBtn.disabled = true;
   }
 
   function runMotionAnalysis(view) {
@@ -8192,9 +8190,6 @@
   if (geminiAnalysisBtn) {
     geminiAnalysisBtn.addEventListener('click', requestGeminiAnalysis);
   }
-  if (downloadGeminiReportBtn) {
-    downloadGeminiReportBtn.addEventListener('click', downloadGeminiReport);
-  }
   const resetAllBtn = document.getElementById('resetAllBtn');
   if (resetAllBtn) {
     resetAllBtn.addEventListener('click', resetAll);
@@ -8280,6 +8275,8 @@
 
   const r10EvaluationToggleBtn = document.getElementById('r10EvaluationToggleBtn');
   const r10AnalysisPanel = document.getElementById('r10AnalysisPanel');
+  const analysisPanelBody = document.getElementById('analysisPanelBody');
+  if (r10AnalysisPanel && analysisPanelBody) analysisPanelBody.before(r10AnalysisPanel);
   const r10CsvInput = document.getElementById('r10CsvInput');
   const r10ClearBtn = document.getElementById('r10ClearBtn');
   const r10Status = document.getElementById('r10Status');
