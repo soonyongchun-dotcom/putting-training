@@ -6123,7 +6123,6 @@
       return;
     }
     backswingClassification = result;
-    refreshScoresForBackswingEvidence();
     const title = document.createElement('button');
     title.type = 'button';
     title.className = 'backswing-result-title';
@@ -6142,7 +6141,7 @@
         'HAP-A': 'OFP + USP',
         'HAP-B': 'OPA + USP',
       };
-      resultKo.textContent = `(${hybridComponents[resultCodeItem.code] || resultCodeItem.ko})`;
+      resultKo.textContent = `(${hybridComponents[resultCodeItem.code] || (uiLanguage === 'en' ? resultCodeItem.en : resultCodeItem.ko)})`;
       title.append(resultPrefix, resultCode, resultKo);
       if (result.nearMatch) title.append(document.createTextNode(uiLanguage === 'en' ? ' (near match)' : ' (근접)'));
     } else {
@@ -6176,6 +6175,7 @@
       title.setAttribute('aria-expanded', String(!detail.hidden));
     });
     backswingResult.replaceChildren(title, detail);
+    refreshScoresForBackswingEvidence();
   });
   let sidePoints = [];
   let frontLines = [];
