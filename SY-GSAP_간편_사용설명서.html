@@ -39,9 +39,9 @@
   .cover-revision-label { display: inline-block; margin-bottom: 8px; padding: 3px 8px; border: 1px solid rgba(212,179,107,.65); color: #f2d99c; font-size: .7rem; font-weight: 800; }
   .cover-rights-row { display: flex; align-items: center; gap: 18px; max-width: 700px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.25); }
   .cover-portrait { flex: 0 0 auto; width: 82px; height: 110px; object-fit: cover; object-position: center 35%; opacity: .7; filter: saturate(.82); border-radius: 2px; box-shadow: 0 8px 18px rgba(0,0,0,.14); }
-  .cover .subtitle { max-width: 510px; margin-top: 18px; color: #d8e6dc; font-size: 1.1rem; }
+  .cover .subtitle { max-width: 510px; margin: 18px 0 50px; color: #d8e6dc; font-size: 1.1rem; }
   .cover-mark { width: 62px; height: 4px; margin: 24px 0; background: #d4b36b; }
-  .cover-meta { color: #d8e6dc; font-size: .88rem; }
+  .cover-meta { color: #d8e6dc; font-size: .88rem; line-height: 1.45; }
   .cover-copyright { min-width: 0; flex: 1; margin: 0; color: #e7eee8; font-size: .76rem; line-height: 1.55; }
   .website-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 48px 24px; text-align: center; border-bottom: 1px solid var(--line); break-after: page; page-break-after: always; }
   .website-page .eyebrow { color: var(--gold); }
@@ -98,6 +98,7 @@
     .website-page, .toc, .chapter-page { min-height: 100svh; }
     .chapter-page { padding: 42px 0 54px; }
     .cover h1 { margin-top: 60px; font-size: 2.5rem; }
+    .cover .subtitle { margin-bottom: 34px; }
     .toc ol { columns: 1; }
     .two-col { grid-template-columns: 1fr; }
     .profile-table { font-size: .82rem; line-height: 1.55; }
@@ -161,8 +162,8 @@
 <main id="koManual" lang="ko">
   <header class="cover">
     <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">원본 문서 · ORIGINAL EDITION</span></div>
-    <div><h1>SY-GSAP<br>사용매뉴얼</h1><span class="cover-revision-label">개정 안내</span><p class="subtitle">SY-GSAP이 정의한 35가지 골프 스윙 프로필 가운데 자신의 유형을 확인하고, 해당 스윙의 특징과 장단점을 바탕으로 훈련 방향을 찾는 현대적 골프 스윙 분석·교정 가이드</p></div>
-    <div class="cover-meta">사용 목적 · 모션 분석 · 유형 분류 · 35개 스윙 프로필 · Garmin R10 데이터 활용<br>제작자: S.Y Chun<br>초판 제작일: 2026년 10월 2일 · 개정일: 2026년 10월 2일<br>앱 기준 버전: 26.102ff
+    <div><h1>SY-GSAP<br>사용매뉴얼</h1><span class="cover-revision-label">개정 안내</span><p class="subtitle">SY-GSAP에서 정의한 35가지 골프 스윙 유형 가운데 자신의 스윙 프로필을 확인하고, 해당 스윙의 특징과 장단점을 바탕으로 훈련 방향을 찾는 현대적 골프 스윙 분석·교정 가이드</p></div>
+    <div class="cover-meta">제작자: S.Y Chun<br>초판 제작일: 2026년 10월 2일 · 개정일: 2026년 10월 2일<br>앱 기준 버전: 26.102ff
       <div class="cover-rights-row"><p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-GSAP 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="매뉴얼 제작자 S.Y Chun"></div>
     </div>
   </header>
@@ -332,9 +333,9 @@
 
   <section class="chapter chapter-page chapter-break" id="chapter-06">
     <p class="chapter-kicker">CHAPTER 06</p><h2>스윙 파워 엔진 유형 분석</h2>
-    <p>엔진 유형은 스윙의 힘 전달을 세 가지 기본 동작으로 보고, F1~F4에서 계산된 지표의 상대 적합도를 조합합니다. 분류 준비에는 F1·F2·F3·F4 분석이 필요합니다. C7 축 안정, F1 상체 회전, F3 하체 구동, 압축·전개, 골반 이동, F4 릴리즈의 근거가 부족하면 판정이 보류될 수 있습니다. F5 이동 또는 측면 P5→P6 경로는 보조 근거로 쓰일 수 있습니다.</p>
+    <p>스윙 파워 엔진 분석의 목적은 백스윙 탑부터 임팩트까지 다운스윙에서 공으로 힘을 전달하는 데 관여하는 핵심 모션을 살펴보고, 스윙의 파워 전달 경향을 파악하는 것입니다. 정면 스윙 영상을 기준으로 전체 모션 분석은 비거리 분석용 F1~F4와 일관성 분석용 F5~F6, 총 6개 프레임으로 구성됩니다. 다만 엔진 유형을 판정하는 데 필요한 필수 프레임은 F1~F4입니다.</p>
     <h3>분석 목적과 제공 정보</h3>
-    <p>이 기능은 F1~F4 영상 지표를 바탕으로 스윙의 주된 파워 전달 경향을 ATE·LSE·VEE 세 기본 엔진과 비교합니다. 회전축 안정, 골반의 타깃 이동, 하체 로딩·수직 신전, 압축·전개, 릴리즈 관련 근거를 종합해 각 엔진의 상대 적합도를 제시합니다.</p>
+    <p>엔진 적합도는 F1~F4 지표를 ATE·LSE·VEE 세 기본 엔진과 비교해 산출합니다. F5 골반 이동과 측면 영상의 P5→P6 경로는 데이터가 있을 때 보조 근거로 반영될 수 있습니다. F6은 엔진 적합도 판정에 필수로 포함되지 않으며, 리듬·템포·시퀀스를 별도로 분석해 전체 스윙 프로필을 이해하는 데 도움을 줍니다.</p>
     <ul><li>세 기본 엔진의 상대 적합도(%)를 보여주고, 결과에 따라 단독형·두 엔진 혼합형·세 엔진 융합형(TKE) 또는 판정 보류로 분류합니다.</li><li>혼합·융합 분류는 동작 지표의 조합을 나타내며, 선수의 우수성이나 특정 유형일 확률을 뜻하지 않습니다.</li><li>지면반력·회전·에너지 전달을 직접 계측하는 결과가 아니라 2D 영상 랜드마크에서 산출한 동작 대리지표입니다.</li></ul>
     <h3>7개 파워 엔진 유형별 특징·강점·주의점</h3>
     <table><thead><tr><th>코드</th><th>주요 동력과 앱의 판정 근거</th><th>강점 경향</th><th>관리할 위험</th></tr></thead><tbody>
@@ -502,8 +503,8 @@
 <main id="enManual" lang="en" hidden>
   <header class="cover">
     <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">ORIGINAL EDITION</span></div>
-    <div><h1>SY-GSAP<br>User Manual</h1><span class="cover-revision-label">UPDATED</span><p class="subtitle">A modern guide to golf swing analysis and improvement: identify your profile among SY-GSAP's 35 defined swing profiles, understand its characteristics and trade-offs, and use them to guide your training.</p></div>
-    <div class="cover-meta">Purpose · Motion Analysis · Type Classification · 35 Swing Profiles · Garmin R10 Data<br>Created by: S.Y Chun<br>First edition: October 2, 2026 · Revised: October 2, 2026<br>App version: 26.102ff
+    <div><h1>SY-GSAP<br>User Manual</h1><span class="cover-revision-label">UPDATED</span><p class="subtitle">A modern guide to golf swing analysis and improvement: identify your swing profile among the 35 golf swing types defined by SY-GSAP, understand its characteristics and trade-offs, and use them to guide your training.</p></div>
+    <div class="cover-meta">Created by: S.Y Chun<br>First edition: October 2, 2026 · Revised: October 2, 2026<br>App version: 26.102ff
       <div class="cover-rights-row"><p class="cover-copyright"><strong>Intellectual Property Notice</strong><br>© 2026 S.Y Chun. All rights reserved. The text, structure, and editorial design of this manual are protected works. Reproduction, modification, distribution, publication, or commercial use of this document, in whole or in part, requires prior written permission from the rights holder. SY-GSAP and third-party marks and data remain the property of their respective owners.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="S.Y Chun, manual author"></div>
     </div>
   </header>
@@ -663,9 +664,9 @@
 
   <section class="chapter chapter-page chapter-break" id="en-chapter-06">
     <p class="chapter-kicker">CHAPTER 06</p><h2>Swing Power-Engine Analysis</h2>
-    <p>The engine model groups power delivery into three base movement patterns and combines their relative fit using F1–F4 metrics. F1, F2, F3, and F4 analyses are required. Missing evidence for C7 stability, upper-body turn, leg drive, compression/expansion, pelvis shift, or release may prevent classification. F5 shift or side-view P5→P6 delivery may provide supporting evidence.</p>
+    <p>The purpose of swing power-engine analysis is to review key downswing motions, from the top to impact, that contribute to transferring force to the ball. Using a front-view swing video, the complete motion workflow reviews six frames: F1–F4 for distance motion and F5–F6 for consistency. However, the required frames for engine classification are F1–F4.</p>
     <h3>Purpose and Reported Information</h3>
-    <p>This feature compares F1–F4 video metrics with three base power engines: ATE, LSE, and VEE. It combines evidence related to axis stability, targetward pelvis movement, lower-body loading and vertical extension, compression/expansion, and release to estimate each engine's relative fit.</p>
+    <p>Engine fit is calculated by comparing F1–F4 metrics with three base engines: ATE, LSE, and VEE. F5 pelvis shift and side-view P5→P6 delivery may add supporting evidence when available. F6 is not required for engine-fit classification; it separately reviews rhythm, tempo, and sequence to provide context for the overall swing profile.</p>
     <ul><li>It displays relative fit percentages for the three base engines and may classify the result as a single engine, a two-engine hybrid, a three-engine fusion (TKE), or undetermined.</li><li>Hybrid and fusion labels describe combinations of movement indicators; they are not rankings or probabilities that a golfer belongs to a type.</li><li>These are motion proxies derived from 2D video landmarks, not direct measurements of ground force, rotation, or energy transfer.</li></ul>
     <h3>Traits, Strengths, and Trade-offs of the Seven Engines</h3>
     <table><thead><tr><th>Code</th><th>Main movement and evidence</th><th>Potential strengths</th><th>Trade-offs to monitor</th></tr></thead><tbody>
