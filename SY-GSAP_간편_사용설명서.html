@@ -9,6 +9,9 @@
   * { box-sizing: border-box; }
   body { margin: 0; color: var(--ink); background: #edf2ef; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; line-height: 1.65; }
   .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; padding: 12px max(20px, calc((100% - 900px) / 2)); background: rgba(237,242,239,.94); border-bottom: 1px solid var(--line); }
+  .toolbar-controls { display: flex; align-items: center; gap: 10px; }
+  .toolbar label { color: var(--ink); font-size: .9rem; font-weight: 700; }
+  .toolbar select { min-height: 40px; padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); font: inherit; }
   button { border: 0; border-radius: 5px; padding: 10px 16px; background: var(--green); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
   main { max-width: 900px; margin: 28px auto 56px; padding: 54px 64px; background: #fff; box-shadow: 0 8px 28px rgba(25,52,46,.09); }
   .eyebrow { margin: 0; color: var(--green); font-size: .82rem; font-weight: 800; letter-spacing: .08em; }
@@ -33,15 +36,25 @@
   .cover .eyebrow { color: #c3d9c8; }
   .cover-stamp { display: inline-block; margin-top: 12px; padding: 6px 10px; border: 1px solid rgba(212,179,107,.75); color: #f2d99c; font-size: .76rem; font-weight: 800; }
   .cover h1 { max-width: 620px; margin-top: 90px; color: white; font-family: Georgia, "Batang", serif; font-size: 3.2rem; line-height: 1.2; }
+  .cover-rights-row { display: flex; align-items: center; gap: 18px; max-width: 700px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.25); }
+  .cover-portrait { flex: 0 0 auto; width: 82px; height: 110px; object-fit: cover; object-position: center 35%; opacity: .7; filter: saturate(.82); border-radius: 2px; box-shadow: 0 8px 18px rgba(0,0,0,.14); }
   .cover .subtitle { max-width: 510px; margin-top: 18px; color: #d8e6dc; font-size: 1.1rem; }
   .cover-mark { width: 62px; height: 4px; margin: 24px 0; background: #d4b36b; }
   .cover-meta { color: #d8e6dc; font-size: .88rem; }
-  .cover-copyright { max-width: 650px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.25); color: #e7eee8; font-size: .76rem; line-height: 1.55; }
-  .toc { padding: 22px 26px; border: 1px solid var(--line); background: #f6f8f6; break-after: page; }
+  .cover-copyright { min-width: 0; flex: 1; margin: 0; color: #e7eee8; font-size: .76rem; line-height: 1.55; }
+  .website-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 48px 24px; text-align: center; border-bottom: 1px solid var(--line); break-after: page; page-break-after: always; }
+  .website-page .eyebrow { color: var(--gold); }
+  .website-page h2 { margin: 0; padding: 0; border: 0; color: var(--dark); font-family: Georgia, "Batang", serif; font-size: 2rem; }
+  .website-url { max-width: 100%; color: var(--green); font-size: 1.15rem; font-weight: 700; overflow-wrap: anywhere; }
+  .website-caption { margin: 0; color: var(--muted); }
+  .toc { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; margin-bottom: 64px; padding: 22px 26px; border: 1px solid var(--line); background: #f6f8f6; break-after: page; }
   .toc h2 { margin-top: 0; }
   .toc ol { columns: 2; column-gap: 40px; }
   .toc li { break-inside: avoid; padding: 2px 0; }
   .chapter { margin-top: 34px; }
+  .chapter-page { min-height: 100vh; margin-top: 0; padding: 44px 0 58px; border-top: 1px solid var(--line); scroll-margin-top: 18px; }
+  .chapter-page > .chapter-heading { margin-top: 0; }
+  .chapter-page > .chapter-kicker { margin-bottom: 4px; }
   .chapter-kicker { margin: 0; color: var(--gold); font-size: .78rem; font-weight: 800; }
   .chapter h2 { margin-top: 3px; }
   .chapter-heading { margin-top: 36px; }
@@ -66,6 +79,10 @@
     table { font-size: .85rem; }
     th, td { padding: 7px; }
     .cover { min-height: 570px; margin: -30px -20px 28px; padding: 34px 24px; }
+    .cover-rights-row { align-items: flex-start; gap: 10px; }
+    .cover-portrait { width: 58px; height: 78px; opacity: .68; }
+    .website-page, .toc, .chapter-page { min-height: 100svh; }
+    .chapter-page { padding: 32px 0 42px; }
     .cover h1 { margin-top: 60px; font-size: 2.5rem; }
     .toc ol { columns: 1; }
     .two-col { grid-template-columns: 1fr; }
@@ -75,7 +92,7 @@
     @page {
       size: A4;
       margin: 16mm 14mm;
-      @bottom-center { content: "© 2026 S.Y Chun · SY-GSAP 사용매뉴얼 · " counter(page); color: #687772; font-size: 8pt; }
+      @bottom-center { content: "© 2026 S.Y Chun · SY-GSAP · " counter(page); color: #687772; font-size: 8pt; }
     }
     @page:first { @bottom-center { content: none; } }
     body { background: white; font-size: 10pt; }
@@ -83,9 +100,23 @@
     main { max-width: none; margin: 0; padding: 0; box-shadow: none; }
     .cover { min-height: 255mm; margin: -16mm -14mm 0; padding: 22mm 19mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     .cover h1 { font-size: 36pt; }
+    .website-page { min-height: 265mm; padding: 0; border: 0; break-after: page; page-break-after: always; }
+    .website-url { font-size: 12pt; }
+    .toc { min-height: 0; margin-bottom: 0; }
+    .chapter-page { min-height: 0; margin-top: 0; padding: 0; border: 0; }
     h2, h3 { break-after: avoid; }
     table, .callout, .info-block { break-inside: avoid; }
     .chapter, .chapter-heading { break-before: page; page-break-before: always; }
+    #chapter-01, #chapter-02, #chapter-03, #chapter-04, #chapter-05, #chapter-06,
+    #chapter-07, #chapter-08, #chapter-09, #chapter-10, #chapter-11 {
+      break-before: page !important;
+      page-break-before: always !important;
+    }
+    #en-chapter-01, #en-chapter-02, #en-chapter-03, #en-chapter-04, #en-chapter-05, #en-chapter-06,
+    #en-chapter-07, #en-chapter-08, #en-chapter-09, #en-chapter-10, #en-chapter-11 {
+      break-before: page !important;
+      page-break-before: always !important;
+    }
     .profile-group { break-before: page; }
     .profile-table thead { display: table-header-group; }
     .profile-table tr { break-inside: avoid; }
@@ -94,15 +125,31 @@
 </style>
 </head>
 <body>
-<div class="toolbar"><button type="button" onclick="window.print()">인쇄 / PDF로 저장</button></div>
-<main>
+<div class="toolbar">
+  <div class="toolbar-controls">
+    <label id="languageLabel" for="manualLanguage">언어</label>
+    <select id="manualLanguage" aria-label="언어">
+      <option value="ko" selected>한국어</option>
+      <option value="en">English</option>
+    </select>
+    <button type="button" id="printManualBtn" onclick="window.print()">인쇄 / PDF로 저장</button>
+  </div>
+</div>
+<main id="koManual" lang="ko">
   <header class="cover">
     <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">원본 문서 · ORIGINAL EDITION</span></div>
     <div><h1>SY-GSAP<br>사용매뉴얼</h1><p class="subtitle">골프 스윙을 관찰하고, 유형을 이해하고, 데이터로 훈련 방향을 찾는 분석 안내서</p></div>
     <div class="cover-meta">사용 목적 · 모션 분석 · 유형 분류 · 35개 스윙 프로필 · Garmin R10 데이터 활용<br>제작자: S.Y Chun<br>초판 제작일: 2026년 10월 2일 · 개정일: 2026년 10월 2일<br>앱 기준 버전: 26.102ff
-      <p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-GSAP 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p>
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-GSAP 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="매뉴얼 제작자 S.Y Chun"></div>
     </div>
   </header>
+
+  <section class="website-page" aria-label="SY-GSAP 웹사이트">
+    <p class="eyebrow">SY-GSAP · OFFICIAL WEBSITE</p>
+    <h2>SY-GSAP 웹사이트</h2>
+    <a class="website-url" href="https://soonyongchun-dotcom.github.io/putting-training/index4.html" target="_blank" rel="noopener noreferrer">https://soonyongchun-dotcom.github.io/putting-training/index4.html</a>
+    <p class="website-caption">온라인 골프 스윙 분석 플랫폼</p>
+  </section>
 
   <nav class="toc" aria-label="목차">
     <h2>목차</h2>
@@ -121,7 +168,7 @@
     </ol>
   </nav>
 
-  <section class="chapter" id="chapter-01">
+  <section class="chapter chapter-page" id="chapter-01">
     <p class="chapter-kicker">CHAPTER 01</p><h2>매뉴얼의 목적과 앱의 분석 관점</h2>
     <p><strong>SY-GSAP(SY Golf Swing Analysis Platform)</strong>은 골프 스윙 영상을 프레임별로 살펴보고, 사용자가 지정한 신체·클럽 기준점의 2D 이동과 각도를 정량화해 스윙의 구조를 이해하도록 돕는 분석 도구입니다. 영상 모션, 스윙 유형, 샷 결과 데이터를 서로 보완적으로 읽어 연습의 우선순위를 정하는 것이 목적입니다.</p>
     <div class="two-col">
@@ -131,15 +178,28 @@
     <div class="callout warning"><strong>핵심 원칙:</strong> 점수는 진단명이 아니라 다음에 확인할 동작을 찾는 출발점입니다. 영상에서 관찰된 사실, 앱이 계산한 지표, 가능한 원인 가설을 구분해서 기록하세요.</div>
   </section>
 
+  <section class="chapter-page" id="chapter-02">
   <div class="callout"><strong>빠른 시작:</strong> A/B 영상 불러오기 → A 영상에서 머리~발끝 기준선 지정 → Frame 1 분석 → 필요한 Frame 2~6 분석 → PDF 저장</div>
 
-  <h2 class="chapter-heading" id="chapter-02">CHAPTER 02 · 분석 준비와 기본 사용 절차</h2>
+  <h2 class="chapter-heading">CHAPTER 02 · 분석 준비와 기본 사용 절차</h2>
   <ul>
     <li>로그인 후 정면 A와 B 패널에 분석할 영상을 불러옵니다. 파일 버튼으로 영상을 선택하거나 카메라 버튼으로 촬영할 수 있습니다.</li>
     <li>가능하면 전신과 클럽이 잘 보이고, 카메라가 흔들리지 않은 영상을 사용합니다. 분석 중에는 재생/일시정지, 프레임 이동, 탐색 막대, 재생 속도, 확대/축소로 정확한 시점을 맞춥니다.</li>
     <li>각 패널은 별도의 영상 플레이어입니다. 한 스윙의 서로 다른 시점을 분석할 때 같은 영상을 A와 B에 각각 불러올 수 있습니다.</li>
     <li>키(cm)는 참고 표시용 입력입니다. 분석 기준은 Frame 1에서 지정하는 머리~발끝 기준선입니다.</li>
   </ul>
+
+  <h3>스마트폰 촬영 기준</h3>
+  <p><strong>휴대폰으로 촬영한 일반 2D 영상만으로 분석을 시작할 수 있습니다.</strong> 별도의 3D 모션 캡처 장비는 필수가 아닙니다. 다만 앱은 영상에 보이는 좌표와 사용자가 찍은 포인트를 분석하므로, 촬영 각도와 프레임 품질이 결과의 신뢰도에 직접 영향을 줍니다.</p>
+  <table><thead><tr><th>항목</th><th>권장 기준</th></tr></thead><tbody>
+    <tr><td>프레임레이트</td><td><strong>최소 60fps 이상</strong>으로 촬영합니다. 촬영 전에 카메라 설정에서 해상도와 프레임레이트를 확인합니다.</td></tr>
+    <tr><td>카메라 높이</td><td>렌즈를 스윙자의 <strong>가슴 높이</strong>에 맞춥니다. 위나 아래에서 비스듬히 내려다보거나 올려다보는 촬영은 피합니다.</td></tr>
+    <tr><td>정면 영상</td><td>스윙자를 정면에서 바라보며, 카메라가 스윙자의 <strong>정중앙</strong>을 향하도록 놓습니다. 좌우로 치우친 위치에서 촬영하지 않습니다.</td></tr>
+    <tr><td>측면 영상</td><td>스윙자 옆쪽에서 촬영하되, 우타 기준으로 <strong>왼쪽 무릎과 왼쪽 어깨가 오른쪽 무릎·어깨와 각각 겹쳐 보이는 선상</strong>에 카메라를 둡니다. 화면에서 두 무릎과 두 어깨의 좌우 겹침을 확인해 각도를 맞춥니다.</td></tr>
+    <tr><td>화면 범위·고정</td><td>어드레스부터 피니시까지 머리·발·클럽헤드가 화면 밖으로 나가지 않게 전신을 담고, 촬영 중 휴대폰을 움직이지 않도록 고정합니다.</td></tr>
+    <tr><td>선명도·조명</td><td>몸과 클럽이 배경과 구분되고 흔들림이나 가림이 적은 영상을 사용합니다. 역광과 어두운 실내는 피합니다.</td></tr>
+  </tbody></table>
+  <div class="callout warning"><strong>2D 분석의 한계:</strong> 촬영 조건이 좋아도 휴대폰 단일 시점 영상은 깊이 방향 움직임을 직접 측정하지 못합니다. 실제 3D 관절 회전, 지면반력, 클럽의 깊이 이동을 측정한 결과로 해석하지 말고, 같은 카메라 위치와 조건에서 반복 촬영해 변화 추이를 비교하세요. 좌타자는 측면 기준의 좌우 겹침 방향을 스윙 방향에 맞춰 반대로 적용합니다.</div>
 
   <h3>기본 분석 순서</h3>
   <ol class="steps">
@@ -151,8 +211,10 @@
   </ol>
 
   <div class="callout warning"><strong>순서 주의:</strong> 모든 프레임 분석 전에 기준선이 필요하며, Frame 1을 먼저 완료해야 나머지 프레임의 기준이 만들어집니다. Frame 2의 탑 대비 압축 지표는 Frame 1 B(백스윙 탑)의 추가 그립·클럽헤드 포인트까지 입력해야 계산됩니다. Frame 6의 시퀀스 지표도 Frame 1 B 좌표를 참조합니다.</div>
+  </section>
 
-  <h2 class="chapter-heading" id="chapter-03">CHAPTER 03 · Frame 1~6 분석 기능 안내</h2>
+  <section class="chapter-page" id="chapter-03">
+  <h2 class="chapter-heading">CHAPTER 03 · Frame 1~6 분석 기능 안내</h2>
   <table>
     <thead><tr><th>프레임</th><th>주요 목적</th><th>시점 / 참고</th></tr></thead>
     <tbody>
@@ -165,8 +227,10 @@
     </tbody>
   </table>
   <p class="small">🏌️ 버튼은 Frame 1~4 분석 흐름, 🎯 버튼은 Frame 5~6 분석 흐름을 엽니다. 프레임은 선택 목록에서도 직접 고를 수 있습니다.</p>
+  </section>
 
-  <h2 class="chapter-heading" id="chapter-04">CHAPTER 04 · 분석 결과와 보조 기능</h2>
+  <section class="chapter-page" id="chapter-04">
+  <h2 class="chapter-heading">CHAPTER 04 · 분석 결과와 보조 기능</h2>
   <h3>A/B 스윙 비교</h3>
   <p>Motion Analysis의 “A/B 스윙 비교”를 켜고 서로 다른 두 스윙 영상을 A와 B에 불러옵니다. 어드레스, 백스윙 탑, 어깨선, 허리선, 임팩트 전, 임팩트의 6개 시점마다 화면 안내에 따라 포인트를 입력합니다. 비교표는 두 스윙의 궤적·래깅각·템포 일치도를 보여주며, 절대적인 실력 점수나 우열이 아니라 두 영상 사이의 유사도입니다. 현재 시점만 지우거나 비교 전체를 초기화할 수 있습니다.</p>
   <h3>백스윙 유형 결정</h3>
@@ -177,8 +241,9 @@
   <p>📊 버튼을 열고 R10 샷 CSV를 불러옵니다. 샷 분포와 중심 이탈 등 타구 데이터 패턴을 영상 분석 결과와 함께 참고합니다. CSV 형식과 포함된 열에 따라 표시 가능한 항목이 달라집니다.</p>
   <h3>AI 설명과 결과 저장</h3>
   <p>AI 분석은 Gemini API 키를 입력한 뒤 실행합니다. 키는 화면에 안내된 대로 현재 세션에서만 사용됩니다. 분석 결과는 “PDF 다운로드”로 저장할 수 있습니다.</p>
+  </section>
 
-  <section class="chapter chapter-break" id="chapter-05">
+  <section class="chapter chapter-page chapter-break" id="chapter-05">
     <p class="chapter-kicker">CHAPTER 05</p><h2>백스윙 유형 분석</h2>
     <p>백스윙 유형 분석은 측면 영상의 8개 체크포인트에서 손·클럽 위치를 입력하고, 어드레스 기준 샤프트면과 백스윙·전환·다운스윙의 상대 경로를 비교합니다. 앱은 다섯 패턴 가운데 조건에 가장 가까운 유형을 제안합니다.</p>
     <h3>입력 순서와 촬영 원칙</h3>
@@ -194,7 +259,7 @@
     <div class="callout warning"><strong>결과 읽기:</strong> 앱은 8개 체크포인트의 화면 좌표로 2D 경로를 추정합니다. 카메라 방향, 원근, 신체 가림, 포인트 클릭에 영향을 받으며 실제 3D 클럽 궤도나 페이스 각도를 확정하지 않습니다. “근접 후보”는 확정 판정이 아니라 가장 가까운 패턴을 표시한 것입니다.</div>
   </section>
 
-  <section class="chapter chapter-break" id="chapter-06">
+  <section class="chapter chapter-page chapter-break" id="chapter-06">
     <p class="chapter-kicker">CHAPTER 06</p><h2>스윙 파워 엔진 유형 분석</h2>
     <p>엔진 유형은 스윙의 힘 전달을 세 가지 기본 동작으로 보고, F1~F4에서 계산된 지표의 상대 적합도를 조합합니다. 분류 준비에는 F1·F2·F3·F4 분석이 필요합니다. C7 축 안정, F1 상체 회전, F3 하체 구동, 압축·전개, 골반 이동, F4 릴리즈의 근거가 부족하면 판정이 보류될 수 있습니다. F5 이동 또는 측면 P5→P6 경로는 보조 근거로 쓰일 수 있습니다.</p>
     <table><thead><tr><th>코드</th><th>주요 동력과 앱의 판정 근거</th><th>강점 경향</th><th>관리할 위험</th></tr></thead><tbody>
@@ -210,7 +275,7 @@
     <p class="small">필요 프레임과 핵심 지표가 채워지지 않았거나 후보 간 차이가 불안정한 경계에 있으면 판정을 보류합니다. 누락 안내를 먼저 해결하고, 동일한 촬영 조건으로 분석을 반복하세요.</p>
   </section>
 
-  <section class="chapter chapter-break" id="chapter-07">
+  <section class="chapter chapter-page chapter-break" id="chapter-07">
     <p class="chapter-kicker">CHAPTER 07</p><h2>35개 스윙 프로필 도감</h2>
     <p>프로필 번호는 <strong>백스윙 궤적 5종 × 파워 엔진 7종</strong>의 조합입니다. 각 번호는 특정 선수의 처방이나 순위가 아니라 동작 조합을 빠르게 찾는 색인입니다. 아래 장점과 주의점은 앱에 수록된 해당 프로필 설명을 간결하게 정리한 참고 특성입니다.</p>
     <div class="matrix-note"><strong>번호 읽는 법:</strong> 01~07 OPA · 08~14 USP · 15~21 OFP · 22~28 HAP-A · 29~35 HAP-B. 각 그룹 안에서 엔진 순서는 ATE → LSE → VEE → RLH → RVH → LVH → TKE입니다. 백스윙 분류와 엔진 분류가 모두 완료되어야 앱이 조합 프로필을 매칭합니다.</div>
@@ -282,7 +347,7 @@
     <p class="small">위 강점과 주의점은 프로필 모델 설명입니다. 현재 사용자의 실제 강점·부상 위험·구질을 확정하려면 본인 영상과 샷 데이터를 함께 검토해야 합니다.</p>
   </section>
 
-  <section class="chapter chapter-break" id="chapter-08">
+  <section class="chapter chapter-page chapter-break" id="chapter-08">
     <p class="chapter-kicker">CHAPTER 08</p><h2>Garmin R10 데이터 활용</h2>
     <p>R10 분석은 실제 세션의 거리·좌우 편차 등 샷 결과 분포를 요약합니다. 영상 분석이 “어떤 동작이 관찰되는가”를 살핀다면, R10은 “그 세션의 샷 결과가 얼마나 모이고 어떤 방향으로 흩어졌는가”를 보완합니다.</p>
     <h3>CSV 준비 조건</h3>
@@ -300,13 +365,14 @@
     <p>방향성 임계 진단은 단일 클럽 세션에서만 적용됩니다. 복수 클럽 혼합은 클럽별 판단을 보류하며, 드라이버 전용 비거리 임계값도 드라이버 단일 클럽 세션에만 사용됩니다. 이상치 하나를 곧바로 미스샷 원인이나 스윙 결함으로 단정하지 마세요.</p>
   </section>
 
-  <section class="chapter chapter-break" id="chapter-09">
+  <section class="chapter chapter-page chapter-break" id="chapter-09">
     <p class="chapter-kicker">CHAPTER 09</p><h2>영상과 R10을 결합한 훈련 절차</h2>
     <ol class="steps"><li><strong>질문을 하나 정합니다.</strong> 예: “다운스윙 전환에서 축이 얼마나 움직이는가?”, “동일 클럽의 좌우 분산이 줄었는가?”</li><li><strong>촬영과 샷 조건을 고정합니다.</strong> 같은 카메라 방향·거리·높이로 촬영하고, R10은 가능하면 같은 클럽과 목표선으로 기록합니다.</li><li><strong>영상을 측정합니다.</strong> 기준선을 설정하고 필요한 프레임만 완료합니다. 누락 지표 메시지가 있으면 원인을 보완한 뒤 결과를 사용합니다.</li><li><strong>R10 세션을 읽습니다.</strong> 샷 수, 중심 포함 비율, 거리·좌우 분포, 이탈 샷을 살피고 클럽 혼합 여부를 확인합니다.</li><li><strong>관찰 사실과 가설을 분리합니다.</strong> R10의 분산만으로 얼리 익스텐션이나 캐스팅을 단정하지 말고 해당 프레임을 영상에서 확인합니다.</li><li><strong>한 가지 훈련 변수를 시험합니다.</strong> 자세·템포·티 높이 등을 한 번에 하나만 바꾸고, 다음 세션에서 같은 조건으로 비교합니다.</li></ol>
     <div class="two-col"><div class="info-block"><h3>권장 기록</h3><p>날짜, 클럽, 촬영 방향, 스윙 의도, 프로필 번호, 분석한 프레임, R10 샷 수와 임계값, 다음 세션에서 바꿀 한 가지를 기록합니다.</p></div><div class="info-block"><h3>표본 수 주의</h3><p>앱은 두 개의 숫자 샷부터 계산할 수 있지만, 적은 샷으로는 분산과 이상치가 크게 달라집니다. 앱 보고서도 샷 수와 지표 수에 따라 근거 충분도를 제한적으로 표시합니다. 같은 조건의 반복 세션으로 확인하세요.</p></div></div>
   </section>
 
-  <h2 class="chapter-heading" id="chapter-10">CHAPTER 10 · 결과 해석 원칙</h2>
+  <section class="chapter-page" id="chapter-10">
+  <h2 class="chapter-heading">CHAPTER 10 · 결과 해석 원칙</h2>
   <ul>
     <li>Frame 1~4는 각 프레임별 점수(10점 만점)와 비거리 모션 평균, Frame 5~6은 각 점수(100점 만점)와 일관성 모션 평균을 확인합니다.</li>
     <li>점수 옆에 “n/…” 지표 반영 또는 데이터 부족 안내가 있으면 일부 포인트나 선행 프레임이 입력되지 않은 상태일 수 있습니다. 해당 안내를 확인하고 필요한 패널을 보완한 뒤 다시 분석합니다.</li>
@@ -324,8 +390,10 @@
     <tr><td>σ(시그마)</td><td>세션 데이터의 표준편차 단위입니다. R10에서 1.5σ 또는 2.0σ는 중심 분포에서 얼마나 벗어난 샷을 표시할지 정하는 기준입니다.</td></tr>
     <tr><td>아웃라이어</td><td>선택된 세션 분포의 거리·좌우 중심 타원 바깥으로 판정된 샷입니다. 자동으로 미스샷 또는 나쁜 스윙을 뜻하지 않습니다.</td></tr>
   </tbody></table>
+  </section>
 
-  <h2 class="chapter-heading" id="chapter-11">CHAPTER 11 · 문제 해결</h2>
+  <section class="chapter-page" id="chapter-11">
+  <h2 class="chapter-heading">CHAPTER 11 · 문제 해결</h2>
   <table>
     <thead><tr><th>화면 메시지 / 증상</th><th>확인할 점</th></tr></thead>
     <tbody>
@@ -338,6 +406,262 @@
   </table>
 
   <footer>© 2026 S.Y Chun. All rights reserved. 무단 복제·배포 및 상업적 이용 금지. · SY-GSAP ver 26.102ff 기준 · 매뉴얼 개정: 2026년 10월 2일</footer>
+  </section>
 </main>
+<main id="enManual" lang="en" hidden>
+  <header class="cover">
+    <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">ORIGINAL EDITION</span></div>
+    <div><h1>SY-GSAP<br>User Manual</h1><p class="subtitle">A practical guide to observing swing motion, understanding swing patterns, and planning data-informed practice.</p></div>
+    <div class="cover-meta">Purpose · Motion Analysis · Type Classification · 35 Swing Profiles · Garmin R10 Data<br>Created by: S.Y Chun<br>First edition: October 2, 2026 · Revised: October 2, 2026<br>App version: 26.102ff
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>Intellectual Property Notice</strong><br>© 2026 S.Y Chun. All rights reserved. The text, structure, and editorial design of this manual are protected works. Reproduction, modification, distribution, publication, or commercial use of this document, in whole or in part, requires prior written permission from the rights holder. SY-GSAP and third-party marks and data remain the property of their respective owners.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="S.Y Chun, manual author"></div>
+    </div>
+  </header>
+
+  <section class="website-page" aria-label="SY-GSAP website">
+    <p class="eyebrow">SY-GSAP · OFFICIAL WEBSITE</p>
+    <h2>SY-GSAP Website</h2>
+    <a class="website-url" href="https://soonyongchun-dotcom.github.io/putting-training/index4.html" target="_blank" rel="noopener noreferrer">https://soonyongchun-dotcom.github.io/putting-training/index4.html</a>
+    <p class="website-caption">Online golf swing analysis platform</p>
+  </section>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#en-chapter-01">Purpose and analysis approach</a></li>
+      <li><a href="#en-chapter-02">Video setup and basic workflow</a></li>
+      <li><a href="#en-chapter-03">Frame 1–6 analysis guide</a></li>
+      <li><a href="#en-chapter-04">Results and additional tools</a></li>
+      <li><a href="#en-chapter-05">Backswing type analysis</a></li>
+      <li><a href="#en-chapter-06">Swing power-engine analysis</a></li>
+      <li><a href="#en-chapter-07">The 35 swing profiles</a></li>
+      <li><a href="#en-chapter-08">Using Garmin R10 data</a></li>
+      <li><a href="#en-chapter-09">Combining video and R10 for practice</a></li>
+      <li><a href="#en-chapter-10">Interpretation principles and glossary</a></li>
+      <li><a href="#en-chapter-11">Troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter chapter-page" id="en-chapter-01">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>Purpose and Analysis Approach</h2>
+    <p><strong>SY-GSAP (SY Golf Swing Analysis Platform)</strong> helps users review golf swings frame by frame and quantify 2D movement and angles from manually selected body and club landmarks. Its purpose is to combine motion observations, swing-pattern estimates, and shot-outcome data to help prioritize practice.</p>
+    <div class="two-col">
+      <div class="info-block"><h3>What it provides</h3><p>Frame scores and metrics for F1–F4; consistency and rhythm/sequence measures for F5–F6; backswing-path classification; power-engine fit; a profile number combining backswing and engine types; and R10 shot-dispersion summaries and support reports.</p></div>
+      <div class="info-block"><h3>What it does not establish</h3><p>A single 2D video does not directly measure true ground-reaction force, 3D club path, joint loading, the cause of pain, or the clubface strike location. Classifications are estimates based on camera setup and user-selected points.</p></div>
+    </div>
+    <div class="callout warning"><strong>Interpretation principle:</strong> A score is not a diagnosis. Use it to decide what to inspect next, and distinguish what is visible in the video from calculated metrics and possible explanations.</div>
+  </section>
+
+  <section class="chapter-page" id="en-chapter-02">
+    <div class="callout"><strong>Quick start:</strong> Load videos in A/B → set the head-to-foot reference line in A → analyze Frame 1 → analyze the required F2–F6 frames → save a PDF.</div>
+    <h2 class="chapter-heading">CHAPTER 02 · Video Setup and Basic Workflow</h2>
+    <ul>
+      <li>Load videos in the front A and B panels using the file button, or record with the camera button.</li>
+      <li>Use footage where the full body and club are visible and the camera is steady. Playback, frame stepping, the timeline, speed control, and zoom help you select the required moment.</li>
+      <li>A and B are independent video players. For different moments of one swing, the same source video may be loaded in both panels.</li>
+      <li>Height in centimeters is a reference display only. The analysis scale is based on the head-to-foot reference line set for Frame 1.</li>
+    </ul>
+    <h3>Smartphone Recording Standard</h3>
+    <p><strong>A standard 2D video recorded on a smartphone is enough to begin.</strong> Dedicated 3D motion-capture equipment is not required. However, camera position and frame quality directly affect the reliability of manually selected image coordinates.</p>
+    <table><thead><tr><th>Item</th><th>Recommended standard</th></tr></thead><tbody>
+      <tr><td>Frame rate</td><td>Record at <strong>60 fps or higher</strong>. Check the camera's resolution and frame-rate settings before recording.</td></tr>
+      <tr><td>Camera height</td><td>Place the lens at the golfer's <strong>chest height</strong>. Avoid steep high or low angles.</td></tr>
+      <tr><td>Front view</td><td>Face the golfer from directly in front, with the camera aligned to the golfer's <strong>centerline</strong>. Avoid positions noticeably left or right of center.</td></tr>
+      <tr><td>Side view</td><td>For a right-handed golfer, position the camera on the side so the <strong>left knee overlaps the right knee and the left shoulder overlaps the right shoulder</strong> in the image. Reverse the left/right reference for a left-handed golfer.</td></tr>
+      <tr><td>Framing and stability</td><td>Keep the head, feet, and clubhead in frame from address through finish. Secure the phone so it does not move during the swing.</td></tr>
+      <tr><td>Visibility</td><td>Use bright, clear footage with the body and club separated from the background. Avoid backlighting, blur, and obstruction.</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>2D limitation:</strong> A single smartphone view cannot directly measure movement in depth. Do not interpret it as a direct measurement of 3D joint rotation, ground-reaction force, or the club's depth path. Compare repeated recordings made from the same camera position and conditions.</div>
+    <h3>Basic Workflow</h3>
+    <ol class="steps">
+      <li><strong>Set the reference line:</strong> In Motion Analysis, select “Set Reference Line” and mark the top of the head and the foot in Video A by clicking two points or dragging once. Wait for the completion state.</li>
+      <li><strong>Start with Frame 1:</strong> Select Frame 1 and use the A-panel distance or consistency button to begin its guide. Mark each point requested by the on-screen guide.</li>
+      <li><strong>Set the swing moment:</strong> Use address for A and the required swing phase for B. The panels can be controlled independently.</li>
+      <li><strong>Run the analysis:</strong> When all required points are entered, the guide button changes to “Run Analysis.” Select it to finish. Right-click a misplaced point to remove it and re-enter it.</li>
+      <li><strong>Continue with other frames:</strong> After Frame 1, select any required frame from F2–F6 and follow the guide. Scores and detailed metrics appear in the analysis panel.</li>
+    </ol>
+    <div class="callout warning"><strong>Sequence matters:</strong> Set the reference line and complete Frame 1 before analyzing later frames. The F2 top-to-downswing compression metric requires the additional grip and clubhead points in Frame 1 B. F6 sequence metrics also reference the Frame 1 B coordinates.</div>
+  </section>
+
+  <section class="chapter-page" id="en-chapter-03">
+    <h2 class="chapter-heading">CHAPTER 03 · Frame 1–6 Analysis Guide</h2>
+    <table><thead><tr><th>Frame</th><th>Main focus</th><th>Moment / note</th></tr></thead><tbody>
+      <tr><td>Frame 1</td><td>Axis stability, shoulder turn, shaft level, and C7 displacement at the top</td><td>A: address → B: top of backswing. Establishes the analysis baseline.</td></tr>
+      <tr><td>Frame 2</td><td>Downswing lag, pelvis shift, and top-to-downswing core-to-hand compression</td><td>A: address → B: hands at waist height during downswing.</td></tr>
+      <tr><td>Frame 3</td><td>Downswing extension, axis movement, and ground-force transition proxy</td><td>Late downswing. Follow the guide for any extra B-panel points.</td></tr>
+      <tr><td>Frame 4</td><td>Impact arm-shaft alignment, radius expansion, and C7 displacement</td><td>A: address → B: impact.</td></tr>
+      <tr><td>Frame 5</td><td>Position consistency from address to the middle downswing</td><td>A: address → B: hands at waist height, around the 3/5 point.</td></tr>
+      <tr><td>Frame 6</td><td>Tempo, release, and sequence from mid-downswing to impact</td><td>A: mid-downswing; B: impact. Load the same source video in both panels for a valid time difference.</td></tr>
+    </tbody></table>
+    <p class="small">The golfer icon opens the F1–F4 distance-analysis flow; the target icon opens the F5–F6 consistency flow. Frames can also be selected from the list.</p>
+  </section>
+
+  <section class="chapter-page" id="en-chapter-04">
+    <h2 class="chapter-heading">CHAPTER 04 · Results and Additional Tools</h2>
+    <h3>A/B Swing Comparison</h3><p>Enable “A/B Swing Comparison” and load two different swings in A and B. Enter points at address, top, shoulder-height, waist-height, pre-impact, and impact. The table reports similarity in trajectories, lag angles, and tempo; it is not an absolute skill score or ranking. Clear one phase or reset the comparison as needed.</p>
+    <h3>Backswing Classification</h3><p>Open “Classify Backswing Type” and use a side-view swing in A. Select address, P1–P6, and top positions, mark the guided points, then review the classification. It is an estimate from a 2D image path.</p>
+    <h3>Swing Profile Reference</h3><p>Select the SY-GSAP title to browse backswing paths, power engines, and the 35 swing-profile descriptions.</p>
+    <h3>Garmin R10 CSV Support Analysis</h3><p>Open the chart button and load an R10 shot CSV. Review shot dispersion and center outliers alongside the video analysis. Available fields depend on the CSV columns.</p>
+    <h3>AI Explanation and Export</h3><p>Enter a Gemini API key to request an AI explanation. The key is used for the current session only, as indicated in the app. Save analysis results with “Download PDF.”</p>
+  </section>
+
+  <section class="chapter chapter-page chapter-break" id="en-chapter-05">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>Backswing Type Analysis</h2>
+    <p>The classifier compares hand and club positions across eight checkpoints in a side-view video against the address shaft plane and the relative backswing, transition, and downswing paths. It suggests the closest of five patterns.</p>
+    <h3>Input Sequence</h3><ol><li>Load a side-view swing in Video A.</li><li>Select Address → P1 → P2 → P3 → P4 → Top → P5 (transition) → P6.</li><li>At each phase, mark all requested points in the same video frame. Phase timestamps must remain in chronological order.</li><li>Complete all points at all eight phases. The classifier may run automatically after the final checkpoint.</li></ol>
+    <p class="small">If the hand height at P5 differs substantially from backswing P3, classification may be blocked. Choose the frame where the lead arm is parallel to the ground for P5.</p>
+    <table><thead><tr><th>Code</th><th>Motion pattern</th><th>Potential strengths</th><th>Trade-offs to monitor</th></tr></thead><tbody>
+      <tr><td><strong>OPA</strong><br>On-Plane</td><td>Backswing and downswing remain close to the address shaft plane.</td><td>A repeatable path can support face control, centered contact, and directional consistency.</td><td>Limited lower-body shift or vertical drive may constrain speed.</td></tr>
+      <tr><td><strong>USP</strong><br>Upright-Shallowing</td><td>Hands rise to a steep top, then the shaft shallows during transition.</td><td>A high top and wide arc provide room to use stored position and speed.</td><td>Without a lower-body lead, the club may move over the top; excessive shift may leave it stuck behind the body.</td></tr>
+      <tr><td><strong>OFP</strong><br>Outside Face-Control</td><td>The clubhead remains outside the hands around P2 to help manage face opening.</td><td>Early face control may help reduce left-right misses.</td><td>A compact arc or steep entry may develop; inspect the path after P2.</td></tr>
+      <tr><td><strong>HAP-A</strong><br>Hybrid A</td><td>Outside P2 and an upright top combine with a shallowing downswing.</td><td>Combines early face management with the positional potential of a high top.</td><td>The path changes substantially through transition, so sequencing and timing matter.</td></tr>
+      <tr><td><strong>HAP-B</strong><br>Hybrid B</td><td>On-plane tendencies through P1–P3 combine with an upright top and later shallowing.</td><td>Pairs an orderly early path with a shallowing downswing.</td><td>Monitor the coordination of top height, shallowing, and lower-body lead.</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>Reading the result:</strong> The estimate comes from 2D screen coordinates and is affected by camera direction, perspective, occlusion, and point placement. It does not establish a true 3D club path or clubface angle. A “near match” is the closest candidate, not a definitive classification.</div>
+  </section>
+
+  <section class="chapter chapter-page chapter-break" id="en-chapter-06">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>Swing Power-Engine Analysis</h2>
+    <p>The engine model groups power delivery into three base movement patterns and combines their relative fit using F1–F4 metrics. F1, F2, F3, and F4 analyses are required. Missing evidence for C7 stability, upper-body turn, leg drive, compression/expansion, pelvis shift, or release may prevent classification. F5 shift or side-view P5→P6 delivery may provide supporting evidence.</p>
+    <table><thead><tr><th>Code</th><th>Main movement and evidence</th><th>Potential strengths</th><th>Trade-offs to monitor</th></tr></thead><tbody>
+      <tr><td><strong>ATE</strong><br>Axial-Torque</td><td>Stable C7/spinal axis and upper-body turn, with comparatively low leg-drive fit.</td><td>A stable axis can support repeatability, centered contact, and directional control.</td><td>Limited lower-body shift and vertical drive may cap distance.</td></tr>
+      <tr><td><strong>LSE</strong><br>Linear-Shift</td><td>Targetward pelvis/CoM movement and F3 lower-body drive.</td><td>Transition lead and pressure transfer can support impact compression.</td><td>Excessive shift or poor upper/lower sequencing can destabilize the axis or create pushes and blocks.</td></tr>
+      <tr><td><strong>VEE</strong><br>Vertical-Extension</td><td>Lower-body loading and knee extension followed by vertical extension.</td><td>Loading the ground and driving upward may add acceleration potential.</td><td>Early or late rise may contribute to early extension, strike variability, or excess body loading.</td></tr>
+      <tr><td><strong>RLH</strong><br>Rotational-Linear Hybrid</td><td>Combination of ATE and LSE fit.</td><td>Balances rotational direction control with targetward pelvis movement.</td><td>Broken sequencing may delay the clubhead or increase directional spread.</td></tr>
+      <tr><td><strong>RVH</strong><br>Rotational-Vertical Hybrid</td><td>Combination of ATE and VEE fit.</td><td>Pairs axis stability with vertical acceleration and launch potential.</td><td>Monitor C7 vertical movement, spine/knee loading, and timing of extension.</td></tr>
+      <tr><td><strong>LVH</strong><br>Linear-Vertical Hybrid</td><td>Combination of LSE and VEE fit.</td><td>Links targetward pressure transfer to vertical extension for acceleration.</td><td>A late or stalled P5 transition may increase pull, push, or hook tendencies.</td></tr>
+      <tr><td><strong>TKE</strong><br>Tri-Kinematic Fusion</td><td>Rotation, linear shift, and vertical extension show similar fit.</td><td>Potential to combine direction control, pressure transfer, and vertical drive.</td><td>Requires coordination and conditioning. A balanced fit is not a score of superiority.</td></tr>
+    </tbody></table>
+    <p>The app displays the relative fit of the three base types and may return a single type, a hybrid, TKE, or an undetermined result. A hybrid combines two base types. Percentages are <strong>relative fit within the available session evidence</strong>, not probabilities or similarity to tour professionals.</p>
+    <p class="small">Classification may be withheld when required frames or metrics are missing, or when candidates are too close to separate reliably. Complete the missing evidence and compare recordings under consistent conditions.</p>
+  </section>
+
+  <section class="chapter chapter-page chapter-break" id="en-chapter-07">
+    <p class="chapter-kicker">CHAPTER 07</p><h2>The 35 Swing Profiles</h2>
+    <p>Each profile combines one of <strong>five backswing paths</strong> with one of <strong>seven power engines</strong>. The number is an index for a movement combination, not a ranking or a prescription for a particular player. Strengths and trade-offs below are reference tendencies, not claims about what occurred in a specific swing.</p>
+    <div class="matrix-note"><strong>Number map:</strong> 01–07 OPA · 08–14 USP · 15–21 OFP · 22–28 HAP-A · 29–35 HAP-B. Engine order in each group: ATE → LSE → VEE → RLH → RVH → LVH → TKE. Both the backswing and engine classifications are needed to match a profile.</div>
+
+    <div class="profile-group"><h3>Group A · OPA On-Plane · Profiles 01–07</h3><table class="profile-table"><thead><tr><th>Profile</th><th>Motion and potential strength</th><th>Trade-off to monitor</th></tr></thead><tbody>
+      <tr><td>01 · OPA × ATE</td><td>Follows the address shaft plane and uses rotation around a stable C7 axis; may support repeatability, centered contact, and tight dispersion.</td><td>Limited lower-body shift and vertical drive may cap clubhead speed.</td></tr>
+      <tr><td>02 · OPA × LSE</td><td>Adds roughly 20–30% targetward pelvis shift to a steady on-plane arc; seeks upper-body stability and impact compression.</td><td>Excessive shift may destabilize C7 and produce a push or block.</td></tr>
+      <tr><td>03 · OPA × VEE</td><td>Combines a classic plane with a squat and vertical extension; seeks path accuracy and upward acceleration.</td><td>Rising too early or too late can affect spine angle, strike, and divot depth.</td></tr>
+      <tr><td>04 · OPA × RLH</td><td>Coordinates C7 rotation and precise pelvis shift; seeks a balance of direction control and playable distance.</td><td>Poor upper/lower timing may weaken sequence and delay the clubhead.</td></tr>
+      <tr><td>05 · OPA × RVH</td><td>Adds vertical drive at impact to stable-axis rotation; may limit lateral slide and support launch.</td><td>Excess C7 rise may cause the torso to stand up through impact.</td></tr>
+      <tr><td>06 · OPA × LVH</td><td>Combines an on-plane backswing, lower-body pressure shift, and a ground-driven rise.</td><td>Insufficient lower-body lead at P5 may produce a strong pull.</td></tr>
+      <tr><td>07 · OPA × TKE</td><td>Balances rotation, linear shift, and vertical extension; targets contact, ball speed, and control.</td><td>Requires high coordination and core capacity; fatigue may disrupt tempo.</td></tr>
+    </tbody></table></div>
+
+    <div class="profile-group"><h3>Group B · USP Upright-Shallowing · Profiles 08–14</h3><table class="profile-table"><thead><tr><th>Profile</th><th>Motion and potential strength</th><th>Trade-off to monitor</th></tr></thead><tbody>
+      <tr><td>08 · USP × ATE</td><td>Builds a high, steep top, shallows the shaft, then rotates around C7; may use a wide arc while retaining axis control.</td><td>Without lower-body lead, the arms may pull the club over the top.</td></tr>
+      <tr><td>09 · USP × LSE</td><td>Shifts the pelvis targetward from a steep top to encourage shaft drop and lag.</td><td>Excess shift may trap the shaft behind the body and delay release.</td></tr>
+      <tr><td>10 · USP × VEE</td><td>Combines a high top with squat and vertical drive to pursue speed and driver distance.</td><td>Large C7 rise may affect strike consistency and increase knee or spine load.</td></tr>
+      <tr><td>11 · USP × RLH</td><td>Combines pelvis shift and C7 rotation from a high top to support shallowing and pressure transfer.</td><td>Poor transition sequencing may lead to overswinging.</td></tr>
+      <tr><td>12 · USP × RVH</td><td>Uses axis rotation and vertical drive from a high top; may limit lateral slide and support launch.</td><td>Insufficient pelvis shift may turn vertical drive into early extension.</td></tr>
+      <tr><td>13 · USP × LVH</td><td>Shifts from a steep top and drives upward to pursue high ball speed and distance.</td><td>Mistiming shallowing and rising may produce a large push or hook.</td></tr>
+      <tr><td>14 · USP × TKE</td><td>Uses the high top with rotational, linear, and vertical power for a wide arc and speed.</td><td>Requires lower-body strength, flexibility, and workload management.</td></tr>
+    </tbody></table></div>
+
+    <div class="profile-group"><h3>Group C · OFP Outside Face-Control · Profiles 15–21</h3><table class="profile-table"><thead><tr><th>Profile</th><th>Motion and potential strength</th><th>Trade-off to monitor</th></tr></thead><tbody>
+      <tr><td>15 · OFP × ATE</td><td>Keeps the club outside at P2 to manage face opening, then rotates compactly around C7.</td><td>A compact arc may limit speed potential.</td></tr>
+      <tr><td>16 · OFP × LSE</td><td>Controls the face at P2 and adds a strong lower-body shift for a penetrating, centered strike.</td><td>If the lower body stalls, the upper body may rush and cast.</td></tr>
+      <tr><td>17 · OFP × VEE</td><td>Pairs P2 face management with vertical extension at impact to pursue direction and distance.</td><td>Maintaining spine angle may be difficult when outside takeaway and rising are combined.</td></tr>
+      <tr><td>18 · OFP × RLH</td><td>Combines outside P2, stable C7, and pelvis shift for face and target control.</td><td>Sustained wrist hinge or bowing may load the wrists and forearms.</td></tr>
+      <tr><td>19 · OFP × RVH</td><td>Adds vertical drive to P2 face control and rotation; may reduce dispersion and support launch.</td><td>A steep downswing entry may create excessive divot depth.</td></tr>
+      <tr><td>20 · OFP × LVH</td><td>Links outside P2 to lower-body shift and vertical extension to pursue distance with reduced slice tendency.</td><td>Without lower-body lead, rapid hand action may close the face into a severe hook.</td></tr>
+      <tr><td>21 · OFP × TKE</td><td>Uses P2 face control as a base for integrated rotational, linear, and vertical power.</td><td>The takeaway differs from a conventional on-plane path; monitor P2 consistently.</td></tr>
+    </tbody></table></div>
+
+    <div class="profile-group"><h3>Group D · HAP-A Hybrid A · Profiles 22–28</h3><table class="profile-table"><thead><tr><th>Profile</th><th>Motion and potential strength</th><th>Trade-off to monitor</th></tr></thead><tbody>
+      <tr><td>22 · HAP-A × ATE</td><td>Combines outside P2, a steep top, and C7 rotation for face stability and positional energy.</td><td>A weak lower-body lead may make the swing arm-dominant.</td></tr>
+      <tr><td>23 · HAP-A × LSE</td><td>Uses lower-body shift from an outside P2 and steep top to encourage shallowing and solid impact.</td><td>Excess pelvis shift may tilt the torso back at impact.</td></tr>
+      <tr><td>24 · HAP-A × VEE</td><td>Combines P2 face control and a high top with vertical drive through impact.</td><td>Large C7 vertical movement may reduce centered-contact consistency.</td></tr>
+      <tr><td>25 · HAP-A × RLH</td><td>Coordinates face control, steep top, C7 rotation, and lower-body shift for distance and direction.</td><td>Manage tempo changes between takeaway and downswing shallowing.</td></tr>
+      <tr><td>26 · HAP-A × RVH</td><td>Combines P2 face control and a high top with stable-axis rotation and vertical drive.</td><td>May increase knee and lumbar loading; monitor conditioning.</td></tr>
+      <tr><td>27 · HAP-A × LVH</td><td>Pairs outside P2 and a steep top with lower-body shift followed by vertical drive.</td><td>A late lower-body lead may leave the club behind and cause a block right.</td></tr>
+      <tr><td>28 · HAP-A × TKE</td><td>Integrates P2 face control, high-top position, and all three power actions.</td><td>High technical and joint-load demands call for workload and core management.</td></tr>
+    </tbody></table></div>
+
+    <div class="profile-group"><h3>Group E · HAP-B Hybrid B · Profiles 29–35</h3><table class="profile-table"><thead><tr><th>Profile</th><th>Motion and potential strength</th><th>Trade-off to monitor</th></tr></thead><tbody>
+      <tr><td>29 · HAP-B × ATE</td><td>Links the P1–P3 on-plane arc and shallowing to C7 rotation for a stable, repeatable path.</td><td>Limited lower-body shift and vertical drive may constrain distance.</td></tr>
+      <tr><td>30 · HAP-B × LSE</td><td>Combines on-plane arc and shallowing with conventional pressure transfer.</td><td>Control lateral movement so the spine angle does not rise during pelvis shift.</td></tr>
+      <tr><td>31 · HAP-B × VEE</td><td>Adds vertical extension to an on-plane, shallowing path for stability and drive.</td><td>Check that the shaft plane does not become too steep during the rise.</td></tr>
+      <tr><td>32 · HAP-B × RLH</td><td>Balances on-plane backswing, shallowing, axis stability, and pelvis shift for repeatable distance.</td><td>A slow tempo through impact may reduce clubhead acceleration.</td></tr>
+      <tr><td>33 · HAP-B × RVH</td><td>Adds stable-axis rotation and vertical drive to an on-plane shallowing arc.</td><td>Insufficient core or lumbar capacity may increase back strain.</td></tr>
+      <tr><td>34 · HAP-B × LVH</td><td>Links on-plane shallowing, lower-body shift, and vertical drive for path and acceleration.</td><td>Maintain balance as pressure shift transitions to vertical extension at P5.</td></tr>
+      <tr><td>35 · HAP-B × TKE</td><td>Integrates on-plane shallowing with rotation, linear shift, and vertical power.</td><td>Mastery requires repeated practice and precise motion feedback.</td></tr>
+    </tbody></table></div>
+    <p class="small">Profile strengths and trade-offs are model descriptions. Review the golfer's own videos and shot data before applying them to actual performance, injury risk, or shot shape.</p>
+  </section>
+
+  <section class="chapter chapter-page chapter-break" id="en-chapter-08">
+    <p class="chapter-kicker">CHAPTER 08</p><h2>Using Garmin R10 Data</h2>
+    <p>R10 summarizes shot outcomes such as distance and lateral deviation. Video analysis asks what motion is visible; R10 helps show how tightly the session's shots clustered and in which direction they dispersed.</p>
+    <h3>CSV Requirements</h3>
+    <ul><li>Open the R10 panel and load a CSV no larger than 20 MB. At least two numeric shots are required for calculation.</li><li>The first row must contain headers. A distance column (carry or total) and a lateral-deviation column (carry-side or total-side) are required. Carry and carry-side are preferred; total distance and total-side are fallbacks.</li><li>Optional recognized fields include club path, face angle, face-to-path, attack angle, launch angle, smash factor, spin axis, ball speed, club speed, club, and date. Column labels must match a supported Korean or English name.</li><li>A separate units row is supported. For useful comparisons, avoid mixing different players, target lines, clubs, or substantially different conditions in one session.</li></ul>
+    <h3>Reading the Dashboard</h3>
+    <table><thead><tr><th>Item</th><th>Meaning</th><th>How to use it</th></tr></thead><tbody>
+      <tr><td>Shots analyzed</td><td>Shots with valid required numeric fields.</td><td>If many rows are skipped, check headers, units, and empty cells.</td></tr>
+      <tr><td>Center consistency</td><td>Share of shots inside the session's 2D center ellipse.</td><td>This is within-session dispersion, not a skill grade or strike-location measure.</td></tr>
+      <tr><td>Center outliers</td><td>Shots outside the selected sigma threshold and their directions.</td><td>Default 1.5σ is more sensitive; 2.0σ focuses on larger deviations and usually flags fewer shots.</td></tr>
+      <tr><td>Dispersion chart</td><td>Combined distance and lateral distribution, normal/outlier shots, and the 2D ellipse.</td><td>Select a point or outlier row to inspect its shot details.</td></tr>
+    </tbody></table>
+    <h3>Profile-Linked Synthesis Report</h3>
+    <ol><li>After the CSV loads, select “Generate Swing Synthesis Report.”</li><li>Enter the profile number 01–35 from the profile guide or completed video classification.</li><li>Review directional patterns, distance/energy-transfer indicators, session consistency, outliers, linked video evidence, and suggested checks; then download the report PDF.</li></ol>
+    <div class="callout warning"><strong>Important distinction:</strong> The profile number is an analysis reference; R10 does not infer backswing or engine type. If video classification is available, the report checks whether it matches the selected profile. Profile traits are reference descriptions, not proof that those traits occurred in the current session.</div>
+    <p>Directional threshold rules are applied only to a single-club session. Mixed-club sessions suspend club-specific interpretation, and driver-only distance thresholds are used only for a single-driver session. An outlier alone does not establish a miss-shot cause or swing fault.</p>
+  </section>
+
+  <section class="chapter chapter-page chapter-break" id="en-chapter-09">
+    <p class="chapter-kicker">CHAPTER 09</p><h2>Combining Video and R10 for Practice</h2>
+    <ol class="steps"><li><strong>Choose one question.</strong> For example: “How much does the axis move during transition?” or “Did same-club lateral dispersion narrow?”</li><li><strong>Keep conditions consistent.</strong> Use the same camera direction, distance, and height; record the same club and target line on R10 where possible.</li><li><strong>Measure the video.</strong> Set the reference line and complete only the needed frames. Resolve missing-metric notices before using a score.</li><li><strong>Review the R10 session.</strong> Check shot count, center inclusion, distance/lateral spread, outliers, and whether clubs were mixed.</li><li><strong>Separate observation from hypothesis.</strong> Do not infer early extension or casting from dispersion alone; verify the motion in the corresponding video frames.</li><li><strong>Test one change at a time.</strong> Change one practice variable, such as posture, tempo, or tee height, then compare the next session under the same conditions.</li></ol>
+    <div class="two-col"><div class="info-block"><h3>Suggested training log</h3><p>Record date, club, camera view, swing intention, profile number, analyzed frames, R10 shot count and threshold, and the single change to test next.</p></div><div class="info-block"><h3>Sample-size caution</h3><p>The app can calculate with two numeric shots, but small samples can produce unstable dispersion and outlier counts. Evidence sufficiency depends on shot and metric counts. Confirm patterns across repeated sessions.</p></div></div>
+  </section>
+
+  <section class="chapter-page" id="en-chapter-10">
+    <h2 class="chapter-heading">CHAPTER 10 · Interpretation Principles</h2>
+    <ul><li>F1–F4 scores are on a 10-point scale; F5–F6 scores are on a 100-point scale. Review each frame and its corresponding average separately.</li><li>An “n/…” metric count or insufficient-data note means some points or prerequisite frames may be missing. Complete the required input and reanalyze.</li><li>Metrics are reference indicators calculated from 2D image coordinates and user-selected points. They are not equivalent to direct measurements of ground force, clubhead speed, or 3D trajectory.</li><li>Camera angle, occlusion, phase selection, and point-placement error can change the result. Compare repeated swings under consistent recording conditions rather than judging from one score.</li></ul>
+    <h3>Quick Glossary</h3>
+    <table><thead><tr><th>Term</th><th>Meaning in this manual</th></tr></thead><tbody>
+      <tr><td>C7</td><td>A selected landmark near the vertebra at the back of the neck, used to review horizontal and vertical axis movement.</td></tr>
+      <tr><td>CoM / pelvis center</td><td>A proxy for body-mass-center movement based on the selected pelvis point, not a direct measurement of whole-body mass center.</td></tr>
+      <tr><td>X-Factor</td><td>An upper-body turn indicator estimated from the shoulder line in 2D; it is not a true 3D rotation measurement.</td></tr>
+      <tr><td>Lag / casting</td><td>Terms for how the hand-to-club angle is retained or released early during downswing.</td></tr>
+      <tr><td>Shallowing</td><td>A tendency for the shaft to descend on a flatter path after transition than at the top.</td></tr>
+      <tr><td>Ground-force proxy</td><td>A 2D movement estimate from landmark shift, extension, and radius changes; not force-plate data.</td></tr>
+      <tr><td>Sigma (σ)</td><td>A standard-deviation unit. R10 uses 1.5σ or 2.0σ thresholds to mark deviations from the session center.</td></tr>
+      <tr><td>Outlier</td><td>A shot outside the selected session's distance/lateral center ellipse; it is not automatically a bad strike or swing.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="chapter-page" id="en-chapter-11">
+    <h2 class="chapter-heading">CHAPTER 11 · Troubleshooting</h2>
+    <table><thead><tr><th>Message / symptom</th><th>What to check</th></tr></thead><tbody>
+      <tr><td>Reference line required</td><td>Set the head-to-foot reference line in Video A first.</td></tr>
+      <tr><td>Analyze Frame 1 first</td><td>Complete and analyze both A and B points for Frame 1 before continuing.</td></tr>
+      <tr><td>Some metrics unavailable</td><td>Check extra points and prerequisite frames (F1, F2, F3, etc.). Continue until the guide offers “Run Analysis.”</td></tr>
+      <tr><td>Wrong frame or misplaced points</td><td>Confirm the selected frame and video timestamp. Right-click a misplaced point to remove it.</td></tr>
+      <tr><td>Starting a new swing</td><td>“Reset All” clears analysis data and the reference line. Save any needed PDFs first.</td></tr>
+    </tbody></table>
+    <footer>© 2026 S.Y Chun. All rights reserved. No unauthorized reproduction, distribution, or commercial use. · SY-GSAP v26.102ff · Revised October 2, 2026</footer>
+  </section>
+</main>
+<script>
+  const manualLanguage = document.getElementById('manualLanguage');
+  const languageLabel = document.getElementById('languageLabel');
+  const printManualBtn = document.getElementById('printManualBtn');
+  const koreanManual = document.getElementById('koManual');
+  const englishManual = document.getElementById('enManual');
+
+  manualLanguage.addEventListener('change', () => {
+    const isEnglish = manualLanguage.value === 'en';
+    koreanManual.hidden = isEnglish;
+    englishManual.hidden = !isEnglish;
+    document.documentElement.lang = isEnglish ? 'en' : 'ko';
+    document.title = isEnglish ? 'SY-GSAP User Manual' : 'SY-GSAP 사용매뉴얼';
+    languageLabel.textContent = isEnglish ? 'Language' : '언어';
+    manualLanguage.setAttribute('aria-label', languageLabel.textContent);
+    printManualBtn.textContent = isEnglish ? 'Print / Save as PDF' : '인쇄 / PDF로 저장';
+    document.body.dataset.language = isEnglish ? 'en' : 'ko';
+  });
+</script>
 </body>
 </html>
