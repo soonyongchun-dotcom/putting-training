@@ -7,35 +7,36 @@
 <style>
   :root { color-scheme: light; --ink: #1c292b; --muted: #536365; --green: #176b58; --mint: #e8f3ed; --gold: #a36e19; --line: #d6e0dc; --dark: #12352d; }
   * { box-sizing: border-box; }
-  body { margin: 0; color: var(--ink); background: #edf2ef; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; line-height: 1.65; }
+  body { margin: 0; color: var(--ink); background: #edf2ef; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; line-height: 1.8; }
   .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; padding: 12px max(20px, calc((100% - 900px) / 2)); background: rgba(237,242,239,.94); border-bottom: 1px solid var(--line); }
   .toolbar-controls { display: flex; align-items: center; gap: 10px; }
   .toolbar label { color: var(--ink); font-size: .9rem; font-weight: 700; }
   .toolbar select { min-height: 40px; padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); font: inherit; }
   button { border: 0; border-radius: 5px; padding: 10px 16px; background: var(--green); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-  main { max-width: 900px; margin: 28px auto 56px; padding: 54px 64px; background: #fff; box-shadow: 0 8px 28px rgba(25,52,46,.09); }
+  main { max-width: 1000px; margin: 36px auto 72px; padding: 64px 72px; background: #fff; box-shadow: 0 8px 28px rgba(25,52,46,.09); }
   .eyebrow { margin: 0; color: var(--green); font-size: .82rem; font-weight: 800; letter-spacing: .08em; }
-  h1 { margin: 5px 0 8px; font-size: 2.15rem; line-height: 1.25; }
-  .subtitle { margin: 0 0 26px; color: var(--muted); }
-  h2 { margin: 32px 0 10px; padding-bottom: 7px; border-bottom: 2px solid var(--green); font-size: 1.28rem; }
-  h3 { margin: 18px 0 6px; font-size: 1rem; }
-  p { margin: 7px 0; }
-  ul, ol { margin: 7px 0; padding-left: 1.35rem; }
-  li { margin: 4px 0; }
-  .callout { margin: 14px 0; padding: 12px 15px; border-left: 4px solid var(--green); background: var(--mint); }
+  h1 { margin: 5px 0 10px; font-size: 2.25rem; line-height: 1.3; }
+  .subtitle { margin: 0 0 30px; color: var(--muted); }
+  h2 { margin: 44px 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--green); font-size: 1.38rem; line-height: 1.45; }
+  h3 { margin: 26px 0 9px; font-size: 1.08rem; line-height: 1.5; }
+  p { margin: 12px 0; }
+  ul, ol { margin: 12px 0; padding-left: 1.45rem; }
+  li { margin: 8px 0; }
+  .callout { margin: 20px 0; padding: 16px 18px; border-left: 4px solid var(--green); background: var(--mint); }
   .warning { border-color: var(--gold); background: #fbf4e8; }
   .steps { counter-reset: step; list-style: none; padding: 0; }
   .steps li { position: relative; min-height: 32px; margin: 10px 0; padding-left: 42px; }
   .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: var(--green); color: white; font-weight: 800; }
-  table { width: 100%; margin: 12px 0; border-collapse: collapse; font-size: .94rem; }
-  th, td { padding: 9px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  table { width: 100%; margin: 18px 0; border-collapse: collapse; font-size: .98rem; line-height: 1.7; }
+  th, td { padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
   th { background: #edf5f0; }
-  .small { color: var(--muted); font-size: .9rem; }
-  footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: .84rem; }
+  .small { color: var(--muted); font-size: .94rem; }
+  footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; }
   .cover { min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; margin: -54px -64px 36px; padding: 64px; color: #f7fbf8; background: linear-gradient(145deg, #12352d 0%, #1c5143 58%, #8b6b35 150%); break-after: page; }
   .cover .eyebrow { color: #c3d9c8; }
   .cover-stamp { display: inline-block; margin-top: 12px; padding: 6px 10px; border: 1px solid rgba(212,179,107,.75); color: #f2d99c; font-size: .76rem; font-weight: 800; }
   .cover h1 { max-width: 620px; margin-top: 90px; color: white; font-family: Georgia, "Batang", serif; font-size: 3.2rem; line-height: 1.2; }
+  .cover-revision-label { display: inline-block; margin-bottom: 8px; padding: 3px 8px; border: 1px solid rgba(212,179,107,.65); color: #f2d99c; font-size: .7rem; font-weight: 800; }
   .cover-rights-row { display: flex; align-items: center; gap: 18px; max-width: 700px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.25); }
   .cover-portrait { flex: 0 0 auto; width: 82px; height: 110px; object-fit: cover; object-position: center 35%; opacity: .7; filter: saturate(.82); border-radius: 2px; box-shadow: 0 8px 18px rgba(0,0,0,.14); }
   .cover .subtitle { max-width: 510px; margin-top: 18px; color: #d8e6dc; font-size: 1.1rem; }
@@ -52,7 +53,7 @@
   .toc ol { columns: 2; column-gap: 40px; }
   .toc li { break-inside: avoid; padding: 2px 0; }
   .chapter { margin-top: 34px; }
-  .chapter-page { min-height: 100vh; margin-top: 0; padding: 44px 0 58px; border-top: 1px solid var(--line); scroll-margin-top: 18px; }
+  .chapter-page { min-height: 100vh; margin-top: 0; padding: 56px 0 74px; border-top: 1px solid var(--line); scroll-margin-top: 18px; }
   .chapter-page > .chapter-heading { margin-top: 0; }
   .chapter-page > .chapter-kicker { margin-bottom: 4px; }
   .chapter-kicker { margin: 0; color: var(--gold); font-size: .78rem; font-weight: 800; }
@@ -63,30 +64,46 @@
   .chapter-break { break-before: page; }
   .profile-group { break-before: page; }
   .profile-group h3 { padding: 10px 12px; color: white; background: var(--dark); }
-  .profile-table { font-size: .82rem; line-height: 1.5; }
+  .profile-table { font-size: .9rem; line-height: 1.65; }
   .profile-table th:first-child, .profile-table td:first-child { width: 17%; white-space: nowrap; }
   .profile-table th:nth-child(2) { width: 43%; }
   .profile-table th:nth-child(3) { width: 40%; }
-  .profile-table td { padding: 7px; }
+  .profile-table td { padding: 10px; }
   .badge { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 6px; border: 1px solid #bdd1c5; color: var(--green); font-size: .78rem; font-weight: 700; }
   .matrix-note { padding: 10px 13px; border: 1px solid #e5d7b5; background: #fbf6e9; font-size: .9rem; }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .info-block { padding: 12px 14px; border-top: 3px solid var(--green); background: #f4f7f4; }
+  .function-tree { margin: 24px 0 28px; }
+  .function-tree figcaption { margin-bottom: 12px; color: var(--dark); font-size: 1rem; font-weight: 800; }
+  .tree-root { position: relative; width: min(100%, 520px); margin: 0 auto 24px; padding: 12px 16px; border-radius: 4px; background: var(--dark); color: #fff; text-align: center; font-weight: 800; }
+  .tree-root::after { position: absolute; bottom: -13px; left: 50%; height: 13px; border-left: 1px solid #8da79a; content: ""; }
+  .tree-branches { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .tree-branches::before { position: absolute; top: 0; right: 25%; left: 25%; border-top: 1px solid #8da79a; content: ""; }
+  .tree-branch { position: relative; padding: 17px 18px 15px; border: 1px solid var(--line); border-top: 3px solid var(--green); background: #f6f8f6; }
+  .tree-branch::before { position: absolute; top: -15px; left: 50%; height: 12px; border-left: 1px solid #8da79a; content: ""; }
+  .tree-branch h3 { margin: 0 0 7px; color: var(--dark); font-size: .95rem; }
+  .tree-branch ul { margin: 0; padding-left: 18px; font-size: .93rem; line-height: 1.65; }
+  .tree-branch li { margin: 5px 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .info-block { padding: 16px 18px; border-top: 3px solid var(--green); background: #f4f7f4; }
   .info-block h3 { margin-top: 0; }
   @media (max-width: 700px) {
-    main { margin: 0; padding: 30px 20px; box-shadow: none; }
-    h1 { font-size: 1.75rem; }
-    table { font-size: .85rem; }
-    th, td { padding: 7px; }
+    main { margin: 0; padding: 30px 22px; box-shadow: none; }
+    h1 { font-size: 1.85rem; }
+    h2 { margin-top: 36px; font-size: 1.3rem; }
+    h3 { margin-top: 22px; }
+    table { font-size: .9rem; line-height: 1.65; }
+    th, td { padding: 9px 10px; }
     .cover { min-height: 570px; margin: -30px -20px 28px; padding: 34px 24px; }
     .cover-rights-row { align-items: flex-start; gap: 10px; }
     .cover-portrait { width: 58px; height: 78px; opacity: .68; }
     .website-page, .toc, .chapter-page { min-height: 100svh; }
-    .chapter-page { padding: 32px 0 42px; }
+    .chapter-page { padding: 42px 0 54px; }
     .cover h1 { margin-top: 60px; font-size: 2.5rem; }
     .toc ol { columns: 1; }
     .two-col { grid-template-columns: 1fr; }
-    .profile-table { font-size: .76rem; }
+    .profile-table { font-size: .82rem; line-height: 1.55; }
+    .tree-branches { grid-template-columns: 1fr; gap: 10px; padding-left: 12px; }
+    .tree-branches::before { display: none; }
+    .tree-branch::before { top: 50%; left: -13px; width: 12px; height: 0; border-top: 1px solid #8da79a; border-left: 0; }
   }
   @media print {
     @page {
@@ -95,16 +112,20 @@
       @bottom-center { content: "© 2026 S.Y Chun · SY-GSAP · " counter(page); color: #687772; font-size: 8pt; }
     }
     @page:first { @bottom-center { content: none; } }
-    body { background: white; font-size: 10pt; }
+    body { background: white; font-size: 10.5pt; line-height: 1.7; }
     .toolbar { display: none; }
     main { max-width: none; margin: 0; padding: 0; box-shadow: none; }
     .cover { min-height: 255mm; margin: -16mm -14mm 0; padding: 22mm 19mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     .cover h1 { font-size: 36pt; }
+    .cover-revision-label { font-size: 8pt; }
     .website-page { min-height: 265mm; padding: 0; border: 0; break-after: page; page-break-after: always; }
     .website-url { font-size: 12pt; }
     .toc { min-height: 0; margin-bottom: 0; }
     .chapter-page { min-height: 0; margin-top: 0; padding: 0; border: 0; }
     h2, h3 { break-after: avoid; }
+    p { margin: 9px 0; }
+    table { font-size: 9.5pt; }
+    th, td { padding: 9px 10px; }
     table, .callout, .info-block { break-inside: avoid; }
     .chapter, .chapter-heading { break-before: page; page-break-before: always; }
     #chapter-01, #chapter-02, #chapter-03, #chapter-04, #chapter-05, #chapter-06,
@@ -119,6 +140,8 @@
     }
     .profile-group { break-before: page; }
     .profile-table thead { display: table-header-group; }
+    .profile-table { font-size: 8.8pt; line-height: 1.55; }
+    .profile-table td { padding: 8px; }
     .profile-table tr { break-inside: avoid; }
     a { color: inherit; text-decoration: none; }
   }
@@ -138,7 +161,7 @@
 <main id="koManual" lang="ko">
   <header class="cover">
     <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">원본 문서 · ORIGINAL EDITION</span></div>
-    <div><h1>SY-GSAP<br>사용매뉴얼</h1><p class="subtitle">골프 스윙을 관찰하고, 유형을 이해하고, 데이터로 훈련 방향을 찾는 분석 안내서</p></div>
+    <div><h1>SY-GSAP<br>사용매뉴얼</h1><span class="cover-revision-label">개정 안내</span><p class="subtitle">35개 스윙 프로필 중 자신의 프로필을 확인하고, 특징과 장단점을 이해하며, 데이터 기반으로 훈련 방향을 찾는 현대적 스윙분석 길잡이</p></div>
     <div class="cover-meta">사용 목적 · 모션 분석 · 유형 분류 · 35개 스윙 프로필 · Garmin R10 데이터 활용<br>제작자: S.Y Chun<br>초판 제작일: 2026년 10월 2일 · 개정일: 2026년 10월 2일<br>앱 기준 버전: 26.102ff
       <div class="cover-rights-row"><p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-GSAP 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="매뉴얼 제작자 S.Y Chun"></div>
     </div>
@@ -171,6 +194,16 @@
   <section class="chapter chapter-page" id="chapter-01">
     <p class="chapter-kicker">CHAPTER 01</p><h2>매뉴얼의 목적과 앱의 분석 관점</h2>
     <p><strong>SY-GSAP(SY Golf Swing Analysis Platform)</strong>은 골프 스윙 영상을 프레임별로 살펴보고, 사용자가 지정한 신체·클럽 기준점의 2D 이동과 각도를 정량화해 스윙의 구조를 이해하도록 돕는 분석 도구입니다. 영상 모션, 스윙 유형, 샷 결과 데이터를 서로 보완적으로 읽어 연습의 우선순위를 정하는 것이 목적입니다.</p>
+    <figure class="function-tree">
+      <figcaption>SY-GSAP 전체 기능 트리</figcaption>
+      <div class="tree-root">SY-GSAP · 스마트폰 2D 영상 기반 스윙 분석</div>
+      <div class="tree-branches">
+        <section class="tree-branch"><h3>영상 모션 분석 · F1–F6</h3><ul><li>촬영 영상 입력과 기준선 설정</li><li>F1–F4 비거리·동작 지표</li><li>F5 일관성 · F6 템포/시퀀스</li></ul></section>
+        <section class="tree-branch"><h3>스윙 프로필 결정 · Profile 01–35</h3><ul><li>백스윙 유형 분석 · 측면 8시점 → 5유형</li><li>스윙 파워 엔진 분석 · F1–F4 → 7유형</li><li>두 분석 결과 매칭 · 5 × 7 = 35 프로필</li></ul></section>
+        <section class="tree-branch"><h3>샷 결과 분석 · Garmin R10</h3><ul><li>CSV 기반 거리·좌우 분산</li><li>중심 일관성 · 이탈 샷 확인</li><li>프로필 기준 종합 보완 리포트</li></ul></section>
+        <section class="tree-branch"><h3>분석 결과 확인</h3><ul><li>서로 다른 A/B 스윙 6시점 비교</li><li>Gemini AI 설명 · 프로필 탐색</li><li>분석 결과 PDF 저장</li></ul></section>
+      </div>
+    </figure>
     <div class="two-col">
       <div class="info-block"><h3>무엇을 제공하나</h3><p>F1~F4 모션 점수와 세부 지표, F5 일관성 및 F6 템포·시퀀스 지표, 백스윙 궤적 분류, 파워 엔진 적합도, 백스윙×엔진 조합의 프로필 번호, R10 샷 분산과 보완 리포트를 제공합니다.</p></div>
       <div class="info-block"><h3>무엇을 확정하지 않나</h3><p>단일 2D 영상만으로 실제 지면반력, 3D 클럽 궤도, 관절 부하, 신체 통증 원인, 타격 순간 페이스 접촉점을 직접 측정하지 않습니다. 분류 결과는 촬영 조건과 클릭한 포인트에 근거한 참고 추정치입니다.</p></div>
@@ -411,7 +444,7 @@
 <main id="enManual" lang="en" hidden>
   <header class="cover">
     <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">ORIGINAL EDITION</span></div>
-    <div><h1>SY-GSAP<br>User Manual</h1><p class="subtitle">A practical guide to observing swing motion, understanding swing patterns, and planning data-informed practice.</p></div>
+    <div><h1>SY-GSAP<br>User Manual</h1><span class="cover-revision-label">UPDATED</span><p class="subtitle">A modern swing analysis guide to identifying your profile among 35 patterns, understanding its traits and trade-offs, and using data to guide practice.</p></div>
     <div class="cover-meta">Purpose · Motion Analysis · Type Classification · 35 Swing Profiles · Garmin R10 Data<br>Created by: S.Y Chun<br>First edition: October 2, 2026 · Revised: October 2, 2026<br>App version: 26.102ff
       <div class="cover-rights-row"><p class="cover-copyright"><strong>Intellectual Property Notice</strong><br>© 2026 S.Y Chun. All rights reserved. The text, structure, and editorial design of this manual are protected works. Reproduction, modification, distribution, publication, or commercial use of this document, in whole or in part, requires prior written permission from the rights holder. SY-GSAP and third-party marks and data remain the property of their respective owners.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="S.Y Chun, manual author"></div>
     </div>
@@ -444,6 +477,16 @@
   <section class="chapter chapter-page" id="en-chapter-01">
     <p class="chapter-kicker">CHAPTER 01</p><h2>Purpose and Analysis Approach</h2>
     <p><strong>SY-GSAP (SY Golf Swing Analysis Platform)</strong> helps users review golf swings frame by frame and quantify 2D movement and angles from manually selected body and club landmarks. Its purpose is to combine motion observations, swing-pattern estimates, and shot-outcome data to help prioritize practice.</p>
+    <figure class="function-tree">
+      <figcaption>SY-GSAP Functional Overview</figcaption>
+      <div class="tree-root">SY-GSAP · Smartphone 2D Swing Analysis</div>
+      <div class="tree-branches">
+        <section class="tree-branch"><h3>Video Motion Analysis · F1–F6</h3><ul><li>Video input and reference-line setup</li><li>F1–F4 distance and motion metrics</li><li>F5 consistency · F6 tempo/sequence</li></ul></section>
+        <section class="tree-branch"><h3>Swing Profile Determination · Profiles 01–35</h3><ul><li>Backswing type analysis · 8 side-view phases → 5 types</li><li>Swing power-engine analysis · F1–F4 → 7 types</li><li>Match both results · 5 × 7 = 35 profiles</li></ul></section>
+        <section class="tree-branch"><h3>Shot Outcomes · Garmin R10</h3><ul><li>CSV distance and lateral dispersion</li><li>Center consistency and outlier review</li><li>Profile-referenced synthesis report</li></ul></section>
+        <section class="tree-branch"><h3>Review Analysis Results</h3><ul><li>Six-phase comparison of A/B swings</li><li>Gemini explanations and profile guide</li><li>PDF export of analysis results</li></ul></section>
+      </div>
+    </figure>
     <div class="two-col">
       <div class="info-block"><h3>What it provides</h3><p>Frame scores and metrics for F1–F4; consistency and rhythm/sequence measures for F5–F6; backswing-path classification; power-engine fit; a profile number combining backswing and engine types; and R10 shot-dispersion summaries and support reports.</p></div>
       <div class="info-block"><h3>What it does not establish</h3><p>A single 2D video does not directly measure true ground-reaction force, 3D club path, joint loading, the cause of pain, or the clubface strike location. Classifications are estimates based on camera setup and user-selected points.</p></div>
