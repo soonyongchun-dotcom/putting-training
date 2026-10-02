@@ -193,7 +193,7 @@
 
   <section class="chapter chapter-page" id="chapter-01">
     <p class="chapter-kicker">CHAPTER 01</p><h2>매뉴얼의 목적과 앱의 분석 관점</h2>
-    <p><strong>SY-GSAP(SY Golf Swing Analysis Platform)</strong>은 골프 스윙 영상을 프레임별로 살펴보고, 사용자가 지정한 신체·클럽 기준점의 2D 이동과 각도를 정량화해 스윙의 구조를 이해하도록 돕는 분석 도구입니다. 영상 모션, 스윙 유형, 샷 결과 데이터를 서로 보완적으로 읽어 연습의 우선순위를 정하는 것이 목적입니다.</p>
+    <p><strong>SY-GSAP(SY Golf Swing Analysis Platform)</strong>은 스윙 역학 이론을 바탕으로, 휴대폰 촬영과 같은 간편한 2D 영상에서 스윙 모션의 핵심 동작을 분석하는 플랫폼입니다. 사용자가 지정한 신체·클럽 기준점의 움직임과 각도를 정량화합니다. 필요한 분석을 완료하면 SY-GSAP이 정의한 35개 골프 스윙 프로필 가운데 자신의 스윙과 가장 부합하는 유형을 판정하고 프로필 번호를 제시합니다. 입력 근거가 충분하지 않으면 판정이 보류되거나 근접 후보로 표시될 수 있습니다. 자신의 프로필 번호를 확인하면 해당 스윙의 특징과 장단점을 이해하고, 데이터에 근거한 체계적이고 과학적인 훈련 방향을 설정하는 기준으로 활용할 수 있습니다.</p>
     <figure class="function-tree">
       <figcaption>SY-GSAP 전체 기능 트리</figcaption>
       <div class="tree-root">SY-GSAP · 스마트폰 2D 영상 기반 스윙 분석</div>
@@ -264,6 +264,40 @@
 
   <section class="chapter-page" id="chapter-04">
   <h2 class="chapter-heading">CHAPTER 04 · 분석 결과와 보조 기능</h2>
+  <h3>화면 버튼·아이콘 빠른 안내</h3>
+  <p>영상 패널의 A와 B는 각각 독립적으로 조작합니다. 영상 파일을 불러오면 재생과 프레임 조작 버튼이 활성화됩니다.</p>
+  <table><thead><tr><th>위치 / 버튼</th><th>기능과 사용법</th></tr></thead><tbody>
+    <tr><td>상단 언어 선택</td><td>한국어와 English 매뉴얼을 전환합니다. 인쇄/PDF 버튼 문구와 표시 언어도 함께 바뀝니다.</td></tr>
+    <tr><td>SY-GSAP 제목</td><td>앱의 5가지 백스윙 유형, 7가지 파워 엔진, 35개 프로필 설명을 엽니다. 프로필 그룹 탭과 항목을 눌러 특징·장점·주의점을 살펴봅니다.</td></tr>
+    <tr><td>Logout</td><td>현재 로그인 세션을 종료합니다. 로그인된 경우 화면 우측 상단에 표시됩니다.</td></tr>
+    <tr><td>📁 영상 선택</td><td>해당 A 또는 B 패널에 저장된 동영상 파일을 불러옵니다.</td></tr>
+    <tr><td>🎥 카메라</td><td>기기 카메라로 영상을 촬영하거나 선택합니다. 브라우저·기기 권한이 필요할 수 있습니다.</td></tr>
+    <tr><td>🏌️ 비거리 모션 분석</td><td>Frame 1~4 흐름을 선택하고 해당 영상 패널의 단계별 포인트 안내를 시작합니다.</td></tr>
+    <tr><td>🎯 일관성 모션 분석</td><td>Frame 5~6 흐름을 선택하고 해당 영상 패널의 단계별 포인트 안내를 시작합니다.</td></tr>
+    <tr><td>▶ 재생/일시정지</td><td>해당 패널의 영상을 재생하거나 멈춥니다.</td></tr>
+    <tr><td>⏮ / ⏭ 프레임 이동</td><td>영상을 멈추고 1/30초씩 앞뒤로 이동합니다. 60fps 영상에서는 약 두 프레임 간격이므로, 세밀한 시점 조정은 탐색 막대와 함께 사용하세요.</td></tr>
+    <tr><td>탐색 막대</td><td>재생 위치를 이동합니다. A와 B의 시점을 각각 따로 맞춥니다.</td></tr>
+    <tr><td>➖ / ➕ 및 Zoom 슬라이더</td><td>영상 확대율을 조절합니다. 캔버스 위 마우스 휠로도 확대·축소할 수 있습니다.</td></tr>
+    <tr><td>Relative speed A/B</td><td>패널별 영상 재생 속도를 조절합니다. Motion Analysis의 Global speed는 두 영상의 전체 재생 속도를 조절합니다.</td></tr>
+    <tr><td>키(cm) / 프레임 선택</td><td>키는 참고 표시용이며 점수 계산에는 사용되지 않습니다. 프레임 선택 메뉴에서 분석할 F1~F6을 바꿉니다.</td></tr>
+    <tr><td>📊 R10</td><td>Garmin R10 CSV 보조 분석 영역을 열고 닫습니다.</td></tr>
+    <tr><td>CSV 선택 / 초기화 / 이탈 임계값</td><td>R10 CSV를 불러오거나 지우고, 중심 이탈 판정 기준을 1.5σ 또는 2.0σ로 선택합니다.</td></tr>
+    <tr><td>종합보고서 생성 / PDF / 접기</td><td>프로필 번호를 입력해 R10·영상 연계 보고서를 생성하고 PDF로 저장하거나 보고서를 접습니다.</td></tr>
+    <tr><td>A/B 스윙 비교</td><td>서로 다른 두 스윙의 6개 시점을 비교하는 입력 모드를 켜거나 종료합니다.</td></tr>
+    <tr><td>비교 시점 / 비교표 접기</td><td>어드레스부터 임팩트까지 비교 입력 시점을 고르고 결과표를 접거나 펼칩니다.</td></tr>
+    <tr><td>현재 시점 지우기 / 비교 초기화</td><td>현재 비교 시점의 A/B 입력만 지우거나 비교 포인트와 결과 전체를 지웁니다.</td></tr>
+    <tr><td>백스윙 유형 결정</td><td>A 패널 측면 영상으로 8개 백스윙 체크포인트 입력 영역을 엽니다.</td></tr>
+    <tr><td>자세 선택 / 마지막 점 취소 / 백스윙 입력 초기화 / 유형 판정</td><td>Address~P6 자세를 고르고, 현재 자세의 마지막 점을 취소하거나 입력 전체를 초기화합니다. 8개 자세 입력 후 유형 판정을 실행합니다.</td></tr>
+    <tr><td>기준선 지정</td><td>A 영상의 정수리~발끝 두 점을 클릭하거나 드래그해 비율 계산 기준을 설정합니다. 기준선이 완성되면 선택 모드가 자동 종료됩니다.</td></tr>
+    <tr><td>거리 산출</td><td>화면에서 두 점을 선택해 픽셀 기준 거리를 확인합니다. 실제 길이 측정값이 아니라 영상 화면상의 거리입니다.</td></tr>
+    <tr><td>전체 초기화</td><td>현재 분석 입력과 기준 데이터를 지웁니다. 보존할 결과가 있으면 먼저 PDF로 저장하세요.</td></tr>
+    <tr><td>AI 분석</td><td>Gemini API 키를 입력한 뒤 분석 결과의 쉬운 설명을 요청합니다. 키는 현재 세션에만 사용됩니다.</td></tr>
+    <tr><td>PDF 다운로드</td><td>현재 분석 결과를 PDF로 저장합니다. R10 종합보고서에는 R10 패널 안의 별도 PDF 버튼을 사용합니다.</td></tr>
+    <tr><td>펼치기 / 접기</td><td>Motion Analysis 결과 패널을 열거나 접습니다.</td></tr>
+    <tr><td>다음 / 분석 실행</td><td>화면 안내에 따라 점을 입력합니다. 필수 포인트가 남아 있으면 입력을 계속 안내하고, 모두 완료되면 “분석 실행”으로 바뀝니다.</td></tr>
+    <tr><td>분석 결과 보기 ▼</td><td>현재 프레임의 측정값을 문장으로 요약한 스윙 설명을 펼칩니다. 다시 누르면 설명이 접힙니다.</td></tr>
+  </tbody></table>
+  <div class="callout warning"><strong>입력 팁:</strong> 잘못 찍은 모션 포인트는 해당 영상 위에서 우클릭해 삭제합니다. 기준선·거리 측정·백스윙 분류 모드가 켜져 있을 때는 일반 포인트 입력과 동작이 다를 수 있으므로, 작업 후 버튼의 완료 상태를 확인하세요.</div>
   <h3>A/B 스윙 비교</h3>
   <p>Motion Analysis의 “A/B 스윙 비교”를 켜고 서로 다른 두 스윙 영상을 A와 B에 불러옵니다. 어드레스, 백스윙 탑, 어깨선, 허리선, 임팩트 전, 임팩트의 6개 시점마다 화면 안내에 따라 포인트를 입력합니다. 비교표는 두 스윙의 궤적·래깅각·템포 일치도를 보여주며, 절대적인 실력 점수나 우열이 아니라 두 영상 사이의 유사도입니다. 현재 시점만 지우거나 비교 전체를 초기화할 수 있습니다.</p>
   <h3>백스윙 유형 결정</h3>
@@ -476,7 +510,7 @@
 
   <section class="chapter chapter-page" id="en-chapter-01">
     <p class="chapter-kicker">CHAPTER 01</p><h2>Purpose and Analysis Approach</h2>
-    <p><strong>SY-GSAP (SY Golf Swing Analysis Platform)</strong> helps users review golf swings frame by frame and quantify 2D movement and angles from manually selected body and club landmarks. Its purpose is to combine motion observations, swing-pattern estimates, and shot-outcome data to help prioritize practice.</p>
+    <p><strong>SY-GSAP (SY Golf Swing Analysis Platform)</strong> applies swing-mechanics concepts to identify key movements in accessible 2D footage, including smartphone recordings. It quantifies movement and angles at user-selected body and club landmarks. Once the required analyses are complete, SY-GSAP classifies the swing against its 35 golf-swing profiles and provides the closest-matching type and profile number. If the evidence is insufficient, classification may be withheld or shown as a near match. Knowing the resulting profile helps users understand its characteristics and trade-offs and use their data to set structured, evidence-informed training priorities.</p>
     <figure class="function-tree">
       <figcaption>SY-GSAP Functional Overview</figcaption>
       <div class="tree-root">SY-GSAP · Smartphone 2D Swing Analysis</div>
@@ -540,6 +574,40 @@
 
   <section class="chapter-page" id="en-chapter-04">
     <h2 class="chapter-heading">CHAPTER 04 · Results and Additional Tools</h2>
+    <h3>Quick Guide to Buttons and Icons</h3>
+    <p>Video panels A and B are controlled independently. Playback and frame controls become available after a video is loaded.</p>
+    <table><thead><tr><th>Location / control</th><th>Function</th></tr></thead><tbody>
+      <tr><td>Language selector</td><td>Switches between Korean and English manuals. The print/PDF button label and document language change as well.</td></tr>
+      <tr><td>SY-GSAP title</td><td>Opens the five backswing paths, seven power engines, and 35 profile descriptions. Select a group and expand a profile to review its traits, strengths, and trade-offs.</td></tr>
+      <tr><td>Logout</td><td>Ends the current login session. It appears at the upper right while signed in.</td></tr>
+      <tr><td>📁 Select video</td><td>Loads a saved video into the corresponding A or B panel.</td></tr>
+      <tr><td>🎥 Camera</td><td>Records or selects video from the device camera. Browser/device permission may be required.</td></tr>
+      <tr><td>🏌️ Distance Motion Analysis</td><td>Selects the F1–F4 workflow and starts the guided point-entry steps for that video panel.</td></tr>
+      <tr><td>🎯 Consistency Motion Analysis</td><td>Selects the F5–F6 workflow and starts the guided point-entry steps for that panel.</td></tr>
+      <tr><td>▶ Play / pause</td><td>Plays or pauses the video in that panel.</td></tr>
+      <tr><td>⏮ / ⏭ Frame step</td><td>Pauses and moves by 1/30 second. On 60 fps footage this is about two frames, so use the timeline as well for finer positioning.</td></tr>
+      <tr><td>Timeline slider</td><td>Moves the playhead. Set A and B to their required moments independently.</td></tr>
+      <tr><td>➖ / ➕ and Zoom slider</td><td>Adjusts magnification. The mouse wheel over the video canvas also zooms.</td></tr>
+      <tr><td>Relative speed A/B</td><td>Adjusts playback speed for each panel. Global speed in Motion Analysis adjusts both videos' overall playback speed.</td></tr>
+      <tr><td>Height (cm) / frame selector</td><td>Height is for reference display and is not used in score calculation. Choose the frame to analyze from F1–F6.</td></tr>
+      <tr><td>📊 R10</td><td>Opens or closes the Garmin R10 CSV support-analysis panel.</td></tr>
+      <tr><td>Choose CSV / clear / outlier threshold</td><td>Loads or clears an R10 CSV and sets the center-outlier threshold to 1.5σ or 2.0σ.</td></tr>
+      <tr><td>Generate report / PDF / collapse</td><td>Enter a profile number to generate an R10/video synthesis report, download its PDF, or collapse the report.</td></tr>
+      <tr><td>A/B Swing Comparison</td><td>Starts or exits the six-phase point-entry mode for comparing two different swings.</td></tr>
+      <tr><td>Comparison phase / collapse table</td><td>Selects a phase from address through impact and collapses or expands the results table.</td></tr>
+      <tr><td>Clear current phase / reset comparison</td><td>Clears only the current A/B phase or removes all comparison points and results.</td></tr>
+      <tr><td>Classify Backswing Type</td><td>Opens the eight-checkpoint input panel for a side-view video in A.</td></tr>
+      <tr><td>Pose selector / undo last point / reset input / classify</td><td>Select Address–P6, undo the last point at the current pose, clear all backswing inputs, or classify after entering all eight poses.</td></tr>
+      <tr><td>Set Reference Line</td><td>Click or drag from head to foot in Video A to set the ratio reference. Selection mode ends automatically when the line is complete.</td></tr>
+      <tr><td>Measure Distance</td><td>Selects two points to show their pixel distance on screen. This is not a real-world length measurement.</td></tr>
+      <tr><td>Reset All</td><td>Clears current analysis inputs and reference data. Download any results you need before resetting.</td></tr>
+      <tr><td>AI Analysis</td><td>After entering a Gemini API key, requests a plain-language explanation of the results. The key is used for the current session only.</td></tr>
+      <tr><td>Download PDF</td><td>Saves the current analysis results. Use the separate PDF button inside the R10 report for an R10 synthesis PDF.</td></tr>
+      <tr><td>Expand / Collapse</td><td>Opens or closes the Motion Analysis results panel.</td></tr>
+      <tr><td>Next / Run Analysis</td><td>Follow the guide to enter points. If required points remain, it prompts for more input; when complete, the button changes to “Run Analysis.”</td></tr>
+      <tr><td>Show Analysis Results ▼</td><td>Expands the narrative explanation of the current frame's measurements. Select again to collapse it.</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>Input tip:</strong> Right-click a misplaced motion point on the video to remove it. Reference-line, distance-measurement, and backswing modes handle clicks differently from normal point entry; check the button's completion state when finished.</div>
     <h3>A/B Swing Comparison</h3><p>Enable “A/B Swing Comparison” and load two different swings in A and B. Enter points at address, top, shoulder-height, waist-height, pre-impact, and impact. The table reports similarity in trajectories, lag angles, and tempo; it is not an absolute skill score or ranking. Clear one phase or reset the comparison as needed.</p>
     <h3>Backswing Classification</h3><p>Open “Classify Backswing Type” and use a side-view swing in A. Select address, P1–P6, and top positions, mark the guided points, then review the classification. It is an estimate from a 2D image path.</p>
     <h3>Swing Profile Reference</h3><p>Select the SY-GSAP title to browse backswing paths, power engines, and the 35 swing-profile descriptions.</p>
