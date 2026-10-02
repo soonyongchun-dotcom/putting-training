@@ -533,6 +533,13 @@
     align-items: center;
     flex-wrap: wrap;
   }
+  .motion-search-status {
+    flex-basis: 100%;
+    min-height: 1.2em;
+    color: #a9d8cb;
+    font-size: 0.75rem;
+  }
+  .motion-search-status[data-kind="error"] { color: #ffad98; }
   button, label, input[type=number] {
     cursor: pointer;
     background: #0077cc;
@@ -1366,7 +1373,9 @@
       <button id="frontPlayBtn" disabled title="Play/pause">▶</button>
       <button id="frontPrevFrame" disabled title="Prev frame">⏮</button>
       <button id="frontNextFrame" disabled title="Next frame">⏭</button>
+      <button type="button" id="frontFindPositionBtn" disabled title="영상은 브라우저에서만 분석합니다. 처음 사용 시 외부 CDN에서 분석 모듈과 모델을 내려받습니다.">시점 찾기</button>
       <input type="range" id="frontSlider" min="0" max="0" step="0.01" value="0" disabled />
+      <span id="frontFindPositionStatus" class="motion-search-status" role="status" aria-live="polite"></span>
     </div>
     <div class="zoom-controls">
       <button type="button" id="frontZoomOut" title="Zoom out">➖</button>
@@ -1399,7 +1408,9 @@
       <button id="sidePlayBtn" disabled title="Play/pause">▶</button>
       <button id="sidePrevFrame" disabled title="Prev frame">⏮</button>
       <button id="sideNextFrame" disabled title="Next frame">⏭</button>
+      <button type="button" id="sideFindPositionBtn" disabled title="영상은 브라우저에서만 분석합니다. 처음 사용 시 외부 CDN에서 분석 모듈과 모델을 내려받습니다.">시점 찾기</button>
       <input type="range" id="sideSlider" min="0" max="0" step="0.01" value="0" disabled />
+      <span id="sideFindPositionStatus" class="motion-search-status" role="status" aria-live="polite"></span>
     </div>
     <div class="zoom-controls">
       <button type="button" id="sideZoomOut" title="Zoom out">➖</button>
@@ -1542,12 +1553,12 @@
         </div>
         <div class="analysis-height-field">
           <select id="analysisSegmentSelect">
-            <option value="frame1">Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]</option>
-            <option value="frame2">Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]</option>
-            <option value="frame3">Frame 3 — 다운스윙 후기 (외부토크/지면반력)</option>
-            <option value="frame4">Frame 4 — 임팩트/각도·반경 참고 지수</option>
-            <option value="frame5">Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]</option>
-            <option value="frame6">Frame 6 — 리듬/템포·시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]</option>
+            <option value="frame1">Frame 1 — 백스윙 탑·축 고정/꼬임 [A: 어드레스 → B: 백스윙 최정점]</option>
+            <option value="frame2">Frame 2 — 래깅·코어 이동 [A: 어드레스 → B: 다운스윙 3/5, 양손 허리 높이]</option>
+            <option value="frame3">Frame 3 — 다운스윙 후기·지면반력 [A: 다운스윙 4/5 → B: 임팩트 직전]</option>
+            <option value="frame4">Frame 4 — 임팩트 각도·반경 [A: 어드레스 기준 → B: 임팩트 순간]</option>
+            <option value="frame5">Frame 5 — 일관성 [A: 어드레스(P1) → B: 다운스윙 3/5, 손 허리 높이(P6)]</option>
+            <option value="frame6">Frame 6 — 리듬·템포·시퀀스 [A: 다운스윙 중기(P6, 샤프트 수평) → B: 임팩트(P7)]</option>
           </select>
           <span class="height-unit">프레임 선택</span>
         </div>
@@ -1809,6 +1820,17 @@
     'AI 분석': 'AI Analysis', 'AI 분석 중...': 'Analyzing...',
     'PDF 다운로드': 'Download PDF', '펼치기': 'Expand', '접기': 'Collapse',
     '분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.': 'Select an analysis button to start the step-by-step swing guide.',
+    '시점 찾기': 'Find Position',
+    '영상은 브라우저에서만 분석합니다. 처음 사용 시 외부 CDN에서 분석 모듈과 모델을 내려받습니다.': 'Video is processed in this browser only. The analysis library and model are downloaded from an external CDN on first use.',
+    'P1 테이크어웨이 시작': 'P1 takeaway start',
+    'P2 샤프트 지면 평행 근처': 'Near P2, shaft parallel to the ground',
+    'P3 리드팔 지면 평행 근처': 'Near P3, lead arm parallel to the ground',
+    'P4 탑 직전': 'P4, just before the top', '백스윙 탑': 'Top of backswing',
+    'P5 리드팔 지면 평행 근처': 'Near P5, lead arm parallel during downswing',
+    'P6 다운스윙 샤프트 지면 평행 근처': 'Near P6, downswing shaft parallel to the ground',
+    '다운스윙 3/5, 손 허리 높이 근처': 'Downswing 3/5, hands near waist height',
+    '다운스윙 4/5 근처': 'Downswing 4/5', '임팩트 직전': 'Just before impact',
+    '임팩트 근처': 'Near impact', '다운스윙 중기, P6 근처': 'Downswing midpoint, near P6',
     '다음': 'Next', '분석 실행': 'Analyze', '포인트 선택 필요': 'Select Points',
     '현재 세션만 사용': 'Current session only', '프레임 선택': 'Select frame',
     'A영상 분석': 'Front A Analysis', '분석 결과 보기 ▼': 'Show Analysis Results ▼',
@@ -1872,11 +1894,12 @@
     '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern):': '5. Dual-Phase On-Plane Shallowing Pattern: ',
     '정석적인 온플레인(1번) 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉(2번)을 가미하는 복합 궤적': 'Combines an on-plane arc with vertical extension and a shallowing move in the downswing.',
     '※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.': 'Note: 2D side-view video cannot measure club depth or ground reaction force. Outside and on-plane patterns are visual estimates, not definitive measurements of force coupling or face angle.',
-    'Frame 1 — 백스윙탑/축고정과 꼬임 [A:어드레스 → B:백스윙 탑]': 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top]',
-    'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙]': 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing]',
-    'Frame 3 — 다운스윙 후기 (외부토크/지면반력)': 'Frame 3 — Late Downswing (External Torque / Ground Force)',
-    'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점': 'Frame 3 — Late Downswing (External Torque / Ground Force) — Shaft-Parallel Phase',
-    'Frame 4 — 임팩트/각도·반경 참고 지수': 'Frame 4 — Impact / 2D Angle-Radius Reference Index',
+    'Frame 1 — 백스윙 탑·축 고정/꼬임 [A: 어드레스 → B: 백스윙 최정점]': 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top of Backswing]',
+    'Frame 2 — 래깅·코어 이동 [A: 어드레스 → B: 다운스윙 3/5, 양손 허리 높이]': 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing 3/5, Hands at Waist Height]',
+    'Frame 3 — 다운스윙 후기·지면반력 [A: 다운스윙 4/5 → B: 임팩트 직전]': 'Frame 3 — Late Downswing / Ground-Force Phase [A: Downswing 4/5 → B: Just Before Impact]',
+    'Frame 4 — 임팩트 각도·반경 [A: 어드레스 기준 → B: 임팩트 순간]': 'Frame 4 — Impact Angle and Radius [A: Address Reference → B: Impact]',
+    'Frame 5 — 일관성 [A: 어드레스(P1) → B: 다운스윙 3/5, 손 허리 높이(P6)]': 'Frame 5 — Consistency [A: Address (P1) → B: Downswing 3/5, Hands at Waist Height (P6)]',
+    'Frame 6 — 리듬·템포·시퀀스 [A: 다운스윙 중기(P6, 샤프트 수평) → B: 임팩트(P7)]': 'Frame 6 — Rhythm, Tempo and Sequence [A: Downswing Midpoint (P6, Shaft Parallel) → B: Impact (P7)]',
     'Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]': 'Frame 5 — Consistency Report [Address → Downswing 3/5 (Waist Height)]',
     'Frame 6 — 리듬/템포·시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]': 'Frame 6 — Rhythm, Tempo and Sequence [Downswing Midpoint → Impact]',
     'B — 백스윙 탑 (척추축/X-Factor 확인)': 'B — Top of Backswing (Spine Axis / X-Factor)',
@@ -2695,6 +2718,10 @@
   const frontNextFrameBtn = document.getElementById('frontNextFrame');
   const sidePrevFrameBtn = document.getElementById('sidePrevFrame');
   const sideNextFrameBtn = document.getElementById('sideNextFrame');
+  const frontFindPositionBtn = document.getElementById('frontFindPositionBtn');
+  const sideFindPositionBtn = document.getElementById('sideFindPositionBtn');
+  const frontFindPositionStatus = document.getElementById('frontFindPositionStatus');
+  const sideFindPositionStatus = document.getElementById('sideFindPositionStatus');
   const frontSlider = document.getElementById('frontSlider');
   const sideSlider = document.getElementById('sideSlider');
   const playbackRateInput = document.getElementById('playbackRateInput');
@@ -2897,6 +2924,8 @@
   let guideView = null;
   let guideStep = 0;
   let selectedSegment = 'frame1';
+  let frameProgressNotice = null;
+  let autoFrameAdvanceTarget = null;
   // 프레임별 마지막 분석 상태 저장 (A/B 패널 포인트, 라인, 비디오 시점)
   let frameStateHistory = { front: {}, side: {} };
   let frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
@@ -3097,6 +3126,33 @@
   }
 
   function getGuideMessage() {
+    const frameOrder = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'];
+    const frameIndex = frameOrder.indexOf(selectedSegment);
+    if (frameIndex >= 0) {
+      const frontComplete = isPanelComplete(selectedSegment, 'front');
+      const sideComplete = isPanelComplete(selectedSegment, 'side');
+      const allFramesComplete = frameOrder.every(frame =>
+        isPanelComplete(frame, 'front') && isPanelComplete(frame, 'side'));
+      if (allFramesComplete) {
+        return uiLanguage === 'en'
+          ? 'All A/B frame selections for Frames 1–6 are complete. Frame selection for analysis is finished.'
+          : 'Frame 1~6의 A/B 포인트 선택이 모두 완료되었습니다. 분석에 필요한 전체 프레임 선택이 끝났습니다.';
+      }
+      if (frontComplete !== sideComplete && guideView === (frontComplete ? 'front' : 'side')) {
+        const nextView = frontComplete ? 'B' : 'A';
+        return uiLanguage === 'en'
+          ? `${frontComplete ? 'A' : 'B'} channel selection is complete for ${analysisSegmentSelect.selectedOptions[0].textContent.split(' — ')[0]}. Continue with the ${nextView} channel for the same frame.`
+          : `${analysisSegmentSelect.selectedOptions[0].textContent.split(' — ')[0]} ${frontComplete ? 'A' : 'B'} 채널 입력이 완료되었습니다. 같은 프레임의 ${nextView} 채널 입력으로 이동하세요.`;
+      }
+    }
+    if (frameProgressNotice) {
+      const { from, to } = frameProgressNotice;
+      const fromLabel = `Frame ${frameOrder.indexOf(from) + 1}`;
+      const toLabel = translateUiText(analysisSegmentSelect.querySelector(`[value="${to}"]`)?.textContent || to);
+      return uiLanguage === 'en'
+        ? `${fromLabel} input is complete. Moved to ${toLabel}; start the next frame by entering the A channel.`
+        : `${fromLabel} 입력이 완료되어 ${toLabel}(으)로 이동했습니다. 다음 프레임의 A 채널 입력부터 시작하세요.`;
+    }
     if (uiLanguage === 'en') {
       const viewLabel = guideView === 'front' ? 'A (Reference)' : 'B (Comparison)';
       const guides = {
@@ -3121,7 +3177,7 @@
             ],
         },
         frame2: {
-          title: 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing at Waist Height]',
+          title: 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing 3/5, Hands at Waist Height]',
           steps: [
             `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At address, mark the center of both hands (middle of the grip).' : 'At the downswing 3/5 point, when the hands reach waist height, mark the center of both hands (middle of the grip).'}`,
             `(${viewLabel}) Step 2: Mark the clubhead. The hand-center-to-clubhead vector is used to calculate the lag angle.`,
@@ -3131,9 +3187,9 @@
           ],
         },
         frame3: {
-          title: 'Frame 3 — Late Downswing / Ground Force',
+          title: 'Frame 3 — Late Downswing / Ground-Force Phase [A: Downswing 4/5 → B: Just Before Impact]',
           steps: [
-            `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At the downswing 4/5 point (ground-force phase), mark the left hip.' : 'Just before impact (late downswing), mark the left hip.'}`,
+            `(${viewLabel}) Step 1: ${guideView === 'front' ? 'Set Video A to the late downswing, about 4/5 of the way to impact, and mark the left hip.' : 'Set Video B to just before impact and mark the left hip.'}`,
             `(${viewLabel}) Step 2: Mark the left knee.`,
             `(${viewLabel}) Step 3: Mark the left ankle. Hip, knee, and ankle points are used to calculate vertical extension.`,
             `(${viewLabel}) Step 4: Mark the projected C7 point. In the front view, click the center of the neck below the chin. This is used to calculate axis sway.`,
@@ -3145,7 +3201,7 @@
           ],
         },
         frame4: {
-          title: 'Frame 4 — Impact / 2D Angle-Radius Reference Index',
+          title: 'Frame 4 — Impact Angle and Radius [A: Address Reference → B: Impact]',
           steps: [
             `(${viewLabel}) Step 1: ${guideView === 'front' ? 'At address, mark the projected C7 point.' : 'At impact, mark the projected C7 point.'} In the front view, click the center of the neck below the chin.`,
             `(${viewLabel}) Step 2: Mark the left shoulder.`,
@@ -3158,7 +3214,7 @@
           ],
         },
         frame5: {
-          title: 'Frame 5 — Consistency Report [Address → Downswing 3/5 Point (Waist Height)]',
+          title: 'Frame 5 — Consistency Report [A: Address (P1) → B: Downswing 3/5, Hands at Waist Height (P6)]',
           steps: guideView === 'front'
             ? [
               '(P1 — Address) Step 1: At address, mark pt1, the center of both hands (middle of the grip).',
@@ -3176,17 +3232,17 @@
             ],
         },
         frame6: {
-          title: 'Frame 6 — Rhythm, Tempo and Kinematic Sequence [Downswing Midpoint → Impact]',
+          title: 'Frame 6 — Rhythm, Tempo and Kinematic Sequence [A: Downswing Midpoint (P6, Shaft Parallel) → B: Impact (P7)]',
           steps: guideView === 'front'
             ? [
-              '(Downswing Midpoint) Step 1: Set Video A to the shaft-parallel phase and mark pt1, the C7 spine point.',
+              '(A — Downswing Midpoint, P6) Step 1: Set Video A to the downswing midpoint, when the shaft is approximately parallel to the ground, and mark pt1, the C7 spine point.',
               '(Downswing Midpoint) Step 2: Mark pt2, the pelvis center (COM), as the lower-body reference for the torque-transition index.',
               '(Downswing Midpoint) Step 3: Mark pt3, the center of both hands, to calculate the lag angle (θ_lag).',
               '(Downswing Midpoint) Step 4: Mark pt4, the clubhead, to calculate the downswing radius (r_downswing).',
               'Point selection complete. Run the analysis.',
             ]
             : [
-              '(P7 — Impact) Step 1: Set Video B to impact and mark pt1, the C7 spine point.',
+              '(B — Impact, P7) Step 1: Set Video B to the instant of impact and mark pt1, the C7 spine point.',
               '(P7 — Impact) Step 2: Mark pt2, the pelvis center (COM).',
               '(P7 — Impact) Step 3: Mark pt3, the center of both hands.',
               '(P7 — Impact) Step 4: Mark pt4, the clubhead, to calculate the impact radius (r_impact).',
@@ -3222,9 +3278,9 @@
           ],
       },
       frame2: {
-        title: 'Frame 2 — 래깅/코어이동 [A:어드레스 → B:다운스윙 손 허리높이(3/5 지점)]',
+        title: 'Frame 2 — 래깅/코어이동 [A: 어드레스 → B: 다운스윙 3/5, 양손 허리 높이]',
         steps: [
-          `(${viewLabel}) 1단계: ${guideView === 'front' ? '어드레스 자세에서' : '다운스윙 중 손이 허리 높이에 도달하는 시점(다운스윙 3/5 지점)에서'} 양손의 중심점(그립 중앙)을 찍으세요.`,
+          `(${viewLabel}) 1단계: ${guideView === 'front' ? 'A 영상을 어드레스 자세에 맞추고' : 'B 영상을 다운스윙 3/5 지점, 양손이 허리 높이에 도달한 순간에 맞춘 뒤'} 양손의 중심점(그립 중앙)을 찍으세요.`,
           `(${viewLabel}) 2단계: 클럽 헤드를 점으로 찍으세요. 양손 중심→클럽헤드 벡터로 래깅각도를 산출합니다.`,
           `(${viewLabel}) 3단계: 오른쪽 어깨를 찍으세요. 양손 중심→어깨 방향으로 래깅각도를 최종 산출합니다.`,
           `(${viewLabel}) 4단계: 골반 중심(Mid-Hip)을 찍으세요. 어드레스 대비 코어(골반) 좌측 이동량을 산출합니다.`,
@@ -3232,9 +3288,9 @@
         ],
       },
       frame3: {
-        title: 'Frame 3 — 다운스윙 후기 (외부토크/지면반력) — 샤프트 수평 시점',
+        title: 'Frame 3 — 다운스윙 후기·지면반력 [A: 다운스윙 4/5 → B: 임팩트 직전]',
         steps: [
-          `(${viewLabel}) 1단계: ${guideView === 'front' ? '다운스윙 4/5 지점(지면반력 발생 구간)에서' : '임팩트 직전(다운스윙 후기)에서'} 왼쪽 고관절을 점으로 찍으세요.`,
+          `(${viewLabel}) 1단계: ${guideView === 'front' ? 'A 영상을 다운스윙 후반, 임팩트까지 약 4/5 진행된 지점에 맞추고' : 'B 영상을 임팩트 직전 다운스윙 후반에 맞춘 뒤'} 왼쪽 고관절을 점으로 찍으세요.`,
           `(${viewLabel}) 2단계: 왼쪽 무릎을 점으로 찍으세요.`,
           `(${viewLabel}) 3단계: 왼쪽 발목을 점으로 찍으세요. 고관절-무릎-발목으로 수직신장각도를 산출합니다.`,
           `(${viewLabel}) 4단계: C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요. 축 고정 지수(Sway 여부) 산출에 사용됩니다.`,
@@ -3246,7 +3302,7 @@
         ],
       },
       frame4: {
-        title: 'Frame 4 — 임팩트/각도·반경 참고 지수',
+        title: 'Frame 4 — 임팩트 각도·반경 [A: 어드레스 기준 → B: 임팩트 순간]',
         steps: [
           `(${viewLabel}) 1단계: ${guideView === 'front' ? '어드레스 자세에서' : '임팩트 순간에서'} C7 투영점을 찍으세요. 정면 영상에서는 목 중심부(턴 아래)를 클릭하세요.`,
           `(${viewLabel}) 2단계: 왼쪽 어깨를 점으로 찍으세요.`,
@@ -3259,7 +3315,7 @@
         ],
       },
       frame5: {
-        title: 'Frame 5 — 일관성 리포트 [어드레스 → 다운스윙 3/5 지점(허리높이)]',
+        title: 'Frame 5 — 일관성 [A: 어드레스(P1) → B: 다운스윙 3/5, 손 허리 높이(P6)]',
         steps: guideView === 'front'
           ? [
             `(P1 — 어드레스) 1단계: 어드레스 자세에서 pt1 양손의 중심점(그립 중앙)을 찍으세요.`,
@@ -3270,24 +3326,24 @@
           ]
           : [
             `(다운스윙 3/5 지점 — 허리높이) 1단계: 다운스윙 중 손이 허리높이에 도달한 시점에서 pt1 양손의 중심점(그립 중앙)을 찍으세요.`,
-            `(다운스윙 3/5 지점 — 허리높이) 2단계: 같은 시점의 pt2 C7 경추점을 찍으세요. 상체축 이동(욨리/얼리 익스텐션)을 측정합니다.`,
+            `(다운스윙 3/5 지점 — 허리높이) 2단계: 같은 시점의 pt2 C7 경추점을 찍으세요. 상체축 이동(스웨이/얼리 익스텐션)을 측정합니다.`,
             `(다운스윙 3/5 지점 — 허리높이) 3단계: 같은 시점의 pt3 양 골반 중심점을 찍으세요. 타겟 방향 체중이동량을 산출합니다.`,
             `(다운스윙 3/5 지점 — 허리높이) 4단계: 같은 시점의 pt4 클럽 헤드 중심을 찍으세요. 샤프트 각도와 래깅(캐스팅) 정도를 산출합니다.`,
             `포인트 선택 완료. 분석을 실행합니다.`,
           ],
       },
       frame6: {
-        title: 'Frame 6 — 리듬/템포·키네매틱 시퀀스 [다운스윙 3/5 지점(중기) → 임팩트]',
+        title: 'Frame 6 — 리듬·템포·시퀀스 [A: 다운스윙 중기(P6, 샤프트 수평) → B: 임팩트(P7)]',
         steps: guideView === 'front'
           ? [
-            `(다운스윙 3/5 지점 — 중기) 1단계: 샤프트가 지면과 수평이 되는 시점으로 A영상을 맞추고 pt1 C7 경추점을 찍으세요.`,
+            `(A — 다운스윙 중기, P6) 1단계: A 영상을 다운스윙 중기, 샤프트가 지면과 대략 수평이 되는 시점에 맞추고 pt1 C7 경추점을 찍으세요.`,
             `(다운스윙 3/5 지점 — 중기) 2단계: pt2 골반 중심점(COM)을 찍으세요. 상대 변위 비율의 골반 이동 기준점입니다.`,
             `(다운스윙 3/5 지점 — 중기) 3단계: pt3 양손의 중심점(그립 중앙)을 찍으세요. 래깅각(θ_lag)을 산출합니다.`,
             `(다운스윙 3/5 지점 — 중기) 4단계: pt4 클럽 헤드를 찍으세요. 다운스윙 회전 반경(r_downswing)을 산출합니다.`,
             `포인트 선택 완료. 분석을 실행합니다.`,
           ]
           : [
-            `(P7 — 임팩트) 1단계: 임팩트 순간으로 B영상을 맞추고 pt1 C7 경추점을 찍으세요.`,
+            `(B — 임팩트, P7) 1단계: B 영상을 임팩트 순간에 맞추고 pt1 C7 경추점을 찍으세요.`,
             `(P7 — 임팩트) 2단계: pt2 골반 중심점(COM)을 찍으세요.`,
             `(P7 — 임팩트) 3단계: pt3 양손의 중심점(그립 중앙)을 찍으세요.`,
             `(P7 — 임팩트) 4단계: pt4 클럽 헤드를 찍으세요. 임팩트 회전 반경(r_impact)을 산출합니다.`,
@@ -3303,13 +3359,20 @@
   }
 
   function getFrameSectionLabel(frameId, view) {
-    const labels = {
-      frame1: { front: 'A — 어드레스 (척추축/X-Factor 기준)', side: 'B — 백스윙 탑 (척추축/X-Factor 확인)' },
-      frame2: { front: 'A — 어드레스 (기준)', side: 'B — 다운스윙 손 허리높이 (래깅/코어이동)' },
-      frame3: { front: 'A — 다운스윙 4/5 지점 기준', side: 'B — 임팩트 직전 (지면반력)' },
-      frame4: { front: 'A — 어드레스 기준', side: 'B — 임팩트 (각도·반경 참고 지수)' },
-      frame5: { front: 'P1 — 어드레스 (일관성 기준)', side: '다운스윙 3/5 지점 — 허리높이 (일관성 비교)' },
-      frame6: { front: '다운스윙 3/5 지점 — 중기 (템포 기준)', side: 'B — 임팩트 (릴리즈 확인)' },
+    const labels = uiLanguage === 'en' ? {
+      frame1: { front: 'A — Address (Spine-Axis / X-Factor Baseline)', side: 'B — Top of Backswing (Spine-Axis / X-Factor Check)' },
+      frame2: { front: 'A — Address (Reference)', side: 'B — Downswing 3/5, Hands at Waist Height (Lag / Core Shift)' },
+      frame3: { front: 'A — Late Downswing, about 4/5 to Impact', side: 'B — Just Before Impact (Late Downswing)' },
+      frame4: { front: 'A — Address Reference', side: 'B — Impact (Angle / Radius)' },
+      frame5: { front: 'A — Address (P1 Consistency Reference)', side: 'B — Downswing 3/5, Hands at Waist Height (P6 Comparison)' },
+      frame6: { front: 'A — Downswing Midpoint (P6, Shaft Approximately Parallel)', side: 'B — Impact (P7 Release Check)' },
+    } : {
+      frame1: { front: 'A — 어드레스 (척추축/X-Factor 기준)', side: 'B — 백스윙 최정점 (척추축/X-Factor 확인)' },
+      frame2: { front: 'A — 어드레스 기준', side: 'B — 다운스윙 3/5, 양손 허리 높이 (래깅/코어 이동)' },
+      frame3: { front: 'A — 다운스윙 후반, 임팩트까지 약 4/5', side: 'B — 임팩트 직전 (다운스윙 후반)' },
+      frame4: { front: 'A — 어드레스 기준', side: 'B — 임팩트 순간 (각도/반경)' },
+      frame5: { front: 'A — 어드레스 (P1 일관성 기준)', side: 'B — 다운스윙 3/5, 손 허리 높이 (P6 비교)' },
+      frame6: { front: 'A — 다운스윙 중기 (P6, 샤프트 대략 수평)', side: 'B — 임팩트 순간 (P7 릴리즈 확인)' },
     };
     return (labels[frameId] || labels.frame1)[view];
   }
@@ -3460,6 +3523,7 @@
   }
 
   function setGuideState(view) {
+    frameProgressNotice = null;
     guideView = view;
     let points = view === 'front' ? frontPoints : sidePoints;
     const reuseInfo = reuseSharedFramePoints(selectedSegment, view);
@@ -5860,6 +5924,7 @@
   let backswingActive = false;
   let backswingFrames = {};
   let backswingClassification = null;
+  let backswingProgressNotice = null;
 
   function invalidateBackswingClassification() {
     const hadClassification = backswingClassification !== null;
@@ -5874,16 +5939,32 @@
     const count = (backswingFrames[phase]?.points || []).length;
     const label = translateUiText(backswingPhaseSelect.selectedOptions[0].textContent);
     const labels = getBackswingPointLabels(phase);
+    const isFinalPhase = phase === BACKSWING_PHASES[BACKSWING_PHASES.length - 1];
     const next = count < labels.length
       ? `${uiLanguage === 'en' ? 'Next: ' : '다음: '}${translateUiText(labels[count])}`
-      : uiLanguage === 'en' ? 'Input complete. Select the next pose.' : '입력 완료. 다음 자세를 선택하세요.';
-    backswingGuide.textContent = `${label} · ${count}/${labels.length} ${next}`;
+      : isFinalPhase
+        ? uiLanguage === 'en' ? 'Final checkpoint complete; review the classification result.' : '마지막 자세 입력 완료. 유형 판정 결과를 확인하세요.'
+        : uiLanguage === 'en' ? 'Input complete. Select the next pose.' : '입력 완료. 다음 자세를 선택하세요.';
+    let progress = '';
+    if (backswingProgressNotice?.nextPhase) {
+      const completedLabel = translateUiText(backswingPhaseSelect.querySelector(`[value="${backswingProgressNotice.completedPhase}"]`)?.textContent || '');
+      const nextLabel = translateUiText(backswingPhaseSelect.querySelector(`[value="${backswingProgressNotice.nextPhase}"]`)?.textContent || '');
+      progress = uiLanguage === 'en'
+        ? `${completedLabel} input complete. Moved to ${nextLabel}. `
+        : `${completedLabel} 입력 완료. 다음 자세 ${nextLabel}(으)로 이동했습니다. `;
+    } else if (backswingProgressNotice?.allComplete) {
+      progress = uiLanguage === 'en'
+        ? 'All eight backswing checkpoints are complete. Type classification has been run. '
+        : '백스윙 8개 시점 선택이 모두 완료되어 유형 판정을 실행했습니다. ';
+    }
+    backswingGuide.textContent = `${progress}${label} · ${count}/${labels.length} ${next}`;
     frontGuideBubble.textContent = backswingGuide.textContent;
     frontGuideBubble.classList.add('visible');
   }
 
   function resetBackswing({ preserveClassification = false } = {}) {
     backswingFrames = {};
+    backswingProgressNotice = null;
     backswingResult.textContent = '';
     if (!preserveClassification) invalidateBackswingClassification();
     backswingPhaseSelect.value = 'address';
@@ -5976,8 +6057,13 @@
     backswingResult.textContent = '';
     if (entry.points.length === pointLabels.length) {
       const nextPhase = BACKSWING_PHASES[BACKSWING_PHASES.indexOf(phase) + 1];
-      if (nextPhase) backswingPhaseSelect.value = nextPhase;
-      else document.getElementById('backswingDecideBtn').click();
+      if (nextPhase) {
+        backswingProgressNotice = { completedPhase: phase, nextPhase };
+        backswingPhaseSelect.value = nextPhase;
+      } else {
+        backswingProgressNotice = { allComplete: true };
+        document.getElementById('backswingDecideBtn').click();
+      }
     }
     updateBackswingGuide();
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
@@ -6108,12 +6194,14 @@
     setBackswingMode(!backswingActive);
   });
   backswingPhaseSelect.addEventListener('change', () => {
+    backswingProgressNotice = null;
     const time = backswingFrames[backswingPhaseSelect.value]?.time;
     if (Number.isFinite(time)) frontVideo.currentTime = time;
     updateBackswingGuide();
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
   });
   document.getElementById('backswingUndoBtn').addEventListener('click', () => {
+    backswingProgressNotice = null;
     const entry = backswingFrames[backswingPhaseSelect.value];
     if (entry) {
       entry.points.pop();
@@ -6904,6 +6992,241 @@
     });
   }
 
+  let poseLandmarkerPromise = null;
+  const poseSampleCache = new WeakMap();
+  const POSE_VISION_VERSION = '1.0.1';
+  const POSE_SAMPLE_LIMIT = 1200;
+  const POSE_SAMPLE_INTERVAL = 0.12;
+  let lastPoseDetectionTimestampMs = 0;
+
+  async function getPoseLandmarker() {
+    if (!poseLandmarkerPromise) {
+      poseLandmarkerPromise = (async () => {
+        const vision = await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${POSE_VISION_VERSION}/vision_bundle.mjs`);
+        const wasmFiles = await vision.FilesetResolver.forVisionTasks(
+          `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${POSE_VISION_VERSION}/wasm`
+        );
+        return vision.PoseLandmarker.createFromOptions(wasmFiles, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+          },
+          runningMode: 'VIDEO',
+          numPoses: 1,
+        });
+      })().catch(error => {
+        poseLandmarkerPromise = null;
+        throw error;
+      });
+    }
+    return poseLandmarkerPromise;
+  }
+
+  function getPoseMotionFeatures(landmarks) {
+    const point = index => {
+      const landmark = landmarks[index];
+      return landmark && (landmark.visibility == null || landmark.visibility >= 0.35)
+        ? { x: landmark.x, y: landmark.y }
+        : null;
+    };
+    const midpoint = (a, b) => a && b
+      ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+      : null;
+    const shoulder = midpoint(point(11), point(12));
+    const hip = midpoint(point(23), point(24));
+    const wrist = midpoint(point(15), point(16));
+    if (!shoulder || !hip || !wrist) return null;
+    const torsoLength = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y);
+    if (torsoLength < 0.04) return null;
+    return {
+      handX: (wrist.x - hip.x) / torsoLength,
+      handHeight: (hip.y - wrist.y) / torsoLength,
+      hipX: hip.x,
+      hipY: hip.y,
+    };
+  }
+
+  async function scanVideoPoses(video, onProgress) {
+    const duration = video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error(uiLanguage === 'en' ? 'The video duration is not available yet.' : '영상 길이를 확인할 수 없습니다.');
+    }
+    const cached = poseSampleCache.get(video);
+    if (cached && cached.src === video.src && cached.duration === duration) {
+      return cached.samples;
+    }
+
+    await ensureVideoReady(video);
+    const landmarker = await getPoseLandmarker();
+    const originalTime = video.currentTime;
+    video.pause();
+    const sampleCount = Math.min(POSE_SAMPLE_LIMIT, Math.ceil(duration / POSE_SAMPLE_INTERVAL) + 1);
+    const interval = duration / Math.max(1, sampleCount - 1);
+    const samples = [];
+    let completed = false;
+    try {
+      for (let index = 0; index < sampleCount; index += 1) {
+        const time = Math.min(Math.max(0, duration - 0.02), index * interval);
+        if (index > 0 && time * 1000 <= samples[samples.length - 1]?.time * 1000) continue;
+        await seekVideoTo(video, time);
+        const timestampMs = Math.max(performance.now(), time * 1000, lastPoseDetectionTimestampMs + 1);
+        lastPoseDetectionTimestampMs = timestampMs;
+        const result = landmarker.detectForVideo(video, timestampMs);
+        const pose = result.landmarks?.[0];
+        const features = pose ? getPoseMotionFeatures(pose) : null;
+        if (features) samples.push({ time, ...features });
+        if (index % 8 === 0 || index === sampleCount - 1) {
+          onProgress(Math.round(((index + 1) / sampleCount) * 100));
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+      if (samples.length < 4) {
+        throw new Error(uiLanguage === 'en'
+          ? 'Could not track the golfer reliably. Use a clear, full-body video with the golfer visible.'
+          : '선수 자세를 충분히 찾지 못했습니다. 전신이 선명하게 보이는 영상을 사용하세요.');
+      }
+      poseSampleCache.set(video, { src: video.src, duration, samples });
+      completed = true;
+      return samples;
+    } finally {
+      if (!completed) await seekVideoTo(video, originalTime);
+    }
+  }
+
+  function getPosePathIndex(samples, startIndex, endIndex, progress) {
+    if (endIndex <= startIndex) return startIndex;
+    const distances = [];
+    let total = 0;
+    for (let index = startIndex + 1; index <= endIndex; index += 1) {
+      const previous = samples[index - 1];
+      const current = samples[index];
+      total += Math.hypot(current.handX - previous.handX, current.handHeight - previous.handHeight);
+      distances.push({ index, distance: total });
+    }
+    if (total < 0.001) {
+      return Math.round(startIndex + (endIndex - startIndex) * progress);
+    }
+    const target = total * progress;
+    return distances.reduce((best, item) =>
+      Math.abs(item.distance - target) < Math.abs(best.distance - target) ? item : best
+    , distances[0]).index;
+  }
+
+  function findPoseTargetIndex(samples, target) {
+    const speed = samples.map((sample, index) => {
+      if (index === 0) return 0;
+      const previous = samples[index - 1];
+      const elapsed = Math.max(0.001, sample.time - previous.time);
+      const handSpeed = Math.hypot(sample.handX - previous.handX, sample.handHeight - previous.handHeight) / elapsed;
+      const hipSpeed = Math.hypot(sample.hipX - previous.hipX, sample.hipY - previous.hipY) / elapsed;
+      return handSpeed + hipSpeed * 0.35;
+    });
+    const maxSpeed = Math.max(...speed);
+    const startIndex = Math.max(0, speed.findIndex(value => maxSpeed > 0.01 && value >= maxSpeed * 0.18));
+    const addressIndex = Math.max(0, startIndex - 2);
+    const topSearchEnd = samples.findIndex((sample, index) =>
+      index > startIndex && sample.time > samples[startIndex].time + 2.5);
+    const searchEnd = topSearchEnd < 0 ? samples.length - 1 : topSearchEnd;
+    let topIndex = startIndex;
+    for (let index = startIndex + 1; index < searchEnd; index += 1) {
+      if (samples[index].handHeight >= samples[index - 1].handHeight
+        && samples[index].handHeight > samples[index + 1].handHeight) {
+        topIndex = index;
+        break;
+      }
+      if (samples[index].handHeight > samples[topIndex].handHeight) topIndex = index;
+    }
+    const impactSearchEnd = samples.findIndex((sample, index) =>
+      index > topIndex && sample.time > samples[topIndex].time + 1.2);
+    const impactEnd = impactSearchEnd < 0 ? samples.length - 1 : impactSearchEnd;
+    let impactIndex = Math.min(samples.length - 1, topIndex + 1);
+    for (let index = topIndex + 1; index <= impactEnd; index += 1) {
+      if (speed[index] > speed[impactIndex]) impactIndex = index;
+    }
+    const addressHeight = samples[addressIndex].handHeight;
+    const handsReturnIndex = samples.findIndex((sample, index) =>
+      index > topIndex && sample.handHeight <= addressHeight + 0.25);
+    if (handsReturnIndex >= 0) impactIndex = handsReturnIndex;
+
+    const targets = {
+      address: addressIndex,
+      backswingStart: startIndex,
+      backswing25: getPosePathIndex(samples, startIndex, topIndex, 0.25),
+      backswing50: getPosePathIndex(samples, startIndex, topIndex, 0.5),
+      backswing82: getPosePathIndex(samples, startIndex, topIndex, 0.82),
+      top: topIndex,
+      downswing52: getPosePathIndex(samples, topIndex, impactIndex, 0.52),
+      downswing62: getPosePathIndex(samples, topIndex, impactIndex, 0.62),
+      downswing78: getPosePathIndex(samples, topIndex, impactIndex, 0.78),
+      preImpact: getPosePathIndex(samples, topIndex, impactIndex, 0.92),
+      impact: impactIndex,
+    };
+    return targets[target] ?? topIndex;
+  }
+
+  function getMotionSearchRequest(view) {
+    if (backswingActive && view === 'front') {
+      const targets = {
+        address: ['address', '어드레스'],
+        p1: ['backswingStart', 'P1 테이크어웨이 시작'],
+        p2: ['backswing25', 'P2 샤프트 지면 평행 근처'],
+        p3: ['backswing50', 'P3 리드팔 지면 평행 근처'],
+        p4: ['backswing82', 'P4 탑 직전'],
+        top: ['top', '백스윙 탑'],
+        transition: ['downswing52', 'P5 리드팔 지면 평행 근처'],
+        downP6: ['downswing78', 'P6 다운스윙 샤프트 지면 평행 근처'],
+      };
+      const [target, label] = targets[backswingPhaseSelect.value] || targets.address;
+      return { target, label };
+    }
+    const frameTargets = {
+      frame1: { front: ['address', '어드레스'], side: ['top', '백스윙 탑'] },
+      frame2: { front: ['address', '어드레스'], side: ['downswing62', '다운스윙 3/5, 손 허리 높이 근처'] },
+      frame3: { front: ['downswing78', '다운스윙 4/5 근처'], side: ['preImpact', '임팩트 직전'] },
+      frame4: { front: ['address', '어드레스'], side: ['impact', '임팩트 근처'] },
+      frame5: { front: ['address', '어드레스'], side: ['downswing62', '다운스윙 3/5, 손 허리 높이 근처'] },
+      frame6: { front: ['downswing62', '다운스윙 중기, P6 근처'], side: ['impact', '임팩트 근처'] },
+    };
+    const [target, label] = frameTargets[selectedSegment]?.[view] || [];
+    return target ? { target, label } : null;
+  }
+
+  async function findVideoPosition(view) {
+    const video = view === 'front' ? frontVideo : sideVideo;
+    const button = view === 'front' ? frontFindPositionBtn : sideFindPositionBtn;
+    const status = view === 'front' ? frontFindPositionStatus : sideFindPositionStatus;
+    const request = getMotionSearchRequest(view);
+    if (!request || !video.src) return;
+    const savedLabel = button.textContent;
+    button.disabled = true;
+    status.dataset.kind = 'progress';
+    status.textContent = uiLanguage === 'en'
+    ? `Scanning the video locally for ${translateUiText(request.label)}…`
+      : `영상은 이 브라우저에서만 분석합니다. ${request.label} 시점을 찾는 중…`;
+    try {
+      const samples = await scanVideoPoses(video, percent => {
+        status.textContent = uiLanguage === 'en'
+          ? `Scanning locally for ${translateUiText(request.label)}… ${percent}%`
+          : `브라우저에서 영상 분석 중… ${percent}%`;
+      });
+      const targetIndex = findPoseTargetIndex(samples, request.target);
+      const targetTime = samples[targetIndex].time;
+      await seekVideoTo(video, targetTime);
+      video.pause();
+      status.dataset.kind = 'success';
+      status.textContent = uiLanguage === 'en'
+        ? `Moved near ${translateUiText(request.label)} (${targetTime.toFixed(2)}s). Fine-tune with the frame-step buttons.`
+        : `${request.label} 근처 ${targetTime.toFixed(2)}초로 이동했습니다. 프레임 이동 버튼으로 미세 조정하세요.`;
+    } catch (error) {
+      console.error('Automatic swing-position search failed:', error);
+      status.dataset.kind = 'error';
+      status.textContent = uiLanguage === 'en'
+        ? `Could not find the position: ${error.message}`
+        : `시점을 찾지 못했습니다: ${error.message}`;
+    } finally {
+      button.disabled = !video.src;
+    }
+  }
+
   function updateStatus(){
     const parts = [];
     const baseRate = parseFloat(playbackRateInput.value);
@@ -7352,7 +7675,19 @@
       showGuide();
     }
     const viewComplete = view ? points.length >= getFramePointTypesForView(selectedSegment, view).length : false;
-    if (frontVideo.src && sideVideo.src && viewComplete) scheduleMotionAnalysis();
+    if (frontVideo.src && sideVideo.src && viewComplete) {
+      const frameOrder = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'];
+      const currentFrameIndex = frameOrder.indexOf(selectedSegment);
+      const nextFrame = currentFrameIndex >= 0 ? frameOrder[currentFrameIndex + 1] : null;
+      if (nextFrame && isPanelComplete(selectedSegment, 'front') && isPanelComplete(selectedSegment, 'side')) {
+        performAnalysis();
+        autoFrameAdvanceTarget = nextFrame;
+        analysisSegmentSelect.value = nextFrame;
+        analysisSegmentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+      scheduleMotionAnalysis();
+    }
   }
 
   function onCanvasClick(event, points, lines, ctx, canvas, video, zoomGetter, view){
@@ -7757,6 +8092,8 @@
     frontNextFrameBtn.disabled = !frontVideo.src;
     sidePrevFrameBtn.disabled = !sideVideo.src;
     sideNextFrameBtn.disabled = !sideVideo.src;
+    frontFindPositionBtn.disabled = !frontVideo.src;
+    sideFindPositionBtn.disabled = !sideVideo.src;
     const selectionActive = selectedView !== null;
     frontZoomRange.disabled = selectionActive || !frontVideo.src;
     sideZoomRange.disabled = selectionActive || !sideVideo.src;
@@ -7792,6 +8129,8 @@
       return;
     }
     videoFileIdentity.front = getVideoFileIdentity(file);
+    poseSampleCache.delete(frontVideo);
+    frontFindPositionStatus.textContent = '';
     resetBackswing({ preserveClassification: true });
     clearAnalysisResults();
     resetSwingCompareData();
@@ -7833,6 +8172,8 @@
       return;
     }
     videoFileIdentity.side = getVideoFileIdentity(file);
+    poseSampleCache.delete(sideVideo);
+    sideFindPositionStatus.textContent = '';
     clearAnalysisResults();
     resetSwingCompareData();
     frameStateHistory.side = {};
@@ -7920,6 +8261,8 @@
     sideVideo.pause();
     sideVideo.currentTime = Math.min(sideVideo.duration, sideVideo.currentTime + (1/30));
   });
+  frontFindPositionBtn.addEventListener('click', () => findVideoPosition('front'));
+  sideFindPositionBtn.addEventListener('click', () => findVideoPosition('side'));
 
   playbackRateInput.addEventListener('input', () => {
     applyPlaybackRates();
@@ -8280,6 +8623,13 @@
   }
   if (analysisSegmentSelect) {
     analysisSegmentSelect.addEventListener('change', (e) => {
+      if (autoFrameAdvanceTarget === e.target.value) {
+        frameProgressNotice = { from: selectedSegment, to: autoFrameAdvanceTarget };
+        autoFrameAdvanceTarget = null;
+      } else {
+        frameProgressNotice = null;
+        autoFrameAdvanceTarget = null;
+      }
       selectedSegment = e.target.value;
       // 마지막 사용 프레임 기억 — 버튼 라우팅에 사용
       if (['frame1','frame2','frame3','frame4'].includes(selectedSegment)) lastDistanceSegment = selectedSegment;
