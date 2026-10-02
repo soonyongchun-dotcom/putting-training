@@ -2393,8 +2393,17 @@
     '로 같은 스윙 범위입니다.': ' falls in the same-swing range.', '로 유사 스윙 범위입니다.': ' falls in the similar-swing range.',
     '로 약간 다른 스윙 범위입니다.': ' falls in the somewhat-different-swing range.', '로 다른 스윙 범위입니다.': ' falls in the different-swing range.',
     '입니다.': '.', '손목 중심': 'wrist center', '코어 중심': 'core center', '클럽헤드 중심': 'clubhead center',
+    'F1 어드레스': 'F1 Address', 'F2 래깅/코어': 'F2 Lag/Core', 'F3 지면반력': 'F3 Ground Force',
+    'F4 임팩트': 'F4 Impact', 'F5 일관성': 'F5 Consistency', 'F6 템포': 'F6 Tempo',
+    '래깅각: ': 'Lag Angle: ', '(래깅/코어이동)': '(Lag / Core Shift)',
+    '(몸통대비, 영상비율 보정)': '(relative to torso; aspect-ratio corrected)',
+    '(이상 70~110°)': '(target 70–110°)', '(이상 ≥50°)': '(target ≥50°)',
+    '기준 구간(40~80ms)보다 짧음': 'below the target range (40–80 ms)', '기준 구간(40~80ms) 내': 'within the target range (40–80 ms)',
+    '기준 구간(40~80ms)보다 김': 'above the target range (40–80 ms)',
+    ', 래깅 ': ', lag ', '(골반 이동 ': '(pelvis shift ', ' / C7 이동 ': ' / C7 shift ',
+    '비거리 모션 평균: ': 'Distance Motion Average: ', '일관성 모션 평균: ': 'Consistency Motion Average: ',
   };
-  const UI_TRANSLATION_PREFIX_KEYS = new Set(['점수: ', '다음:', '종합 편차 ', '종합 ', '탑 ', '압축', '유지/확장', '손목 중심', '코어 중심', '클럽헤드 중심', '부분 코킹', '점 / 100', '점 × ', '점 차감', '원감점 ', 'A수평폭:', '브레이싱 ', '고관절↓ ', 'C7 조기상승 ', '반경 F2→F3 ', '반경 F3→F4 ', 'F4 각도·반경 참고 ', '측면 P5→P6 전달 적합도 ', 'P5→P6 경로 적합도 ', '측면 P5→P6 전달 원감점 ', 'P5→P6 전달 경로 원감점 ', '손이탈 ', '골반이동 ', 'C7 변위 ', ' (B 절대각 ', ' (F2 대비 ', ' (F4−F3 참고 차이 ', 'F2 대비', '오버', '키 보정 ', '주요 각도: ', ' (템포 기준)', '통과', '이탈', '해당', '미해당', '전 구간 통과', '구간 이탈', '안쪽', '엘보 ', '상한 ', 'P3 손 복귀 일치도 ', '몸통 길이 대비 편차 ']);
+  const UI_TRANSLATION_PREFIX_KEYS = new Set(['점수: ', '다음:', '종합 편차 ', '종합 ', '탑 ', '압축', '유지/확장', '손목 중심', '코어 중심', '클럽헤드 중심', '부분 코킹', '점 / 100', '점 × ', '점 차감', '원감점 ', 'A수평폭:', '브레이싱 ', '고관절↓ ', 'C7 조기상승 ', '반경 F2→F3 ', '반경 F3→F4 ', 'F4 각도·반경 참고 ', '측면 P5→P6 전달 적합도 ', 'P5→P6 경로 적합도 ', '측면 P5→P6 전달 원감점 ', 'P5→P6 전달 경로 원감점 ', '손이탈 ', '골반이동 ', 'C7 변위 ', ' (B 절대각 ', ' (F2 대비 ', ' (F4−F3 참고 차이 ', 'F2 대비', '오버', '키 보정 ', '주요 각도: ', ' (템포 기준)', '통과', '이탈', '해당', '미해당', '전 구간 통과', '구간 이탈', '안쪽', '엘보 ', '상한 ', 'P3 손 복귀 일치도 ', '몸통 길이 대비 편차 ', '종합점수: ', '래깅각: ', '래깅각 ', '(스웨이 ', ' / 라이즈 ', '정상 범위', ', 래깅 ', '(골반 이동 ', ' / C7 이동 ', '측정 불가']);
   const UI_TRANSLATION_KEYS = Object.keys(UI_TRANSLATIONS_EN)
     .filter(key => key.length >= 8 || (key.length >= 2 && /[:：]$/.test(key)) || UI_TRANSLATION_PREFIX_KEYS.has(key))
     .sort((a, b) => b.length - a.length);
@@ -4583,15 +4592,20 @@
       return [ke, c7].filter(Boolean).join(' | ');
     }
     if (frameId === 'frame4') {
+      if (uiLanguage === 'en') {
+        const radius = fm.rMaxNorm != null ? `r_max ${(fm.rMaxNorm * 100).toFixed(1)}%` : '';
+        const armShaft = fm.armShaftAngleDeg != null ? `Arm-shaft angle ${fm.armShaftAngleDeg.toFixed(1)}°` : '';
+        return [radius, armShaft].filter(Boolean).join(' | ');
+      }
       const rm = fm.rMaxNorm          != null ? `r_max ${(fm.rMaxNorm * 100).toFixed(1)}%` : '';
       const as = fm.armShaftAngleDeg  != null ? `팔샤프트각 ${fm.armShaftAngleDeg.toFixed(1)}°` : '';
       return [rm, as].filter(Boolean).join(' | ');
     }
     if (frameId === 'frame5') {
       if (uiLanguage === 'en') {
-        const radius = fm.rMaxNorm != null ? `r_max ${(fm.rMaxNorm * 100).toFixed(1)}%` : '';
-        const armShaft = fm.armShaftAngleDeg != null ? `Arm-shaft angle ${fm.armShaftAngleDeg.toFixed(1)}°` : '';
-        return [radius, armShaft].filter(Boolean).join(' | ');
+        const offset = fm.handOffsetRatio != null ? `Hand offset ${(fm.handOffsetRatio * 100).toFixed(1)}%` : '';
+        const shaft = fm.shaftAngleDeg != null ? `Shaft angle ${fm.shaftAngleDeg.toFixed(1)}°` : '';
+        return [offset, shaft].filter(Boolean).join(' | ');
       }
       const off = fm.handOffsetRatio  != null ? `손오프셋 ${(fm.handOffsetRatio * 100).toFixed(1)}%` : '';
       const shf = fm.shaftAngleDeg    != null ? `샤프트각 ${fm.shaftAngleDeg.toFixed(1)}°` : '';
@@ -4599,9 +4613,9 @@
     }
     if (frameId === 'frame6') {
       if (uiLanguage === 'en') {
-        const offset = fm.handOffsetRatio != null ? `Hand offset ${(fm.handOffsetRatio * 100).toFixed(1)}%` : '';
-        const shaft = fm.shaftAngleDeg != null ? `Shaft angle ${fm.shaftAngleDeg.toFixed(1)}°` : '';
-        return [offset, shaft].filter(Boolean).join(' | ');
+        const radius = fm.rotRadius6 != null ? `r ${(fm.rotRadius6 * 100).toFixed(1)}%` : '';
+        const lag = fm.lagAngleDeg6 != null ? `Lag angle ${fm.lagAngleDeg6.toFixed(1)}°` : '';
+        return [radius, lag].filter(Boolean).join(' | ');
       }
       const rad = fm.rotRadius6   != null ? `r ${(fm.rotRadius6 * 100).toFixed(1)}%` : '';
       const lag = fm.lagAngleDeg6 != null ? `래깅각 ${fm.lagAngleDeg6.toFixed(1)}°` : '';
@@ -4611,11 +4625,6 @@
   }
 
   function updateAllFramesMetricBar() {
-      if (uiLanguage === 'en') {
-        const radius = fm.rotRadius6 != null ? `r ${(fm.rotRadius6 * 100).toFixed(1)}%` : '';
-        const lag = fm.lagAngleDeg6 != null ? `Lag angle ${fm.lagAngleDeg6.toFixed(1)}°` : '';
-        return [radius, lag].filter(Boolean).join(' | ');
-      }
     if (!analysisFrontDetail) return;
     const frames = [
       { id: 'frame1', label: 'F1 어드레스' },
