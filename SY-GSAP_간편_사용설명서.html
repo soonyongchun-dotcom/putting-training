@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SY-GSAP 사용매뉴얼</title>
+<style>
+  :root { color-scheme: light; --ink: #1c292b; --muted: #536365; --green: #176b58; --mint: #e8f3ed; --gold: #a36e19; --line: #d6e0dc; --dark: #12352d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); background: #edf2ef; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; line-height: 1.65; }
+  .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; padding: 12px max(20px, calc((100% - 900px) / 2)); background: rgba(237,242,239,.94); border-bottom: 1px solid var(--line); }
+  button { border: 0; border-radius: 5px; padding: 10px 16px; background: var(--green); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+  main { max-width: 900px; margin: 28px auto 56px; padding: 54px 64px; background: #fff; box-shadow: 0 8px 28px rgba(25,52,46,.09); }
+  .eyebrow { margin: 0; color: var(--green); font-size: .82rem; font-weight: 800; letter-spacing: .08em; }
+  h1 { margin: 5px 0 8px; font-size: 2.15rem; line-height: 1.25; }
+  .subtitle { margin: 0 0 26px; color: var(--muted); }
+  h2 { margin: 32px 0 10px; padding-bottom: 7px; border-bottom: 2px solid var(--green); font-size: 1.28rem; }
+  h3 { margin: 18px 0 6px; font-size: 1rem; }
+  p { margin: 7px 0; }
+  ul, ol { margin: 7px 0; padding-left: 1.35rem; }
+  li { margin: 4px 0; }
+  .callout { margin: 14px 0; padding: 12px 15px; border-left: 4px solid var(--green); background: var(--mint); }
+  .warning { border-color: var(--gold); background: #fbf4e8; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li { position: relative; min-height: 32px; margin: 10px 0; padding-left: 42px; }
+  .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: var(--green); color: white; font-weight: 800; }
+  table { width: 100%; margin: 12px 0; border-collapse: collapse; font-size: .94rem; }
+  th, td { padding: 9px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #edf5f0; }
+  .small { color: var(--muted); font-size: .9rem; }
+  footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: .84rem; }
+  .cover { min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; margin: -54px -64px 36px; padding: 64px; color: #f7fbf8; background: linear-gradient(145deg, #12352d 0%, #1c5143 58%, #8b6b35 150%); break-after: page; }
+  .cover .eyebrow { color: #c3d9c8; }
+  .cover-stamp { display: inline-block; margin-top: 12px; padding: 6px 10px; border: 1px solid rgba(212,179,107,.75); color: #f2d99c; font-size: .76rem; font-weight: 800; }
+  .cover h1 { max-width: 620px; margin-top: 90px; color: white; font-family: Georgia, "Batang", serif; font-size: 3.2rem; line-height: 1.2; }
+  .cover .subtitle { max-width: 510px; margin-top: 18px; color: #d8e6dc; font-size: 1.1rem; }
+  .cover-mark { width: 62px; height: 4px; margin: 24px 0; background: #d4b36b; }
+  .cover-meta { color: #d8e6dc; font-size: .88rem; }
+  .cover-copyright { max-width: 650px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.25); color: #e7eee8; font-size: .76rem; line-height: 1.55; }
+  .toc { padding: 22px 26px; border: 1px solid var(--line); background: #f6f8f6; break-after: page; }
+  .toc h2 { margin-top: 0; }
+  .toc ol { columns: 2; column-gap: 40px; }
+  .toc li { break-inside: avoid; padding: 2px 0; }
+  .chapter { margin-top: 34px; }
+  .chapter-kicker { margin: 0; color: var(--gold); font-size: .78rem; font-weight: 800; }
+  .chapter h2 { margin-top: 3px; }
+  .chapter-heading { margin-top: 36px; }
+  .toc a { color: var(--dark); text-decoration-color: #aabeb2; text-underline-offset: 3px; }
+  .toc a:hover { color: var(--green); }
+  .chapter-break { break-before: page; }
+  .profile-group { break-before: page; }
+  .profile-group h3 { padding: 10px 12px; color: white; background: var(--dark); }
+  .profile-table { font-size: .82rem; line-height: 1.5; }
+  .profile-table th:first-child, .profile-table td:first-child { width: 17%; white-space: nowrap; }
+  .profile-table th:nth-child(2) { width: 43%; }
+  .profile-table th:nth-child(3) { width: 40%; }
+  .profile-table td { padding: 7px; }
+  .badge { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 6px; border: 1px solid #bdd1c5; color: var(--green); font-size: .78rem; font-weight: 700; }
+  .matrix-note { padding: 10px 13px; border: 1px solid #e5d7b5; background: #fbf6e9; font-size: .9rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .info-block { padding: 12px 14px; border-top: 3px solid var(--green); background: #f4f7f4; }
+  .info-block h3 { margin-top: 0; }
+  @media (max-width: 700px) {
+    main { margin: 0; padding: 30px 20px; box-shadow: none; }
+    h1 { font-size: 1.75rem; }
+    table { font-size: .85rem; }
+    th, td { padding: 7px; }
+    .cover { min-height: 570px; margin: -30px -20px 28px; padding: 34px 24px; }
+    .cover h1 { margin-top: 60px; font-size: 2.5rem; }
+    .toc ol { columns: 1; }
+    .two-col { grid-template-columns: 1fr; }
+    .profile-table { font-size: .76rem; }
+  }
+  @media print {
+    @page {
+      size: A4;
+      margin: 16mm 14mm;
+      @bottom-center { content: "© 2026 S.Y Chun · SY-GSAP 사용매뉴얼 · " counter(page); color: #687772; font-size: 8pt; }
+    }
+    @page:first { @bottom-center { content: none; } }
+    body { background: white; font-size: 10pt; }
+    .toolbar { display: none; }
+    main { max-width: none; margin: 0; padding: 0; box-shadow: none; }
+    .cover { min-height: 255mm; margin: -16mm -14mm 0; padding: 22mm 19mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .cover h1 { font-size: 36pt; }
+    h2, h3 { break-after: avoid; }
+    table, .callout, .info-block { break-inside: avoid; }
+    .chapter, .chapter-heading { break-before: page; page-break-before: always; }
+    .profile-group { break-before: page; }
+    .profile-table thead { display: table-header-group; }
+    .profile-table tr { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar"><button type="button" onclick="window.print()">인쇄 / PDF로 저장</button></div>
+<main>
+  <header class="cover">
+    <div><p class="eyebrow">SY-GSAP · GOLF SWING ANALYSIS PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">원본 문서 · ORIGINAL EDITION</span></div>
+    <div><h1>SY-GSAP<br>사용매뉴얼</h1><p class="subtitle">골프 스윙을 관찰하고, 유형을 이해하고, 데이터로 훈련 방향을 찾는 분석 안내서</p></div>
+    <div class="cover-meta">사용 목적 · 모션 분석 · 유형 분류 · 35개 스윙 프로필 · Garmin R10 데이터 활용<br>제작자: S.Y Chun<br>초판 제작일: 2026년 10월 2일 · 개정일: 2026년 10월 2일<br>앱 기준 버전: 26.102ff
+      <p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-GSAP 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="목차">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#chapter-01">매뉴얼의 목적과 앱의 분석 관점</a></li>
+      <li><a href="#chapter-02">분석 준비와 기본 사용 절차</a></li>
+      <li><a href="#chapter-03">Frame 1~6 분석 기능 안내</a></li>
+      <li><a href="#chapter-04">분석 결과와 보조 기능</a></li>
+      <li><a href="#chapter-05">백스윙 유형 분석</a></li>
+      <li><a href="#chapter-06">스윙 파워 엔진 유형 분석</a></li>
+      <li><a href="#chapter-07">35개 스윙 프로필 도감</a></li>
+      <li><a href="#chapter-08">Garmin R10 데이터 활용</a></li>
+      <li><a href="#chapter-09">영상과 R10을 결합한 훈련 절차</a></li>
+      <li><a href="#chapter-10">해석 원칙, 용어</a></li>
+      <li><a href="#chapter-11">문제 해결</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter" id="chapter-01">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>매뉴얼의 목적과 앱의 분석 관점</h2>
+    <p><strong>SY-GSAP(SY Golf Swing Analysis Platform)</strong>은 골프 스윙 영상을 프레임별로 살펴보고, 사용자가 지정한 신체·클럽 기준점의 2D 이동과 각도를 정량화해 스윙의 구조를 이해하도록 돕는 분석 도구입니다. 영상 모션, 스윙 유형, 샷 결과 데이터를 서로 보완적으로 읽어 연습의 우선순위를 정하는 것이 목적입니다.</p>
+    <div class="two-col">
+      <div class="info-block"><h3>무엇을 제공하나</h3><p>F1~F4 모션 점수와 세부 지표, F5 일관성 및 F6 템포·시퀀스 지표, 백스윙 궤적 분류, 파워 엔진 적합도, 백스윙×엔진 조합의 프로필 번호, R10 샷 분산과 보완 리포트를 제공합니다.</p></div>
+      <div class="info-block"><h3>무엇을 확정하지 않나</h3><p>단일 2D 영상만으로 실제 지면반력, 3D 클럽 궤도, 관절 부하, 신체 통증 원인, 타격 순간 페이스 접촉점을 직접 측정하지 않습니다. 분류 결과는 촬영 조건과 클릭한 포인트에 근거한 참고 추정치입니다.</p></div>
+    </div>
+    <div class="callout warning"><strong>핵심 원칙:</strong> 점수는 진단명이 아니라 다음에 확인할 동작을 찾는 출발점입니다. 영상에서 관찰된 사실, 앱이 계산한 지표, 가능한 원인 가설을 구분해서 기록하세요.</div>
+  </section>
+
+  <div class="callout"><strong>빠른 시작:</strong> A/B 영상 불러오기 → A 영상에서 머리~발끝 기준선 지정 → Frame 1 분석 → 필요한 Frame 2~6 분석 → PDF 저장</div>
+
+  <h2 class="chapter-heading" id="chapter-02">CHAPTER 02 · 분석 준비와 기본 사용 절차</h2>
+  <ul>
+    <li>로그인 후 정면 A와 B 패널에 분석할 영상을 불러옵니다. 파일 버튼으로 영상을 선택하거나 카메라 버튼으로 촬영할 수 있습니다.</li>
+    <li>가능하면 전신과 클럽이 잘 보이고, 카메라가 흔들리지 않은 영상을 사용합니다. 분석 중에는 재생/일시정지, 프레임 이동, 탐색 막대, 재생 속도, 확대/축소로 정확한 시점을 맞춥니다.</li>
+    <li>각 패널은 별도의 영상 플레이어입니다. 한 스윙의 서로 다른 시점을 분석할 때 같은 영상을 A와 B에 각각 불러올 수 있습니다.</li>
+    <li>키(cm)는 참고 표시용 입력입니다. 분석 기준은 Frame 1에서 지정하는 머리~발끝 기준선입니다.</li>
+  </ul>
+
+  <h3>기본 분석 순서</h3>
+  <ol class="steps">
+    <li><strong>기준선 지정:</strong> Motion Analysis에서 “기준선 지정”을 누르고 A 영상의 정수리부터 발끝까지 두 점을 클릭하거나 한 번에 드래그합니다. 완료 표시가 나오면 모드가 끝납니다.</li>
+    <li><strong>Frame 1부터 시작:</strong> 프레임 선택에서 Frame 1을 고르고, A 패널 버튼(🏌️ 비거리 또는 🎯 일관성)을 눌러 안내를 시작합니다. 안내 말풍선이 가리키는 위치를 영상에서 차례로 클릭합니다.</li>
+    <li><strong>시점 맞추기:</strong> A는 어드레스, B는 해당 프레임의 스윙 시점에 맞춥니다. 각 패널의 재생/프레임 이동을 따로 조작할 수 있습니다.</li>
+    <li><strong>분석 실행:</strong> 필수 포인트를 모두 입력하면 안내 버튼이 “분석 실행”으로 바뀝니다. 이를 눌러 완료합니다. 클릭을 잘못했다면 해당 점을 우클릭해 지우고 다시 입력합니다.</li>
+    <li><strong>다음 프레임:</strong> Frame 1 완료 후 프레임 선택에서 Frame 2~6 중 필요한 항목을 선택합니다. 포인트가 부족하면 안내를 따라 이어서 입력합니다. 점수와 세부 지표는 분석 패널에 표시됩니다.</li>
+  </ol>
+
+  <div class="callout warning"><strong>순서 주의:</strong> 모든 프레임 분석 전에 기준선이 필요하며, Frame 1을 먼저 완료해야 나머지 프레임의 기준이 만들어집니다. Frame 2의 탑 대비 압축 지표는 Frame 1 B(백스윙 탑)의 추가 그립·클럽헤드 포인트까지 입력해야 계산됩니다. Frame 6의 시퀀스 지표도 Frame 1 B 좌표를 참조합니다.</div>
+
+  <h2 class="chapter-heading" id="chapter-03">CHAPTER 03 · Frame 1~6 분석 기능 안내</h2>
+  <table>
+    <thead><tr><th>프레임</th><th>주요 목적</th><th>시점 / 참고</th></tr></thead>
+    <tbody>
+      <tr><td>Frame 1</td><td>백스윙 탑의 축 안정, 어깨 회전, 샤프트 수평, C7 변위</td><td>A 어드레스 → B 백스윙 탑. 전체 분석의 기준 프레임</td></tr>
+      <tr><td>Frame 2</td><td>다운스윙 래깅, 골반 이동, 탑 대비 코어-손 압축</td><td>A 어드레스 → B 손이 허리 높이에 오는 다운스윙</td></tr>
+      <tr><td>Frame 3</td><td>다운스윙 신전, 축 이동, 지면반력 전환 proxy</td><td>다운스윙 후기. B 패널은 안내에 따라 추가 포인트 입력</td></tr>
+      <tr><td>Frame 4</td><td>임팩트의 팔-샤프트 정렬, 반경 전개, C7 변위</td><td>A 어드레스 → B 임팩트</td></tr>
+      <tr><td>Frame 5</td><td>어드레스 대비 다운스윙 중기 위치 일관성</td><td>A 어드레스 → B 손이 허리 높이에 오는 3/5 지점</td></tr>
+      <tr><td>Frame 6</td><td>다운스윙 중기부터 임팩트까지 템포·릴리즈·시퀀스</td><td>A는 다운스윙 중기, B는 임팩트. 같은 영상 파일을 양쪽에 불러와야 시간차가 유효</td></tr>
+    </tbody>
+  </table>
+  <p class="small">🏌️ 버튼은 Frame 1~4 분석 흐름, 🎯 버튼은 Frame 5~6 분석 흐름을 엽니다. 프레임은 선택 목록에서도 직접 고를 수 있습니다.</p>
+
+  <h2 class="chapter-heading" id="chapter-04">CHAPTER 04 · 분석 결과와 보조 기능</h2>
+  <h3>A/B 스윙 비교</h3>
+  <p>Motion Analysis의 “A/B 스윙 비교”를 켜고 서로 다른 두 스윙 영상을 A와 B에 불러옵니다. 어드레스, 백스윙 탑, 어깨선, 허리선, 임팩트 전, 임팩트의 6개 시점마다 화면 안내에 따라 포인트를 입력합니다. 비교표는 두 스윙의 궤적·래깅각·템포 일치도를 보여주며, 절대적인 실력 점수나 우열이 아니라 두 영상 사이의 유사도입니다. 현재 시점만 지우거나 비교 전체를 초기화할 수 있습니다.</p>
+  <h3>백스윙 유형 결정</h3>
+  <p>“백스윙 유형 결정”을 열고 A 영상에 측면 스윙을 준비합니다. 자세 목록에서 어드레스, P1~P6, 백스윙 탑 등을 선택해 필요한 위치를 입력한 뒤 “유형 판정”을 누릅니다. 결과는 화면상 2D 궤적에 근거한 추정입니다.</p>
+  <h3>스윙 프로필 안내</h3>
+  <p>상단 SY-GSAP 제목을 누르면 백스윙 궤적, 파워 기전, 스윙 프로필 설명을 탐색할 수 있습니다.</p>
+  <h3>Garmin R10 CSV 보조 분석</h3>
+  <p>📊 버튼을 열고 R10 샷 CSV를 불러옵니다. 샷 분포와 중심 이탈 등 타구 데이터 패턴을 영상 분석 결과와 함께 참고합니다. CSV 형식과 포함된 열에 따라 표시 가능한 항목이 달라집니다.</p>
+  <h3>AI 설명과 결과 저장</h3>
+  <p>AI 분석은 Gemini API 키를 입력한 뒤 실행합니다. 키는 화면에 안내된 대로 현재 세션에서만 사용됩니다. 분석 결과는 “PDF 다운로드”로 저장할 수 있습니다.</p>
+
+  <section class="chapter chapter-break" id="chapter-05">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>백스윙 유형 분석</h2>
+    <p>백스윙 유형 분석은 측면 영상의 8개 체크포인트에서 손·클럽 위치를 입력하고, 어드레스 기준 샤프트면과 백스윙·전환·다운스윙의 상대 경로를 비교합니다. 앱은 다섯 패턴 가운데 조건에 가장 가까운 유형을 제안합니다.</p>
+    <h3>입력 순서와 촬영 원칙</h3>
+    <ol><li>A 패널에 측면 스윙 영상을 불러옵니다.</li><li>자세를 Address → P1 → P2 → P3 → P4 → Top → P5(전환) → P6 순으로 선택합니다.</li><li>각 자세의 화면 안내에 따라 모든 기준점을 같은 영상 프레임에서 입력합니다. 자세 간 시각은 반드시 순서대로 증가해야 합니다.</li><li>각 자세의 모든 점을 입력하면 다음 체크포인트로 이동합니다. 8개 자세를 모두 완료하면 유형 판정을 확인합니다.</li></ol>
+    <p class="small">P3와 P5의 손 높이가 크게 다르면 판정이 중단될 수 있습니다. 리드팔이 지면과 평행해지는 P5 프레임을 선택하고, 선수와 클럽이 화면에서 잘 보이도록 촬영하세요.</p>
+    <table><thead><tr><th>코드</th><th>동작 특징</th><th>기대 강점</th><th>주의할 점</th></tr></thead><tbody>
+      <tr><td><strong>OPA</strong><br>온플레인</td><td>어드레스 샤프트면과 가까운 궤도로 백스윙을 만들고, 다운스윙도 그 면으로 복귀하는 유형</td><td>궤도 재현과 페이스 관리가 단순해 방향성과 반복성이 안정되기 쉬움</td><td>하체 이동·수직 신전이 작으면 스피드 상한이 생길 수 있음</td></tr>
+      <tr><td><strong>USP</strong><br>업라이트-샬로잉</td><td>손이 높고 가파른 탑을 만든 뒤 전환에서 샤프트를 눕히는 루프</td><td>큰 아크와 탑의 위치 에너지를 활용할 여지가 있음</td><td>전환에서 하체가 리드하지 못하면 오버더톱, 과하면 클럽이 몸 뒤에 갇힐 수 있음</td></tr>
+      <tr><td><strong>OFP</strong><br>아웃사이드 페이스 제어</td><td>P2에서 클럽헤드를 손보다 바깥에 두는 테이크어웨이 패턴</td><td>초기 페이스 열림을 관리하고 좌우 미스를 줄이는 데 도움이 될 수 있음</td><td>컴팩트한 아크나 가파른 진입으로 이어질 수 있어 P2 이후 궤도 확인이 중요</td></tr>
+      <tr><td><strong>HAP-A</strong><br>하이브리드 A</td><td>아웃사이드 P2와 업라이트 탑을 만든 뒤 다운스윙에서 샬로잉</td><td>초기 페이스 관리와 탑의 위치 에너지를 함께 활용할 수 있음</td><td>테이크어웨이에서 전환까지 동작 변화가 커 시퀀스와 타이밍 관리 필요</td></tr>
+      <tr><td><strong>HAP-B</strong><br>하이브리드 B</td><td>P1~P3는 온플레인 성향, 탑은 업라이트, 전환 후 샬로잉을 결합</td><td>초기 궤도의 안정감과 다운스윙 샬로잉을 함께 노릴 수 있음</td><td>탑 높이·샬로잉·하체 리드의 조합을 반복 점검해야 함</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>결과 읽기:</strong> 앱은 8개 체크포인트의 화면 좌표로 2D 경로를 추정합니다. 카메라 방향, 원근, 신체 가림, 포인트 클릭에 영향을 받으며 실제 3D 클럽 궤도나 페이스 각도를 확정하지 않습니다. “근접 후보”는 확정 판정이 아니라 가장 가까운 패턴을 표시한 것입니다.</div>
+  </section>
+
+  <section class="chapter chapter-break" id="chapter-06">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>스윙 파워 엔진 유형 분석</h2>
+    <p>엔진 유형은 스윙의 힘 전달을 세 가지 기본 동작으로 보고, F1~F4에서 계산된 지표의 상대 적합도를 조합합니다. 분류 준비에는 F1·F2·F3·F4 분석이 필요합니다. C7 축 안정, F1 상체 회전, F3 하체 구동, 압축·전개, 골반 이동, F4 릴리즈의 근거가 부족하면 판정이 보류될 수 있습니다. F5 이동 또는 측면 P5→P6 경로는 보조 근거로 쓰일 수 있습니다.</p>
+    <table><thead><tr><th>코드</th><th>주요 동력과 앱의 판정 근거</th><th>강점 경향</th><th>관리할 위험</th></tr></thead><tbody>
+      <tr><td><strong>ATE</strong><br>축회전 중심</td><td>C7/척추축 안정과 상체 회전, 비교적 낮은 하체 구동 적합도</td><td>축이 안정되면 재현성, 정타, 방향 제어를 만들기 쉬움</td><td>하체 이동과 수직 지면반력 활용이 낮으면 비거리 확장에 한계</td></tr>
+      <tr><td><strong>LSE</strong><br>하체이동 중심</td><td>골반·CoM의 타깃 방향 이동과 F3 하체 구동</td><td>체중 전달과 전환 리드를 활용해 임팩트 압축을 높일 수 있음</td><td>골반 이동 과다 또는 상체와의 동기화 실패는 축 이탈·푸시·블록을 부를 수 있음</td></tr>
+      <tr><td><strong>VEE</strong><br>코어 압축·팽창</td><td>하체 로딩·무릎 신전과 다운스윙 압축 후 수직 신전</td><td>지면을 누르고 차오르는 동작으로 가속 잠재력을 높일 수 있음</td><td>상승 시점이 빠르거나 늦으면 얼리 익스텐션, 타점 편차, 신체 부하가 커질 수 있음</td></tr>
+      <tr><td><strong>RLH</strong><br>회전+선형</td><td>ATE와 LSE 적합도의 결합</td><td>축 회전의 방향 제어와 골반 이동의 에너지 전달을 균형 있게 추구</td><td>상·하체 시퀀스가 깨지면 헤드가 늦거나 방향 편차가 커질 수 있음</td></tr>
+      <tr><td><strong>RVH</strong><br>회전+수직</td><td>ATE와 VEE 적합도의 결합</td><td>축 안정과 수직 가속을 함께 이용해 회전 제어와 높은 탄도를 추구</td><td>C7 상하 변위, 척추·무릎 부하와 상승 타이밍 점검 필요</td></tr>
+      <tr><td><strong>LVH</strong><br>선형+수직</td><td>LSE와 VEE 적합도의 결합</td><td>타깃 방향 체중 전달 뒤 수직 신전을 연결해 큰 가속을 추구</td><td>P5 전환 리드가 늦거나 멈추면 풀·푸시·훅 등 방향 미스가 커질 수 있음</td></tr>
+      <tr><td><strong>TKE</strong><br>3기전 융합</td><td>세 기본 유형 적합도가 서로 비슷할 때 회전·선형·수직 통합형으로 분류</td><td>방향 제어, 체중 전달, 수직 가속을 상황에 맞게 결합할 잠재력</td><td>높은 협응과 컨디션 관리가 필요하며 “세 유형이 고르게 보임”을 뜻할 뿐 우수성 판정은 아님</td></tr>
+    </tbody></table>
+    <p>앱은 세 기본 유형의 적합도를 백분율로 나란히 보여준 뒤 단독형·혼합형·TKE 또는 판정 보류를 결정합니다. 혼합 결과는 해당 두 기본 유형의 결합을 의미합니다. 백분율은 세션 데이터 안에서의 <strong>상대 적합도</strong>이지, 그 유형일 확률이나 투어 선수와의 유사도는 아닙니다.</p>
+    <p class="small">필요 프레임과 핵심 지표가 채워지지 않았거나 후보 간 차이가 불안정한 경계에 있으면 판정을 보류합니다. 누락 안내를 먼저 해결하고, 동일한 촬영 조건으로 분석을 반복하세요.</p>
+  </section>
+
+  <section class="chapter chapter-break" id="chapter-07">
+    <p class="chapter-kicker">CHAPTER 07</p><h2>35개 스윙 프로필 도감</h2>
+    <p>프로필 번호는 <strong>백스윙 궤적 5종 × 파워 엔진 7종</strong>의 조합입니다. 각 번호는 특정 선수의 처방이나 순위가 아니라 동작 조합을 빠르게 찾는 색인입니다. 아래 장점과 주의점은 앱에 수록된 해당 프로필 설명을 간결하게 정리한 참고 특성입니다.</p>
+    <div class="matrix-note"><strong>번호 읽는 법:</strong> 01~07 OPA · 08~14 USP · 15~21 OFP · 22~28 HAP-A · 29~35 HAP-B. 각 그룹 안에서 엔진 순서는 ATE → LSE → VEE → RLH → RVH → LVH → TKE입니다. 백스윙 분류와 엔진 분류가 모두 완료되어야 앱이 조합 프로필을 매칭합니다.</div>
+
+    <div class="profile-group">
+      <h3>그룹 A · OPA 온플레인 패턴 · Profile 01–07</h3>
+      <table class="profile-table"><thead><tr><th>번호 / 조합</th><th>동작 특징과 기대 강점</th><th>주의점·관리 포인트</th></tr></thead><tbody>
+        <tr><td>01 · OPA × ATE</td><td>어드레스 샤프트면을 따라 움직이며 C7 축 중심 회전 토크를 활용합니다. 복귀 재현성, 정타, 좌우 집탄에 강점이 있습니다.</td><td>하체 이동과 수직 추진이 작으면 최대 헤드스피드가 제한될 수 있습니다.</td></tr>
+        <tr><td>02 · OPA × LSE</td><td>일정한 온플레인 궤도에 전환 시 약 20~30%의 타깃 방향 골반 이동을 더합니다. 상체 안정과 임팩트 압축을 함께 노립니다.</td><td>골반이 과하게 이동하면 C7 축이 무너져 푸시나 블록이 생길 수 있습니다.</td></tr>
+        <tr><td>03 · OPA × VEE</td><td>정석 플레인에 스쿼트 후 수직 신전을 결합합니다. 궤도 정확성과 수직 가속을 함께 추구합니다.</td><td>상승이 빠르면 얼리 익스텐션, 늦으면 디봇 과다 등 타이밍 문제가 생길 수 있습니다.</td></tr>
+        <tr><td>04 · OPA × RLH</td><td>C7 축 회전과 정밀한 골반 이동을 순서에 맞춰 결합합니다. 방향 안정과 실전 비거리의 균형을 추구합니다.</td><td>상·하체 리듬이 어긋나면 시퀀스가 약해지고 클럽헤드가 늦을 수 있습니다.</td></tr>
+        <tr><td>05 · OPA × RVH</td><td>제자리 축회전에 임팩트 수직 신전을 더합니다. 측면 슬라이딩을 억제하면서 발사각을 높일 수 있습니다.</td><td>C7 상하 변위가 커지면 임팩트 때 상체가 일어서는지 확인해야 합니다.</td></tr>
+        <tr><td>06 · OPA × LVH</td><td>온플레인 백스윙, 하체의 체중 이동, 이어지는 지면 밀어올림으로 속도를 만듭니다.</td><td>P5 전환에서 하체 선행이 부족하면 강한 풀 샷이 나올 수 있습니다.</td></tr>
+        <tr><td>07 · OPA × TKE</td><td>온플레인 궤도에서 회전·선형 이동·수직 신전을 균형 있게 통합합니다. 정타·볼스피드·제어력을 함께 목표로 합니다.</td><td>높은 협응과 코어 근력이 필요하고 피로 시 템포가 쉽게 흐트러질 수 있습니다.</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="profile-group">
+      <h3>그룹 B · USP 업라이트-샬로잉 패턴 · Profile 08–14</h3>
+      <table class="profile-table"><thead><tr><th>번호 / 조합</th><th>동작 특징과 기대 강점</th><th>주의점·관리 포인트</th></tr></thead><tbody>
+        <tr><td>08 · USP × ATE</td><td>높고 가파른 탑에서 샤프트를 눕힌 뒤 안정된 C7 축으로 회전합니다. 넓은 아크와 방향 제어 잠재력이 있습니다.</td><td>하체 리드가 없으면 팔로 클럽을 끌어내려 오버더톱이 될 수 있습니다.</td></tr>
+        <tr><td>09 · USP × LSE</td><td>가파른 탑에서 골반을 타깃 방향으로 이동시켜 샤프트 드롭과 래깅을 유도합니다.</td><td>골반이 과하게 밀리면 샤프트가 몸 뒤에 갇혀 릴리즈가 늦어질 수 있습니다.</td></tr>
+        <tr><td>10 · USP × VEE</td><td>높은 탑의 위치 에너지와 스쿼트·수직 상승을 결합해 헤드스피드와 드라이버 비거리를 추구합니다.</td><td>C7 상하 변위로 정타 기복이 커지거나 무릎·척추 부담이 커질 수 있습니다.</td></tr>
+        <tr><td>11 · USP × RLH</td><td>높은 탑에서 하체 이동과 C7 회전을 조합해 샬로잉과 체중 전달을 노립니다.</td><td>전환 구간의 시차가 무너지면 오버스윙으로 이어질 수 있습니다.</td></tr>
+        <tr><td>12 · USP × RVH</td><td>높은 탑에서 축 회전과 수직 지면 추진을 사용합니다. 측면 슬라이딩을 줄이며 높은 탄도를 노립니다.</td><td>골반 체중 이동이 부족하면 수직 상승이 얼리 익스텐션으로 변질될 수 있습니다.</td></tr>
+        <tr><td>13 · USP × LVH</td><td>가파른 탑에서 하체 이동 후 강하게 차오르는 패턴으로 높은 볼스피드와 비거리를 추구합니다.</td><td>샬로잉 드롭과 수직 상승 타이밍이 어긋나면 큰 푸시나 훅이 날 수 있습니다.</td></tr>
+        <tr><td>14 · USP × TKE</td><td>높은 탑의 위치 에너지에 회전·선형·수직 동력을 결합해 큰 아크와 파워를 목표로 합니다.</td><td>하체 근력·유연성과 신체 부하 관리가 중요합니다.</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="profile-group">
+      <h3>그룹 C · OFP 아웃사이드 페이스 제어 패턴 · Profile 15–21</h3>
+      <table class="profile-table"><thead><tr><th>번호 / 조합</th><th>동작 특징과 기대 강점</th><th>주의점·관리 포인트</th></tr></thead><tbody>
+        <tr><td>15 · OFP × ATE</td><td>P2에서 클럽을 바깥에 두어 페이스 열림을 억제하고 컴팩트하게 축 회전합니다. 페이스 관리와 슬라이스 억제에 유리할 수 있습니다.</td><td>아크가 작아져 헤드스피드 확장이 제한될 수 있습니다.</td></tr>
+        <tr><td>16 · OFP × LSE</td><td>P2 페이스 제어 뒤 강한 하체 이동으로 체중을 싣습니다. 낮고 단단한 탄도와 정타를 추구합니다.</td><td>다운스윙에서 하체 이동이 멈추면 상체가 덤비며 캐스팅될 수 있습니다.</td></tr>
+        <tr><td>17 · OFP × VEE</td><td>P2에서 페이스를 관리하고 임팩트에 수직 신전을 더합니다. 방향 안정과 비거리의 결합을 목표로 합니다.</td><td>바깥 테이크어웨이와 상승 동작을 함께 쓰면 척추각 유지가 어려울 수 있습니다.</td></tr>
+        <tr><td>18 · OFP × RLH</td><td>바깥 P2, 안정된 C7 축, 하체 이동을 결합해 압박 상황에서도 페이스와 타깃 정밀도를 추구합니다.</td><td>힌지·보잉 유지로 손목과 전완에 지속 부하가 걸릴 수 있습니다.</td></tr>
+        <tr><td>19 · OFP × RVH</td><td>P2 페이스 제어와 축 회전에 수직 추진을 더해 좌우 미스를 줄이고 높은 탄도를 노립니다.</td><td>다운스윙 진입이 가파르면 디봇이 과도해질 수 있습니다.</td></tr>
+        <tr><td>20 · OFP × LVH</td><td>바깥 P2 이후 하체 이동과 수직 신전을 연결합니다. 슬라이스 위험을 줄이며 체중 전달과 비거리를 추구합니다.</td><td>하체 선행이 부족하면 손이 페이스를 급히 닫아 악성 훅이 날 수 있습니다.</td></tr>
+        <tr><td>21 · OFP × TKE</td><td>P2 페이스 제어를 바탕으로 회전·선형·수직 파워를 통합해 에너지 전달을 노립니다.</td><td>일반 온플레인과 다른 테이크어웨이이므로 P2 위치를 지속 점검해야 합니다.</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="profile-group">
+      <h3>그룹 D · HAP-A 하이브리드 A · Profile 22–28</h3>
+      <table class="profile-table"><thead><tr><th>번호 / 조합</th><th>동작 특징과 기대 강점</th><th>주의점·관리 포인트</th></tr></thead><tbody>
+        <tr><td>22 · HAP-A × ATE</td><td>P2 아웃사이드와 가파른 탑을 만들고 C7 축 회전으로 감아칩니다. 페이스 안정·위치 에너지·집탄을 함께 추구합니다.</td><td>하체 리드가 약하면 상체와 팔에 의존하는 스윙이 될 수 있습니다.</td></tr>
+        <tr><td>23 · HAP-A × LSE</td><td>바깥 P2와 가파른 탑에서 하체 이동으로 샬로잉을 유도합니다. 푸시-슬라이스 완화와 단단한 타구를 목표로 합니다.</td><td>골반 이동 과다로 임팩트 때 상체가 뒤로 기울 수 있습니다.</td></tr>
+        <tr><td>24 · HAP-A × VEE</td><td>P2 페이스 제어와 높은 탑에 임팩트 수직 상승을 결합해 지면 추진을 전달합니다.</td><td>C7 Y축 변위가 커지면 페이스 중심 타격의 일관성이 떨어질 수 있습니다.</td></tr>
+        <tr><td>25 · HAP-A × RLH</td><td>페이스 제어와 가파른 탑에 축 회전·하체 이동을 조화시킵니다. 방향 정밀도와 비거리의 균형형입니다.</td><td>테이크어웨이와 다운스윙 샬로잉 간 템포 차이를 관리해야 합니다.</td></tr>
+        <tr><td>26 · HAP-A × RVH</td><td>P2 페이스 제어와 높은 탑에서 축 회전·수직 상승을 함께 사용합니다. 축 안정과 높은 탄도를 노립니다.</td><td>무릎과 요추 부하가 늘 수 있어 체력 및 컨디션 관리가 필요합니다.</td></tr>
+        <tr><td>27 · HAP-A × LVH</td><td>바깥 P2와 가파른 탑에서 하체 이동 후 수직 상승으로 이중 가속을 추구합니다.</td><td>하체 선행이 늦으면 클럽이 뒤처져 우측 블록이 생길 수 있습니다.</td></tr>
+        <tr><td>28 · HAP-A × TKE</td><td>P2 페이스 제어, 높은 탑의 위치 에너지, 세 파워 동력을 통합해 빠른 스피드와 스퀘어 임팩트를 목표로 합니다.</td><td>관절 부하와 기술 난도가 높을 수 있어 훈련량·코어 관리가 중요합니다.</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="profile-group">
+      <h3>그룹 E · HAP-B 하이브리드 B · Profile 29–35</h3>
+      <table class="profile-table"><thead><tr><th>번호 / 조합</th><th>동작 특징과 기대 강점</th><th>주의점·관리 포인트</th></tr></thead><tbody>
+        <tr><td>29 · HAP-B × ATE</td><td>P1~P3 온플레인 아크와 샬로잉을 C7 축 회전에 연결합니다. 정석 아크와 축 안정으로 일관성을 추구합니다.</td><td>하체 이동과 수직 추진이 제한되면 비거리 확장에 한계가 있을 수 있습니다.</td></tr>
+        <tr><td>30 · HAP-B × LSE</td><td>온플레인 아크·샬로잉에 전통적인 체중 이동을 결합합니다. 부드러운 궤도와 안정된 압력 전달을 노립니다.</td><td>골반 이동 중 척추각이 들리지 않도록 수평 제어가 필요합니다.</td></tr>
+        <tr><td>31 · HAP-B × VEE</td><td>온플레인 아크와 샬로잉에 수직 상승을 더해 안정감과 추진력을 함께 추구합니다.</td><td>수직 상승 중 다운스윙 샤프트 플레인이 가팔라지지 않는지 확인해야 합니다.</td></tr>
+        <tr><td>32 · HAP-B × RLH</td><td>온플레인 백스윙·샬로잉·축 안정·하체 이동을 균형 있게 결합해 반복 가능한 거리를 목표로 합니다.</td><td>임팩트 구간 템포가 늘어지면 헤드 가속이 줄어들 수 있습니다.</td></tr>
+        <tr><td>33 · HAP-B × RVH</td><td>온플레인 샬로잉에 축 회전과 수직 추진을 더해 정밀한 제어와 강한 임팩트를 함께 노립니다.</td><td>코어·요추 근력이 부족하면 허리 부하가 커질 수 있습니다.</td></tr>
+        <tr><td>34 · HAP-B × LVH</td><td>온플레인 샬로잉, 하체 이동, 수직 상승을 유기적으로 연결해 궤도와 가속을 함께 추구합니다.</td><td>P5에서 체중 이동이 수직 상승으로 바뀔 때 균형을 유지해야 합니다.</td></tr>
+        <tr><td>35 · HAP-B × TKE</td><td>정석 온플레인 샬로잉과 회전·선형·수직 파워를 통합해 효율적인 아크, 집탄, 비거리를 목표로 합니다.</td><td>완성에는 정밀한 모션 트래킹과 반복 피드백이 필요합니다.</td></tr>
+      </tbody></table>
+    </div>
+    <p class="small">위 강점과 주의점은 프로필 모델 설명입니다. 현재 사용자의 실제 강점·부상 위험·구질을 확정하려면 본인 영상과 샷 데이터를 함께 검토해야 합니다.</p>
+  </section>
+
+  <section class="chapter chapter-break" id="chapter-08">
+    <p class="chapter-kicker">CHAPTER 08</p><h2>Garmin R10 데이터 활용</h2>
+    <p>R10 분석은 실제 세션의 거리·좌우 편차 등 샷 결과 분포를 요약합니다. 영상 분석이 “어떤 동작이 관찰되는가”를 살핀다면, R10은 “그 세션의 샷 결과가 얼마나 모이고 어떤 방향으로 흩어졌는가”를 보완합니다.</p>
+    <h3>CSV 준비 조건</h3>
+    <ul><li>📊 R10 분석 패널에서 UTF-8 또는 스프레드시트로 읽을 수 있는 CSV를 불러옵니다. 파일 크기는 20MB 이하, 숫자로 읽히는 샷은 최소 2개가 필요합니다.</li><li>첫 행은 열 이름이어야 합니다. 거리 열(캐리 또는 총거리 중 하나)과 좌우 편차 열(캐리 편차 또는 총 편차 중 하나)이 필수입니다. 앱은 캐리 및 캐리 좌우 편차를 우선 사용하고, 없으면 총거리·총 편차를 사용합니다.</li><li>클럽 경로, 페이스각, 페이스-경로, 입사각, 발사각, 스매시팩터, 스핀축, 볼스피드, 클럽스피드, 클럽, 날짜 등의 열이 있으면 보고서에서 참고할 수 있습니다. 열 이름은 앱이 인식하는 한글·영문 명칭이어야 합니다.</li><li>단위가 별도 행으로 저장된 CSV도 처리할 수 있습니다. 선수나 목표선, 클럽, 환경이 크게 다른 샷을 한 파일에 섞지 않는 것이 비교에 유리합니다.</li></ul>
+    <h3>대시보드와 이상치 읽기</h3>
+    <table><thead><tr><th>화면 항목</th><th>의미</th><th>사용 팁</th></tr></thead><tbody>
+      <tr><td>분석 샷</td><td>필수 숫자 열을 읽어 분석에 포함한 샷 수</td><td>제외 행이 많으면 CSV 헤더, 단위 행, 빈 셀을 확인합니다.</td></tr>
+      <tr><td>중심 일관성</td><td>세션 내 거리·좌우 분포의 중심 타원 안에 들어오는 샷 비율</td><td>실력 등급이나 타격 위치가 아니라 해당 세션 내부의 상대 분산 요약입니다.</td></tr>
+      <tr><td>중심 이탈 샷</td><td>선택한 σ 임계값을 벗어난 샷 수와 방향</td><td>기본 1.5σ는 민감하게 표시하고, 2.0σ는 더 큰 이탈에 집중합니다. 임계값이 커지면 표시되는 이상치가 줄 수 있습니다.</td></tr>
+      <tr><td>분산 차트</td><td>거리와 좌우 편차의 결합 분포, 정상 샷·이탈 샷·2D 타원</td><td>차트 점이나 이탈 목록을 선택해 샷별 수치를 확인합니다.</td></tr>
+    </tbody></table>
+    <h3>프로필 연계 종합보고서</h3>
+    <ol><li>CSV 분석이 완료되면 “스윙 종합보고서 생성”을 선택합니다.</li><li>SY-GSAP 프로필 도감 또는 영상 분류에서 확인한 번호 01~35를 입력합니다.</li><li>방향성, 비거리·에너지 전달, 세션 일관성, 이탈 샷, 연결된 영상 지표, 점검 드릴을 확인하고 보고서 PDF를 저장합니다.</li></ol>
+    <div class="callout warning"><strong>중요한 구분:</strong> R10은 입력한 프로필을 참고 기준으로 사용하며, R10 데이터만으로 백스윙 유형이나 엔진 유형을 역분류하지 않습니다. 영상 분류가 끝난 경우 선택 번호와 영상 분류가 일치하는지도 보고서에 표시됩니다. 프로필 장단점은 참고 특성이지 이번 세션에서 실제로 관측됐다는 증거가 아닙니다.</div>
+    <p>방향성 임계 진단은 단일 클럽 세션에서만 적용됩니다. 복수 클럽 혼합은 클럽별 판단을 보류하며, 드라이버 전용 비거리 임계값도 드라이버 단일 클럽 세션에만 사용됩니다. 이상치 하나를 곧바로 미스샷 원인이나 스윙 결함으로 단정하지 마세요.</p>
+  </section>
+
+  <section class="chapter chapter-break" id="chapter-09">
+    <p class="chapter-kicker">CHAPTER 09</p><h2>영상과 R10을 결합한 훈련 절차</h2>
+    <ol class="steps"><li><strong>질문을 하나 정합니다.</strong> 예: “다운스윙 전환에서 축이 얼마나 움직이는가?”, “동일 클럽의 좌우 분산이 줄었는가?”</li><li><strong>촬영과 샷 조건을 고정합니다.</strong> 같은 카메라 방향·거리·높이로 촬영하고, R10은 가능하면 같은 클럽과 목표선으로 기록합니다.</li><li><strong>영상을 측정합니다.</strong> 기준선을 설정하고 필요한 프레임만 완료합니다. 누락 지표 메시지가 있으면 원인을 보완한 뒤 결과를 사용합니다.</li><li><strong>R10 세션을 읽습니다.</strong> 샷 수, 중심 포함 비율, 거리·좌우 분포, 이탈 샷을 살피고 클럽 혼합 여부를 확인합니다.</li><li><strong>관찰 사실과 가설을 분리합니다.</strong> R10의 분산만으로 얼리 익스텐션이나 캐스팅을 단정하지 말고 해당 프레임을 영상에서 확인합니다.</li><li><strong>한 가지 훈련 변수를 시험합니다.</strong> 자세·템포·티 높이 등을 한 번에 하나만 바꾸고, 다음 세션에서 같은 조건으로 비교합니다.</li></ol>
+    <div class="two-col"><div class="info-block"><h3>권장 기록</h3><p>날짜, 클럽, 촬영 방향, 스윙 의도, 프로필 번호, 분석한 프레임, R10 샷 수와 임계값, 다음 세션에서 바꿀 한 가지를 기록합니다.</p></div><div class="info-block"><h3>표본 수 주의</h3><p>앱은 두 개의 숫자 샷부터 계산할 수 있지만, 적은 샷으로는 분산과 이상치가 크게 달라집니다. 앱 보고서도 샷 수와 지표 수에 따라 근거 충분도를 제한적으로 표시합니다. 같은 조건의 반복 세션으로 확인하세요.</p></div></div>
+  </section>
+
+  <h2 class="chapter-heading" id="chapter-10">CHAPTER 10 · 결과 해석 원칙</h2>
+  <ul>
+    <li>Frame 1~4는 각 프레임별 점수(10점 만점)와 비거리 모션 평균, Frame 5~6은 각 점수(100점 만점)와 일관성 모션 평균을 확인합니다.</li>
+    <li>점수 옆에 “n/…” 지표 반영 또는 데이터 부족 안내가 있으면 일부 포인트나 선행 프레임이 입력되지 않은 상태일 수 있습니다. 해당 안내를 확인하고 필요한 패널을 보완한 뒤 다시 분석합니다.</li>
+    <li>수치는 영상의 2D 좌표와 사용자가 찍은 포인트를 바탕으로 한 참고 지표입니다. 실제 지면반력, 클럽헤드 속도, 3D 궤적을 직접 측정하는 장비 결과와 동일하지 않습니다.</li>
+    <li>영상 각도, 가림, 프레임 선택, 랜드마크 클릭 오차에 따라 값이 달라질 수 있습니다. 한 번의 점수만으로 스윙을 단정하지 말고 같은 촬영 조건에서 반복 비교합니다.</li>
+  </ul>
+  <h3>용어 빠른 사전</h3>
+  <table><thead><tr><th>용어</th><th>이 매뉴얼에서의 의미</th></tr></thead><tbody>
+    <tr><td>C7</td><td>목 뒤쪽 경추 부근을 영상에서 표시한 기준점. 상체 축의 좌우 이동과 상하 이동을 살필 때 사용합니다.</td></tr>
+    <tr><td>CoM / 골반 중심</td><td>몸의 질량중심을 영상에서 직접 측정한 값이 아니라, 골반 중심점을 이용해 이동을 추정하는 대리지표입니다.</td></tr>
+    <tr><td>X-Factor</td><td>앱이 어깨선 방향으로 추정하는 상체 회전 지표입니다. 단일 카메라 2D 각도이므로 실제 3D 회전각과 동일하지 않습니다.</td></tr>
+    <tr><td>래깅 / 캐스팅</td><td>다운스윙에서 손과 클럽헤드 사이의 각이 유지되는 정도와 일찍 풀리는 경향을 가리키는 분석 용어입니다.</td></tr>
+    <tr><td>샬로잉</td><td>전환 이후 다운스윙에서 샤프트가 백스윙 탑보다 완만한 경로로 내려오는 동작 경향입니다.</td></tr>
+    <tr><td>지면반력 proxy</td><td>힘판으로 측정한 지면반력이 아니라 신체점 이동·신전·반경 변화를 이용해 추정한 2D 동작 지표입니다.</td></tr>
+    <tr><td>σ(시그마)</td><td>세션 데이터의 표준편차 단위입니다. R10에서 1.5σ 또는 2.0σ는 중심 분포에서 얼마나 벗어난 샷을 표시할지 정하는 기준입니다.</td></tr>
+    <tr><td>아웃라이어</td><td>선택된 세션 분포의 거리·좌우 중심 타원 바깥으로 판정된 샷입니다. 자동으로 미스샷 또는 나쁜 스윙을 뜻하지 않습니다.</td></tr>
+  </tbody></table>
+
+  <h2 class="chapter-heading" id="chapter-11">CHAPTER 11 · 문제 해결</h2>
+  <table>
+    <thead><tr><th>화면 메시지 / 증상</th><th>확인할 점</th></tr></thead>
+    <tbody>
+      <tr><td>기준선 지정 필요</td><td>A 영상에서 정수리~발끝 기준선을 먼저 지정했는지 확인합니다.</td></tr>
+      <tr><td>Frame 1 선행 분석 필요</td><td>Frame 1 A와 B 포인트를 모두 입력하고 분석을 완료한 뒤 다시 진행합니다.</td></tr>
+      <tr><td>일부 지표 데이터 부족</td><td>해당 프레임의 추가 포인트와 필요한 선행 프레임(F1, F2, F3 등)을 확인합니다. 안내 말풍선의 “분석 실행” 전까지 포인트 입력을 마칩니다.</td></tr>
+      <tr><td>프레임이 잘못 표시되거나 점이 어긋남</td><td>드롭다운에서 프레임을 확인하고 해당 패널의 영상 시점을 다시 맞춥니다. 잘못 찍은 점은 우클릭으로 삭제할 수 있습니다.</td></tr>
+      <tr><td>새 스윙으로 다시 시작</td><td>“전체 초기화”는 현재 분석 데이터와 기준선을 지우므로 필요한 PDF를 먼저 저장합니다.</td></tr>
+    </tbody>
+  </table>
+
+  <footer>© 2026 S.Y Chun. All rights reserved. 무단 복제·배포 및 상업적 이용 금지. · SY-GSAP ver 26.102ff 기준 · 매뉴얼 개정: 2026년 10월 2일</footer>
+</main>
+</body>
+</html>
