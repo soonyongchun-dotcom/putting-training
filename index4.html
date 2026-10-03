@@ -7002,7 +7002,6 @@
   const POSE_VISION_VERSION = '1.0.1';
   const POSE_SAMPLE_LIMIT = 1200;
   const POSE_SAMPLE_INTERVAL = 0.12;
-  let lastPoseDetectionTimestampMs = 0;
 
   async function getPoseLandmarker() {
     if (!poseLandmarkerPromise) {
@@ -7015,7 +7014,7 @@
           baseOptions: {
             modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
           },
-          runningMode: 'VIDEO',
+          runningMode: 'IMAGE',
           numPoses: 1,
         });
       })().catch(error => {
@@ -7038,7 +7037,9 @@
       : null;
     const shoulder = midpoint(point(11), point(12));
     const hip = midpoint(point(23), point(24));
-    const wrist = midpoint(point(15), point(16));
+    const leftWrist = point(15);
+    const rightWrist = point(16);
+    const wrist = midpoint(leftWrist, rightWrist) || leftWrist || rightWrist;
     if (!shoulder || !hip || !wrist) return null;
     const torsoLength = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y);
     if (torsoLength < 0.04) return null;
@@ -7073,9 +7074,7 @@
         const time = Math.min(Math.max(0, duration - 0.02), index * interval);
         if (index > 0 && time * 1000 <= samples[samples.length - 1]?.time * 1000) continue;
         await seekVideoTo(video, time);
-        const timestampMs = Math.max(performance.now(), time * 1000, lastPoseDetectionTimestampMs + 1);
-        lastPoseDetectionTimestampMs = timestampMs;
-        const result = landmarker.detectForVideo(video, timestampMs);
+        const result = landmarker.detect(video);
         const pose = result.landmarks?.[0];
         const features = pose ? getPoseMotionFeatures(pose) : null;
         if (features) samples.push({ time, ...features });
@@ -7181,6 +7180,30 @@
     return null;
   }
 
+  function getDownswingInterval(samples, topIndex, addressHeight) {
+    let lowestIndex = topIndex;
+    let handsReturnIndex = -1;
+    let hasRebound = false;
+    for (let index = topIndex + 1; index < samples.length; index += 1) {
+      if (samples[index].time - samples[topIndex].time > 1.2) break;
+      if (samples[index].handHeight < samples[lowestIndex].handHeight) lowestIndex = index;
+      const drop = samples[topIndex].handHeight - samples[lowestIndex].handHeight;
+      if (drop < 0.18) continue;
+      if (handsReturnIndex < 0 && samples[index].handHeight <= addressHeight + 0.25) {
+        handsReturnIndex = index;
+      }
+      if (index > lowestIndex && samples[index].handHeight - samples[lowestIndex].handHeight >= 0.12) {
+        hasRebound = true;
+        break;
+      }
+    }
+    if (samples[topIndex].handHeight - samples[lowestIndex].handHeight < 0.18) return null;
+    return {
+      endIndex: handsReturnIndex >= 0 ? handsReturnIndex : lowestIndex,
+      hasImpactEvidence: handsReturnIndex >= 0 || hasRebound,
+    };
+  }
+
   function findPoseTargetIndex(samples, target) {
     const speed = samples.map((sample, index) => {
       if (index === 0) return 0;
@@ -7204,51 +7227,30 @@
     const fallbackSearchEnd = Math.max(baselineCount, Math.floor(samples.length * 0.45));
     const fallbackStart = speed.slice(0, fallbackSearchEnd)
       .findIndex(value => maxSpeed > 0.01 && value >= maxSpeed * 0.12);
-    const startIndex = backswingActive
-      ? (motionIndex >= 0 ? Math.max(0, motionIndex - 1) : Math.max(0, fallbackStart))
-      : Math.max(0, speed.findIndex(value => maxSpeed > 0.01 && value >= maxSpeed * 0.18));
-    const backswingInterval = backswingActive ? detectBackswingInterval(samples, startIndex) : null;
-    if (backswingActive && !backswingInterval && target !== 'address') {
+    const startIndex = motionIndex >= 0 ? Math.max(0, motionIndex - 1) : Math.max(0, fallbackStart);
+    const backswingInterval = detectBackswingInterval(samples, startIndex);
+    if (!backswingInterval && target !== 'address') {
       throw new Error(uiLanguage === 'en'
         ? 'Could not confirm the backswing. Include address and a visible top, followed by a pause or downswing.'
         : '백스윙 구간을 확실히 찾지 못했습니다. 어드레스와 백스윙 탑, 탑에서 잠시 멈추거나 다운스윙하는 장면이 보이도록 확인해 주세요.');
     }
     const backswingStartIndex = backswingInterval?.startIndex ?? startIndex;
     const addressIndex = Math.max(0, backswingStartIndex - 2);
-    let topIndex = backswingInterval?.topIndex ?? startIndex;
-    if (!backswingActive) {
-      const topSearchEnd = samples.findIndex((sample, index) =>
-        index > startIndex && sample.time > samples[startIndex].time + 2.5);
-      const searchEnd = topSearchEnd < 0 ? samples.length - 1 : topSearchEnd;
-      topIndex = startIndex;
-      for (let index = startIndex + 1; index < searchEnd; index += 1) {
-        if (samples[index].handHeight >= samples[index - 1].handHeight
-          && samples[index].handHeight > samples[index + 1].handHeight) {
-          topIndex = index;
-          break;
-        }
-        if (samples[index].handHeight > samples[topIndex].handHeight) topIndex = index;
-      }
-    }
-    const impactSearchEnd = samples.findIndex((sample, index) =>
-      index > topIndex && sample.time > samples[topIndex].time + 1.2);
-    const impactEnd = impactSearchEnd < 0 ? samples.length - 1 : impactSearchEnd;
-    let impactIndex = Math.min(samples.length - 1, topIndex + 1);
-    for (let index = topIndex + 1; index <= impactEnd; index += 1) {
-      if (speed[index] > speed[impactIndex]) impactIndex = index;
-    }
+    const topIndex = backswingInterval?.topIndex ?? startIndex;
     const addressHeight = samples[addressIndex].handHeight;
-    const handsReturnIndex = samples.findIndex((sample, index) =>
-      index > topIndex && sample.handHeight <= addressHeight + 0.25);
-    if (handsReturnIndex >= 0) impactIndex = handsReturnIndex;
+    const downswingInterval = getDownswingInterval(samples, topIndex, addressHeight);
+    const impactIndex = downswingInterval?.endIndex ?? topIndex;
     const p5Index = getDescendingHeightIndex(
       samples,
       topIndex,
       impactIndex,
       samples[getPosePathIndex(samples, backswingStartIndex, topIndex, 0.5)].handHeight,
     );
-    if (backswingActive && ['downswingP5', 'downswing78'].includes(target) && p5Index == null) {
-      const phase = target === 'downswingP5' ? 'P5' : 'P6';
+    if (['downswingP5', 'downswing52', 'downswing62', 'downswing78', 'preImpact', 'impact'].includes(target)
+      && (p5Index == null || !downswingInterval
+        || (['preImpact', 'impact'].includes(target) && !downswingInterval.hasImpactEvidence))) {
+      const phase = target === 'downswingP5' ? 'P5' : target === 'downswing78' ? 'P6'
+        : uiLanguage === 'en' ? 'the downswing / impact' : '다운스윙 / 임팩트';
       throw new Error(uiLanguage === 'en'
         ? `Could not find ${phase}. Include the downswing after the backswing top.`
         : `${phase} 시점을 찾지 못했습니다. 백스윙 탑 이후 다운스윙 구간이 영상에 포함되어 있는지 확인해 주세요.`);
@@ -7305,7 +7307,9 @@
     const status = view === 'front' ? frontFindPositionStatus : sideFindPositionStatus;
     const request = getMotionSearchRequest(view);
     if (!request || !video.src) return;
-    const savedLabel = button.textContent;
+    const searchMode = backswingActive;
+    const searchSource = video.src;
+    const originalTime = video.currentTime;
     button.disabled = true;
     status.dataset.kind = 'progress';
     status.textContent = uiLanguage === 'en'
@@ -7317,6 +7321,13 @@
           ? `Scanning locally for ${translateUiText(request.label)}… ${percent}%`
           : `브라우저에서 영상 분석 중… ${percent}%`;
       });
+      const currentRequest = getMotionSearchRequest(view);
+      if (video.src !== searchSource || backswingActive !== searchMode
+        || currentRequest?.target !== request.target) {
+        throw new Error(uiLanguage === 'en'
+          ? 'The video or selected phase changed during the search. Run the search again.'
+          : '탐색 중 영상 또는 분석 모드·자세가 변경되었습니다. 시점 찾기를 다시 실행하세요.');
+      }
       const targetIndex = findPoseTargetIndex(samples, request.target);
       const targetTime = samples[targetIndex].time;
       await seekVideoTo(video, targetTime);
@@ -7327,6 +7338,7 @@
         : `${request.label} 근처 ${targetTime.toFixed(2)}초로 이동했습니다. 프레임 이동 버튼으로 미세 조정하세요.`;
     } catch (error) {
       console.error('Automatic swing-position search failed:', error);
+      if (video.src === searchSource) await seekVideoTo(video, originalTime);
       status.dataset.kind = 'error';
       status.textContent = uiLanguage === 'en'
         ? `Could not find the position: ${error.message}`
