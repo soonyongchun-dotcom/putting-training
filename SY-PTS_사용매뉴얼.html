@@ -56,6 +56,11 @@
   .small { color:var(--muted); font-size:.92rem; }
   .badge { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px solid #bdd1c5; color:var(--green); font-size:.78rem; font-weight:700; }
   .matrix-note { padding:10px 13px; border:1px solid #e5d7b5; background:#fbf6e9; font-size:.9rem; }
+  figure.screen-capture { margin:20px 0 24px; padding:10px; border:1px solid var(--line); border-radius:8px; background:#f7faf8; break-inside:avoid; page-break-inside:avoid; }
+  figure.screen-capture img { display:block; width:100%; height:auto; border:1px solid #cbd7d1; }
+  figure.screen-capture figcaption { margin-top:8px; color:var(--muted); font-size:.84rem; line-height:1.5; }
+  .button-guide td:first-child { width:24%; font-weight:700; }
+  .field-guide td:first-child { width:27%; font-weight:700; }
   footer { margin-top:42px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.86rem; }
   @media (max-width:700px) {
     main { margin:12px auto 32px; padding:38px 22px; }
@@ -152,49 +157,87 @@
 
   <section class="chapter-page" id="ko-workflow">
     <p class="chapter-kicker">CHAPTER 02</p><h2>첫 사용과 훈련 순서</h2>
+    <figure class="screen-capture">
+      <img src="manual-main-screen.png" alt="SY-PTS 한국어 메인 화면. 상단 언어 및 세션 버튼, 1번부터 8번까지 메뉴, Framework 화면이 보입니다.">
+      <figcaption><strong>그림 1. 메인 화면 예시</strong> — 개인정보를 표시하지 않은 앱 화면 캡처입니다. 로그인 역할에 따라 메뉴가 달라질 수 있으며, 선수에게는 코치 전용 기능이 숨겨지거나 비활성화됩니다.</figcaption>
+    </figure>
+    <h3>메인 화면 버튼과 메뉴</h3>
+    <table class="button-guide"><thead><tr><th>버튼/영역</th><th>기능과 사용 방법</th></tr></thead><tbody>
+      <tr><td>언어 선택</td><td>화면 문구를 한국어 또는 English로 전환합니다. 분석 도움말과 선수 관리 화면도 선택 언어에 맞춰 표시됩니다.</td></tr>
+      <tr><td>↻ 새로 시작</td><td>확인창에서 동의하면 현재 선수·세션 날짜에 저장된 훈련 기록을 삭제하고 해당 선수의 미저장 입력 초안도 지웁니다. 실행 후 되돌리기 어려우므로 반드시 선수·날짜를 확인하고 먼저 CSV로 백업하세요. 단순 화면 이동이나 폼 초기화 용도로 누르지 마세요.</td></tr>
+      <tr><td>⏻ 로그아웃</td><td>현재 계정에서 나와 접속 화면으로 돌아갑니다. 다른 역할 또는 선수로 로그인할 때 사용합니다.</td></tr>
+      <tr><td>1) Framework</td><td>Low-Point, 경사 방향과 크기, High-side, 속도 우선 개념과 Address→Putt 5초 루틴의 훈련 원칙을 확인합니다. <strong>프로그램 사용안내</strong> 버튼을 누르면 M1/M2 및 코치 미션의 기본 절차가 펼쳐집니다.</td></tr>
+      <tr><td>2) M1 입력</td><td>퍼트 거리, 결과, 예측/실제 Low-Point, 미스 원인, 5초 이내 여부와 High-side 커밋을 한 샷 단위로 저장합니다. 상세 입력 방법은 M1 장을 참고하세요.</td></tr>
+      <tr><td>3) M2 입력</td><td>거리, 그린 속도, 실제 경사 단계, 퍼팅 타입과 홀 기준 마무리 범주를 한 번의 시도마다 저장합니다. 상세 입력 방법은 M2 장을 참고하세요.</td></tr>
+      <tr><td>4) 분석 보기</td><td>SRI/SII/DCS와 3단계 지표, 퍼팅 미스 분석, 미스 유형 및 M1/M2 거리별 표를 확인합니다. 각 지표 제목을 누르면 산출 의미를 볼 수 있고, <strong>분석보기 PDF 다운로드</strong>로 해당 화면을 저장합니다.</td></tr>
+      <tr><td>5) 시각화</td><td>M1 좌우 결과 히트맵, M2 마무리 편차 히트맵, 베이지안 홀인 확률 추정치를 확인합니다. 제목을 누르면 차트 의미와 해석 주의사항을 볼 수 있고, <strong>시각화 PDF 다운로드</strong>를 누르면 해당 화면을 PDF로 저장합니다.</td></tr>
+      <tr><td>6) 코치 미션</td><td>선수는 배정된 미션과 기한을 확인하고 수행 결과·질문·메모를 보냅니다. 코치는 대상 선수를 지정해 미션을 등록/배포하고 피드백을 관리합니다.</td></tr>
+      <tr><td>7) 데이터</td><td>선수 화면에서는 현재 세션의 M1/M2 기록을 코치에게 전송합니다. 코치 화면에서는 CSV 다운로드·불러오기 및 미션 결과 파일 관리를 할 수 있습니다.</td></tr>
+      <tr><td>8) 선수 관리(코치 전용)</td><td>가입 신청 승인/거절, 선수 직접 등록, 비밀번호 재설정·계정 삭제, 가입 코드 설정, 선수 전송 데이터 동기화를 관리합니다.</td></tr>
+    </tbody></table>
     <ol class="steps">
-      <li>로그인 후 <strong>Framework</strong>와 프로그램 사용안내를 읽습니다.</li>
-      <li>코치가 지정한 훈련을 선택합니다. 일반적으로 M1은 라이·방향 판단, M2는 실제 마무리 속도 결과를 기록합니다.</li>
-      <li>각 퍼트 직후 기억이 정확할 때 해당 입력 섹션에서 항목을 선택하고 <strong>저장</strong>을 누릅니다.</li>
-      <li><strong>분석 보기</strong>와 <strong>시각화</strong>에서 누적 결과를 확인합니다. 작은 표본은 결론보다 변화 추세를 보는 데 활용합니다.</li>
-      <li>코치가 미션을 배정했다면 기한과 지시사항을 확인하고, 결과를 기록하거나 안내에 따라 전송합니다.</li>
+      <li>로그인 후 상단에서 선수 이름·날짜·역할이 맞는지 확인하고 <strong>Framework</strong>와 프로그램 사용안내를 읽습니다.</li>
+      <li>코치 지시에 맞춰 <strong>M1</strong> 또는 <strong>M2</strong> 메뉴를 엽니다. 두 종류의 훈련을 모두 했다면 각 퍼트를 알맞은 화면에 따로 기록합니다.</li>
+      <li>퍼트 직후 결과를 입력하고 <strong>저장</strong>을 누릅니다. 저장 확인 문구를 읽은 뒤 다음 샷으로 넘어갑니다.</li>
+      <li>코치는 <strong>분석 보기</strong>와 <strong>시각화</strong>에서 누적 결과를 확인합니다. 작은 표본은 확정 판단보다 추세 확인에 활용합니다.</li>
+      <li>미션이 배정됐다면 <strong>코치 미션</strong>에서 지시와 기한을 확인하고, 코치가 지정한 방식으로 결과를 공유합니다.</li>
     </ol>
-    <p>페이지 상단의 큰 메뉴 버튼을 누르면 해당 섹션으로 이동합니다. 데이터는 앱의 세션에 저장되며, 네트워크 연결이 필요한 동기화 기능은 연결 상태에 따라 반영이 지연될 수 있습니다.</p>
-    <div class="callout">기록이 잘못된 경우 같은 샷을 중복 저장하지 않도록 주의하세요. 중요한 데이터는 CSV로 내보내 보관하고, 불러오기는 기존 데이터에 영향을 줄 수 있으므로 작업 전에 백업하세요.</div>
+    <p>선택한 메뉴 카드는 이동할 화면을 표시하고, 현재 선택된 메뉴는 강조색으로 표시됩니다. 선수 계정에는 코치 전용 메뉴나 관리 동작이 표시되지 않을 수 있습니다. 전송·클라우드 동기화는 네트워크 연결이 필요합니다.</p>
+    <div class="callout warning">저장을 누른 뒤 입력 칸은 다음 샷을 위해 기본값으로 돌아옵니다. 직전 저장 확인 문구를 보고 중복 입력을 피하세요. 새로 시작, CSV 덮어쓰기 등 기존 기록에 영향을 줄 수 있는 작업 전에는 백업 여부를 확인합니다.</div>
   </section>
 
   <section class="chapter-page" id="ko-m1">
     <p class="chapter-kicker">CHAPTER 03</p><h2>M1 라이·방향 판단 기록</h2>
     <p>M1은 한 번의 퍼트에 대해 라이 판단과 결과 원인을 기록하는 훈련입니다. 실제 연습 절차와 코치 지시를 우선하고, 모든 항목은 해당 샷의 결과를 반영해 선택합니다.</p>
-    <table><thead><tr><th>항목</th><th>입력 방법과 의미</th></tr></thead><tbody>
-      <tr><td>거리</td><td>해당 퍼트의 거리 구간(5y 이내, 5–7y, 7–9y, 9–11y, 11y 이상)을 선택합니다.</td></tr>
-      <tr><td>Putt Result</td><td>홀인, 좌측 미스, 우측 미스 중 실제 결과를 선택합니다.</td></tr>
-      <tr><td>인지한 Low-Point</td><td>퍼트 전에 판단한 낮은 지점/중력 흐름 방향(왼쪽, 오른쪽, 평지)을 선택합니다.</td></tr>
-      <tr><td>실제 Low-Point</td><td>훈련 기준으로 확인한 실제 방향을 선택합니다. 예측값과 비교할 기준이 됩니다.</td></tr>
-      <tr><td>Miss Type</td><td>홀인/미스 없음, 방향 미스, 속도 미스, 방향+속도 미스 중 결과 원인에 맞는 항목을 선택합니다.</td></tr>
-      <tr><td>Stroke Time</td><td>어드레스부터 스트로크까지 5초를 초과했는지 선택합니다. “아니오”는 5초 이내입니다.</td></tr>
-      <tr><td>High-side Commit</td><td>코치가 요구한 High-side 라인 커밋을 유지했는지 Yes/No로 기록합니다.</td></tr>
+    <figure class="screen-capture">
+      <img src="manual-m1-screen.png" alt="M1 입력 화면 캡처. 거리, 퍼팅 결과, 예측 및 실제 Low-Point, 미스 유형, 스트로크 시간, High-side Commit 항목과 저장 버튼이 보입니다.">
+      <figcaption><strong>그림 2. M1 입력 화면</strong> — 실제 앱 화면의 기본 선택 예시입니다. 매 샷의 실제 관찰값으로 다시 선택한 뒤 저장하세요.</figcaption>
+    </figure>
+    <table class="field-guide"><thead><tr><th>항목</th><th>언제/무엇을 입력하나요?</th><th>선택 기준</th></tr></thead><tbody>
+      <tr><td>거리 (yd)</td><td>퍼트를 입력하기 전에 해당 시도의 거리를 선택합니다.</td><td>5y 이내, 5–7y, 7–9y, 9–11y, 11y 이상 중 하나입니다. 정확한 개별 야드 측정값이 아니라 분석용 거리 범주입니다.</td></tr>
+      <tr><td>퍼팅 결과</td><td>공이 멈춘 직후 실제 결과를 기록합니다.</td><td>홀인, 좌측 미스, 우측 미스 중 선택합니다. 결과 방향을 추측하지 말고 실제 결과로 선택합니다.</td></tr>
+      <tr><td>인지한 Low-Point</td><td>스트로크하기 전에 읽은 경사 흐름/낮은 지점의 방향을 기록합니다.</td><td>왼쪽, 오른쪽, 평지 중 선택합니다. 이는 퍼트 방향이나 공의 정지 위치가 아니라 경사 판독 훈련에서 정한 Low-Point 방향입니다.</td></tr>
+      <tr><td>실제 Low-Point</td><td>퍼트 후 훈련 기준으로 확인한 실제 방향을 입력합니다.</td><td>왼쪽, 오른쪽, 평지 중 선택합니다. 인지한 값과 대조할 기준값입니다. 앱은 실제 경사를 자동 측정하지 않으므로 코치/훈련 기준에 따라 확인합니다.</td></tr>
+      <tr><td>미스 유형</td><td>미스가 난 경우 결과의 원인을 분류합니다.</td><td>방향 미스, 속도 미스, 방향+속도 미스 중 선택합니다. 홀인은 저장 시 “미스 없음”으로 처리됩니다. 미스 결과인데 “미스 없음”이면 저장되지 않으며 유형을 선택하라는 안내가 표시됩니다.</td></tr>
+      <tr><td>스트로크 시간 (5초 초과?)</td><td>어드레스에 들어간 뒤 스트로크까지의 시간을 회상해 입력합니다.</td><td>아니오 = 5초 이내, 예 = 5초 초과입니다. 초 단위 타이머 측정값을 입력하는 기능은 아닙니다.</td></tr>
+      <tr><td>High-side Commit</td><td>해당 퍼트에서 코치가 지도한 High-side 라인에 커밋했는지 기록합니다.</td><td>예/아니오 중 선택합니다. 앱은 영상으로 커밋이나 실제 라인을 판정하지 않으며, 사용자의 자기보고입니다.</td></tr>
+      <tr><td>저장 (Save)</td><td>필드를 검토한 뒤 샷 한 번마다 한 번 누릅니다.</td><td>성공하면 점수/저장 메시지가 나타나고 입력값은 다음 기록을 위해 기본값으로 돌아갑니다. 다음 샷 전에 거리를 포함한 항목을 다시 확인하세요.</td></tr>
     </tbody></table>
     <ol class="steps">
-      <li>거리 구간을 정하고 라이를 읽은 뒤 예측 Low-Point를 선택합니다.</li>
-      <li>퍼트 후 실제 결과와 Miss Type을 기록하고, 실제 Low-Point를 확인해 입력합니다.</li>
-      <li>5초 응답과 High-side Commit을 선택한 뒤 <strong>저장</strong>을 누릅니다.</li>
+      <li><strong>퍼트 전:</strong> 코치 지시에 따라 거리 구간을 선택하고 경사를 읽습니다. 본인이 판단한 Low-Point를 기록한 뒤 스트로크합니다.</li>
+      <li><strong>퍼트 직후:</strong> 홀인/좌측/우측 결과를 입력하고, 미스라면 방향·속도·복합 중 원인을 선택합니다. 홀인은 미스 원인이 필요하지 않습니다.</li>
+      <li><strong>확인 후:</strong> 훈련 기준으로 실제 Low-Point를 기록하고, 어드레스 후 5초 이내 여부와 High-side 커밋을 응답합니다.</li>
+      <li><strong>저장 전 검토:</strong> 모든 항목이 같은 한 번의 퍼트를 설명하는지 확인하고 <strong>저장 (Save)</strong>을 한 번 누릅니다. 저장 결과를 확인한 후 다음 샷을 입력합니다.</li>
     </ol>
-    <div class="callout warning"><strong>정확한 기록을 위해</strong><br>현재 M1 입력은 좌우 오차(cm), 실제 출발선 일치 여부, Apex 커밋을 직접 수집하지 않습니다. 미스 원인 분류는 사용자의 입력에 의존하며, 앱이 실제 스트로크 방향이나 High-side 여부를 영상으로 판정하는 것은 아닙니다.</div>
+    <div class="callout"><strong>M1 점수 참고:</strong> 홀인은 10점, 속도 미스로 분류된 미스는 5점, 방향 미스 또는 방향+속도 미스는 0점입니다. 이 점수는 입력된 미스 유형을 사용하므로 분류를 정확히 해야 합니다.</div>
+    <div class="callout warning"><strong>코치에게 기록 제출:</strong> M1에서 <strong>저장</strong>을 눌러도 기록은 현재 선수/날짜 세션에 저장될 뿐, 코치의 전송 데이터 목록으로 제출되지는 않습니다. 코치에게 M1/M2 세션 기록을 보내려면 저장을 마친 뒤 <strong>7) 데이터 관리 → 전송</strong>을 별도로 누르고 완료 안내를 확인하세요. 코치는 <strong>8) 선수 관리 → 전송된 선수 데이터 → 최신 데이터 동기화</strong>를 눌러 받습니다.</div>
+    <div class="callout warning"><strong>수집하지 않는 항목:</strong> 현재 M1 화면은 좌우 오차(cm), 실제 출발선 일치 여부, Apex 커밋을 직접 입력하지 않습니다. Low-Point 실제값과 미스 유형도 사용자가 지정하며 영상 분석으로 자동 판정되지 않습니다.</div>
   </section>
 
   <section class="chapter-page" id="ko-m2">
     <p class="chapter-kicker">CHAPTER 04</p><h2>M2 속도·마무리 기록</h2>
     <p>M2는 실제 퍼트 후 공이 홀을 기준으로 어디에서 멈췄는지 범주형으로 기록합니다. 목표한 속도 계획과 실제 마무리의 차이를 정밀 측정하는 화면은 아닙니다.</p>
-    <table><thead><tr><th>항목</th><th>입력 방법과 의미</th></tr></thead><tbody>
-      <tr><td>거리</td><td>5y 이내부터 11y 이상까지 거리 구간을 선택합니다.</td></tr>
-      <tr><td>그린 속도</td><td>매우 느림, 느림, 보통, 빠름, 매우 빠름 중 현재 그린 상태를 선택합니다.</td></tr>
-      <tr><td>Actual Slope</td><td>오르막 1–3, 평지(0), 내리막 1–3 중 실제 경사 단계를 입력합니다. 예측 경사와 비교하는 항목은 아닙니다.</td></tr>
-      <tr><td>Putting Type</td><td>직선, 브레이크 왼쪽, 브레이크 오른쪽 중 퍼팅 타입을 선택합니다.</td></tr>
-      <tr><td>Actual Finish</td><td>홀 기준 30cm 범위, 30cm 이상 오버/쇼트, 1m 이상 오버/쇼트 중 실제 마무리 구간을 선택합니다.</td></tr>
+    <figure class="screen-capture">
+      <img src="manual-m2-screen.png" alt="M2 입력 화면 캡처. 거리, 그린 속도, 실제 경사, 퍼팅 타입, Actual Finish 선택 항목과 저장 버튼이 보입니다.">
+      <figcaption><strong>그림 3. M2 입력 화면</strong> — 실제 앱 화면의 기본 선택 예시입니다. Actual Finish는 각 퍼트가 홀보다 얼마나 지나가거나 짧았는지 관찰해 선택합니다.</figcaption>
+    </figure>
+    <table class="field-guide"><thead><tr><th>항목</th><th>언제/무엇을 입력하나요?</th><th>선택 기준</th></tr></thead><tbody>
+      <tr><td>거리 (yd)</td><td>해당 퍼트의 거리 구간을 선택합니다.</td><td>5y 이내, 5–7y, 7–9y, 9–11y, 11y 이상입니다. 거리별 분석표와 히트맵에서 사용하는 동일한 범주입니다.</td></tr>
+      <tr><td>그린 속도</td><td>훈련 시점의 그린 상태를 선택합니다.</td><td>매우 느림, 느림, 보통, 빠름, 매우 빠름 중 코치가 정한 기준을 일관되게 사용합니다. 장비로 측정한 Stimpmeter 값을 입력하는 필드는 아닙니다.</td></tr>
+      <tr><td>Actual Slope %</td><td>실제 경사 방향과 훈련 단계에 맞는 항목을 선택합니다.</td><td>오르막 1/2/3, 평지, 내리막 1/2/3 중 하나입니다. 실제 퍼센트 수치를 직접 입력하는 필드가 아니며 경사 예측 정확도를 평가하지 않습니다.</td></tr>
+      <tr><td>퍼팅 타입</td><td>퍼트의 경로/브레이크 유형을 선택합니다.</td><td>직선, 브레이크 왼쪽, 브레이크 오른쪽 중 선택합니다. 코치의 훈련 정의에 맞춰 방향 기준을 일정하게 적용하세요.</td></tr>
+      <tr><td>Actual Finish</td><td>퍼트가 끝난 뒤 홀을 기준으로 공이 멈춘 위치를 선택합니다.</td><td>1m 이상 오버(+100), 30cm 이상 오버(+30), -30~+30cm 범위(0), 30cm 이상 짧음(-30), 1m 이상 짧음(-100) 중 실제 범주를 선택합니다.</td></tr>
+      <tr><td>저장 (Save)</td><td>다섯 항목이 해당 시도에 맞는지 확인한 뒤 한 번 누릅니다.</td><td>성공 메시지에 그린 속도, 타입, 마무리와 점수가 나타납니다. 저장 후 폼은 기본값으로 돌아가므로 다음 샷 값을 다시 설정합니다.</td></tr>
     </tbody></table>
-    <p>마무리 기록은 점수로 환산됩니다. 입력 범주상 0은 10점, ±30은 7점, ±100은 3점입니다. 화면의 누적 평균은 해당 세션의 M2 점수 평균입니다.</p>
-    <div class="callout warning"><strong>측정 범위</strong><br>화면의 “cm” 및 평균 편차는 실제 거리 측정값이 아니라 선택한 범주의 대표값(0/30/100cm)입니다. 현재 입력에는 예측 속도, Speed Plan, Actual Pace가 없으므로 속도 계획-실행 일치율이나 예측 경사 오차를 산출하지 않습니다.</div>
+    <ol class="steps">
+      <li><strong>퍼트 전:</strong> 코치가 지정한 거리, 그린 속도, 경사 단계와 퍼팅 타입을 선택합니다.</li>
+      <li><strong>퍼트 후:</strong> 공이 홀보다 지나갔는지 또는 짧았는지 확인하고, 다섯 가지 Actual Finish 범주 중 가장 알맞은 것을 선택합니다.</li>
+      <li><strong>저장 전 검토:</strong> 선택한 거리·환경 조건과 마무리가 같은 한 번의 시도를 설명하는지 확인하고 <strong>저장 (Save)</strong>을 누릅니다.</li>
+      <li><strong>결과 확인:</strong> 성공 알림의 점수와 누적 평균을 확인하고 다음 시도에 맞춰 입력값을 다시 선택합니다.</li>
+    </ol>
+    <p>마무리 점수는 범주값의 절대 크기로 정해집니다. 0은 10점, ±30은 7점, ±100은 3점이며, 오버/쇼트의 부호와 무관하게 같은 절대 범주에는 같은 점수가 부여됩니다. 누적 평균은 해당 세션의 M2 점수 평균입니다.</p>
+    <div class="callout warning"><strong>코치에게 기록 제출:</strong> M2에서 <strong>저장</strong>을 눌러도 기록은 현재 선수/날짜 세션에 저장될 뿐, 코치의 전송 데이터 목록으로 제출되지는 않습니다. M1/M2 기록을 공유하려면 두 입력을 마친 후 <strong>7) 데이터 관리 → 전송</strong>을 별도로 누르고 완료 안내를 확인하세요. 코치는 <strong>8) 선수 관리 → 전송된 선수 데이터 → 최신 데이터 동기화</strong>를 눌러 받습니다.</div>
+    <div class="callout warning"><strong>측정 범위:</strong> 화면의 “cm”와 평균 편차는 실제 거리 측정값이 아니라 선택 범주의 대표값(0/30/100cm)입니다. 현재 화면은 예측 속도, Speed Plan, Actual Pace를 입력하지 않으므로 속도 계획-실행 일치율이나 예측 경사 오차를 산출하지 않습니다.</div>
   </section>
 
   <section class="chapter-page" id="ko-metrics">
@@ -231,33 +274,44 @@
     <ul>
       <li><strong>퍼팅 미스 분석:</strong> 전체 미스, Low-Point, Low-side, 원인 분류와 루틴 지표를 확인합니다. 제목을 눌러 정의를 펼칩니다.</li>
       <li><strong>미스 유형 분석:</strong> Direction, Speed, Direction+Speed 유형을 M1 미스 중 건수와 비율로 표시합니다.</li>
-      <li><strong>Lie 결정훈련 거리별 분석:</strong> 거리별 시도, 홀인, 방향 분류 결과를 비교합니다. 현재 앱은 거리 구간을 분석 표에서 숫자로 변환하는 방식 때문에 범주형 거리가 하나의 그룹으로 합쳐져 보일 수 있습니다. 이 경우 세부 거리 비교를 근거로 삼지 말고 전체 기록 또는 원자료를 확인하세요.</li>
+      <li><strong>Lie 결정훈련 거리별 분석:</strong> 5y 이내, 5–7y, 7–9y, 9–11y, 11y 이상 범주별 시도, 홀인, 방향 분류 결과를 비교합니다. 정확한 개별 야드 값이 아닌 입력된 거리 구간을 기준으로 집계합니다.</li>
       <li><strong>Speed 결정훈련 거리별 분석:</strong> 거리, 그린 속도, 퍼팅 타입별로 적정 범위·오버·쇼트 비율을 표시합니다. 유효 M2 마무리 기록을 기준으로 계산합니다.</li>
     </ul>
     <h3>시각화</h3>
     <ul>
-      <li><strong>Left / Right Error Heatmap:</strong> 거리 구간에 따른 좌측/홀인/우측 결과 분포를 볼 수 있습니다. 영상이나 공의 정확한 편차를 측정하는 기능은 아닙니다.</li>
+      <li><strong>Left / Right Error Heatmap:</strong> M1 거리 범주(5y 이내, 5–7y, 7–9y, 9–11y, 11y 이상)에 따른 좌측/홀인/우측 결과 분포를 볼 수 있습니다. 영상이나 공의 정확한 편차를 측정하는 기능은 아닙니다.</li>
       <li><strong>Finish Offset Heatmap (M2):</strong> 거리와 실제 경사 단계별 범주 기반 절대 마무리 편차 평균입니다. 실제 거리 측정값이 아닙니다.</li>
       <li><strong>Bayesian Skill Update:</strong> M1 홀인/미스 기록으로 Beta(1,1) 사전분포를 갱신해 홀인 확률 평균과 구간을 표시합니다. 표본이 적을 때는 불확실성이 큽니다.</li>
     </ul>
-    <p>분석 섹션의 <strong>분석보기 PDF 다운로드</strong>, 시각화 섹션의 <strong>시각화 PDF 다운로드</strong>를 눌러 해당 화면을 PDF로 저장합니다. 브라우저에서 인쇄 창이 열리면 PDF로 저장을 선택합니다. PDF 기능은 브라우저 네트워크 상태와 인쇄 설정의 영향을 받을 수 있습니다.</p>
+    <p>분석 섹션의 <strong>분석보기 PDF 다운로드</strong>, 시각화 섹션의 <strong>시각화 PDF 다운로드</strong>를 누르면 해당 화면을 캡처해 A4 PDF 파일을 직접 생성하고 다운로드합니다. 외부 PDF 라이브러리를 불러오지 못하거나 캡처/생성에 실패하면 화면에 오류 안내가 표시됩니다. 이 버튼은 브라우저 인쇄 창을 여는 기능이 아닙니다.</p>
   </section>
 
   <section class="chapter-page" id="ko-coach">
     <p class="chapter-kicker">CHAPTER 07</p><h2>코치 미션과 선수 관리</h2>
-    <h3>선수: 미션 확인과 결과 공유</h3>
+    <p><strong>6) 코치 미션</strong>은 훈련 과제를 배정하고, 과제별 수행 결과·질문·피드백을 주고받는 공간입니다. 미션 대화/수행 결과는 M1/M2 샷 기록과 별도로 저장되므로, 코치가 두 종류 모두 요청했다면 각 메뉴에 각각 입력하세요.</p>
+    <h3>선수: 배정 미션 확인 및 결과 제출</h3>
     <ol class="steps">
-      <li><strong>코치 미션</strong>에서 수행할 미션을 열어 지시사항, 첨부 자료, 대상과 기한을 확인합니다.</li>
-      <li>요구된 훈련을 수행하고 앱에 저장할 M1/M2 기록은 해당 훈련 섹션에 입력합니다.</li>
-      <li>코치 미션의 대화 영역에서 코치 지시에 따라 결과, 질문 또는 메모를 전송합니다. 필요하면 7) 데이터의 선수 결과 전송을 사용합니다.</li>
+      <li><strong>수행미션 목록을 확인합니다.</strong> 목록이 비어 있거나 최신 배정이 보이지 않으면 <strong>미션 진행상황 동기화</strong>를 눌러 다시 확인합니다. 날짜 선택이 표시되면 해당 미션이 배정된 날짜를 선택합니다.</li>
+      <li><strong>미션 카드를 열어 내용을 읽습니다.</strong> 카드 제목을 눌러 펼친 뒤 미션 지시와 원본 수행 양식을 확인합니다. 기한과 배정일도 확인하고, 필요한 경우 코치에게 질문한 다음 시작합니다.</li>
+      <li><strong>훈련 결과를 기록합니다.</strong> 카드 안에 <strong>수행결과기록양식</strong>이 있으면 버튼으로 입력 칸을 열고, 코치가 입력을 허용한 칸만 작성합니다. 수행 일자와 결과 메모를 입력한 후 <strong>결과 저장</strong>을 누릅니다. 양식이 없는 미션은 대화/피드백 영역의 기록 유형을 <strong>질문/메모</strong> 또는 코치가 안내한 유형으로 두고 결과를 작성해 <strong>전송</strong>합니다.</li>
+      <li><strong>저장 확인을 합니다.</strong> “수행 결과가 저장되어 코치와 공유되었습니다” 안내를 확인합니다. 계산식이 포함된 원본 양식은 입력값을 바탕으로 표시 결과가 갱신될 수 있으므로 제출 전 값을 확인합니다.</li>
+      <li><strong>M1/M2 기록이 별도로 요구됐다면</strong> 해당 퍼트를 각각 2) M1 입력 또는 3) M2 입력에 저장합니다. 코치에게 세션 전체 훈련 기록을 보내라는 요청을 받았다면 7) 데이터의 전송 기능도 별도로 사용합니다.</li>
     </ol>
-    <h3>코치: 미션 배포와 피드백</h3>
+    <h3>코치: 과제 등록 및 배정</h3>
+    <ol class="steps">
+      <li><strong>대상 선수 선택:</strong> 미션 등록/배포 영역에서 배정할 선수를 선택합니다. 여러 명 또는 전체 선수 선택은 수신 대상이 넓어지므로 이름과 범위를 확인합니다.</li>
+      <li><strong>수행 양식 준비:</strong> Excel(.xlsx/.xls) 또는 CSV 파일을 선택합니다. 업로드 미리보기에서 원본 내용이 맞는지 확인하고, 선수에게 입력을 허용할 필드를 지정합니다.</li>
+      <li><strong>미션 정보 입력:</strong> 제목, 기한, 미션 내용을 작성합니다. 파일·대상·기한 및 입력 허용 칸을 확인한 뒤 <strong>업로드 미션등록</strong>을 눌러 배포합니다. 등록 완료 메시지와 수행미션 목록의 대상 선수를 확인합니다.</li>
+      <li><strong>대화로 안내:</strong> 수행미션 카드에서 해당 항목을 선택하고 기록 유형을 <strong>미션 지시</strong>, <strong>피드백</strong>, <strong>질문/메모</strong> 중 고릅니다. 대상 선수를 확인하고 메시지를 작성해 <strong>전송</strong>합니다. 전체 선수 공지는 전체 선택 기능을 사용하기 전에 수신 범위를 다시 확인합니다.</li>
+    </ol>
+    <h3>코치: 진행 확인과 응답</h3>
     <ul>
-      <li>대상 선수를 선택하고 Excel(.xlsx/.xls) 또는 CSV 미션 파일을 올리거나 직접 미션 제목·내용·기한을 입력합니다.</li>
-      <li>수행미션 목록에서 항목을 열어 대화 유형(미션 지시/피드백/질문·메모), 선수, 메시지를 작성하고 전송합니다. 전체 선수 공지는 대상 범위를 확인한 뒤 사용합니다.</li>
-      <li>선수가 보낸 결과는 선수 관리의 전송 데이터 목록에서 최신 데이터 동기화 후 확인할 수 있습니다.</li>
-      <li>미션 삭제·재배정은 영향을 받는 선수를 확인하고 신중히 진행합니다. 배정된 기한을 지키고 완료 기록이 공유됐는지 확인하세요.</li>
+      <li><strong>미션 진행상황 동기화</strong>를 눌러 최신 미션과 결과를 불러옵니다. 선수 필터와 날짜가 표시되면 확인하려는 선수/배정일로 맞춥니다. 미션 카드를 열면 해당 항목의 대화 기록과 제출 결과를 확인할 수 있습니다.</li>
+      <li>선수의 질문/메모에는 같은 미션 항목을 선택해 <strong>피드백</strong> 또는 <strong>질문/메모</strong> 유형으로 답변합니다. 전송 후 메시지가 대화 목록에 나타나는지 확인합니다.</li>
+      <li>미션 카드의 재배정/삭제는 선택한 선수에게 미치는 영향을 확인한 뒤 사용합니다. 이미 제출된 결과가 필요한 경우 삭제 전에 별도로 보관하고, 과제 기한과 완료 여부를 확인하세요.</li>
+      <li>M1/M2 세션 파일은 미션 결과와 별개입니다. 코치가 선수의 M1/M2 기록까지 검토하려면 선수에게 7) 데이터 전송을 요청한 뒤 8) 선수 관리의 전송 데이터에서 <strong>최신 데이터 동기화</strong>를 실행합니다.</li>
     </ul>
+    <div class="callout warning"><strong>제출 확인:</strong> 전송/저장 후 표시되는 완료 안내를 확인하세요. 동기화가 지연되면 네트워크 상태를 점검하고 다시 동기화한 뒤, 동일 결과를 중복 제출하지 않았는지 확인합니다.</div>
     <h3>선수 관리(코치 전용)</h3>
     <p>가입 신청을 검토해 승인하고, 선수를 직접 등록하거나 등록 목록을 관리합니다. 자가 가입에 사용할 가입 코드를 설정할 수 있습니다. 승인 전 계정은 로그인이 제한될 수 있으므로 신청자 이름을 확인한 후 처리하세요.</p>
     <div class="callout warning">미션 첨부파일이 업로드되지 않으면 네트워크나 저장소 연결을 확인하세요. 업로드 실패 시 로컬 화면에만 남을 수 있으므로 동기화 상태를 점검한 뒤 선수에게 배포 여부를 안내합니다.</div>
@@ -266,7 +320,9 @@
   <section class="chapter-page" id="ko-data">
     <p class="chapter-kicker">CHAPTER 08</p><h2>데이터 전송·CSV·문제 해결</h2>
     <h3>선수 결과 전송</h3>
-    <p><strong>7) 데이터</strong>에서 현재 선수와 세션 날짜의 M1/M2 기록을 코치에게 전송합니다. 코치는 <strong>8) 선수 관리 → 전송된 선수 데이터 → 최신 데이터 동기화</strong>를 눌러 목록을 갱신합니다. 전송 완료 메시지와 코치 측 목록을 모두 확인하세요.</p>
+    <p>M1/M2 입력 화면의 <strong>저장</strong>은 해당 선수·세션에 기록을 저장하는 동작이며, 코치에게 제출하는 동작과는 다릅니다. 세션 기록을 제출하려면 선수가 <strong>7) 데이터 관리</strong>에서 <strong>전송</strong>을 눌러야 합니다. 전송 버튼은 현재 선수·선택 날짜의 M1/M2 기록을 묶어 보내며, 전송 건수와 파일명이 표시되는 완료 안내를 확인하세요. 전송하려는 날짜와 선수 이름이 맞는지 먼저 확인합니다.</p>
+    <p>그 다음 코치는 <strong>8) 선수 관리 → 전송된 선수 데이터 → 최신 데이터 동기화</strong>를 눌러 목록을 갱신합니다. 코치가 해당 파일 행을 선택하면 그 선수/날짜 기록을 분석·시각화 화면에서 확인할 수 있습니다. 선수 측 전송 확인과 코치 측 목록/분석 화면을 모두 확인해야 전달 여부를 확실히 검증할 수 있습니다. 네트워크 또는 클라우드 연결이 없으면 동기화가 지연될 수 있습니다.</p>
+    <div class="callout warning"><strong>중요:</strong> 미션의 대화창에서 결과를 전송하는 것과 7) 데이터의 M1/M2 세션 기록 전송은 별개의 기능입니다. 코치가 미션 결과와 훈련 데이터 둘 다 요청했다면 각각 제출하세요.</div>
     <h3>CSV 내보내기와 불러오기(코치 화면)</h3>
     <ul>
       <li><strong>CSV 다운로드</strong>는 현재 내보낼 수 있는 세션 기록을 파일로 저장합니다. 보관·외부 분석 전 파일을 안전한 위치에 저장합니다.</li>
@@ -355,48 +411,84 @@
 
   <section class="chapter-page" id="en-workflow">
     <p class="chapter-kicker">CHAPTER 02</p><h2>First Use and Practice Flow</h2>
+    <figure class="screen-capture">
+      <img src="manual-main-screen-en.png" alt="English SY-PTS main screen showing the language and session controls, menu buttons 1 through 8, and Framework section.">
+      <figcaption><strong>Figure 1. Main screen example</strong> — Captured from the app without personal training records. Menus may differ by role; coach-only functions are hidden or disabled for players.</figcaption>
+    </figure>
+    <h3>Main-screen buttons and menus</h3>
+    <table class="button-guide"><thead><tr><th>Button/area</th><th>Purpose and how to use it</th></tr></thead><tbody>
+      <tr><td>Language selector</td><td>Switches the interface between Korean and English, including metric explanations and Player Management labels.</td></tr>
+      <tr><td>↻ New Start</td><td>After confirmation, deletes saved training records for the current player and session date and clears that player's unsaved draft. This is not a form-clear or navigation button. Verify the player/date and export a CSV backup first; deletion is difficult to undo.</td></tr>
+      <tr><td>⏻ Logout</td><td>Signs out to the access screen. Use it before signing in as another player or role.</td></tr>
+      <tr><td>1) Framework</td><td>Review practice principles for Low-Point, slope direction/magnitude, High-side, speed priority, and the Address-to-Putt 5-second routine. <strong>Usage Guide</strong> opens the basic procedures for M1, M2, and Coach Mission.</td></tr>
+      <tr><td>2) M1 Input</td><td>Save one record per putt: distance, result, predicted/actual Low-Point, miss cause, within-5-second response, and High-side commitment. See the M1 chapter for each field.</td></tr>
+      <tr><td>3) M2 Input</td><td>Save one record per attempt: distance, green speed, actual slope level, putting type, and finish category relative to the hole. See the M2 chapter for each field.</td></tr>
+      <tr><td>4) Analysis</td><td>Review SRI/SII/DCS, three-stage metrics, miss analysis, miss types, and M1/M2 distance summaries. Click metric titles for explanations; <strong>Download Analysis PDF</strong> generates a PDF of this section.</td></tr>
+      <tr><td>5) Visualization</td><td>Review the M1 left/right outcome heatmap, M2 finish-offset heatmap, and Bayesian make-probability estimate. Click chart titles for explanations; <strong>Download Visualization PDF</strong> creates a PDF of the section.</td></tr>
+      <tr><td>6) Coach Mission</td><td>Players review assigned missions and deadlines and send results, questions, or notes. Coaches assign missions to selected players and manage feedback.</td></tr>
+      <tr><td>7) Data</td><td>Players send current-session M1/M2 records to the coach. Coaches can download/import CSV files and manage mission result files.</td></tr>
+      <tr><td>8) Players (Coach only)</td><td>Review/approve or reject signup requests, register players, reset passwords or delete accounts, set signup codes, and sync submitted player data.</td></tr>
+    </tbody></table>
     <ol class="steps">
-      <li>After signing in, review the <strong>Framework</strong> and the Usage Guide.</li>
-      <li>Choose the practice assigned by your coach. M1 generally records lie/direction decisions; M2 records actual pace/finish outcomes.</li>
-      <li>Immediately after each putt, select the relevant entries in the appropriate section and press <strong>Save</strong>.</li>
-      <li>Review cumulative results in <strong>Analysis</strong> and <strong>Visualization</strong>. Treat small samples as trends, not firm conclusions.</li>
-      <li>If a coach assigned a mission, check its instructions and due date, complete it, and share the result as directed.</li>
+      <li>After signing in, verify the player, date, and role shown at the top, then review <strong>Framework</strong> and its Usage Guide.</li>
+      <li>Open <strong>M1</strong> or <strong>M2</strong> as instructed by the coach. If both drills are performed, enter each putt in the appropriate form.</li>
+      <li>Record the outcome immediately after the putt and press <strong>Save</strong>. Read the success message before starting the next entry.</li>
+      <li>Coaches can review cumulative results in <strong>Analysis</strong> and <strong>Visualization</strong>. Treat small samples as trends, not firm conclusions.</li>
+      <li>If a coach assigned a mission, review its instructions and due date in <strong>Coach Mission</strong> and share the result as directed.</li>
     </ol>
-    <p>Use the large section buttons at the top of the app to navigate. Records are saved to the app session. Cloud sync may take time depending on network connectivity.</p>
-    <div class="callout">Avoid saving the same putt twice if an entry was incorrect. Export important data as CSV for safekeeping. Import operations can affect existing records, so create a backup first.</div>
+    <p>Select a menu card to open its section; the active section is highlighted. Players may not see coach-only menus or controls. Player-data transfer and cloud synchronization require a network connection.</p>
+    <div class="callout warning">After a successful save, fields return to their defaults for the next putt. Check the save confirmation to avoid duplicate entries. Back up data before New Start or any CSV overwrite operation.</div>
   </section>
 
   <section class="chapter-page" id="en-m1">
     <p class="chapter-kicker">CHAPTER 03</p><h2>Recording M1 Lie/Direction Decisions</h2>
     <p>M1 records the lie decision and outcome cause for one putt. Follow the actual practice procedure and coach’s instructions, and enter the observed result of that shot.</p>
-    <table><thead><tr><th>Field</th><th>How to enter it</th></tr></thead><tbody>
-      <tr><td>Distance</td><td>Select the distance band: within 5y, 5–7y, 7–9y, 9–11y, or 11y or more.</td></tr>
-      <tr><td>Putt Result</td><td>Select Holed, Left Miss, or Right Miss.</td></tr>
-      <tr><td>Predicted Low-Point</td><td>Select the perceived low-point/gravity-flow direction before putting: left, right, or flat.</td></tr>
-      <tr><td>Actual Low-Point</td><td>Select the actual direction according to the practice reference. This is compared with your prediction.</td></tr>
-      <tr><td>Miss Type</td><td>Select No Miss (Holed), Direction Miss, Speed Miss, or Direction + Speed Miss.</td></tr>
-      <tr><td>Stroke Time</td><td>Answer whether more than 5 seconds elapsed from address to stroke. “No” means within 5 seconds.</td></tr>
-      <tr><td>High-side Commit</td><td>Record Yes/No for maintaining the High-side line commitment prescribed by your coach.</td></tr>
+    <figure class="screen-capture">
+      <img src="manual-m1-screen-en.png" alt="M1 input screen showing distance, putt result, predicted and actual Low-Point, miss type, stroke time, High-side commitment, and Save button.">
+      <figcaption><strong>Figure 2. M1 input screen</strong> — This is the app's default-form example. Select the observed values for every putt before saving.</figcaption>
+    </figure>
+    <table class="field-guide"><thead><tr><th>Field</th><th>When/what to enter</th><th>Selection guide</th></tr></thead><tbody>
+      <tr><td>Distance (yd)</td><td>Select the distance band for this attempt before entering the result.</td><td>Within 5y, 5–7y, 7–9y, 9–11y, or 11y or more. These are analysis categories, not exact yardage measurements.</td></tr>
+      <tr><td>Putt Result</td><td>Record the observed outcome immediately after the ball stops.</td><td>Select Holed, Left Miss, or Right Miss. Use the actual result rather than a predicted direction.</td></tr>
+      <tr><td>Predicted Low-Point</td><td>Record the perceived slope-flow/low-point direction before the stroke.</td><td>Select Left, Right, or Flat. This is the Low-Point direction defined by the drill, not the putt direction or where the ball stopped.</td></tr>
+      <tr><td>Actual Low-Point</td><td>After the putt, enter the actual direction established by the practice reference.</td><td>Select Left, Right, or Flat. This is compared with the prediction. The app does not measure the green; use the coach/drill reference.</td></tr>
+      <tr><td>Miss Type</td><td>Classify the cause when the putt is missed.</td><td>Select Direction Miss, Speed Miss, or Direction + Speed Miss. A holed result is forced to No Miss. A missed result with No Miss selected cannot be saved; the app asks for a miss type.</td></tr>
+      <tr><td>Stroke Time (Over 5s?)</td><td>Recall the time from address to stroke.</td><td>No = within 5 seconds; Yes = more than 5 seconds. This is not a measured time in seconds.</td></tr>
+      <tr><td>High-side Commit</td><td>Record whether you committed to the High-side line taught by the coach.</td><td>Select Yes or No. The app does not detect commitment or the actual line from video; this is a self-reported entry.</td></tr>
+      <tr><td>Save</td><td>Review the fields and press once for each putt.</td><td>A success/score message appears and the form returns to defaults. Recheck all fields, including distance, before the next putt.</td></tr>
     </tbody></table>
     <ol class="steps">
-      <li>Select the distance band, read the lie, and enter the predicted Low-Point.</li>
-      <li>After the putt, enter the actual result and miss type, then confirm the actual Low-Point.</li>
-      <li>Record the 5-second response and High-side commitment, then press <strong>Save</strong>.</li>
+      <li><strong>Before the putt:</strong> Select the distance band, read the slope as instructed, and record your predicted Low-Point.</li>
+      <li><strong>Immediately after:</strong> Enter Holed/Left/Right. If missed, select Direction, Speed, or combined cause; a holed result does not need a miss cause.</li>
+      <li><strong>After confirming:</strong> Enter the actual Low-Point using the drill reference, then answer the within-5-second and High-side commitment questions.</li>
+      <li><strong>Review and save:</strong> Confirm that every field describes the same putt and press <strong>Save</strong> once. Check the result before entering another putt.</li>
     </ol>
-    <div class="callout warning"><strong>Measurement limits</strong><br>The current M1 form does not collect lateral error in centimeters, directly observed start-line accuracy, or Apex commitment. Miss causes depend on user classification; the app does not infer stroke direction or High-side from video.</div>
+    <div class="callout"><strong>M1 score:</strong> A holed putt earns 10 points, a putt classified as a speed miss earns 5, and a direction or combined miss earns 0. The score depends on the entered miss type, so classify it accurately.</div>
+    <div class="callout warning"><strong>Not collected:</strong> The current M1 form does not collect lateral error in centimeters, directly observed start-line accuracy, or Apex commitment. Actual Low-Point and miss type are user-entered; they are not inferred from video.</div>
   </section>
 
   <section class="chapter-page" id="en-m2">
     <p class="chapter-kicker">CHAPTER 04</p><h2>Recording M2 Pace/Finish Outcomes</h2>
     <p>M2 records a category describing where the ball finished relative to the hole. It is not a precise comparison between a planned pace and the actual finish.</p>
-    <table><thead><tr><th>Field</th><th>How to enter it</th></tr></thead><tbody>
-      <tr><td>Distance</td><td>Select a band from within 5y through 11y or more.</td></tr>
-      <tr><td>Green Speed</td><td>Select Very Slow, Slow, Medium, Fast, or Very Fast.</td></tr>
-      <tr><td>Actual Slope</td><td>Select Uphill 1–3, Flat (0), or Downhill 1–3. This is not compared with a predicted slope.</td></tr>
-      <tr><td>Putting Type</td><td>Select Straight, Break Left, or Break Right.</td></tr>
-      <tr><td>Actual Finish</td><td>Select the finish band: within 30cm of the hole, 30cm or more over/short, or 1m or more over/short.</td></tr>
+    <figure class="screen-capture">
+      <img src="manual-m2-screen-en.png" alt="M2 input screen showing distance, green speed, actual slope, putting type, Actual Finish, and Save button.">
+      <figcaption><strong>Figure 3. M2 input screen</strong> — This is the default-form example. Select the observed finish category after each putt.</figcaption>
+    </figure>
+    <table class="field-guide"><thead><tr><th>Field</th><th>When/what to enter</th><th>Selection guide</th></tr></thead><tbody>
+      <tr><td>Distance (yd)</td><td>Select the distance band for the attempt.</td><td>Within 5y, 5–7y, 7–9y, 9–11y, or 11y or more. The Analysis table and heatmap use the same categories.</td></tr>
+      <tr><td>Green Speed</td><td>Select the green condition for the practice session.</td><td>Very Slow, Slow, Medium, Fast, or Very Fast. Use the coach's definitions consistently; this is not a field for a measured Stimpmeter reading.</td></tr>
+      <tr><td>Actual Slope %</td><td>Select the actual slope direction and training level.</td><td>Uphill 1/2/3, Flat, or Downhill 1/2/3. It is a category, not an exact percentage input, and is not used to score slope-prediction accuracy.</td></tr>
+      <tr><td>Putting Type</td><td>Select the path/break type of the putt.</td><td>Straight, Break Left, or Break Right. Apply the coach's directional definition consistently.</td></tr>
+      <tr><td>Actual Finish</td><td>After the ball stops, select its finish relative to the hole.</td><td>1m or more over (+100), 30cm or more over (+30), within −30 to +30cm (0), 30cm or more short (−30), or 1m or more short (−100).</td></tr>
+      <tr><td>Save</td><td>Review the five fields and press once for each attempt.</td><td>A success message shows green speed, type, finish, and score. The form returns to defaults, so set the next attempt's values again.</td></tr>
     </tbody></table>
-    <p>The finish outcome is converted to a score: category 0 = 10 points, ±30 = 7 points, and ±100 = 3 points. The cumulative average is the M2 score average for the session.</p>
+    <ol class="steps">
+      <li><strong>Before the putt:</strong> Select the distance, green speed, actual slope level, and putting type specified for the drill.</li>
+      <li><strong>After the putt:</strong> Observe whether the ball finished past or short of the hole, then select the best matching Actual Finish category.</li>
+      <li><strong>Review and save:</strong> Make sure the conditions and finish refer to the same attempt, then press <strong>Save</strong>.</li>
+      <li><strong>Check the result:</strong> Review the success message and score/average, then reselect the next attempt's values.</li>
+    </ol>
+    <p>Score depends on the absolute category: 0 = 10 points, ±30 = 7, and ±100 = 3, regardless of over/short sign. The cumulative average is the M2 score average for the session.</p>
     <div class="callout warning"><strong>Measurement limits</strong><br>The displayed centimeter values are representative values for the selected categories (0/30/100cm), not direct measurements. The current form does not collect predicted speed, Speed Plan, or Actual Pace, so it cannot calculate planned-versus-actual speed match or predicted-slope error.</div>
   </section>
 
@@ -434,33 +526,44 @@
     <ul>
       <li><strong>Putting Miss Analysis:</strong> Review misses, Low-Point, low-side, cause classifications, and routine metrics. Click titles for definitions.</li>
       <li><strong>Miss Type Analysis:</strong> Shows counts and shares of Direction, Speed, and Direction+Speed among M1 misses.</li>
-      <li><strong>Lie Decision Training by Distance:</strong> Compares attempts, holed outcomes, and direction classification by distance. The current app converts distance bands to numbers for this table, so category bands may be combined into one group. Do not rely on the displayed distance breakdown in that case; use overall results or source records.</li>
+      <li><strong>Lie Decision Training by Distance:</strong> Compares attempts, holed outcomes, and direction classification across the within-5y, 5–7y, 7–9y, 9–11y, and 11y-or-more categories. These are entered distance bands, not exact yardage measurements.</li>
       <li><strong>Speed Decision Training by Distance:</strong> Shows in-range, over, and short shares by distance band, green speed, and putting type. Valid M2 finish records are used.</li>
     </ul>
     <h3>Visualization</h3>
     <ul>
-      <li><strong>Left / Right Error Heatmap:</strong> Shows the distribution of left, holed, and right results by distance bin. It does not measure video motion or exact ball deviation.</li>
+      <li><strong>Left / Right Error Heatmap:</strong> Shows left, holed, and right M1 outcomes by the same five distance categories (within 5y through 11y or more). It does not measure video motion or exact ball deviation.</li>
       <li><strong>Finish Offset Heatmap (M2):</strong> Average category-based absolute finish offset by distance and actual slope level. Values are not direct distance measurements.</li>
       <li><strong>Bayesian Skill Update:</strong> Updates a Beta(1,1) prior using M1 holed/missed outcomes and displays an estimated make-probability mean and interval. Uncertainty is substantial with small samples.</li>
     </ul>
-    <p>Select <strong>Download Analysis PDF</strong> in Analysis or <strong>Download Visualization PDF</strong> in Visualization to print/save that section as PDF. Select Save as PDF in the browser’s print dialog. PDF generation may depend on connectivity and browser print settings.</p>
+    <p>Select <strong>Download Analysis PDF</strong> or <strong>Download Visualization PDF</strong> to capture the corresponding section and generate/download an A4 PDF file directly. If the external PDF library is unavailable or capture/generation fails, the app displays an error. These buttons do not open the browser print dialog.</p>
   </section>
 
   <section class="chapter-page" id="en-coach">
     <p class="chapter-kicker">CHAPTER 07</p><h2>Coach Missions and Player Management</h2>
-    <h3>Players: review missions and share results</h3>
+    <p><strong>6) Coach Mission</strong> is the workspace for assigning practice tasks and exchanging task results, questions, and feedback. Mission conversations/results are stored separately from M1/M2 putt records, so enter each type in its own section when requested.</p>
+    <h3>Players: review an assignment and submit results</h3>
     <ol class="steps">
-      <li>Open <strong>Coach Mission</strong> and review the instructions, attachments, assignee, and due date.</li>
-      <li>Complete the drill and enter M1/M2 records in the corresponding training section when requested.</li>
-      <li>Use the mission conversation to send a result, question, or note as directed. If requested, use section 7 Data to send training records.</li>
+      <li><strong>Check the mission list.</strong> If a new assignment is missing or the list looks out of date, select <strong>Sync Mission Progress</strong>. If a date selector is shown, select the date of the assignment.</li>
+      <li><strong>Open the mission card.</strong> Select its title to expand the instructions and source worksheet. Check the due date and assigned date; ask the coach if anything is unclear before starting.</li>
+      <li><strong>Record your work.</strong> If the card has a <strong>Result Record Form</strong>, open it and fill only the fields enabled by the coach. Enter the date performed and a result note, then select <strong>Save Result</strong>. If no form is provided, use the conversation area, choose <strong>Question/Note</strong> or the type requested by the coach, write the result, and select <strong>Send</strong>.</li>
+      <li><strong>Confirm submission.</strong> Check for the “Result saved and shared with your coach” message. For worksheets with formulas, review the updated calculated values before submitting.</li>
+      <li><strong>Keep training records separate.</strong> Saving a putt in M1/M2 stores it in the current player/date session; it does <strong>not</strong> submit it to the coach's submitted-data list. When asked to share session records, finish saving the M1/M2 entries, then go to <strong>7) Data Management → Send</strong> and confirm the filename/count message.</li>
     </ol>
-    <h3>Coaches: assign missions and provide feedback</h3>
+    <h3>Coaches: create and assign a task</h3>
+    <ol class="steps">
+      <li><strong>Select recipients:</strong> In the mission assignment area, select the intended players. Multiple-player or all-player selection can widen the audience, so verify the names and scope.</li>
+      <li><strong>Prepare a result worksheet:</strong> Choose an Excel (.xlsx/.xls) or CSV file. Review the upload preview and specify which fields players are allowed to enter.</li>
+      <li><strong>Enter mission details:</strong> Add the title, due date, and instructions. Verify the file, recipients, deadline, and editable fields, then select <strong>Register Uploaded Mission</strong>. Check the confirmation and the assigned players in the mission list.</li>
+      <li><strong>Send instructions:</strong> Open the relevant mission item, choose <strong>Mission</strong>, <strong>Feedback</strong>, or <strong>Question/Note</strong> as the message type, verify the recipient, write the message, and select <strong>Send</strong>. Recheck the audience before broadcasting to all players.</li>
+    </ol>
+    <h3>Coaches: review progress and reply</h3>
     <ul>
-      <li>Select target players and upload an Excel (.xlsx/.xls) or CSV mission file, or enter the mission title, details, and due date directly.</li>
-      <li>Open an assigned mission, choose a message type (Mission, Feedback, or Question/Note), verify the player, write the message, and send. Check the recipient list before broadcasting.</li>
-      <li>After syncing, review player submissions in the Player Management data list.</li>
-      <li>Check affected players before deleting or reassigning a mission. Track its due date and confirm completion results have been shared.</li>
+      <li>Select <strong>Sync Mission Progress</strong> to load the latest assignments and results. If player/date filters appear, select the intended player and assignment date. Open a mission card to review its conversation and submitted result.</li>
+      <li>To answer a player, select the same mission item, choose <strong>Feedback</strong> or <strong>Question/Note</strong>, write the reply, and send it. Confirm that it appears in the conversation list.</li>
+      <li>Before using a mission card’s reassign/delete controls, check which players are affected. Keep any submitted result you still need before deletion, and review the due date and completion status.</li>
+      <li>M1/M2 session files are separate from mission results. To review those records, ask the player to send them through 7) Data, then use <strong>Sync Latest Data</strong> in 8) Players.</li>
     </ul>
+    <div class="callout warning"><strong>Submission check:</strong> Read the save/send confirmation. If synchronization is delayed, check the network and sync again; avoid submitting the same result twice.</div>
     <h3>Player Management (coach only)</h3>
     <p>Review and approve signup requests, register players directly, manage the player list, and set the code used for player signup. Verify the applicant’s name before approval; accounts may not sign in until approved.</p>
     <div class="callout warning">If a mission attachment does not upload, check connectivity and storage status. A failed upload may remain local only; verify sync before telling players that the mission is available.</div>
@@ -469,7 +572,9 @@
   <section class="chapter-page" id="en-data">
     <p class="chapter-kicker">CHAPTER 08</p><h2>Data Transfer, CSV, and Troubleshooting</h2>
     <h3>Sending player records</h3>
-    <p>In <strong>7) Data</strong>, send the current player’s M1/M2 records for the selected session date to the coach. The coach can refresh the list with <strong>8) Player Management → Submitted Player Data → Sync Latest Data</strong>. Confirm both the success message and the coach-side listing.</p>
+    <p>Saving an M1/M2 putt stores it in the current player/date session; it does <strong>not</strong> by itself submit the record to the coach’s submitted-data list. To submit the session, the player must open <strong>7) Data Management</strong>, select <strong>Send</strong>, and confirm the completion message showing the file name and record count. The button sends the current player’s M1/M2 records for the selected session date, so verify the player and date first.</p>
+    <p>The coach then opens <strong>8) Players → Submitted Player Data → Sync Latest Data</strong> to refresh the list. Selecting the uploaded file loads that player/date’s records for Analysis and Visualization. Confirm both the player-side send message and the coach-side list/analysis view. Network or cloud availability can delay synchronization.</p>
+    <div class="callout warning"><strong>Important:</strong> Sending a result in a Coach Mission conversation is separate from sending session-wide M1/M2 training data through section 7. Submit each separately if the coach requests both.</div>
     <h3>CSV export/import (coach view)</h3>
     <ul>
       <li><strong>Download CSV</strong> saves the session records available for export. Store the file safely before external analysis.</li>
