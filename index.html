@@ -1003,18 +1003,18 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="section" id="section-players">
 <div class="panel panel-data">
-    <h2>👥 선수 관리</h2>
-    <div class="small">가입 신청 승인 및 등록된 선수 명단을 관리합니다. (지도자 전용)</div>
+    <h2 id="playersSectionTitle">👥 선수 관리</h2>
+    <div class="small" id="playersSectionDesc">가입 신청 승인 및 등록된 선수 명단을 관리합니다. (지도자 전용)</div>
 
     <!-- 등록 신청 승인 관리 -->
-    <div class="players-section-title">🔔 등록 신청 대기 <span class="player-badge-pending" id="pendingCountBadge">0</span></div>
-    <div class="small" style="margin-bottom:8px; color:#78350f;">선수가 자가 가입한 신청 목록입니다. 승인하면 로그인이 허용됩니다.</div>
+    <div class="players-section-title"><span id="pendingPlayersTitle">🔔 등록 신청 대기</span> <span class="player-badge-pending" id="pendingCountBadge">0</span></div>
+    <div class="small" id="pendingPlayersDesc" style="margin-bottom:8px; color:#78350f;">선수가 자가 가입한 신청 목록입니다. 승인하면 로그인이 허용됩니다.</div>
     <div id="pendingApprovalWrap">
         <div class="mission-upload-list" id="pendingPlayerList"></div>
     </div>
 
     <!-- 등록된 선수 명단 -->
-    <div class="players-section-title" style="margin-top:20px;">📋 등록된 선수 <span class="player-count-badge" id="registeredCountBadge">0</span></div>
+    <div class="players-section-title" style="margin-top:20px;"><span id="registeredPlayersTitle">📋 등록된 선수</span> <span class="player-count-badge" id="registeredCountBadge">0</span></div>
     <div class="form-grid" style="margin-top:8px;" id="coachPlayerRegisterWrap">
         <div class="field">
             <label for="registerPlayerName">선수 이름</label>
@@ -1050,8 +1050,8 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     </div>
 
     <!-- 선수 전송 데이터 목록 -->
-    <div class="players-section-title" style="margin-top:20px;">📥 전송된 선수 데이터</div>
-    <div class="small" style="margin-bottom:8px; color:#3d5fa1;">선수가 7)데이터 메뉴에서 전송한 M1/M2 결과 파일 목록입니다. 최신 데이터 확인 시 동기화 버튼을 눌러주세요.</div>
+    <div class="players-section-title" id="uploadedPlayerDataTitle" style="margin-top:20px;">📥 전송된 선수 데이터</div>
+    <div class="small" id="uploadedPlayerDataDesc" style="margin-bottom:8px; color:#3d5fa1;">선수가 7)데이터 메뉴에서 전송한 M1/M2 결과 파일 목록입니다. 최신 데이터 확인 시 동기화 버튼을 눌러주세요.</div>
     <div style="margin-bottom:8px;">
         <button id="syncPlayerDataBtn" type="button" class="secondary-btn">☁️ 최신 데이터 동기화</button>
         <span id="syncPlayerDataResult" style="margin-left:10px; font-size:12px; color:#3d5fa1;"></span>
@@ -1390,6 +1390,35 @@ const UI_I18N = {
         missionTypeLabel: "기록 유형",
         missionSendBtn: "전송",
         missionTargetLabel: "대상 선수",
+        playersSectionTitle: "👥 선수 관리",
+        playersSectionDesc: "가입 신청을 승인하고 등록된 선수 명단을 관리합니다. (지도자 전용)",
+        pendingPlayersTitle: "🔔 등록 신청 대기",
+        pendingPlayersDesc: "선수가 자가 가입한 신청 목록입니다. 승인하면 로그인이 허용됩니다.",
+        noPendingPlayers: "등록 신청이 없습니다.",
+        pendingApplicationDate: "신청일: {{date}}",
+        approvePlayer: "✅ 승인",
+        rejectPlayer: "❌ 거절",
+        registeredPlayersTitle: "📋 등록된 선수",
+        signupCodeSettingTitle: "🔑 가입 코드 설정",
+        signupCodeSettingDesc: "선수 자가 가입 시 입력해야 하는 코드를 설정합니다. 지도자 전용입니다.",
+        signupCodeInputLabel: "새 가입 코드",
+        signupCodeInputPh: "코드 입력",
+        signupCodeConfirmLabel: "코드 확인",
+        signupCodeConfirmPh: "동일하게 입력",
+        saveSignupCode: "가입 코드 저장",
+        uploadedPlayerDataTitle: "📥 전송된 선수 데이터",
+        uploadedPlayerDataDesc: "선수가 7)데이터 메뉴에서 전송한 M1/M2 결과 파일 목록입니다. 최신 데이터 확인 시 동기화 버튼을 눌러주세요.",
+        syncPlayerData: "☁️ 최신 데이터 동기화",
+        noPendingPlayerData: "전송된 데이터가 없습니다.",
+        uploadedPlayerDataTitleText: "클릭하면 4)분석/5)시각화에 표시됩니다",
+        uploadedPlayerDataRow: "{{count}}건 확인▶",
+        pendingPlayerRejectConfirm: "'{{name}}' 선수의 등록 신청을 거절하시겠습니까?",
+        playerDataFileDateError: "파일명에서 날짜를 파싱할 수 없습니다.\n{{fileName}}",
+        playerDataLoaded: "✅ {{playerName}} 선수의 {{date}} 데이터 표시 중 — 4)분석 / 5)시각화를 확인하세요",
+        playerDataSyncing: "동기화 중…",
+        playerDataSyncComplete: "✅ 동기화 완료 ({{time}})",
+        playerDataCloudUnavailable: "⚠️ 클라우드 미연결",
+        playerDataSyncFailed: "❌ 동기화 실패: {{message}}",
         registerPlayerNameLabel: "선수 등록 이름",
         registerPlayerPassLabel: "선수 비밀번호",
         registerPlayerNamePh: "예: 유수연",
@@ -1582,6 +1611,35 @@ const UI_I18N = {
         missionTypeLabel: "Record Type",
         missionSendBtn: "Send",
         missionTargetLabel: "Target Player",
+        playersSectionTitle: "👥 Player Management",
+        playersSectionDesc: "Review signup requests and manage registered players. (Coach only)",
+        pendingPlayersTitle: "🔔 Pending Sign-up Requests",
+        pendingPlayersDesc: "Players who signed up themselves appear here. Approving a request allows the player to log in.",
+        noPendingPlayers: "No sign-up requests.",
+        pendingApplicationDate: "Requested: {{date}}",
+        approvePlayer: "✅ Approve",
+        rejectPlayer: "❌ Reject",
+        registeredPlayersTitle: "📋 Registered Players",
+        signupCodeSettingTitle: "🔑 Sign-up Code Settings",
+        signupCodeSettingDesc: "Set the code players must enter when signing themselves up. Coach only.",
+        signupCodeInputLabel: "New Sign-up Code",
+        signupCodeInputPh: "Enter code",
+        signupCodeConfirmLabel: "Confirm Code",
+        signupCodeConfirmPh: "Enter the same code",
+        saveSignupCode: "Save Sign-up Code",
+        uploadedPlayerDataTitle: "📥 Player Data Received",
+        uploadedPlayerDataDesc: "M1/M2 result files sent by players from menu 7) Data. Sync to check for the latest files.",
+        syncPlayerData: "☁️ Sync Latest Data",
+        noPendingPlayerData: "No player data received.",
+        uploadedPlayerDataTitleText: "Click to show in 4) Analysis / 5) Visualization",
+        uploadedPlayerDataRow: "View {{count}} rows ▶",
+        pendingPlayerRejectConfirm: "Reject the sign-up request from '{{name}}'?",
+        playerDataFileDateError: "Could not parse the date from the file name.\n{{fileName}}",
+        playerDataLoaded: "✅ Showing {{playerName}}’s data for {{date}} — see 4) Analysis / 5) Visualization",
+        playerDataSyncing: "Syncing…",
+        playerDataSyncComplete: "✅ Sync complete ({{time}})",
+        playerDataCloudUnavailable: "⚠️ Cloud is not connected",
+        playerDataSyncFailed: "❌ Sync failed: {{message}}",
         registerPlayerNameLabel: "Player Name",
         registerPlayerPassLabel: "Player Password",
         registerPlayerNamePh: "e.g., Yoo Suyeon",
@@ -3598,6 +3656,22 @@ class PuttingTrainingApp {
             if (typeQuestion) typeQuestion.textContent = this.t("missionTypeQuestion");
         }
 
+        setText("#playersSectionTitle", this.t("playersSectionTitle"));
+        setText("#playersSectionDesc", this.t("playersSectionDesc"));
+        setText("#pendingPlayersTitle", this.t("pendingPlayersTitle"));
+        setText("#pendingPlayersDesc", this.t("pendingPlayersDesc"));
+        setText("#registeredPlayersTitle", this.t("registeredPlayersTitle"));
+        setText("#signupCodeSettingTitle", this.t("signupCodeSettingTitle"));
+        setText("#signupCodeSettingDesc", this.t("signupCodeSettingDesc"));
+        setText("#signupCodeInputLabel", this.t("signupCodeInputLabel"));
+        setPlaceholder("#signupCodeInput", this.t("signupCodeInputPh"));
+        setText("#signupCodeConfirmLabel", this.t("signupCodeConfirmLabel"));
+        setPlaceholder("#signupCodeConfirm", this.t("signupCodeConfirmPh"));
+        setText("#saveSignupCodeBtn", this.t("saveSignupCode"));
+        setText("#uploadedPlayerDataTitle", this.t("uploadedPlayerDataTitle"));
+        setText("#uploadedPlayerDataDesc", this.t("uploadedPlayerDataDesc"));
+        setText("#syncPlayerDataBtn", this.t("syncPlayerData"));
+
         const exportSection = document.getElementById("section-export");
         if (exportSection) {
             const exportH2 = document.getElementById("sectionExportTitle");
@@ -3906,16 +3980,16 @@ class PuttingTrainingApp {
         const esc = v => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
         const rows = (this.missionResultUploads || []).filter((item) => !item.missionDefinition).slice().reverse().slice(0, 30);
         if (!rows.length) {
-            target.innerHTML = `<div class="mission-thread-empty">전송된 데이터가 없습니다.</div>`;
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("noPendingPlayerData")}</div>`;
             return;
         }
         target.innerHTML = rows.map(item => `
-            <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; cursor:pointer;" data-file-name="${esc(item.fileName || "")}" data-uploaded-by="${esc(item.uploadedBy || "")}" title="클릭하면 4)엄석/5)시각화에 표시됩니다">
+            <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; cursor:pointer;" data-file-name="${esc(item.fileName || "")}" data-uploaded-by="${esc(item.uploadedBy || "")}" title="${esc(this.t("uploadedPlayerDataTitleText"))}">
                 <div>
                     <b>${esc(item.fileName || "-")}</b>
                     <span class="player-badge-approved" style="font-size:11px;">${esc(item.uploadedBy || "-")}</span>
                 </div>
-                <div style="font-size:11px; color:#666;">${esc(item.uploadedAt || "-")} &nbsp; ${esc(item.rowCount ?? 0)}건 확인▶</div>
+                <div style="font-size:11px; color:#666;">${esc(this.formatPlayerTimestamp(item.uploadedAt))} &nbsp; ${esc(this.t("uploadedPlayerDataRow", { count: item.rowCount ?? 0 }))}</div>
             </div>
         `).join("");
     }
@@ -3931,7 +4005,7 @@ class PuttingTrainingApp {
         const playerName = uploadedBy
             || (dateMatch ? base.slice(0, base.length - 11) : base);
         if (!playerName || !sessionDate) {
-            alert("파일명에서 날짜를 파싱할 수 없습니다.\n" + fileName);
+            alert(this.t("playerDataFileDateError", { fileName }));
             return;
         }
         this.session.playerName = playerName;
@@ -3946,14 +4020,14 @@ class PuttingTrainingApp {
         });
         // 세션 정보 표시
         const result = document.getElementById("syncPlayerDataResult");
-        if (result) result.textContent = `✅ ${playerName} 담 ${sessionDate} 데이터 표시 중 — 4)분석 / 5)시각화를 확인하세요`;
+        if (result) result.textContent = this.t("playerDataLoaded", { playerName, date: sessionDate });
     }
 
     async syncPlayerData() {
         const resultEl = document.getElementById("syncPlayerDataResult");
         const btn = document.getElementById("syncPlayerDataBtn");
         if (btn) btn.disabled = true;
-        if (resultEl) resultEl.textContent = "동기화 중…";
+        if (resultEl) resultEl.textContent = this.t("playerDataSyncing");
         try {
             if (CLOUD_STATE_SERVICE && CLOUD_STATE_SERVICE.enabled) {
                 await CLOUD_STATE_SERVICE.pullFromCloud();
@@ -3962,12 +4036,12 @@ class PuttingTrainingApp {
                 this.renderPlayerDataList();
                 this.renderMissionResultUploadList();
                 this.refreshDashboard();
-                if (resultEl) resultEl.textContent = "✅ 동기화 완료 (" + new Date().toLocaleTimeString() + ")";
+                if (resultEl) resultEl.textContent = this.t("playerDataSyncComplete", { time: new Date().toLocaleTimeString(this.language === "en" ? "en-US" : "ko-KR") });
             } else {
-                if (resultEl) resultEl.textContent = "⚠️ 클라우드 미연결";
+                if (resultEl) resultEl.textContent = this.t("playerDataCloudUnavailable");
             }
         } catch(e) {
-            if (resultEl) resultEl.textContent = "❌ 동기화 실패: " + e.message;
+            if (resultEl) resultEl.textContent = this.t("playerDataSyncFailed", { message: e.message });
         } finally {
             if (btn) btn.disabled = false;
         }
@@ -4036,13 +4110,42 @@ class PuttingTrainingApp {
         storageSetItem(APP_CONFIG.PENDING_PLAYERS_KEY, JSON.stringify(this.pendingPlayers));
     }
 
+    formatPlayerTimestamp(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "-";
+
+        let date = new Date(raw);
+        if (Number.isNaN(date.getTime())) {
+            const koreanDate = /^(\d{4})[.년/-]\s*(\d{1,2})[.월/-]\s*(\d{1,2})(?:일|\.)?(?:\s*(오전|오후)\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(raw);
+            if (koreanDate) {
+                let hour = Number(koreanDate[5] || 0);
+                if (koreanDate[4] === "오후" && hour < 12) hour += 12;
+                if (koreanDate[4] === "오전" && hour === 12) hour = 0;
+                date = new Date(
+                    Number(koreanDate[1]),
+                    Number(koreanDate[2]) - 1,
+                    Number(koreanDate[3]),
+                    hour,
+                    Number(koreanDate[6] || 0),
+                    Number(koreanDate[7] || 0)
+                );
+            }
+        }
+
+        if (Number.isNaN(date.getTime())) return raw;
+        return new Intl.DateTimeFormat(this.language === "en" ? "en-US" : "ko-KR", {
+            dateStyle: "medium",
+            timeStyle: "short"
+        }).format(date);
+    }
+
     renderPendingPlayerList() {
         const target = document.getElementById("pendingPlayerList");
         const badge = document.getElementById("pendingCountBadge");
         if (badge) badge.textContent = this.pendingPlayers.length;
         if (!target) return;
         if (!this.pendingPlayers.length) {
-            target.innerHTML = `<div class="mission-thread-empty">등록 신청이 없습니다.</div>`;
+            target.innerHTML = `<div class="mission-thread-empty">${this.t("noPendingPlayers")}</div>`;
             return;
         }
         const esc = v => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -4050,11 +4153,11 @@ class PuttingTrainingApp {
             <div class="mission-upload-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                 <div>
                     <b>${esc(p.name)}</b>
-                    <span style="font-size:11px; color:#888; margin-left:8px;">신청일: ${esc(p.createdAt)}</span>
+                    <span style="font-size:11px; color:#888; margin-left:8px;">${esc(this.t("pendingApplicationDate", { date: this.formatPlayerTimestamp(p.createdAt) }))}</span>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="secondary-btn" style="background:#16a34a; color:#fff;" data-pending-action="approve" data-pending-name="${esc(p.name)}">✅ 승인</button>
-                    <button type="button" class="secondary-btn" style="background:#dc2626; color:#fff;" data-pending-action="reject" data-pending-name="${esc(p.name)}">❌ 거절</button>
+                    <button type="button" class="secondary-btn" style="background:#16a34a; color:#fff;" data-pending-action="approve" data-pending-name="${esc(p.name)}">${this.t("approvePlayer")}</button>
+                    <button type="button" class="secondary-btn" style="background:#dc2626; color:#fff;" data-pending-action="reject" data-pending-name="${esc(p.name)}">${this.t("rejectPlayer")}</button>
                 </div>
             </div>
         `).join("");
@@ -4089,7 +4192,7 @@ class PuttingTrainingApp {
     }
 
     rejectPendingPlayer(name) {
-        const confirmed = window.confirm(`'${name}' 선수의 등록 신청을 거절하시겠습니까?`);
+        const confirmed = window.confirm(this.t("pendingPlayerRejectConfirm", { name }));
         if (!confirmed) return;
         this.pendingPlayers = this.pendingPlayers.filter(p => String(p.name||"").trim() !== name);
         this.savePendingPlayers();
@@ -4156,7 +4259,7 @@ class PuttingTrainingApp {
                 <div class="mission-upload-item">
                     <div>${this.t("registerPlayerListItem", {
                         name: player.name || "-",
-                        createdAt: player.createdAt || "-"
+                        createdAt: this.formatPlayerTimestamp(player.createdAt)
                     })}</div>
                     <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
                         <button type="button" class="secondary-btn" data-player-action="reset" data-player-name="${escapeHtml(player.name || "")}">${this.t("registerPlayerResetBtn")}</button>
