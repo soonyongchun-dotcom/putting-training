@@ -1275,6 +1275,7 @@
   .r10-report-sheet h3 { margin: 0 0 8px; color: #235849; font-size: 0.98rem; }
   .r10-report-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 9px 0 13px; border-bottom: 2px solid #dcebe5; color: #596d67; font-size: 0.78rem; }
   .r10-report-lead { margin: 13px 0; padding: 11px 13px; border-left: 3px solid #39856e; background: #eff7f3; color: #294b41; font-size: 0.88rem; }
+  .r10-report-synthesis { margin-bottom: 10px; background: #f8fbf9; }
   .r10-report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .r10-report-section { min-width: 0; padding: 12px; border: 1px solid #dce6e2; border-radius: 5px; break-inside: avoid; }
   .r10-report-section p { margin: 5px 0; color: #334640; font-size: 0.82rem; }
@@ -2623,8 +2624,8 @@
       closeButton.title = text('소개 닫기', 'Close introduction');
     }
     formula.innerHTML = isEnglish
-      ? '<strong>Profile number.</strong> [Backswing pattern code :: Power engine code] (official combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Dual-Phase Outside-Shallowing Pattern × Tri-Kinematic Apex Engine)'
-      : '<strong>프로필 번호.</strong> [백스윙 패턴 코드 :: 파워 엔진 코드] (공식 조합 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (하이브리드 A 패턴 × 트라이-키네매틱 융합형)';
+      ? '<strong>Profile number.</strong> [Backswing pattern code :: Power engine code] (official combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Dual-Phase Outside-Shallowing Pattern × Tri-Kinematic Apex Engine)<br><strong>Mechanics:</strong> The backswing code describes the observed 2D path; the engine code summarizes relative fit across rotation/axis, pelvis shift/lower-body drive, and arc compression-expansion proxies. Their combination is a motion hypothesis, not a direct force measurement or proof of shot cause.'
+      : '<strong>프로필 번호.</strong> [백스윙 패턴 코드 :: 파워 엔진 코드] (공식 조합 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (하이브리드 A 패턴 × 트라이-키네매틱 융합형)<br><strong>역학 해석:</strong> 백스윙 코드는 관찰된 2D 궤적, 엔진 코드는 회전·축 안정성, 골반 이동·하체 구동, 반경 압축·확장 proxy의 상대 적합도를 요약합니다. 두 코드의 조합은 모션 가설이며 실제 힘 측정이나 샷 원인의 증거가 아닙니다.';
     backswingList.innerHTML = SWING_BACKSWING_CODES.map(item =>
       `<div class="app-code-row"><span class="app-code-tag">${item.code}</span><span class="app-code-name">${text(item.ko, item.en)}</span></div>`
     ).join('');
@@ -8950,7 +8951,7 @@
       ? {
         title: 'R10 Impact Support', subtitle: 'Shot-center consistency · miss pattern · motion-analysis context',
         file: 'Choose Garmin R10 CSV', clear: 'Clear', status: 'Load a CSV to use it as supporting evidence for the motion analysis.',
-        reportButton: 'Create swing report', profileTitle: 'Swing profile number', profilePrompt: 'Enter the SY-GSAP profile number to use as the analysis reference. (01–35)',
+        reportButton: 'Create swing report', profileTitle: 'Swing profile number', profilePrompt: 'Enter the confirmed SY-GSAP profile number. Its backswing pattern and power engine are filled from the profile automatically. (01–35)',
         profileLabel: 'Profile number', generate: 'Generate report', cancel: 'Cancel', pdf: 'Download PDF', closeReport: 'Collapse',
         model: 'Consistency model', distance: 'Distance metric', side: 'Lateral deviation', threshold: 'Outlier threshold k',
         modelA: 'A · Valid shot ratio', modelB: 'B · Coefficient of variation', modelC: 'C · D-Plane composite index',
@@ -8978,7 +8979,7 @@
       : {
         title: 'R10 임팩트 보조 분석', subtitle: '샷 중심 일관성 · 미스샷 패턴 · 영상 분석 참고',
         file: 'Garmin R10 CSV 선택', clear: '초기화', status: 'CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.',
-        reportButton: '스윙 종합보고서 생성', profileTitle: '스윙 프로필 번호', profilePrompt: '분석 기준으로 사용할 SY-GSAP 프로필 번호를 입력하세요. (01~35)',
+        reportButton: '스윙 종합보고서 생성', profileTitle: '스윙 프로필 번호', profilePrompt: '확정된 SY-GSAP 프로필 번호를 입력하세요. 백스윙 유형과 스윙 엔진은 번호에서 자동으로 연결됩니다. (01~35)',
         profileLabel: '프로필 번호', generate: '보고서 생성', cancel: '취소', pdf: 'PDF 다운로드', closeReport: '접기',
         model: '일관성 모델', distance: '거리 지표', side: '좌우 편차', threshold: '아웃라이어 기준 k',
         modelA: 'A · 유효 타격 비율', modelB: 'B · 변동계수 점수', modelC: 'C · D-Plane 복합 지수',
@@ -9088,6 +9089,24 @@
     return r10Units[key] || ({ carry: 'yd', total: 'yd', carrySide: 'yd', totalSide: 'yd',
       clubPath: '°', faceAngle: '°', faceToPath: '°', attackAngle: '°', spinAxis: '°', smash: '',
       ballSpeed: 'mph', clubSpeed: 'mph' }[key] || '');
+  }
+
+  function getR10DisplayUnit(key) {
+    const unit = r10Unit(key);
+    if (uiLanguage !== 'en') return unit;
+    const normalized = unit.trim().toLowerCase();
+    const englishUnits = {
+      '야드': 'yd', yards: 'yd', yard: 'yd',
+      '미터': 'm', meters: 'm', meter: 'm',
+      '마일/시간': 'mph', '마일시': 'mph',
+      '킬로미터/시간': 'km/h', '킬로미터시': 'km/h',
+      '도': '°', degrees: '°', degree: '°',
+    };
+    return englishUnits[normalized] || unit;
+  }
+
+  function getR10ProfileDescription(profile, detailIndex) {
+    return profile && profile[uiLanguage === 'en' ? 'en' : 'ko'][detailIndex] || '';
   }
 
   function r10FieldColumns(header) {
@@ -9327,9 +9346,9 @@
       });
       shotCell.appendChild(button);
       const distanceCell = document.createElement('td');
-      distanceCell.textContent = `${r10Format(shot.distance)} ${r10Unit(analysis.distanceKey)}`.trim();
+      distanceCell.textContent = `${r10Format(shot.distance)} ${getR10DisplayUnit(analysis.distanceKey)}`.trim();
       const sideCell = document.createElement('td');
-      sideCell.textContent = `${r10Format(shot.side)} ${r10Unit(analysis.sideKey)}`.trim();
+      sideCell.textContent = `${r10Format(shot.side)} ${getR10DisplayUnit(analysis.sideKey)}`.trim();
       const reasonCell = document.createElement('td');
       reasonCell.className = 'r10-outlier-tag';
       reasonCell.textContent = shot.reasons.map(getR10ReasonLabel).join(', ');
@@ -9349,7 +9368,7 @@
     try {
       if (typeof getMatchedSwingProfile === 'function' && typeof backswingClassification !== 'undefined') {
         const profile = getMatchedSwingProfile();
-        if (profile) profileReference = `<p class="r10-caveat">${uiLanguage === 'en' ? 'Video-derived profile context (not proof of shot cause)' : '영상 분석 프로필 참고 (샷 원인 증거 아님)'}: ${profile.n} · ${profile.g}::${profile.e}. ${profile.ko[3]}</p>`;
+        if (profile) profileReference = `<p class="r10-caveat">${uiLanguage === 'en' ? 'Video-derived profile context (not proof of shot cause)' : '영상 분석 프로필 참고 (샷 원인 증거 아님)'}: ${profile.n} · ${profile.g}::${profile.e}. ${getR10ProfileDescription(profile, 3)}</p>`;
       }
     } catch (error) {
       profileReference = '';
@@ -9357,14 +9376,14 @@
     const reasons = shot.isOutlier ? shot.reasons.map(getR10ReasonLabel).join(', ') : r10Text('정상 범위', 'Within range');
     r10SelectedShot.innerHTML = `<h3 class="r10-detail-title">${r10Text('선택 샷', 'Selected shot')} #${shot.shotNo} · ${reasons}</h3>`
       + `<div class="r10-detail-grid">`
-      + item(r10Text('거리', 'Distance'), shot.distance, r10Unit(analysis.distanceKey))
-      + item(r10Text('좌우 편차', 'Lateral deviation'), shot.side, r10Unit(analysis.sideKey))
-      + item(r10Text('클럽 경로', 'Club path'), shot.clubPath, r10Unit('clubPath'))
-      + item(r10Text('클럽 페이스', 'Face angle'), shot.faceAngle, r10Unit('faceAngle'))
-      + item(r10Text('페이스-경로', 'Face to path'), shot.faceToPath, r10Unit('faceToPath'))
-      + item(r10Text('타구각', 'Attack angle'), shot.attackAngle, r10Unit('attackAngle'))
+      + item(r10Text('거리', 'Distance'), shot.distance, getR10DisplayUnit(analysis.distanceKey))
+      + item(r10Text('좌우 편차', 'Lateral deviation'), shot.side, getR10DisplayUnit(analysis.sideKey))
+      + item(r10Text('클럽 경로', 'Club path'), shot.clubPath, getR10DisplayUnit('clubPath'))
+      + item(r10Text('클럽 페이스', 'Face angle'), shot.faceAngle, getR10DisplayUnit('faceAngle'))
+      + item(r10Text('페이스-경로', 'Face to path'), shot.faceToPath, getR10DisplayUnit('faceToPath'))
+      + item(r10Text('타구각', 'Attack angle'), shot.attackAngle, getR10DisplayUnit('attackAngle'))
       + item(r10Text('스매시 팩터', 'Smash factor'), shot.smash)
-      + item(r10Text('스핀 축', 'Spin axis'), shot.spinAxis, r10Unit('spinAxis'))
+      + item(r10Text('스핀 축', 'Spin axis'), shot.spinAxis, getR10DisplayUnit('spinAxis'))
       + item(r10Text('거리 Z', 'Distance Z'), shot.distanceZ)
       + item(r10Text('좌우 Z', 'Lateral Z'), shot.sideZ)
       + `</div><p class="r10-caveat">${r10Text('R10 결과만으로 Duff/Thin, Push-Slice 또는 SY-GSAP 프로필 결함을 확정하지 않습니다.', 'R10 outcomes alone cannot confirm a duff/thin strike, push-slice, or SY-GSAP profile defect.')}</p>${profileReference}`;
@@ -9417,11 +9436,11 @@
     }
     ctx.fillStyle = '#c0d2ce';
     ctx.textAlign = 'center';
-    ctx.fillText(`${r10Text('좌우 편차', 'Lateral deviation')} (${r10Unit(analysis.sideKey)})`, plot.left + plotWidth / 2, height - 7);
+    ctx.fillText(`${r10Text('좌우 편차', 'Lateral deviation')} (${getR10DisplayUnit(analysis.sideKey)})`, plot.left + plotWidth / 2, height - 7);
     ctx.save();
     ctx.translate(14, plot.top + plotHeight / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText(`${analysis.distanceKey === 'carry' ? r10Text('캐리 거리', 'Carry distance') : r10Text('총 거리', 'Total distance')} (${r10Unit(analysis.distanceKey)})`, 0, 0);
+    ctx.fillText(`${analysis.distanceKey === 'carry' ? r10Text('캐리 거리', 'Carry distance') : r10Text('총 거리', 'Total distance')} (${getR10DisplayUnit(analysis.distanceKey)})`, 0, 0);
     ctx.restore();
     if (ellipsePoints.length) {
       ctx.beginPath();
@@ -9460,6 +9479,68 @@
   function formatR10ReportMetric(stats, unit = '', digits = 1) {
     if (!stats || !Number.isFinite(stats.mean)) return r10Text('측정 없음', 'Not measured');
     return `${stats.mean.toFixed(digits)}${unit ? ` ${unit}` : ''}${Number.isFinite(stats.sd) ? ` (σ ${stats.sd.toFixed(digits)})` : ''}`;
+  }
+
+  function getR10ProfileMechanics(profile) {
+    const backswingMechanics = {
+      OPA: [
+        '분류 기준 평면 통로를 백스윙 여러 시점에서 따르는 궤적',
+        'A path that stays within the classified plane corridor across backswing checkpoints',
+      ],
+      USP: [
+        '높은 손 위치와 전환부 샤프트 샬로잉이 함께 관찰되는 궤적',
+        'A path with a high hand position and observed shaft shallowing through transition',
+      ],
+      OFP: [
+        'P2에서 클럽헤드가 손보다 바깥에 위치하는 테이크어웨이',
+        'A takeaway with the clubhead outside the hands at P2',
+      ],
+      'HAP-A': [
+        'P2 아웃사이드 테이크어웨이와 업라이트·샬로잉 특성이 함께 분류되는 조합',
+        'A combination classified by an outside P2 takeaway plus upright and shallowing traits',
+      ],
+      'HAP-B': [
+        '온플레인 통로와 업라이트·샬로잉 전환 특성이 함께 분류되는 조합',
+        'A combination classified by an on-plane corridor plus upright and shallowing transition traits',
+      ],
+    };
+    const engineMechanics = {
+      ATE: [
+        '축 안정성·상체 회전 적합도가 상대적으로 두드러지는 영상 지표 조합',
+        'A video-metric combination with relatively stronger axis-stability and upper-turn fit',
+      ],
+      LSE: [
+        '골반 이동과 하체 구동 proxy 적합도가 상대적으로 두드러지는 조합',
+        'A combination with relatively stronger pelvis-shift and lower-body-drive proxy fit',
+      ],
+      VEE: [
+        '하체 로딩·무릎 신전·리드레그 브레이싱 proxy를 포함하는 조합',
+        'A combination involving lower-body loading, knee-extension, and lead-leg-bracing proxies',
+      ],
+      RLH: [
+        '축회전 적합도와 골반 이동·하체 구동 적합도가 함께 나타나는 조합',
+        'A combination showing both axial-turn and pelvis-shift/lower-body-drive fit',
+      ],
+      RVH: [
+        '축회전 적합도와 하체 구동·반경 압축·확장 적합도가 함께 나타나는 조합',
+        'A combination showing both axial-turn and lower-body-drive/arc compression-expansion fit',
+      ],
+      LVH: [
+        '골반 이동·하체 구동과 반경 압축·확장 적합도가 함께 나타나는 조합',
+        'A combination showing both pelvis-shift/lower-body-drive and arc compression-expansion fit',
+      ],
+      TKE: [
+        '세 엔진 유형의 정규화 적합도 차이가 작아 융합으로 분류된 조합',
+        'A fusion classification where normalized fit scores across all three engine types are close',
+      ],
+    };
+    const backswing = backswingMechanics[profile.g];
+    const engine = engineMechanics[profile.e];
+    if (!backswing || !engine) return null;
+    return {
+      backswing: uiLanguage === 'en' ? backswing[1] : backswing[0],
+      engine: uiLanguage === 'en' ? engine[1] : engine[0],
+    };
   }
 
   function buildR10SwingReport(profileNumber) {
@@ -9542,12 +9623,11 @@
     const f2 = segmentDeltaHistory.frame2 && segmentDeltaHistory.frame2.fm || {};
     const f3 = segmentDeltaHistory.frame3 && segmentDeltaHistory.frame3.fm || {};
     const f5 = segmentDeltaHistory.frame5 && segmentDeltaHistory.frame5.fm || {};
-    let observedBackswing = null;
-    let observedEngine = null;
-    try {
-      observedBackswing = getBackswingProfileCode(backswingClassification);
-      observedEngine = getPowerEngineCode(classifySwingType());
-    } catch (error) {}
+    const observedBackswing = getBackswingProfileCode(backswingClassification);
+    const observedEngine = getPowerEngineCode(classifySwingType());
+    const observedProfile = observedBackswing && observedEngine
+      ? SWING_PROFILE_DATA.find(item => item.g === observedBackswing && item.e === observedEngine) || null
+      : null;
     const videoProfileMatches = observedBackswing && observedEngine
       ? observedBackswing === profile.g && observedEngine === profile.e : null;
     const motionEvidence = [];
@@ -9561,7 +9641,13 @@
     if (directionIssue === 'IN_TO_OUT_OPEN_FACE_PATTERN') drillItems.push({ title: r10Text('연결 유지 후 릴리스', 'Connected-arm release'), text: r10Text('3세트 × 8회. 허리 높이 하프스윙으로 손-몸 간격을 유지하고, 페이스-경로 및 좌우 편차를 비교합니다.', '3 × 8 reps. Use waist-high half swings to maintain hand-body spacing, then compare face-to-path and lateral deviation.') });
     if (distanceIssue === 'DRIVER_STEEP_LOW_SMASH_PATTERN') drillItems.push({ title: r10Text('티 높이 단일 변수 테스트', 'Single-variable tee-height test'), text: r10Text('각 조건 5타씩 번갈아 치고 티 높이만 바꿉니다. 볼스피드와 스매시가 함께 개선되는지 확인합니다.', 'Alternate five shots per condition, changing tee height only. Check whether ball speed and smash improve together.') });
     if (distanceIssue === 'HIGH_LAUNCH_LOW_SMASH_CLUSTER') drillItems.push({ title: r10Text('임팩트 프레임 축 확인', 'Impact-frame axis check'), text: r10Text('F3/F4 영상에서 골반 전진과 C7 상승을 확인한 뒤, 관찰된 경우에만 척추각 유지 하프스윙을 3세트 × 6회 수행합니다.', 'Check pelvis thrust and C7 rise in F3/F4 video; only if observed, perform 3 × 6 half swings maintaining spine angle.') });
-    if (!drillItems.length) drillItems.push({ title: r10Text('프로필 위험 특성 영상 점검', 'Video review of profile risk'), text: `${profile.ko[3]} ${r10Text('다음 세션에서는 동일 클럽·같은 목표선으로 5타 이상 기록해 비교하세요.', 'Record at least five shots with the same club and target line next session.')}` });
+    if (!drillItems.length) drillItems.push({
+      title: r10Text('기준선 기록 후 원인 확인', 'Record a baseline before changing mechanics'),
+      text: r10Text(
+        '현재 R10 기준에서 뚜렷한 방향성·비거리 임계 패턴이 확인되지 않아 특정 동작 교정을 처방하지 않습니다. 같은 클럽·목표선으로 다음 세션 샷을 기록하고, 프로필 위험 특성은 영상 지표에서 확인될 때만 훈련 과제로 선택하세요.',
+        'No clear directional or distance-loss threshold pattern was detected in this R10 session, so no specific swing change is prescribed. Record the next session with the same club and target line; use a profile risk trait as a practice priority only when video metrics support it.'
+      ),
+    });
     const visualNodes = [];
     if (directionIssue === 'OUT_TO_IN_CLOSED_FACE_PATTERN' || directionIssue === 'IN_TO_OUT_OPEN_FACE_PATTERN') {
       visualNodes.push({ node: 'hand_path_p5_p6', frame: 'F2 / F5', measured: hasMetric(f5.handOffsetDelta), value: hasMetric(f5.handOffsetDelta) ? `${(f5.handOffsetDelta * 100).toFixed(1)}%` : null, label: r10Text('전환부터 P6까지 손 경로와 몸통 간격 확인', 'Review hand path and torso spacing through P6') });
@@ -9569,12 +9655,12 @@
     if (distanceIssue === 'DRIVER_STEEP_LOW_SMASH_PATTERN' || distanceIssue === 'HIGH_LAUNCH_LOW_SMASH_CLUSTER') {
       visualNodes.push({ node: 'c7_spine_axis', frame: 'F3 / F4', measured: hasMetric(f3.c7RisePercent), value: hasMetric(f3.c7RisePercent) ? `${f3.c7RisePercent.toFixed(1)}%` : null, label: r10Text('임팩트 구간 C7 상하축과 척추각 확인', 'Review C7 vertical axis and spine angle through impact') });
     }
-    if (!visualNodes.length) visualNodes.push({ node: 'profile_risk_review', frame: r10Text('해당 프레임 영상 입력 필요', 'Video frames required'), measured: false, value: null, label: profile.ko[3] });
+    if (!visualNodes.length) visualNodes.push({ node: 'profile_risk_review', frame: r10Text('해당 프레임 영상 입력 필요', 'Video frames required'), measured: false, value: null, label: getR10ProfileDescription(profile, 3) });
     const evidenceLevel = count => count >= 3 && shots.length >= 8 ? r10Text('보통', 'Moderate') : count >= 2 && shots.length >= 4 ? r10Text('제한적', 'Limited') : r10Text('부족', 'Insufficient');
     const metric = (label, stats, unit = '', digits = 1) => `<li><strong>${escapeR10ReportText(label)}</strong>: ${escapeR10ReportText(formatR10ReportMetric(stats, unit, digits))}</li>`;
     const outlierRows = shots.filter(shot => shot.isOutlier).slice(0, 6).map(shot => {
       const reasons = shot.reasons.map(getR10ReasonLabel).join(', ') || r10Text('중심 타원 이탈', 'Outside center ellipse');
-      return `<li>#${shot.shotNo}: ${escapeR10ReportText(reasons)} · ${r10Text('거리', 'Distance')} ${r10Format(shot.distance)} ${escapeR10ReportText(r10Unit(r10Analysis.distanceKey))} · ${r10Text('편차', 'Offset')} ${r10Format(shot.side)} ${escapeR10ReportText(r10Unit(r10Analysis.sideKey))}${Number.isFinite(shot.clubPath) ? ` · Path ${shot.clubPath.toFixed(1)}°` : ''}${Number.isFinite(shot.faceToPath) ? ` · F2P ${shot.faceToPath.toFixed(1)}°` : ''}</li>`;
+      return `<li>#${shot.shotNo}: ${escapeR10ReportText(reasons)} · ${r10Text('거리', 'Distance')} ${r10Format(shot.distance)} ${escapeR10ReportText(getR10DisplayUnit(r10Analysis.distanceKey))} · ${r10Text('편차', 'Offset')} ${r10Format(shot.side)} ${escapeR10ReportText(getR10DisplayUnit(r10Analysis.sideKey))}${Number.isFinite(shot.clubPath) ? ` · Path ${shot.clubPath.toFixed(1)}°` : ''}${Number.isFinite(shot.faceToPath) ? ` · F2P ${shot.faceToPath.toFixed(1)}°` : ''}</li>`;
     });
     const profileName = getCanonicalSwingProfileName(profile, uiLanguage);
     const dateLabel = shots.find(shot => shot.shotDate)?.shotDate || new Date().toLocaleDateString(uiLanguage === 'en' ? 'en-US' : 'ko-KR');
@@ -9583,12 +9669,74 @@
       ? r10Text('여러 클럽이 섞여 있어 클럽별 임계 진단은 보류했습니다.', 'Mixed clubs detected; club-specific thresholds were not applied.')
       : driverSession ? '' : r10Text('드라이버 전용 비거리 임계값은 적용하지 않았습니다.', 'Driver-only distance thresholds were not applied.');
     const profileMatchText = videoProfileMatches == null
-      ? r10Text('영상 유형 분류 미완료: 입력 프로필을 기준으로 R10 결과를 보조 해석합니다.', 'Video type classification incomplete; R10 is interpreted against the selected profile.')
+      ? r10Text('영상 백스윙·엔진 분류가 완료되지 않았습니다. 입력 프로필 번호의 유형 정보는 자동 연결되지만, 실제 영상과의 일치 여부는 확인되지 않았습니다.', 'Video backswing/engine classification is incomplete. The profile number supplies its type codes automatically, but a match to the observed motion is unverified.')
       : videoProfileMatches
-        ? r10Text('완료된 영상 분류가 선택 프로필과 일치합니다.', 'Completed video classification matches the selected profile.')
-        : `${r10Text('영상 분류와 선택 프로필이 다릅니다. 입력 번호를 확인하세요.', 'Video classification differs from selected profile; verify the entered number.')} (${observedBackswing || '—'}::${observedEngine || '—'})`;
+        ? r10Text('완료된 영상 분류가 입력 프로필과 일치합니다.', 'Completed video classification matches the entered profile.')
+        : `${r10Text('완료된 영상 분류가 입력 프로필과 다릅니다. 입력값은 확정 프로필 기준으로 유지하고, 실제 동작은 관측 분류와 R10 근거로 해석합니다.', 'Completed video classification differs from the entered profile. Keep the confirmed profile as the reference; interpret the observed swing using its classification and R10 evidence.')} (${observedBackswing || '—'}::${observedEngine || '—'})`;
+    const profileMechanics = getR10ProfileMechanics(profile);
+    const profileMechanicsHtml = profileMechanics
+      ? `<p><strong>${r10Text('백스윙 궤적 가설', 'Backswing-path hypothesis')}:</strong> ${escapeR10ReportText(profileMechanics.backswing)}</p>`
+        + `<p><strong>${r10Text('파워 엔진 지표 가설', 'Power-engine metric hypothesis')}:</strong> ${escapeR10ReportText(profileMechanics.engine)}</p>`
+        + `<p><strong>${r10Text('이번 영상과의 관계', 'Relation to this video')}: </strong>${escapeR10ReportText(videoProfileMatches == null
+          ? r10Text('영상 분류 미완료 — 프로필 설명은 가설이며 이번 동작에서 확인되지 않았습니다.', 'Video classification incomplete — this remains a profile hypothesis, not a confirmed motion in this swing.')
+          : videoProfileMatches
+            ? r10Text('분류 코드가 일치합니다. 코드 일치는 지표 기반 유형 일치이며 실제 힘·토크 또는 샷 원인을 입증하지 않습니다.', 'Classification codes match. This is a metric-based type match, not proof of forces, torque, or shot cause.')
+            : r10Text('분류 코드가 일치하지 않습니다. 이번 훈련은 선택 프로필이 아닌 R10 관측 패턴과 실제 영상 지표를 우선합니다.', 'Classification codes differ. Prioritize the R10 pattern and measured video metrics over the selected profile for this practice plan.'))}</p>`
+      : '';
+    const problemSummary = [
+      directionIssue !== 'NO_CLEAR_DIRECTION_PATTERN' ? directionTitle : null,
+      distanceIssue !== 'NO_CLEAR_POWER_PATTERN' ? distanceTitle : null,
+    ].filter(Boolean);
+    const observedR10Problem = problemSummary.length
+      ? problemSummary.join(' · ')
+      : clubGate
+        ? clubGate
+        : r10Text('현재 분류 임계값을 넘는 뚜렷한 방향성·비거리 문제 패턴 없음', 'No clear directional or distance-loss pattern crossed the current classification thresholds');
+    const evidenceSummary = [
+      `${r10Text('프로필 기준', 'Profile reference')} ${String(profile.n).padStart(2, '0')} [${profile.g} :: ${profile.e}]`,
+      `${r10Text('R10 평균', 'R10 means')}: ${r10Text('Club Path', 'Club Path')} ${formatR10ReportMetric(clubPath, '°')} · ${r10Text('Face to Path', 'Face to Path')} ${formatR10ReportMetric(faceToPath, '°')} · ${r10Text('Attack Angle', 'Attack Angle')} ${formatR10ReportMetric(attackAngle, '°')} · ${r10Text('Smash', 'Smash')} ${formatR10ReportMetric(smash, '', 3)}`,
+      videoProfileMatches == null
+        ? r10Text('영상 백스윙/엔진 분류 미완료 — 프로필과 실제 영상의 일치 여부는 확인 불가', 'Video backswing/engine classification incomplete — profile-to-video match is unverified')
+        : videoProfileMatches
+          ? r10Text(`영상 분류 ${observedBackswing}::${observedEngine} (${observedProfile ? getCanonicalSwingProfileName(observedProfile, uiLanguage) : ''})가 입력 프로필과 일치`, `Video classification ${observedBackswing}::${observedEngine} (${observedProfile ? getCanonicalSwingProfileName(observedProfile, uiLanguage) : ''}) matches the entered profile`)
+          : r10Text(`영상 분류 ${observedBackswing}::${observedEngine}가 입력 프로필 ${profile.g}::${profile.e}와 다름`, `Video classification ${observedBackswing}::${observedEngine} differs from entered profile ${profile.g}::${profile.e}`),
+      motionEvidence.length
+        ? `${r10Text('영상 모션 지표', 'Video motion metrics')}: ${motionEvidence.slice(2).join(' · ')}`
+        : r10Text('영상 모션 지표 없음 — 원인 동작 미확인', 'No video motion metrics — causal motion unverified'),
+    ].join('<br>');
+    const solutionSummary = [
+      videoProfileMatches === true
+        ? r10Text(`영상 분류도 입력 프로필 ${profile.g}::${profile.e}와 일치합니다. ${profileMechanics ? `${profileMechanics.backswing}; ${profileMechanics.engine}.` : ''} 이 특성은 동작 기준 가설로 활용하되, 아래 R10 패턴에 해당하는 교정만 우선합니다.`, `Video classification also matches profile ${profile.g}::${profile.e}. ${profileMechanics ? `${profileMechanics.backswing}; ${profileMechanics.engine}.` : ''} Use these as movement references, while prioritizing only corrections tied to the R10 pattern below.`)
+        : videoProfileMatches === false
+          ? r10Text(`영상 분류 ${observedBackswing}::${observedEngine}가 입력 프로필 ${profile.g}::${profile.e}와 다릅니다. 프로필을 실제 동작으로 가정하지 말고, 영상 분류와 R10 결과를 기준으로 교정합니다.`, `Video classification ${observedBackswing}::${observedEngine} differs from profile ${profile.g}::${profile.e}. Do not assume the reference profile is the performed motion; base corrections on the video classification and R10 outcomes.`)
+          : r10Text('백스윙·엔진 영상 분류를 완료한 뒤 입력 프로필과 대조해야 동작 가설을 훈련 방향에 반영할 수 있습니다.', 'Complete the backswing and engine video classifications before using the profile comparison to tailor the mechanics hypothesis.'),
+      directionIssue !== 'NO_CLEAR_DIRECTION_PATTERN' ? directionCorrection : null,
+      distanceIssue !== 'NO_CLEAR_POWER_PATTERN' ? distanceCorrection : null,
+      ...drillItems.map(drill => `${drill.title}: ${drill.text}`),
+    ].filter(Boolean);
+    const retestMetrics = [];
+    if (directionIssue !== 'NO_CLEAR_DIRECTION_PATTERN') {
+      retestMetrics.push(r10Text('동일 클럽의 Club Path·Face to Path·Spin Axis 평균과 좌우 분산', 'same-club Club Path, Face to Path, Spin Axis means, and lateral dispersion'));
+    }
+    if (distanceIssue !== 'NO_CLEAR_POWER_PATTERN') {
+      retestMetrics.push(r10Text('동일 클럽의 Attack Angle·Smash·Ball Speed 평균', 'same-club Attack Angle, Smash, and Ball Speed means'));
+    }
+    if (!retestMetrics.length) {
+      retestMetrics.push(r10Text('동일 클럽의 좌우 분산·유효 샷 비율·거리 평균 및 표준편차', 'same-club lateral dispersion, valid-shot ratio, mean distance, and standard deviation'));
+    }
+    const retestSummary = r10Text(
+      `같은 클럽·목표선·티 조건으로 다음 세션에서 최소 8타를 기록하고 ${retestMetrics.join(' 및 ')}를 이번 세션과 비교합니다. 한 번에 한 가지 동작 또는 장비 변수만 바꾸고, 지표가 개선되지 않으면 해당 원인 가설을 재검토합니다.`,
+      `Record at least 8 shots in the next session with the same club, target line, and tee conditions, then compare ${retestMetrics.join(' and ')} with this session. Change only one motion or equipment variable at a time; if the metrics do not improve, reassess the cause hypothesis.`
+    );
+    const synthesisHtml = `<section class="r10-report-section r10-report-synthesis"><h3>${r10Text('통합 문제 진단 및 실행 계획', 'Integrated diagnosis and action plan')}</h3>`
+      + `<p><strong>1. ${r10Text('문제', 'Problem')}:</strong> ${escapeR10ReportText(observedR10Problem)}</p>`
+      + `<p><strong>2. ${r10Text('근거', 'Evidence')}:</strong> ${evidenceSummary}</p>`
+      + `<p><strong>3. ${r10Text('해법', 'Solution')}:</strong> ${solutionSummary.map(escapeR10ReportText).join('<br>')}</p>`
+      + `<p><strong>4. ${r10Text('재측정 기준', 'Retest criteria')}:</strong> ${escapeR10ReportText(retestSummary)}</p>`
+      + `<small class="r10-report-evidence">${r10Text('프로필은 번호로 불러온 역학적 기준 가설입니다. 실제 훈련 우선순위는 R10 관측 결과를 따르고, 원인 동작은 영상 측정이 뒷받침할 때만 연결합니다.', 'The profile number supplies the mechanics reference hypothesis. R10 outcomes set practice priorities; link a cause motion only when supported by measured video.')}</small></section>`;
     const visualHtml = visualNodes.map(node => `<li><strong>${escapeR10ReportText(node.node)}</strong> · ${escapeR10ReportText(node.frame)} · ${escapeR10ReportText(node.label)} <small>${node.measured ? `${r10Text('영상 측정', 'Video measured')}: ${escapeR10ReportText(node.value)}` : r10Text('영상 포인트 미측정 · 안내 위치', 'No video point measurement · review guide')}</small></li>`).join('');
-    const drillHtml = drillItems.map((drill, index) => `<div class="r10-report-drill"><strong>${index + 1}. ${escapeR10ReportText(drill.title)}</strong><p>${escapeR10ReportText(drill.text)}</p></div>`).join('');
+    const drillHtml = `<p class="r10-report-evidence">${r10Text('훈련 우선순위는 R10에서 관측한 결과 패턴으로 정합니다. 프로필은 동작 가설이며, 영상 지표로 확인되지 않은 원인을 교정 대상으로 단정하지 않습니다.', 'Practice priorities follow the outcome pattern observed by R10. The profile is a motion hypothesis; do not treat an unverified cause as a correction target.')}</p>`
+      + drillItems.map((drill, index) => `<div class="r10-report-drill"><strong>${index + 1}. ${escapeR10ReportText(drill.title)}</strong><p>${escapeR10ReportText(drill.text)}</p></div>`).join('');
     const outlierHtml = outlierRows.length ? `<ul>${outlierRows.join('')}</ul>` : `<p>${r10Text('중심 이탈 샷 없음', 'No center outliers')}.</p>`;
     const videoHtml = motionEvidence.length ? `<ul>${motionEvidence.map(line => `<li>${escapeR10ReportText(line)}</li>`).join('')}</ul>` : `<p>${r10Text('연결 가능한 F1~F6 영상 모션 근거가 없습니다. 원인 모션은 미확인으로 표시합니다.', 'No linked F1–F6 video evidence; motion causes remain unverified.')}</p>`;
     return {
@@ -9597,10 +9745,11 @@
         <h2>${escapeR10ReportText(r10Text('스윙 보완 리포트', 'Swing Development Report'))}</h2>
         <div class="r10-report-meta"><span>${r10Text('프로필', 'Profile')} ${String(profile.n).padStart(2, '0')} · ${escapeR10ReportText(profile.g)}::${escapeR10ReportText(profile.e)}</span><span>${escapeR10ReportText(profileName)}</span><span>${r10Text('클럽', 'Club')}: ${escapeR10ReportText(clubLabel)}</span><span>${escapeR10ReportText(dateLabel)}</span><span>${shots.length} ${r10Text('샷', 'shots')}</span></div>
         <div class="r10-report-lead">${escapeR10ReportText(profileMatchText)} <small>${r10Text('입력 프로필은 분석 기준이며 R10에서 역판정한 결과가 아닙니다.', 'Selected profile is the analysis reference, not inferred from R10.')}</small></div>
+        ${synthesisHtml}
         <div class="r10-report-grid">
           <section class="r10-report-section"><h3>${r10Text('방향성 보완', 'Directional review')}</h3><strong>${escapeR10ReportText(directionTitle)}</strong><p>${escapeR10ReportText(directionInterpretation)}</p><ul>${metric(r10Text('Club Path 평균', 'Mean Club Path'), clubPath, '°')}${metric(r10Text('Face to Path 평균', 'Mean Face to Path'), faceToPath, '°')}${metric(r10Text('Spin Axis 원형 평균', 'Circular mean Spin Axis'), spinAxis, '°')}${metric(r10Text('클럽 페이스 평균', 'Mean Face Angle'), faceAngle, '°')}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(directionCorrection)}</p><small class="r10-report-evidence">${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(directionEvidenceCount)} (${directionEvidenceCount}/3 ${r10Text('지표,', 'metrics,')} ${shots.length} ${r10Text('샷; 인과 모션은 영상 확인 필요', 'shots; causal motion requires video verification')})</small></section>
-          <section class="r10-report-section"><h3>${r10Text('비거리·에너지 전달', 'Distance and energy transfer')}</h3><strong>${escapeR10ReportText(distanceTitle)}</strong><p>${escapeR10ReportText(distanceInterpretation)}</p><ul>${metric(r10Text('Attack Angle 평균', 'Mean Attack Angle'), attackAngle, '°')}${metric(r10Text('Smash Factor 평균', 'Mean Smash Factor'), smash, '', 3)}${metric(r10Text('Launch Angle 평균', 'Mean Launch Angle'), launchAngle, '°')}${metric(r10Text('Ball Speed 평균', 'Mean Ball Speed'), ballSpeed, r10Unit('ballSpeed'))}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(distanceCorrection)}</p><small class="r10-report-evidence">${escapeR10ReportText(clubGate || `${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(distanceEvidenceCount)} (${distanceEvidenceCount}/4 ${r10Text('지표', 'metrics')})`)}</small></section>
-          <section class="r10-report-section"><h3>${r10Text('프로필 기준 특성', 'Profile reference traits')}</h3><p><strong>${r10Text('강점', 'Strengths')}:</strong> ${escapeR10ReportText(profile.ko[2])}</p><p><strong>${r10Text('주의점', 'Trade-off')}:</strong> ${escapeR10ReportText(profile.ko[3])}</p><small class="r10-report-evidence">${r10Text('프로필 설명은 참고 특성입니다. 이번 세션에서 실제로 관측됐다는 뜻은 아닙니다.', 'Profile description is reference context, not proof it occurred in this session.')}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('비거리·에너지 전달', 'Distance and energy transfer')}</h3><strong>${escapeR10ReportText(distanceTitle)}</strong><p>${escapeR10ReportText(distanceInterpretation)}</p><ul>${metric(r10Text('Attack Angle 평균', 'Mean Attack Angle'), attackAngle, '°')}${metric(r10Text('Smash Factor 평균', 'Smash Factor'), smash, '', 3)}${metric(r10Text('Launch Angle 평균', 'Mean Launch Angle'), launchAngle, '°')}${metric(r10Text('Ball Speed 평균', 'Mean Ball Speed'), ballSpeed, getR10DisplayUnit('ballSpeed'))}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(distanceCorrection)}</p><small class="r10-report-evidence">${escapeR10ReportText(clubGate || `${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(distanceEvidenceCount)} (${distanceEvidenceCount}/4 ${r10Text('지표', 'metrics')})`)}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('프로필 역학 가설', 'Profile mechanics hypotheses')}</h3>${profileMechanicsHtml}<p><strong>${r10Text('참고 강점', 'Reference strength')}:</strong> ${escapeR10ReportText(getR10ProfileDescription(profile, 2))}</p><p><strong>${r10Text('참고 위험', 'Reference risk')}:</strong> ${escapeR10ReportText(getR10ProfileDescription(profile, 3))}</p><small class="r10-report-evidence">${r10Text('백스윙 코드는 화면상 위치·궤적, 엔진 코드는 2D 영상 proxy의 상대 적합도를 요약합니다. 실제 지면반력·관절 모멘트·3D 힘 벡터를 측정하지 않으며, 이 프로필만으로 교정 원인을 확정하지 않습니다.', 'Backswing codes summarize image-based positions and paths; engine codes summarize relative fit from 2D video proxies. They do not measure ground forces, joint moments, or 3D force vectors, and the profile alone does not establish a correction cause.')}</small></section>
           <section class="r10-report-section"><h3>${r10Text('일관성·아웃라이어', 'Consistency and outliers')}</h3><div class="r10-report-score">${consistencyText}</div><p>${shots.length - r10Analysis.outlierCount}/${shots.length} ${r10Text('샷이', 'shots are')} ${r10Analysis.k}σ ${r10Text('중심 타원 안에 포함됩니다.', 'inside the center ellipse.')}</p>${outlierHtml}<small class="r10-report-evidence">${r10Text('중심 포함 비율은 세션 내 상대 분산입니다. 샷 위치만으로 타격 위치(Duff/Thin)는 판정할 수 없습니다.', 'Center inclusion is within-session dispersion. Strike location (duff/thin) cannot be determined from shot coordinates.')}</small></section>
           <section class="r10-report-section"><h3>${r10Text('영상 모션 교차 확인', 'Video motion cross-check')}</h3>${videoHtml}<small class="r10-report-evidence">${r10Text('실제 영상 입력 지표만 측정 근거로 표기합니다.', 'Only measured video-input metrics are treated as motion evidence.')}</small></section>
           <section class="r10-report-section"><h3>${r10Text('교정 드릴', 'Practice prescriptions')}</h3>${drillHtml}</section>
