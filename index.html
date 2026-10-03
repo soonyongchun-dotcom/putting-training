@@ -86,6 +86,18 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .metric-chip-label.metric-help-trigger:hover { color:#1f4db8; text-decoration:underline; }
 .metric-help-trigger::after { content:" ⓘ"; color:#3b82f6; font-size:10px; font-weight:normal; }
 .metric-help-trigger:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+.visual-help-trigger {
+    padding:0;
+    border:0;
+    background:transparent;
+    color:inherit;
+    font:inherit;
+    text-align:left;
+    cursor:pointer;
+}
+.visual-help-trigger::after { content:" ⓘ"; color:#3b82f6; font-size:0.65em; font-weight:normal; }
+.visual-help-trigger:hover { color:#1f4db8; text-decoration:underline; }
+.visual-help-trigger:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
 .metric-help-text {
     margin-top:6px;
     padding:7px 8px;
@@ -125,6 +137,19 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     background:linear-gradient(180deg, #fff4d8 0%, #ffe8a3 100%);
     border-color:#d4a72c;
 }
+.bayes-result-summary { line-height:1.5; }
+.bayes-mean-highlight {
+    margin-top:10px;
+    padding:12px 14px;
+    border:2px solid #d4a72c;
+    border-radius:10px;
+    background:linear-gradient(180deg, #fff4d8 0%, #ffe39a 100%);
+    color:#624600;
+    font-size:16px;
+    font-weight:bold;
+    text-align:center;
+}
+.bayes-mean-highlight strong { display:block; margin-top:3px; color:#3f2d00; font-size:26px; }
 .metric-label { font-size:12px; color:#666; }
 .metric-value { font-size:20px; font-weight:bold; margin-top:4px; }
 #heatmapCanvas, #speedHeatmapCanvas { border:1px solid #c7d4ee; margin-top:10px; border-radius:8px; background:#fff; }
@@ -846,21 +871,24 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
         <div class="result" id="visualPdfResult"></div>
 </div>
 <div class="panel panel-analyze">
-  <h2>Left / Right Error Heatmap</h2>
+  <h2><button type="button" class="visual-help-trigger" id="visual-title-left-right" aria-expanded="false" aria-controls="visual-help-left-right">Left / Right Error Heatmap (M1)</button></h2>
+  <div class="metric-help-text" id="visual-help-left-right" hidden></div>
   <canvas id="heatmapCanvas" width="520" height="250"></canvas>
-    <div class="small">X-axis: distance bins (yd), Y-axis: Left/Holed/Right</div>
+    <div class="small" id="visual-axis-left-right">X-axis: distance bins (yd), Y-axis: Left/Holed/Right</div>
 </div>
 
 <div class="panel panel-analyze">
-    <h2>Finish Offset Heatmap (M2)</h2>
+    <h2><button type="button" class="visual-help-trigger" id="visual-title-finish-offset" aria-expanded="false" aria-controls="visual-help-finish-offset">Finish Offset Heatmap (M2)</button></h2>
+    <div class="metric-help-text" id="visual-help-finish-offset" hidden></div>
     <canvas id="speedHeatmapCanvas" width="520" height="250"></canvas>
-    <div class="small">X-axis: distance bins (yd), Y-axis: slope categories / cell value: average absolute finish offset using coded 0/30/100cm categories (not a measured distance)</div>
+    <div class="small" id="visual-axis-finish-offset">X-axis: distance bins (yd), Y-axis: slope categories / cell value: mean absolute coded finish offset (cm)</div>
 </div>
 
 <div class="panel panel-analyze">
-  <h2>Bayesian Skill Update</h2>
+  <h2><button type="button" class="visual-help-trigger" id="visual-title-bayesian" aria-expanded="false" aria-controls="visual-help-bayesian">Bayesian Skill Update</button></h2>
+  <div class="metric-help-text" id="visual-help-bayesian" hidden></div>
   <div class="result" id="bayesResult"></div>
-    <div class="small">Prior Beta(1,1), updated in real time using M1 holed outcomes</div>
+    <div class="small" id="visual-axis-bayesian">Prior Beta(1,1), updated in real time using M1 holed outcomes</div>
 </div>
 </div>
 
@@ -2199,8 +2227,23 @@ class StorageService {
 }
 
 class MetricsService {
+    static DISTANCE_CATEGORY_ORDER = ["5y이내", "5-7y", "7-9y", "9-11y", "11y이상"];
+
     static normalizeMission(mission) {
         return String(mission || "").trim().toUpperCase();
+    }
+
+    static normalizeDistanceCategory(distance) {
+        const raw = String(distance ?? "").trim();
+        if (MetricsService.DISTANCE_CATEGORY_ORDER.includes(raw)) return raw;
+
+        const numericDistance = Number(raw);
+        if (!raw || !Number.isFinite(numericDistance)) return raw || "(Unspecified)";
+        if (numericDistance <= 5) return "5y이내";
+        if (numericDistance <= 7) return "5-7y";
+        if (numericDistance <= 9) return "7-9y";
+        if (numericDistance <= 11) return "9-11y";
+        return "11y이상";
     }
 
     static isLieMission(mission) {
@@ -2406,11 +2449,15 @@ class MetricsService {
         const groupByDistance = (rows) => {
             const map = new Map();
             rows.forEach((row) => {
-                const distance = Math.max(1, Math.round(Number(row.distance) || 0));
+                const distance = MetricsService.normalizeDistanceCategory(row.distance);
                 if (!map.has(distance)) map.set(distance, []);
                 map.get(distance).push(row);
             });
-            return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+            return Array.from(map.entries()).sort((a, b) => {
+                const ai = MetricsService.DISTANCE_CATEGORY_ORDER.indexOf(a[0]);
+                const bi = MetricsService.DISTANCE_CATEGORY_ORDER.indexOf(b[0]);
+                return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999) || a[0].localeCompare(b[0]);
+            });
         };
 
         const lieByDistance = groupByDistance(lieRows).map(([distance, rows]) => {
@@ -2496,6 +2543,7 @@ class HeatmapComponent {
         this.speedCtx = this.speedCanvas ? this.speedCanvas.getContext("2d") : null;
         this.distanceBins = [0, 2, 4, 6, 8, Number.POSITIVE_INFINITY];
         this.distanceLabels = ["0-2yd", "2-4yd", "4-6yd", "6-8yd", "8yd+"];
+        this.speedDistanceKeys = MetricsService.DISTANCE_CATEGORY_ORDER;
         this.yLabels = ["Left", "Holed", "Right"];
         this.slopeLevels = [1, 2, 3, 0, -1, -2, -3];
         this.slopeLabels = this.slopeLevels.map(level => slopeLevelToLabel(level));
@@ -2531,7 +2579,7 @@ class HeatmapComponent {
 
     renderLieHeatmap(records) {
         const m1 = records.filter(r => MetricsService.isLieMission(r.mission));
-        const { ctx } = this;
+        let ctx = this.ctx;
 
         if (!m1.length) {
             ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -2543,16 +2591,24 @@ class HeatmapComponent {
             return;
         }
 
-        const matrix = [
-            new Array(this.distanceLabels.length).fill(0),
-            new Array(this.distanceLabels.length).fill(0),
-            new Array(this.distanceLabels.length).fill(0)
-        ];
-        const attemptsByDistance = new Array(this.distanceLabels.length).fill(0);
-        const holedByDistance = new Array(this.distanceLabels.length).fill(0);
+        const distanceKeys = [...new Set(m1.map(row => MetricsService.normalizeDistanceCategory(row.distance)))]
+            .sort((a, b) => {
+                const ai = this.speedDistanceKeys.indexOf(a);
+                const bi = this.speedDistanceKeys.indexOf(b);
+                return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999) || a.localeCompare(b);
+            });
+        const distanceLabels = distanceKeys.map(key => {
+            const knownLabels = CURRENT_LANG === "en"
+                ? { "5y이내": "≤5 yd", "5-7y": "5–7 yd", "7-9y": "7–9 yd", "9-11y": "9–11 yd", "11y이상": "11+ yd", "(Unspecified)": "Unspecified" }
+                : { "5y이내": "5y 이내", "5-7y": "5-7y", "7-9y": "7-9y", "9-11y": "9-11y", "11y이상": "11y 이상", "(Unspecified)": "미지정" };
+            return knownLabels[key] || key;
+        });
+        const matrix = this.yLabels.map(() => new Array(distanceKeys.length).fill(0));
+        const attemptsByDistance = new Array(distanceKeys.length).fill(0);
+        const holedByDistance = new Array(distanceKeys.length).fill(0);
 
         m1.forEach(row => {
-            const x = this.getDistanceBin(Number(row.distance) || 0);
+            const x = distanceKeys.indexOf(MetricsService.normalizeDistanceCategory(row.distance));
             const y = this.getMissBin(row.actualMiss);
             matrix[y][x] += 1;
             attemptsByDistance[x] += 1;
@@ -2566,6 +2622,12 @@ class HeatmapComponent {
         const cellH = 55;
         const offsetX = 60;
         const offsetY = 30;
+        const requiredWidth = Math.max(520, offsetX + distanceLabels.length * cellW + 10);
+        if (this.canvas.width !== requiredWidth) {
+            this.canvas.width = requiredWidth;
+            this.ctx = this.canvas.getContext("2d");
+        }
+        ctx = this.ctx;
 
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.font = "12px Arial";
@@ -2587,7 +2649,7 @@ class HeatmapComponent {
         }
 
         ctx.fillStyle = "#111";
-        this.distanceLabels.forEach((label, index) => {
+        distanceLabels.forEach((label, index) => {
             ctx.fillText(label, offsetX + index * cellW + (cellW / 2), 15);
         });
         this.yLabels.forEach((label, index) => {
@@ -2619,12 +2681,23 @@ class HeatmapComponent {
         );
         let ctx = this.speedCtx;
 
+        const offsetX = 60;
         const cellW = 90;
         const cellH = 48;
-        const offsetX = 60;
         const offsetY = 30;
-        const requiredHeight = offsetY + this.slopeLabels.length * cellH + 24;
-        if (this.speedCanvas.height !== requiredHeight) {
+        const unknownDistanceKeys = [...new Set(m2.map(row => String(row.distance ?? "").trim() || (CURRENT_LANG === "en" ? "(Unspecified)" : "(미지정)")))]
+            .filter(key => !this.speedDistanceKeys.includes(key));
+        const distanceKeys = [...this.speedDistanceKeys, ...unknownDistanceKeys];
+        const distanceLabels = distanceKeys.map(key => {
+            const knownLabels = CURRENT_LANG === "en"
+                ? { "5y이내": "≤5 yd", "5-7y": "5–7 yd", "7-9y": "7–9 yd", "9-11y": "9–11 yd", "11y이상": "11+ yd" }
+                : { "5y이내": "5y 이내", "5-7y": "5-7y", "7-9y": "7-9y", "9-11y": "9-11y", "11y이상": "11y 이상" };
+            return knownLabels[key] || key;
+        });
+        const requiredWidth = Math.max(520, offsetX + distanceLabels.length * cellW + 10);
+        const requiredHeight = offsetY + this.slopeLabels.length * cellH + 50;
+        if (this.speedCanvas.width !== requiredWidth || this.speedCanvas.height !== requiredHeight) {
+            this.speedCanvas.width = requiredWidth;
             this.speedCanvas.height = requiredHeight;
             this.speedCtx = this.speedCanvas.getContext("2d");
             ctx = this.speedCtx;
@@ -2640,14 +2713,14 @@ class HeatmapComponent {
             return;
         }
 
-        const sumMatrix = this.slopeLabels.map(() => new Array(this.distanceLabels.length).fill(0));
-        const countMatrix = this.slopeLabels.map(() => new Array(this.distanceLabels.length).fill(0));
+        const sumMatrix = this.slopeLabels.map(() => new Array(distanceKeys.length).fill(0));
+        const countMatrix = this.slopeLabels.map(() => new Array(distanceKeys.length).fill(0));
 
         m2.forEach(row => {
-            const distance = Number(row.distance) || 0;
+            const distanceKey = String(row.distance ?? "").trim() || (CURRENT_LANG === "en" ? "(Unspecified)" : "(미지정)");
             const speedError = Math.abs(Number(row.actualSpeedCm) || 0);
             const slopeBasis = normalizeSlopeLevel(row.actualSlope ?? row.predSlope ?? 0);
-            const x = this.getDistanceBin(distance);
+            const x = distanceKeys.indexOf(distanceKey);
             const y = this.getSlopeBin(slopeBasis);
             sumMatrix[y][x] += speedError;
             countMatrix[y][x] += 1;
@@ -2684,13 +2757,26 @@ class HeatmapComponent {
         }
 
         ctx.fillStyle = "#111";
-        this.distanceLabels.forEach((label, index) => {
+        distanceLabels.forEach((label, index) => {
             ctx.fillText(label, offsetX + index * cellW + (cellW / 2), 15);
         });
         this.slopeLabels.forEach((label, index) => {
             ctx.textAlign = "right";
             ctx.fillText(label, 50, offsetY + index * cellH + (cellH / 2));
             ctx.textAlign = "center";
+        });
+
+        const summaryY = offsetY + this.slopeLabels.length * cellH + 20;
+        const attemptsByDistance = distanceKeys.map((_, x) =>
+            countMatrix.reduce((total, row) => total + row[x], 0)
+        );
+        ctx.font = "11px Arial";
+        ctx.fillStyle = "#334155";
+        ctx.textAlign = "right";
+        ctx.fillText(CURRENT_LANG === "en" ? "Attempts" : "시도", 50, summaryY);
+        ctx.textAlign = "center";
+        attemptsByDistance.forEach((attempts, index) => {
+            ctx.fillText(String(attempts), offsetX + index * cellW + (cellW / 2), summaryY);
         });
     }
 }
@@ -2700,17 +2786,19 @@ class DashboardComponent {
         this.metricsTarget = document.getElementById(metricsTargetId);
         this.lowSideTarget = document.getElementById(lowSideTargetId);
         this.bayesTarget = document.getElementById(bayesTargetId);
+        this.visualTarget = document.getElementById("section-visual");
         this.missTypeTarget = document.getElementById(missTypeTargetId);
         this.lieDistanceTarget = document.getElementById(lieDistanceTargetId);
         this.speedDistanceTarget = document.getElementById(speedDistanceTargetId);
         this.metricsTarget.addEventListener("click", event => this.toggleMetricHelp(event));
         this.lowSideTarget.addEventListener("click", event => this.toggleMetricHelp(event));
+        this.visualTarget.addEventListener("click", event => this.toggleMetricHelp(event));
     }
 
     toggleMetricHelp(event) {
-        const trigger = event.target.closest(".metric-help-trigger");
+        const trigger = event.target.closest(".metric-help-trigger, .visual-help-trigger");
         if (!trigger || !event.currentTarget.contains(trigger)) return;
-        const card = trigger.closest(".metric-card, .metric-chip");
+        const card = trigger.closest(".metric-card, .metric-chip, .panel-analyze");
         const help = card?.querySelector(".metric-help-text");
         if (!help) return;
 
@@ -2718,7 +2806,7 @@ class DashboardComponent {
         event.currentTarget.querySelectorAll(".metric-help-text").forEach(element => {
             element.hidden = true;
         });
-        event.currentTarget.querySelectorAll(".metric-help-trigger").forEach(element => {
+        event.currentTarget.querySelectorAll(".metric-help-trigger, .visual-help-trigger").forEach(element => {
             element.setAttribute("aria-expanded", "false");
         });
         help.hidden = !opening;
@@ -2922,8 +3010,15 @@ class DashboardComponent {
             this.bayesTarget.textContent = CURRENT_LANG === "en" ? "N/A (No Lie data)" : "N/A (Lie 데이터 없음)";
             return;
         }
-        this.bayesTarget.textContent =
-            `Posterior Beta(${posterior.alpha}, ${posterior.beta}) | Make Prob Mean ${(posterior.mean * 100).toFixed(1)}% | 95% CI ${(posterior.ciLow * 100).toFixed(1)}% ~ ${(posterior.ciHigh * 100).toFixed(1)}% | Trials ${posterior.trials}`;
+        const isEn = CURRENT_LANG === "en";
+        const meanLabel = isEn ? "Make Prob Mean" : "홀인 확률 평균";
+        const summary = isEn
+            ? `Posterior Beta(${posterior.alpha}, ${posterior.beta}) | 95% CI ${(posterior.ciLow * 100).toFixed(1)}% ~ ${(posterior.ciHigh * 100).toFixed(1)}% | Trials ${posterior.trials}`
+            : `사후분포 Beta(${posterior.alpha}, ${posterior.beta}) | 95% 신용구간 ${(posterior.ciLow * 100).toFixed(1)}% ~ ${(posterior.ciHigh * 100).toFixed(1)}% | 시도 ${posterior.trials}회`;
+        this.bayesTarget.innerHTML = `
+            <div class="bayes-result-summary">${summary}</div>
+            <div class="bayes-mean-highlight">${meanLabel}<strong>${(posterior.mean * 100).toFixed(1)}%</strong></div>
+        `;
     }
 
     renderMissType(metrics) {
@@ -2942,6 +3037,9 @@ class DashboardComponent {
                 ? '<div class="distance-empty">N/A (No Lie Decision Training data)</div>'
                 : '<div class="distance-empty">N/A (Lie 결정훈련 데이터 없음)</div>';
         } else {
+            const distanceCategoryLabels = isEn
+                ? { "5y이내": "≤5 yd", "5-7y": "5–7 yd", "7-9y": "7–9 yd", "9-11y": "9–11 yd", "11y이상": "11+ yd", "(Unspecified)": "Unspecified" }
+                : { "5y이내": "5y 이내", "5-7y": "5-7y", "7-9y": "7-9y", "9-11y": "9-11y", "11y이상": "11y 이상", "(Unspecified)": "미지정" };
             const totalShots = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.count, 0);
             const totalHoledCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.holedCount, 0);
             const totalDirectionOkCount = distanceBreakdown.lieByDistance.reduce((sum, row) => sum + row.directionOkCount, 0);
@@ -2956,7 +3054,7 @@ class DashboardComponent {
                 <table class="distance-table">
                     <thead>
                         <tr>
-                            <th>Distance (yd)</th>
+                            <th>${isEn ? "Distance Category" : "거리 범주"}</th>
                             <th>${isEn ? "Shots" : "시도"}</th>
                             <th>${isEn ? "Holed (Count, %)" : "홀인 (횟수, %)"}</th>
                             <th title="${isEn ? "Direction Accuracy %: Share of shots with no direction miss. Higher is better." : "방향 정확도 %: 방향 미스 없는 샷의 비율. 높을수록 좋습니다."}">${isEn ? "Direction Acc %" : "방향 정확도 %"}</th>
@@ -2966,7 +3064,7 @@ class DashboardComponent {
                     <tbody>
                         ${distanceBreakdown.lieByDistance.map(row => `
                             <tr>
-                                <td>${row.distance}</td>
+                                <td>${distanceCategoryLabels[row.distance] || row.distance}</td>
                                 <td>${row.count}</td>
                                 <td>${row.holedCount} (${(row.holedRate * 100).toFixed(1)}%)</td>
                                 <td>${(row.directionAcc * 100).toFixed(1)}</td>
@@ -3417,14 +3515,28 @@ class PuttingTrainingApp {
 
         const visualSection = document.getElementById("section-visual");
         if (visualSection) {
-            const h2List = visualSection.querySelectorAll("h2");
-            if (h2List[0]) h2List[0].textContent = "Left / Right Error Heatmap";
-            if (h2List[1]) h2List[1].textContent = "Speed Error Heatmap (M2)";
-            if (h2List[2]) h2List[2].textContent = "Bayesian Skill Update";
-            const smalls = visualSection.querySelectorAll(".small");
-            if (smalls[0]) smalls[0].textContent = this.language === "en" ? "X-axis: distance bins (yd), Y-axis: Left/Holed/Right" : "X축: 거리 구간(yd), Y축: Left/Holed/Right";
-            if (smalls[1]) smalls[1].textContent = this.language === "en" ? "X-axis: distance bins (yd), Y-axis: slope categories / cell value: average speed error (cm)" : "X축: 거리 구간(yd), Y축: 경사 구간(%) / 셀 값: 평균 Speed Error(cm)";
-            if (smalls[2]) smalls[2].textContent = this.language === "en" ? "Prior Beta(1,1), updated in real time using M1 holed outcomes" : "사전분포 Beta(1,1), M1 결과의 Holed 여부로 실시간 업데이트";
+            const isEn = this.language === "en";
+            setText("#visual-title-left-right", isEn ? "Left / Right Error Heatmap (M1)" : "좌우 방향 결과 히트맵 (M1)");
+            setText("#visual-title-finish-offset", isEn ? "Finish Offset Heatmap (M2)" : "마무리 편차 히트맵 (M2)");
+            setText("#visual-title-bayesian", isEn ? "Bayesian Skill Update" : "베이지안 성공률 업데이트");
+            setText("#visual-help-left-right", isEn
+                ? "Counts M1 outcomes by the selected distance category and result: Left, Holed, or Right. Cell numbers are attempt counts; the row beneath each distance category shows attempts and the holed rate. Legacy numeric distances are mapped to the nearest matching category."
+                : "M1 기록을 선택한 거리 범주와 결과(좌측 미스·홀인·우측 미스)별로 집계합니다. 칸의 숫자는 시도 횟수이며, 각 거리 범주 아래에는 시도 수와 홀인율을 표시합니다. 과거 숫자형 거리 기록은 해당 범주에 맞춰 환산합니다.");
+            setText("#visual-help-finish-offset", isEn
+                ? "For M2 records with a numeric Actual Finish value, groups the mean absolute value of the coded finish categories (0, 30, or 100 cm) by the same distance categories used in the analysis table and by slope. This is a category-based proxy, not a directly measured roll/speed error; 0.0 is an in-range category, “–” means no records in that cell, and the bottom row shows attempts per distance."
+                : "숫자로 저장된 M2 마무리 결과를 분석표와 같은 거리 범주 및 경사 구간별로 나누어, 범주값(0·30·100cm)의 절대값 평균을 표시합니다. 실제 구름 거리나 속도 오차를 측정한 값이 아니라 범주 기반 대푯값입니다. 0.0은 목표 범주 기록, ‘–’는 해당 칸에 기록이 없다는 뜻이고, 아래 시도 행은 거리별 기록 수입니다.");
+            setText("#visual-help-bayesian", isEn
+                ? "Starts from a uniform Beta(1,1) prior and updates it with M1 outcomes, treating Holed as a success and Left/Right as misses. The displayed mean is the posterior estimated make probability; the interval is its 95% credible interval. It summarizes this session’s records, not a guaranteed future result."
+                : "균등 사전분포 Beta(1,1)에서 시작해 M1 결과를 반영합니다. 홀인은 성공, 좌·우 미스는 실패로 업데이트합니다. 표시된 평균은 사후 홀인 확률 추정치이며, 구간은 95% 신용구간입니다. 현재 세션 기록에 대한 추정치이지 향후 결과를 보장하지는 않습니다.");
+            setText("#visual-axis-left-right", isEn
+                ? "X-axis: M1 distance categories; Y-axis: Left / Holed / Right; cells: attempts"
+                : "X축: M1 거리 범주; Y축: 좌측 미스 / 홀인 / 우측 미스; 칸: 시도 횟수");
+            setText("#visual-axis-finish-offset", isEn
+                ? "X-axis: M2 distance categories; Y-axis: slope categories; cells: mean absolute coded finish offset (cm); bottom row: attempts"
+                : "X축: M2 거리 범주; Y축: 경사 구간; 칸: 범주 기반 절대 마무리 편차 평균(cm); 아래 행: 거리별 시도");
+            setText("#visual-axis-bayesian", isEn
+                ? "Beta(1,1) prior; updated from M1 Holed (success) and Left/Right (miss) results"
+                : "Beta(1,1) 사전분포를 M1 홀인(성공)·좌우 미스(실패) 결과로 업데이트");
         }
 
         const coachSection = document.getElementById("section-coach");
@@ -7853,17 +7965,11 @@ class PuttingTrainingApp {
             const imageWidth = pageWidth;
             const imageHeight = canvas.height * imageWidth / canvas.width;
 
-            let heightLeft = imageHeight;
-            let position = 0;
-
-            pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft > 0) {
-                position = heightLeft - imageHeight;
+            const pageCount = Math.max(1, Math.ceil(imageHeight / pageHeight - 1e-6));
+            pdf.addImage(imageData, "PNG", 0, 0, imageWidth, imageHeight);
+            for (let pageIndex = 1; pageIndex < pageCount; pageIndex += 1) {
                 pdf.addPage();
-                pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight);
-                heightLeft -= pageHeight;
+                pdf.addImage(imageData, "PNG", 0, -pageIndex * pageHeight, imageWidth, imageHeight);
             }
 
             const fileName = `${this.buildExportBaseName()}_${fileLabel}.pdf`;
