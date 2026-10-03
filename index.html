@@ -510,6 +510,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .usage-guide-title { font-weight:bold; color:#1f4db8; margin-bottom:6px; }
 .usage-guide-list { margin:8px 0 0 18px; padding:0; }
 .usage-guide-list li { margin:6px 0; line-height:1.35; }
+.usage-guide-manual-link { display:inline-block; margin-top:10px; font-weight:700; }
 </style>
 </head>
 
@@ -656,6 +657,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
             <li id="usageGuideItem1"></li>
             <li id="usageGuideItem2"></li>
         </ol>
+        <a class="usage-guide-manual-link" id="usageGuideManualLink" href="SY-PTS_사용매뉴얼.html" target="_blank" rel="noopener noreferrer"></a>
     </div>
     <div class="small">라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합</div>
     <ol class="guide-list" id="frameworkGuideList">
@@ -1564,7 +1566,8 @@ const UI_I18N = {
         usageGuideBtn: "📖 프로그램 사용안내",
         usageGuideTitle: "프로그램 사용안내",
         usageGuideItem1: "M1, M2는 퍼팅의 방향성 인지와 속도 제어 능력을 분석하는데 필요한 것으로, 퍼팅에 문제가 발생 시 코치 지시에 따라 수행하고 분석결과를 코치로부터 피드백 받아 재수행하는 훈련과정입니다.",
-        usageGuideItem2: "6번 항 코치미션은 퍼팅과 관련한 라이 결정 능력과 속도 감각을 향상시킬 목적으로 부여받은 미션을 수행하면 되며, 지정된 기한에 수행하지 않으면 부여된 미션이 삭제됩니다."
+        usageGuideItem2: "6번 항 코치미션은 퍼팅과 관련한 라이 결정 능력과 속도 감각을 향상시킬 목적으로 부여받은 미션을 수행하면 되며, 지정된 기한에 수행하지 않으면 부여된 미션이 삭제됩니다.",
+        usageGuideManualLink: "📘 SY-PTS 사용매뉴얼 열기"
     },
     en: {
         loginTitle: "SY-PTS Login",
@@ -1785,7 +1788,8 @@ const UI_I18N = {
         usageGuideBtn: "📖 Usage Guide",
         usageGuideTitle: "Usage Guide",
         usageGuideItem1: "M1 and M2 are used to analyze putting direction perception and speed control ability. When an issue occurs in putting, perform the drills as directed by the coach, receive feedback on the analysis results from the coach, and redo the drills.",
-        usageGuideItem2: "Item 6 (Coach Mission) is meant to improve lie-decision ability and speed feel related to putting. Complete the assigned mission by its due date, otherwise the mission will be deleted."
+        usageGuideItem2: "Item 6 (Coach Mission) is meant to improve lie-decision ability and speed feel related to putting. Complete the assigned mission by its due date, otherwise the mission will be deleted.",
+        usageGuideManualLink: "📘 Open SY-PTS User Manual"
     }
 };
 
@@ -3487,6 +3491,7 @@ class PuttingTrainingApp {
         setText("#usageGuideTitle", this.t("usageGuideTitle"));
         setText("#usageGuideItem1", this.t("usageGuideItem1"));
         setText("#usageGuideItem2", this.t("usageGuideItem2"));
+        setText("#usageGuideManualLink", this.t("usageGuideManualLink"));
 
         const m1Panel = document.getElementById("m1Panel");
         if (m1Panel) {
