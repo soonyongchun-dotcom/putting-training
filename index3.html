@@ -3469,20 +3469,28 @@
         if(val===null||val===undefined) return '';
         return '<tr><td style="color:#888;padding:2px 8px 2px 0;font-size:12px">'+label+'</td><td style="font-size:12px;font-weight:600">'+val+(unit?' <span style="color:#888;font-weight:400;font-size:11px">'+unit+'</span>':'')+'</td></tr>';
       }
-      var m1DirRate=m1.length?m1.filter(function(r){return r.intendedStartLine==='yes';}).length/m1.length:null;
-      var m1Misses=m1.filter(function(r){return r.actualMiss&&r.actualMiss!=='center';});
-      var m1MissRate=m1.length?m1Misses.length/m1.length:null;
+      function hasNumber(r,key){return r[key]!==null&&r[key]!==undefined&&r[key]!==''&&Number.isFinite(Number(r[key]));}
+      function meanAbsoluteDifference(rows,left,right){
+        var samples=rows.filter(function(r){return hasNumber(r,left)&&hasNumber(r,right);});
+        return samples.length?samples.reduce(function(s,r){return s+Math.abs(Number(r[left])-Number(r[right]));},0)/samples.length:null;
+      }
+      var m1DirSamples=m1.filter(function(r){return r.intendedStartLine==='yes'||r.intendedStartLine==='no';});
+      var m1DirRate=m1DirSamples.length?m1DirSamples.filter(function(r){return r.intendedStartLine==='yes';}).length/m1DirSamples.length:null;
+      var m1ResultSamples=m1.filter(function(r){return r.actualMiss==='center'||r.actualMiss==='left'||r.actualMiss==='right';});
+      var m1Misses=m1ResultSamples.filter(function(r){return r.actualMiss!=='center';});
+      var m1MissRate=m1ResultSamples.length?m1Misses.length/m1ResultSamples.length:null;
       var m1DirMiss=m1Misses.filter(function(r){return r.missType==='direction'||r.missType==='both';}).length;
       var m1SpeedMiss=m1Misses.filter(function(r){return r.missType==='speed'||r.missType==='both';}).length;
-      var m1AvgLateral=m1.length?m1.reduce(function(s,r){return s+Math.abs(Number(r.lateralErrorCm)||0);},0)/m1.length:null;
+      var m1LateralSamples=m1.filter(function(r){return hasNumber(r,'lateralErrorCm');});
+      var m1AvgLateral=m1LateralSamples.length?m1LateralSamples.reduce(function(s,r){return s+Math.abs(Number(r.lateralErrorCm));},0)/m1LateralSamples.length:null;
       var m1OneLookSamples=m1.filter(function(r){return r.decisionOver7==='yes'||r.decisionOver7==='no';});
       var m1OneLookRate=m1OneLookSamples.length?m1OneLookSamples.filter(function(r){return r.decisionOver7==='no';}).length/m1OneLookSamples.length:null;
-      var m1ConfSamples=m1.filter(function(r){return r.highSideCommit&&r.apexCommit;});
-      var m1ConfRate=m1ConfSamples.length?m1ConfSamples.filter(function(r){return r.highSideCommit==='yes'&&r.apexCommit==='yes';}).length/m1ConfSamples.length:null;
+      var m1ConfSamples=m1.filter(function(r){return r.highSideCommit==='yes'||r.highSideCommit==='no';});
+      var m1ConfRate=m1ConfSamples.length?m1ConfSamples.filter(function(r){return r.highSideCommit==='yes';}).length/m1ConfSamples.length:null;
       var m1LowPtSamples=m1.filter(function(r){return r.predLowPoint&&r.actualLowPoint;});
       var m1LowPtRate=m1LowPtSamples.length?m1LowPtSamples.filter(function(r){return r.predLowPoint===r.actualLowPoint;}).length/m1LowPtSamples.length:null;
-      var m2AvgSlopeErr=m2.length?m2.reduce(function(s,r){return s+Math.abs((Number(r.predSlope)||0)-(Number(r.actualSlope)||0));},0)/m2.length:null;
-      var m2AvgSpeedErr=m2.length?m2.reduce(function(s,r){return s+Math.abs((Number(r.predSpeedCm)||0)-(Number(r.actualSpeedCm)||0));},0)/m2.length:null;
+      var m2AvgSlopeErr=meanAbsoluteDifference(m2,'predSlope','actualSlope');
+      var m2AvgSpeedErr=meanAbsoluteDifference(m2,'predSpeedCm','actualSpeedCm');
       var m1Html=m1.length?(
         '<div style="margin-top:8px"><div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:3px">M1 · Lie/Direction ('+m1.length+'회)</div>'
         +'<table style="border-collapse:collapse">'
@@ -3490,16 +3498,19 @@
         +statRow('미스 비율',m1MissRate!==null?pct(m1MissRate):null,'(방향'+m1DirMiss+'/속도'+m1SpeedMiss+')')
         +statRow('평균 오차',m1AvgLateral!==null?fmtNum(m1AvgLateral,1):null,'cm')
         +statRow('Low-Point 적중',m1LowPtRate!==null?pct(m1LowPtRate):null,'')
-        +statRow('7초 이내 결정',m1OneLookRate!==null?pct(m1OneLookRate):null,'')
-        +statRow('자신감 (High+Apex)',m1ConfRate!==null?pct(m1ConfRate):null,'')
+        +statRow('5초 이내 결정',m1OneLookRate!==null?pct(m1OneLookRate):null,'')
+        +statRow('High-side 커밋',m1ConfRate!==null?pct(m1ConfRate):null,'')
         +'</table></div>'
       ):'';
       var m2Html=m2.length?(
         '<div style="margin-top:8px"><div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:3px">M2 · Speed/Slope ('+m2.length+'회)</div>'
-        +'<table style="border-collapse:collapse">'
-        +statRow('경사 예측 오차',m2AvgSlopeErr!==null?fmtNum(m2AvgSlopeErr,2):null,'단계')
-        +statRow('속도 예측 오차',m2AvgSpeedErr!==null?fmtNum(m2AvgSpeedErr,1):null,'cm')
-        +'</table></div>'
+        +(m2AvgSlopeErr!==null||m2AvgSpeedErr!==null
+          ?'<table style="border-collapse:collapse">'
+           +statRow('경사 예측 오차',m2AvgSlopeErr!==null?fmtNum(m2AvgSlopeErr,2):null,'단계')
+           +statRow('속도 예측 오차',m2AvgSpeedErr!==null?fmtNum(m2AvgSpeedErr,1):null,'cm')
+           +'</table>'
+          :'<div style="font-size:12px;color:#888">예측값이 없어 예측 오차를 산출하지 않았습니다.</div>')
+        +'</div>'
       ):'';
       return m1Html+m2Html;
     }

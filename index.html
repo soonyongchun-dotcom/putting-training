@@ -538,7 +538,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 
 <div class="top-bar">
     <div>
-        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.9.6ff</span></h1>
+        <h1 class="app-title">SY Putting Training System - Green Mission <span class="app-version" id="appVersionBadge">ver 26.101f</span></h1>
         <div class="session-info" id="sessionInfo"></div>
     </div>
     <div class="top-actions">
@@ -603,11 +603,11 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     <div class="small">라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합</div>
     <ol class="guide-list" id="frameworkGuideList">
         <li><b>Low-Point 훈련:</b> 라인이 아니라 중력 방향(물이 모이는 지점)부터 찾기</li>
-        <li><b>Feet Calibration:</b> 예측 경사%와 실제 경사% 오차를 누적 기록</li>
+        <li><b>경사 판독 연습:</b> 경사를 추정해 보세요. 현재 입력 화면은 실제 경사 단계만 저장하므로 예측 정확도는 산출하지 않습니다.</li>
         <li><b>High-Side Only:</b> 낮은 쪽 미스를 벌점으로 관리해 결정력 강화</li>
         <li><b>Apex 시각화:</b> 컵이 아닌 최고점 지점을 먼저 결정</li>
         <li><b>Speed First:</b> 데드웨이트/30cm/60cm 오버 속도별 브레이크 차이 학습</li>
-        <li><b>Address→Putt 7초 루틴:</b> 어드레스 진입 후 7초 이내 스트로크 유지 (7초 초과 여부 체크)</li>
+        <li><b>Address→Putt 5초 루틴:</b> 어드레스 진입 후 5초 이내 스트로크 유지 (5초 초과 여부 체크)</li>
     </ol>
 
     <div class="concept-box">
@@ -631,8 +631,8 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
             </div>
         </div>
         <div id="frameworkDrillRule" class="small" style="margin-top:8px;">
-            드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요.
-            속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.
+            드릴 규칙: 같은 위치에서 3가지 목표 속도를 차례로 시도하고 실제 마무리 범주를 기록하세요.
+            현재 입력 화면은 목표 속도 계획-실행 일치율을 기록하지 않습니다.
         </div>
     </div>
 </div>
@@ -784,7 +784,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 <div class="panel panel-analyze">
     <h2>Auto Metrics (SRI / SII / DCS + 3-Stage Performance)</h2>
   <div class="metrics" id="metricsBoard"></div>
-    <div class="small">SRI: slope quantification accuracy / SII: direction read + low-side control / DCS: distance-normalized error + speed integration quality</div>
+    <div class="small" id="autoMetricDesc">SRI: M2 마무리 제어(목표 범위 70% + 범주 기반 편차 점수 30%) / SII: M1 방향 분류·Low-side·미스 원인 점수 / DCS: 홀인·속도 미스·루틴 종합 (거리 보정 없음)</div>
 </div>
 
 <div class="panel panel-analyze">
@@ -820,9 +820,9 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 </div>
 
 <div class="panel panel-analyze">
-    <h2>Speed Error Heatmap (M2)</h2>
+    <h2>Finish Offset Heatmap (M2)</h2>
     <canvas id="speedHeatmapCanvas" width="520" height="250"></canvas>
-    <div class="small">X-axis: distance bins (yd), Y-axis: slope categories / cell value: average speed error (cm)</div>
+    <div class="small">X-axis: distance bins (yd), Y-axis: slope categories / cell value: average absolute finish offset using coded 0/30/100cm categories (not a measured distance)</div>
 </div>
 
 <div class="panel panel-analyze">
@@ -1304,7 +1304,7 @@ const UI_I18N = {
         score: "점수",
         passWithin7s: "통과 (5초 이내)",
         lateOver7s: "지연 (5초 초과)",
-        m1Result: "점수: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 7초 기준: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
+        m1Result: "점수: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 5초 기준: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
         m2Result: "Slope Error: {{slopeError}} ({{predLabel}} vs {{actualLabel}}) | Speed Error: {{speedError}}cm | Score: {{score}} (누적평균)",
         missionDesc: "미션 설명: {{detail}}",
         missionDescEmpty: "미션 설명 없음",
@@ -1496,7 +1496,7 @@ const UI_I18N = {
         score: "Score",
         passWithin7s: "Pass (Within 5s)",
         lateOver7s: "Late (Over 5s)",
-        m1Result: "Score: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 7s Rule: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
+        m1Result: "Score: {{score}} | Intended Start Line: {{intendedStartLine}} | Directional Miss: {{lowSide}} | Miss Type: {{missType}} | Address→Putt 5s Rule: {{oneLookOk}} | High-side Commit: {{highSideCommit}} | Apex Commit: {{apexCommit}}",
         m2Result: "Slope Error: {{slopeError}} ({{predLabel}} vs {{actualLabel}}) | Speed Error: {{speedError}}cm | Score: {{score}} (Cumulative Avg)",
         missionDesc: "Mission Description: {{detail}}",
         missionDescEmpty: "No mission description",
@@ -2185,6 +2185,14 @@ class MetricsService {
         return Math.min(max, Math.max(min, value));
     }
 
+    static hasNumericValue(record, field) {
+        const value = record[field];
+        return value !== null &&
+            value !== undefined &&
+            !(typeof value === "string" && value.trim() === "") &&
+            Number.isFinite(Number(value));
+    }
+
     static isDirectionalMiss(missType) {
         return missType === "direction" || missType === "both";
     }
@@ -2208,13 +2216,14 @@ class MetricsService {
     calculateAutoMetrics(records) {
         const m1 = records.filter(r => MetricsService.isLieMission(r.mission));
         const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
+        const speedFinishSamples = m2.filter(r => MetricsService.hasNumericValue(r, "actualSpeedCm"));
 
-        const speedInRangeRate = m2.length
-            ? m2.filter(r => Number(r.actualSpeedCm ?? 0) === 0).length / m2.length
+        const speedInRangeRate = speedFinishSamples.length
+            ? speedFinishSamples.filter(r => Number(r.actualSpeedCm) === 0).length / speedFinishSamples.length
             : 0;
 
-        const avgSpeedError = m2.length
-            ? m2.reduce((sum, r) => sum + Math.abs(Number(r.actualSpeedCm) || 0), 0) / m2.length
+        const avgSpeedError = speedFinishSamples.length
+            ? speedFinishSamples.reduce((sum, r) => sum + Math.abs(Number(r.actualSpeedCm)), 0) / speedFinishSamples.length
             : 0;
 
         const directionCorrectRate = m1.length
@@ -2281,7 +2290,7 @@ class MetricsService {
         const speedInRangeScore = speedInRangeRate * 100;
         const speedCalibrationScore = MetricsService.clamp(100 - avgSpeedError * 1.2, 0, 100);
         const slopeStageScore = MetricsService.clamp(speedInRangeScore * 0.7 + speedCalibrationScore * 0.3, 0, 100);
-        // speedStageScore: routine quality (7초 룰 + high-side commit)
+        // Routine score: 5-second execution rule + high-side commitment.
         const speedStageScore = (oneLookRate * 0.6 + confidenceRate * 0.4) * 100;
 
         const sri = slopeStageScore;
@@ -2299,16 +2308,12 @@ class MetricsService {
 
         const speedInRangeScore_display = speedInRangeScore;
         const avgSpeedErrorScore = speedCalibrationScore;
-        const overallMetricAverage = [
-            sri,
-            sii,
-            dcs,
-            gravityStageScore,
-            slopeStageScore,
-            speedStageScore,
-            speedInRangeScore_display,
-            avgSpeedErrorScore
-        ].reduce((sum, value) => sum + value, 0) / 8;
+        const overallScores = [];
+        if (m1.length) overallScores.push(gravityStageScore, speedStageScore);
+        if (m2.length) overallScores.push(slopeStageScore);
+        const overallMetricAverage = overallScores.length
+            ? overallScores.reduce((sum, value) => sum + value, 0) / overallScores.length
+            : 0;
 
         return {
             sri,
@@ -2356,13 +2361,15 @@ class MetricsService {
             speedMissRate: speedMissCount / missDenominator,
             bothMissRate: bothMissCount / missDenominator,
             lieTrials: m1.length,
-            speedTrials: m2.length
+            speedTrials: speedFinishSamples.length
         };
     }
 
     calculateDistanceBreakdown(records) {
         const lieRows = records.filter(r => MetricsService.isLieMission(r.mission));
-        const speedRows = records.filter(r => MetricsService.isSpeedMission(r.mission));
+        const speedRows = records.filter(r =>
+            MetricsService.isSpeedMission(r.mission) && MetricsService.hasNumericValue(r, "actualSpeedCm")
+        );
 
         const groupByDistance = (rows) => {
             const map = new Map();
@@ -2400,9 +2407,9 @@ class MetricsService {
         };
         const calcSpeedMetrics = (rows) => {
             const count = rows.length;
-            const inRangeCount = rows.filter(r => Number(r.actualSpeedCm ?? 0) === 0).length;
-            const overCount = rows.filter(r => Number(r.actualSpeedCm ?? 0) > 0).length;
-            const shortCount = rows.filter(r => Number(r.actualSpeedCm ?? 0) < 0).length;
+            const inRangeCount = rows.filter(r => Number(r.actualSpeedCm) === 0).length;
+            const overCount = rows.filter(r => Number(r.actualSpeedCm) > 0).length;
+            const shortCount = rows.filter(r => Number(r.actualSpeedCm) < 0).length;
             return {
                 count,
                 inRangeCount, overCount, shortCount,
@@ -2575,7 +2582,9 @@ class HeatmapComponent {
     renderSpeedHeatmap(records) {
         if (!this.speedCanvas || !this.speedCtx) return;
 
-        const m2 = records.filter(r => MetricsService.isSpeedMission(r.mission));
+        const m2 = records.filter(r =>
+            MetricsService.isSpeedMission(r.mission) && MetricsService.hasNumericValue(r, "actualSpeedCm")
+        );
         let ctx = this.speedCtx;
 
         const cellW = 90;
@@ -2673,15 +2682,15 @@ class DashboardComponent {
         const display = (condition, text) => (condition ? text : "N/A");
 
         this.metricsTarget.innerHTML = `
-            <div class="metric-card" title="${isEn ? "SRI: Slope quantification accuracy score. Reflects average slope error and speed calibration error; higher is better." : "SRI: 경사 수치화 정확도 점수. 평균 경사 오차와 속도 보정 오차를 반영하며 높을수록 좋습니다."}">
+            <div class="metric-card" title="${isEn ? "SRI is currently a pace-outcome score, not a slope-reading score: 70% M2 in-range finish rate plus 30% score derived from the coded finish-offset categories. Higher is better." : "현재 SRI는 경사 판독 점수가 아니라 M2 마무리 결과 점수입니다. 목표 범위 비율 70%와 입력된 마무리 편차 범주 기반 점수 30%를 합산합니다. 높을수록 좋습니다."}">
                 <div class="metric-label">SRI</div>
                 <div class="metric-value">${display(hasSpeedTrials, metrics.sri.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "SII: Direction-read and low-side control quality score. Combines direction accuracy, low-side rate, and practical miss-cause factors (direction/speed/low-point mismatch)." : "SII: 방향 판독 및 Low-side 회피 품질 점수. 방향 정확도, Low-side 비율, 실전형 미스 원인(방향/속도/Low-Point 불일치)을 함께 반영합니다."}">
+            <div class="metric-card" title="${isEn ? "M1 score: 45% of attempts not classified as direction/both miss, 25% of the inverse direction-related share among misses, and 30% practical miss-cause score. The current form infers direction success from Miss Type; it does not measure start-line accuracy directly." : "M1 점수: 전체 시도 중 방향/복합 미스로 분류되지 않은 비율 45%, 미스 중 방향 관련 비율의 역수 25%, 실전형 미스 원인 점수 30%를 합산합니다. 현재 입력은 Miss Type으로 방향 성공을 추정하며 출발선 정확도를 직접 측정하지 않습니다."}">
                 <div class="metric-label">SII</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.sii.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "DCS: Distance-calibrated execution score combining lateral error normalization and speed integration consistency." : "DCS: 거리 대비 좌우 오차와 속도 통합 실행 점수. 라인 오차 정규화와 실행 일관성을 함께 반영합니다."}">
+            <div class="metric-card" title="${isEn ? "DCS combines holed rate (40%), inverse speed-related miss share among misses (30%), and the M1 routine score (30%). It does not include distance-normalized lateral error." : "홀인율 40%, 미스 중 속도 관련 미스 비율의 역수 30%, M1 루틴 점수 30%를 합산합니다. 거리 정규화 좌우 오차는 포함하지 않습니다."}">
                 <div class="metric-label">DCS</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.dcs.toFixed(1))}</div>
             </div>
@@ -2689,24 +2698,24 @@ class DashboardComponent {
                 <div class="metric-label">${isEn ? "Speed In Range %" : "적정 마무리 %"}</div>
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.speedInRangeScore.toFixed(1)}(${(metrics.speedInRangeRate * 100).toFixed(1)}%)`)}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Avg Speed Error: Average absolute finish distance from hole (cm categories: 0/30/100). Lower is better." : "Avg Speed Error: 실제 피니시의 평균 절대 오차(0/30/100cm 범주 기준). 낮을수록 좋습니다."}">
-                <div class="metric-label">Avg Speed Error</div>
+            <div class="metric-card" title="${isEn ? "Average absolute coded finish offset using 0/30/100 cm category values; it is not a direct distance measurement. Its score is max(0, 100 - 1.2 × this coded average). Lower offset is better." : "0/30/100cm 범주값을 사용한 평균 절대 편차입니다. 실제 거리 측정값이 아닙니다. 점수는 max(0, 100 - 1.2 × 범주환산 평균값)이며 편차가 낮을수록 좋습니다."}">
+                <div class="metric-label">${isEn ? "Avg Coded Finish Offset" : "평균 마무리 편차(범주환산)"}</div>
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSpeedErrorScore.toFixed(1)}(${metrics.avgSpeedError.toFixed(1)}cm)`)}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Stage 1: Gravity. Combines low-point accuracy and practical miss-cause score." : "Stage 1: Gravity. Low-Point 정확도와 실전형 미스 원인 점수를 결합한 단계 점수입니다."}">
+            <div class="metric-card" title="${isEn ? "Stage 1 score: 60% Low-Point match rate over valid M1 samples and 40% practical miss-cause score." : "Stage 1 점수: 유효 M1 표본의 Low-Point 일치율 60%와 실전형 미스 원인 점수 40%를 합산합니다."}">
                 <div class="metric-label">Stage 1: Gravity</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.gravityStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Stage 2: Quantification. Reflects slope/speed quantification accuracy." : "Stage 2: Quantification. 경사/속도 수치화 정확도를 반영한 단계 점수입니다."}">
-                <div class="metric-label">Stage 2: Quantification</div>
+            <div class="metric-card" title="${isEn ? "Stage 2: M2 finish control. Combines in-range finish rate (70%) with coded finish-offset calibration score (30%); no predicted-vs-actual slope comparison is collected." : "Stage 2: M2 마무리 제어 점수입니다. 목표 범위 비율 70%와 범주 기반 마무리 편차 점수 30%를 합산하며, 예측-실제 경사 비교는 수집하지 않습니다."}">
+                <div class="metric-label">${isEn ? "Stage 2: Finish Control" : "Stage 2: 마무리 제어"}</div>
                 <div class="metric-value">${display(hasSpeedTrials, metrics.slopeStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Stage 3: Speed Integration. Integrates speed planning and execution quality (including Address→Putt within 7s)." : "Stage 3: Speed Integration. 속도 계획과 실행(Address→Putt 7초 기준 포함) 통합 품질 단계 점수입니다."}">
-                <div class="metric-label">Stage 3: Speed Integration</div>
+            <div class="metric-card" title="${isEn ? "Stage 3 routine score: Address-to-putt within 5 seconds (60%) and High-side commitment (40%). It does not compare planned and actual pace." : "Stage 3 루틴 점수: Address→Putt 5초 이내 비율 60%와 High-side 커밋 비율 40%를 합산합니다. 속도 계획과 실제 실행의 일치도는 계산하지 않습니다."}">
+                <div class="metric-label">${isEn ? "Stage 3: Routine & Commitment" : "Stage 3: 루틴·커밋"}</div>
                 <div class="metric-value">${display(hasLieTrials, metrics.speedStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card overall-highlight" title="${isEn ? "Overall Metrics Average: Mean value of core metrics (SRI/SII/DCS/Stage1~3/two error scores)." : "Overall Metrics Average: 핵심 지표(SRI/SII/DCS/Stage1~3/오차점수2개)의 평균값입니다."}">
-                <div class="metric-label">Overall Metrics Avg</div>
+            <div class="metric-card overall-highlight" title="${isEn ? "Arithmetic mean of available Stage 1, Stage 2 and Stage 3 scores, each counted once. SRI is the same score as Stage 2; SII and DCS are separate auxiliary indices and are not included." : "사용 가능한 Stage 1·2·3 점수의 산술평균이며 각 단계를 한 번씩만 계산합니다. SRI는 Stage 2와 같은 점수라 중복 산입하지 않고, 보조 지표 SII·DCS는 평균에서 제외합니다."}">
+                <div class="metric-label">${isEn ? "3-Stage Performance Avg" : "3단계 수행 평균"}</div>
                 <div class="metric-value">${display(hasAnyTrials, metrics.overallMetricAverage.toFixed(1))}</div>
             </div>
         `;
@@ -2772,9 +2781,9 @@ class DashboardComponent {
                         directionMiss: "Among missed putts, share attributed to direction or direction+speed.",
                         speedMiss: "Among missed putts, share attributed to speed or direction+speed.",
                         missCauseWeight: "Composite score from low-point mismatch, direction miss, speed miss, and confidence retention.",
-                        speedControl: "Match rate between planned speed and actual pace.",
-                        puttWithin7s: "Rate of putts executed within 7 seconds after address.",
-                        confidenceRetention: "Rate where both High-side Commit and Apex Commit were maintained."
+                        speedControl: "Match rate between planned speed and actual pace, for legacy records that contain both values.",
+                        puttWithin7s: "Rate of putts executed within 5 seconds after address.",
+                        confidenceRetention: "Rate of M1 attempts with High-side commitment. Apex commitment is not collected by the current form."
                     }
                     : {
                         totalMissRate: "전체 M1 시도 중 미스 비율입니다. 낮을수록 좋습니다.",
@@ -2786,7 +2795,7 @@ class DashboardComponent {
                         missCauseWeight: "Low-Point 불일치, 방향/속도 미스, 확신 유지를 종합한 가중 점수입니다.",
                         speedControl: "계획한 속도와 실제 속도 실행이 일치한 비율입니다.",
                         puttWithin7s: "어드레스 후 5초 이내 스트로크 실행 비율입니다.",
-                        confidenceRetention: "High-side 커밋과 Apex 커밋을 동시에 유지한 비율입니다."
+                        confidenceRetention: "M1 시도 중 High-side 커밋을 기록한 비율입니다. 현재 입력 화면은 Apex 커밋을 수집하지 않습니다."
                     };
                 return tooltips[key] || "";
             };
@@ -2817,7 +2826,9 @@ class DashboardComponent {
                 ];
 
             this.lowSideTarget.classList.add("metric-breakdown");
-            this.lowSideTarget.innerHTML = metricItems.map(item => `
+            this.lowSideTarget.innerHTML = metricItems
+                .filter(item => item.key !== "speedControl" || metrics.speedSampleCount > 0)
+                .map(item => `
                 <div class="metric-chip ${getQualityClass(item.normalized, item.preference)}" title="${getMetricTooltip(item.key)}">
                     <div class="metric-chip-label">${item.label}</div>
                     <div class="metric-chip-value">${item.value}</div>
@@ -2897,8 +2908,8 @@ class DashboardComponent {
 
         if (!distanceBreakdown.speedByDistance.length) {
             this.speedDistanceTarget.innerHTML = isEn
-                ? '<div class="distance-empty">N/A (No Speed Decision Training data)</div>'
-                : '<div class="distance-empty">N/A (Speed 결정훈련 데이터 없음)</div>';
+                ? '<div class="distance-empty">N/A (No valid M2 finish data)</div>'
+                : '<div class="distance-empty">N/A (유효한 M2 마무리 데이터 없음)</div>';
         } else {
             const allSpeedRows = distanceBreakdown.speedByDistance;
             const totalShots = allSpeedRows.reduce((s, r) => s + r.count, 0);
@@ -3184,7 +3195,7 @@ class PuttingTrainingApp {
             const smalls = panel?.querySelectorAll(".small");
             if (smalls && smalls[0]) {
                 smalls[0].textContent = this.language === "en"
-                    ? "Lie reading is not feel but trained perception: ① slope direction recognition ② slope magnitude quantification ③ speed integration"
+                    ? "Lie reading is trained perception: ① slope direction recognition ② slope magnitude estimation ③ speed integration"
                     : "라이 읽기는 감각이 아니라 훈련된 지각 능력: ① 경사 방향 인지 ② 경사 크기 수치화 ③ 속도와 통합";
             }
             const guideList = document.getElementById("frameworkGuideList")?.querySelectorAll("li");
@@ -3192,19 +3203,19 @@ class PuttingTrainingApp {
                 const guideHtml = this.language === "en"
                     ? [
                         "<b>Low-Point Training:</b> Start by finding gravity flow (where water gathers), not the putting line",
-                        "<b>Feet Calibration:</b> Accumulate predicted-vs-actual slope error records",
+                        "<b>Slope Reading Practice:</b> Estimate slope; the current form records actual slope only and does not score prediction accuracy",
                         "<b>High-Side Only:</b> Penalize low-side misses to strengthen commitment",
                         "<b>Apex Visualization:</b> Decide the apex point before focusing on the cup",
                         "<b>Speed First:</b> Learn break differences across dead weight/30cm over/60cm over",
-                        "<b>Address→Putt 7s Routine:</b> Keep stroke within 7 seconds after address (check over-7s)"
+                        "<b>Address→Putt 5s Routine:</b> Keep stroke within 5 seconds after address (check over-5s)"
                     ]
                     : [
                         "<b>Low-Point 훈련:</b> 라인이 아니라 중력 방향(물이 모이는 지점)부터 찾기",
-                        "<b>Feet Calibration:</b> 예측 경사%와 실제 경사% 오차를 누적 기록",
+                        "<b>경사 판독 연습:</b> 경사를 추정해 보세요. 현재 입력 화면은 실제 경사 단계만 저장하므로 예측 정확도는 산출하지 않습니다.",
                         "<b>High-Side Only:</b> 낮은 쪽 미스를 벌점으로 관리해 결정력 강화",
                         "<b>Apex 시각화:</b> 컵이 아닌 최고점 지점을 먼저 결정",
                         "<b>Speed First:</b> 데드웨이트/30cm/60cm 오버 속도별 브레이크 차이 학습",
-                        "<b>Address→Putt 7초 루틴:</b> 어드레스 진입 후 7초 이내 스트로크 유지 (7초 초과 여부 체크)"
+                        "<b>Address→Putt 5초 루틴:</b> 어드레스 진입 후 5초 이내 스트로크 유지 (5초 초과 여부 체크)"
                     ];
                 guideList.forEach((item, idx) => { item.innerHTML = guideHtml[idx]; });
             }
@@ -3233,8 +3244,8 @@ class PuttingTrainingApp {
             const drillRuleEl = document.getElementById("frameworkDrillRule");
             if (drillRuleEl) {
                 drillRuleEl.innerHTML = this.language === "en"
-                    ? "Drill rule: execute all three speeds from the same spot and record <b>Speed Plan</b> and <b>Actual Pace</b> on every shot. Plan-execution speed match is a key reproducibility indicator."
-                    : "드릴 규칙: 같은 위치에서 3가지 속도를 모두 실행하고, 매 샷마다 <b>Speed Plan</b>과 <b>Actual Pace</b>를 기록하세요. 속도 계획-실행 일치율이 곧 라인 재현성의 핵심 지표입니다.";
+                    ? "Drill rule: try all three target speeds from the same spot and record the actual finish category. The current form does not record planned-vs-actual speed match."
+                    : "드릴 규칙: 같은 위치에서 3가지 목표 속도를 차례로 시도하고 실제 마무리 범주를 기록하세요. 현재 입력 화면은 목표 속도 계획-실행 일치율을 기록하지 않습니다.";
             }
         }
         setText("#showUsageGuideBtn", this.t("usageGuideBtn"));
@@ -3320,8 +3331,8 @@ class PuttingTrainingApp {
             const autoMetricDesc = analysisSection.querySelector(".panel.panel-analyze .small");
             if (autoMetricDesc) {
                 autoMetricDesc.textContent = this.language === "en"
-                    ? "SRI: slope quantification accuracy / SII: direction read + low-side control / DCS: distance-normalized error + speed integration quality"
-                    : "SRI: 경사 수치화 정확도 / SII: 방향 판독+Low-side 보정 / DCS: 거리 대비 오차 + 속도 통합 품질";
+                    ? "SRI: M2 pace-outcome score (70% in-range + 30% coded-offset score) / SII: M1 direction classification, low-side and miss-cause score / DCS: holed, speed-miss and routine composite (not distance-adjusted)"
+                    : "SRI: M2 마무리 결과 점수(목표 범위 70% + 범주 편차 점수 30%) / SII: M1 방향 분류·Low-side·미스 원인 점수 / DCS: 홀인·속도 미스·루틴 종합(거리 보정 없음)";
             }
         }
 
