@@ -58,12 +58,44 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     border-radius:10px;
     padding:8px 10px;
     background:#f8fbff;
-    cursor:help;
+    cursor:default;
 }
 .metric-chip-label {
     font-size:12px;
     color:#3f5f9d;
     font-weight:bold;
+}
+.metric-label-row { display:flex; align-items:flex-start; gap:4px; }
+.metric-label.metric-help-trigger,
+.metric-chip-label.metric-help-trigger {
+    display:inline;
+    padding:0;
+    margin:0;
+    border:0;
+    border-radius:2px;
+    background:transparent;
+    color:#3f5f9d;
+    font:inherit;
+    font-size:12px;
+    font-weight:bold;
+    line-height:1.4;
+    text-align:left;
+    cursor:pointer;
+}
+.metric-label.metric-help-trigger:hover,
+.metric-chip-label.metric-help-trigger:hover { color:#1f4db8; text-decoration:underline; }
+.metric-help-trigger::after { content:" ⓘ"; color:#3b82f6; font-size:10px; font-weight:normal; }
+.metric-help-trigger:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+.metric-help-text {
+    margin-top:6px;
+    padding:7px 8px;
+    border-left:3px solid #93c5fd;
+    border-radius:0 6px 6px 0;
+    background:#eef5ff;
+    color:#334155;
+    font-size:12px;
+    font-weight:normal;
+    line-height:1.5;
 }
 .metric-chip-value {
     margin-top:4px;
@@ -2671,6 +2703,26 @@ class DashboardComponent {
         this.missTypeTarget = document.getElementById(missTypeTargetId);
         this.lieDistanceTarget = document.getElementById(lieDistanceTargetId);
         this.speedDistanceTarget = document.getElementById(speedDistanceTargetId);
+        this.metricsTarget.addEventListener("click", event => this.toggleMetricHelp(event));
+        this.lowSideTarget.addEventListener("click", event => this.toggleMetricHelp(event));
+    }
+
+    toggleMetricHelp(event) {
+        const trigger = event.target.closest(".metric-help-trigger");
+        if (!trigger || !event.currentTarget.contains(trigger)) return;
+        const card = trigger.closest(".metric-card, .metric-chip");
+        const help = card?.querySelector(".metric-help-text");
+        if (!help) return;
+
+        const opening = help.hidden;
+        event.currentTarget.querySelectorAll(".metric-help-text").forEach(element => {
+            element.hidden = true;
+        });
+        event.currentTarget.querySelectorAll(".metric-help-trigger").forEach(element => {
+            element.setAttribute("aria-expanded", "false");
+        });
+        help.hidden = !opening;
+        trigger.setAttribute("aria-expanded", String(opening));
     }
 
     renderMetrics(metrics) {
@@ -2680,42 +2732,66 @@ class DashboardComponent {
         const isEn = CURRENT_LANG === "en";
 
         const display = (condition, text) => (condition ? text : "N/A");
+        const metricTitle = (key, label, description) => `
+            <div class="metric-label-row">
+                <button type="button" class="metric-label metric-help-trigger" data-metric-help="${key}" aria-expanded="false" aria-controls="${key}-metric-help">${label}</button>
+            </div>
+            <div class="metric-help-text" id="${key}-metric-help" hidden>${description}</div>
+        `;
 
         this.metricsTarget.innerHTML = `
-            <div class="metric-card" title="${isEn ? "SRI is currently a pace-outcome score, not a slope-reading score: 70% M2 in-range finish rate plus 30% score derived from the coded finish-offset categories. Higher is better." : "현재 SRI는 경사 판독 점수가 아니라 M2 마무리 결과 점수입니다. 목표 범위 비율 70%와 입력된 마무리 편차 범주 기반 점수 30%를 합산합니다. 높을수록 좋습니다."}">
-                <div class="metric-label">SRI</div>
+            <div class="metric-card">
+                ${metricTitle("sri", "SRI", isEn
+                    ? "M2 pace-outcome index (higher is better): 70% × in-range finish rate + 30% × max(0, 100 − 1.2 × mean absolute coded finish offset). In-range means the stored offset category is 0. This does not measure slope-reading accuracy."
+                    : "M2 마무리 결과 지표(높을수록 좋음)입니다. 70% × 적정 마무리 비율 + 30% × max(0, 100 − 1.2 × 평균 절대 범주 편차)로 계산합니다. 적정 마무리는 저장된 편차가 0인 경우이며, 경사 판독 정확도는 측정하지 않습니다.")}
                 <div class="metric-value">${display(hasSpeedTrials, metrics.sri.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "M1 score: 45% of attempts not classified as direction/both miss, 25% of the inverse direction-related share among misses, and 30% practical miss-cause score. The current form infers direction success from Miss Type; it does not measure start-line accuracy directly." : "M1 점수: 전체 시도 중 방향/복합 미스로 분류되지 않은 비율 45%, 미스 중 방향 관련 비율의 역수 25%, 실전형 미스 원인 점수 30%를 합산합니다. 현재 입력은 Miss Type으로 방향 성공을 추정하며 출발선 정확도를 직접 측정하지 않습니다."}">
-                <div class="metric-label">SII</div>
+            <div class="metric-card">
+                ${metricTitle("sii", "SII", isEn
+                    ? "M1 direction/low-side index (higher is better): 45% × share of all M1 attempts not classified as direction/both miss + 25% × (1 − directional-miss share among missed putts) + 30% × practical miss-cause score. Direction success is inferred from Miss Type, not measured from a start-line target."
+                    : "M1 방향·Low-side 지표(높을수록 좋음)입니다. 전체 M1 중 방향/복합 미스로 분류되지 않은 비율 45% + (1 − 미스 중 방향 관련 미스 비율) 25% + 실전형 미스 원인 점수 30%를 합산합니다. 출발선 목표를 직접 측정하지 않고 Miss Type으로 방향 성공을 추정합니다.")}
                 <div class="metric-value">${display(hasLieTrials, metrics.sii.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "DCS combines holed rate (40%), inverse speed-related miss share among misses (30%), and the M1 routine score (30%). It does not include distance-normalized lateral error." : "홀인율 40%, 미스 중 속도 관련 미스 비율의 역수 30%, M1 루틴 점수 30%를 합산합니다. 거리 정규화 좌우 오차는 포함하지 않습니다."}">
-                <div class="metric-label">DCS</div>
+            <div class="metric-card">
+                ${metricTitle("dcs", "DCS", isEn
+                    ? "M1 result/consistency index (higher is better): 40% × holed rate + 30% × (1 − speed-related misses / all M1 attempts) + 30% × Stage 3 routine score. Speed-related includes Speed and Direction+Speed miss types. No distance-normalized lateral error is used."
+                    : "M1 결과·일관성 지표(높을수록 좋음)입니다. 홀인율 40% + (1 − 전체 M1 중 속도 관련 미스 비율) 30% + Stage 3 루틴 점수 30%입니다. 속도 관련 미스는 Speed 및 Direction+Speed 유형을 포함하며, 거리 정규화 좌우 오차는 사용하지 않습니다.")}
                 <div class="metric-value">${display(hasLieTrials, metrics.dcs.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Speed In Range %: Share of Speed Training attempts where the ball finished in the target zone (±30cm). Higher is better." : "Speed In Range %: 속도 결정훈련 시도 중 목표 범위(-30~30cm)에 들어온 비율입니다. 높을수록 좋습니다."}">
-                <div class="metric-label">${isEn ? "Speed In Range %" : "적정 마무리 %"}</div>
+            <div class="metric-card">
+                ${metricTitle("inRange", isEn ? "Speed In Range %" : "적정 마무리 %", isEn
+                    ? "Share of M2 records with a valid finish-offset value equal to 0 (the selected −30 to +30 cm target band). Calculated as in-range records ÷ valid M2 finish records; higher is better."
+                    : "유효한 M2 마무리 기록 중 편차값이 0인 비율입니다(선택 범주상 −30~+30cm 목표 범위). 적정 마무리 수 ÷ 유효 M2 마무리 수로 계산하며 높을수록 좋습니다.")}
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.speedInRangeScore.toFixed(1)}(${(metrics.speedInRangeRate * 100).toFixed(1)}%)`)}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Average absolute coded finish offset using 0/30/100 cm category values; it is not a direct distance measurement. Its score is max(0, 100 - 1.2 × this coded average). Lower offset is better." : "0/30/100cm 범주값을 사용한 평균 절대 편차입니다. 실제 거리 측정값이 아닙니다. 점수는 max(0, 100 - 1.2 × 범주환산 평균값)이며 편차가 낮을수록 좋습니다."}">
-                <div class="metric-label">${isEn ? "Avg Coded Finish Offset" : "평균 마무리 편차(범주환산)"}</div>
+            <div class="metric-card">
+                ${metricTitle("avgOffset", isEn ? "Avg Coded Finish Offset" : "평균 마무리 편차(범주환산)", isEn
+                    ? "Mean absolute value of the recorded finish categories (0, 30, or 100 cm, with sign indicating over/short). It is a category-based proxy, not a directly measured distance. Lower is better."
+                    : "저장된 마무리 범주값(0, 30, 100cm)의 절대값 평균입니다. 부호는 오버/쇼트를 구분합니다. 실제 거리 측정값이 아니라 범주 기반 대푯값이며 낮을수록 좋습니다.")}
                 <div class="metric-value">${display(hasSpeedTrials, `${metrics.avgSpeedErrorScore.toFixed(1)}(${metrics.avgSpeedError.toFixed(1)}cm)`)}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Stage 1 score: 60% Low-Point match rate over valid M1 samples and 40% practical miss-cause score." : "Stage 1 점수: 유효 M1 표본의 Low-Point 일치율 60%와 실전형 미스 원인 점수 40%를 합산합니다."}">
-                <div class="metric-label">Stage 1: Gravity</div>
+            <div class="metric-card">
+                ${metricTitle("stage1", isEn ? "Stage 1: Gravity" : "Stage 1: 중력 인지", isEn
+                    ? "60% × Low-Point match rate among M1 records with both predicted and actual Low-Point values + 40% × practical miss-cause score. The score is clamped to 0–100."
+                    : "예측·실제 Low-Point가 모두 입력된 M1의 일치율 60% + 실전형 미스 원인 점수 40%입니다. 최종 점수는 0~100 범위로 제한합니다.")}
                 <div class="metric-value">${display(hasLieTrials, metrics.gravityStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Stage 2: M2 finish control. Combines in-range finish rate (70%) with coded finish-offset calibration score (30%); no predicted-vs-actual slope comparison is collected." : "Stage 2: M2 마무리 제어 점수입니다. 목표 범위 비율 70%와 범주 기반 마무리 편차 점수 30%를 합산하며, 예측-실제 경사 비교는 수집하지 않습니다."}">
-                <div class="metric-label">${isEn ? "Stage 2: Finish Control" : "Stage 2: 마무리 제어"}</div>
+            <div class="metric-card">
+                ${metricTitle("stage2", isEn ? "Stage 2: Finish Control" : "Stage 2: 마무리 제어", isEn
+                    ? "Same score as SRI: 70% × M2 in-range finish rate + 30% × coded finish-offset calibration score. It does not compare predicted and actual slopes."
+                    : "SRI와 같은 점수입니다. M2 적정 마무리 비율 70% + 범주 기반 마무리 편차 보정 점수 30%로 계산합니다. 예측 경사와 실제 경사를 비교하지 않습니다.")}
                 <div class="metric-value">${display(hasSpeedTrials, metrics.slopeStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card" title="${isEn ? "Stage 3 routine score: Address-to-putt within 5 seconds (60%) and High-side commitment (40%). It does not compare planned and actual pace." : "Stage 3 루틴 점수: Address→Putt 5초 이내 비율 60%와 High-side 커밋 비율 40%를 합산합니다. 속도 계획과 실제 실행의 일치도는 계산하지 않습니다."}">
-                <div class="metric-label">${isEn ? "Stage 3: Routine & Commitment" : "Stage 3: 루틴·커밋"}</div>
+            <div class="metric-card">
+                ${metricTitle("stage3", isEn ? "Stage 3: Routine & Commitment" : "Stage 3: 루틴·커밋", isEn
+                    ? "60% × M1 records completed within 5 seconds after address + 40% × M1 records marked High-side Commit = Yes. Only records with a valid response count in each rate. It does not compare planned and actual pace."
+                    : "어드레스 후 5초 이내로 입력된 M1 비율 60% + High-side Commit이 Yes인 M1 비율 40%입니다. 각 비율은 해당 항목의 유효 응답이 있는 기록만 분모로 삼습니다. 계획 속도와 실제 속도의 일치도는 비교하지 않습니다.")}
                 <div class="metric-value">${display(hasLieTrials, metrics.speedStageScore.toFixed(1))}</div>
             </div>
-            <div class="metric-card overall-highlight" title="${isEn ? "Arithmetic mean of available Stage 1, Stage 2 and Stage 3 scores, each counted once. SRI is the same score as Stage 2; SII and DCS are separate auxiliary indices and are not included." : "사용 가능한 Stage 1·2·3 점수의 산술평균이며 각 단계를 한 번씩만 계산합니다. SRI는 Stage 2와 같은 점수라 중복 산입하지 않고, 보조 지표 SII·DCS는 평균에서 제외합니다."}">
-                <div class="metric-label">${isEn ? "3-Stage Performance Avg" : "3단계 수행 평균"}</div>
+            <div class="metric-card overall-highlight">
+                ${metricTitle("overall", isEn ? "3-Stage Performance Avg" : "3단계 수행 평균", isEn
+                    ? "Arithmetic mean of the available Stage 1, Stage 2, and Stage 3 scores. A stage is included only when its corresponding M1 or M2 data exists, and each stage is counted once. SII and DCS are separate indices, not part of this average."
+                    : "사용 가능한 Stage 1·2·3 점수의 산술평균입니다. 해당 M1 또는 M2 데이터가 있는 단계만 포함하고, 각 단계는 한 번씩 계산합니다. SII와 DCS는 별도 지표이며 평균에는 포함하지 않습니다.")}
                 <div class="metric-value">${display(hasAnyTrials, metrics.overallMetricAverage.toFixed(1))}</div>
             </div>
         `;
@@ -2774,28 +2850,28 @@ class DashboardComponent {
             const getMetricTooltip = (key) => {
                 const tooltips = isEn
                     ? {
-                        totalMissRate: "Ratio of missed putts among all M1 attempts. Lower is better.",
-                        lowPointAccuracy: "How often predicted low-point matches actual low-point across all valid samples.",
-                        lowPointMismatch: "Within missed putts, rate of low-point mismatch between prediction and actual.",
-                        objectiveLowSide: "Among directional misses, rate where miss side matches predicted low-point side.",
-                        directionMiss: "Among missed putts, share attributed to direction or direction+speed.",
-                        speedMiss: "Among missed putts, share attributed to speed or direction+speed.",
-                        missCauseWeight: "Composite score from low-point mismatch, direction miss, speed miss, and confidence retention.",
-                        speedControl: "Match rate between planned speed and actual pace, for legacy records that contain both values.",
-                        puttWithin7s: "Rate of putts executed within 5 seconds after address.",
-                        confidenceRetention: "Rate of M1 attempts with High-side commitment. Apex commitment is not collected by the current form."
+                        totalMissRate: "M1 records with Actual Miss other than Holed ÷ all M1 records. Blank legacy outcomes are treated as not holed. Lower is better.",
+                        lowPointAccuracy: "Matching predicted and actual Low-Point values ÷ M1 records containing both values. Higher is better.",
+                        lowPointMismatch: "Among missed M1 records containing both Low-Point values, the share where prediction differs from actual. Lower is better.",
+                        objectiveLowSide: "Among missed M1 records with a left/right result and a left/right predicted Low-Point, the share where the miss side equals the predicted Low-Point side. This is treated as a low-side miss; lower is better.",
+                        directionMiss: "Among M1 records whose Actual Miss is not Holed, the share classified as Direction or Direction+Speed. Lower is better.",
+                        speedMiss: "Among M1 records whose Actual Miss is not Holed, the share classified as Speed or Direction+Speed. Lower is better.",
+                        missCauseWeight: "Composite score: 30% × (1 − Low-Point mismatch rate on eligible misses) + 35% × (1 − direction-related share of misses) + 20% × (1 − speed-related share of misses) + 15% × High-side commitment rate. Higher is better.",
+                        speedControl: "Legacy-data metric: share of records with both planned Speed and Actual Pace that match. The current form does not collect these fields.",
+                        puttWithin7s: "M1 records marked within 5 seconds ÷ M1 records with a valid 5-second response. Higher is better.",
+                        confidenceRetention: "M1 records with High-side Commit = Yes ÷ M1 records with a valid High-side response. The current form does not collect Apex commitment."
                     }
                     : {
-                        totalMissRate: "전체 M1 시도 중 미스 비율입니다. 낮을수록 좋습니다.",
-                        lowPointAccuracy: "Low-Point 인지값과 실제값이 일치한 비율입니다.",
-                        lowPointMismatch: "미스 샷 중 Low-Point 인지와 실제가 불일치한 비율입니다.",
-                        objectiveLowSide: "좌/우 미스 샷에서 미스 방향이 예측 Low-Point 방향과 같은 비율입니다.",
-                        directionMiss: "미스 샷 중 원인이 방향 또는 방향+속도인 비율입니다.",
-                        speedMiss: "미스 샷 중 원인이 속도 또는 방향+속도인 비율입니다.",
-                        missCauseWeight: "Low-Point 불일치, 방향/속도 미스, 확신 유지를 종합한 가중 점수입니다.",
-                        speedControl: "계획한 속도와 실제 속도 실행이 일치한 비율입니다.",
-                        puttWithin7s: "어드레스 후 5초 이내 스트로크 실행 비율입니다.",
-                        confidenceRetention: "M1 시도 중 High-side 커밋을 기록한 비율입니다. 현재 입력 화면은 Apex 커밋을 수집하지 않습니다."
+                        totalMissRate: "전체 M1 기록 중 Actual Miss가 Holed가 아닌 비율입니다. 구버전의 빈 결과도 미스로 취급되므로 낮을수록 좋습니다.",
+                        lowPointAccuracy: "예측·실제 Low-Point가 모두 입력된 M1 중 두 값이 일치한 비율입니다. 높을수록 좋습니다.",
+                        lowPointMismatch: "미스 기록 중 예측·실제 Low-Point가 모두 있는 표본에서 두 값이 다른 비율입니다. 낮을수록 좋습니다.",
+                        objectiveLowSide: "좌/우 미스 결과와 좌/우 예측 Low-Point가 모두 있는 미스 중, 미스 방향이 예측 Low-Point 방향과 같은 비율입니다. Low-side 미스로 간주하며 낮을수록 좋습니다.",
+                        directionMiss: "Actual Miss가 Holed가 아닌 M1 기록 중 Miss Type이 Direction 또는 Direction+Speed인 비율입니다. 낮을수록 좋습니다.",
+                        speedMiss: "Actual Miss가 Holed가 아닌 M1 기록 중 Miss Type이 Speed 또는 Direction+Speed인 비율입니다. 낮을수록 좋습니다.",
+                        missCauseWeight: "복합 점수입니다. Low-Point 일치율 30% + (1 − 방향 관련 미스 비율) 35% + (1 − 속도 관련 미스 비율) 20% + High-side 커밋률 15%입니다. 높을수록 좋습니다.",
+                        speedControl: "구버전 데이터용 지표입니다. 계획 Speed와 Actual Pace가 모두 기록된 샷에서 두 값이 일치한 비율입니다. 현재 입력 화면은 두 항목을 수집하지 않습니다.",
+                        puttWithin7s: "5초 이내로 기록된 M1 수 ÷ 5초 응답이 유효한 M1 수입니다. 높을수록 좋습니다.",
+                        confidenceRetention: "유효한 High-side 응답이 있는 M1 중 High-side Commit이 Yes인 비율입니다. 현재 입력 화면은 Apex 커밋을 수집하지 않습니다."
                     };
                 return tooltips[key] || "";
             };
@@ -2829,8 +2905,11 @@ class DashboardComponent {
             this.lowSideTarget.innerHTML = metricItems
                 .filter(item => item.key !== "speedControl" || metrics.speedSampleCount > 0)
                 .map(item => `
-                <div class="metric-chip ${getQualityClass(item.normalized, item.preference)}" title="${getMetricTooltip(item.key)}">
-                    <div class="metric-chip-label">${item.label}</div>
+                <div class="metric-chip ${getQualityClass(item.normalized, item.preference)}">
+                    <div class="metric-label-row">
+                        <button type="button" class="metric-chip-label metric-help-trigger" data-metric-help="${item.key}" aria-expanded="false" aria-controls="chip-${item.key}-metric-help">${item.label}</button>
+                    </div>
+                    <div class="metric-help-text" id="chip-${item.key}-metric-help" hidden>${getMetricTooltip(item.key)}</div>
                     <div class="metric-chip-value">${item.value}</div>
                     <div class="metric-chip-meta">${getPreferenceNote(item.preference)}</div>
                 </div>

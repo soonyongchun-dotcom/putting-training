@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SY-PTS 사용매뉴얼</title>
+<style>
+  :root { color-scheme: light; --ink:#1c292b; --muted:#536365; --green:#176b58; --mint:#e8f3ed; --gold:#a36e19; --line:#d6e0dc; --dark:#12352d; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; color:var(--ink); background:#edf2ef; font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif; line-height:1.8; }
+  .toolbar { position:sticky; top:0; z-index:2; display:flex; justify-content:flex-end; padding:12px max(20px,calc((100% - 900px)/2)); background:rgba(237,242,239,.94); border-bottom:1px solid var(--line); }
+  .toolbar-controls { display:flex; align-items:center; gap:10px; }
+  .toolbar label { color:var(--ink); font-size:.9rem; font-weight:700; }
+  .toolbar select { min-height:40px; padding:6px 28px 6px 10px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--ink); font:inherit; }
+  button { border:0; border-radius:5px; padding:10px 16px; background:var(--green); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+  button:focus-visible, a:focus-visible, select:focus-visible { outline:3px solid #d4b36b; outline-offset:2px; }
+  main { max-width:1000px; margin:36px auto 72px; padding:64px 72px; background:#fff; box-shadow:0 8px 28px rgba(25,52,46,.09); }
+  .eyebrow { margin:0; color:var(--green); font-size:.82rem; font-weight:800; letter-spacing:.08em; }
+  h1 { margin:5px 0 10px; font-size:2.25rem; line-height:1.3; }
+  .subtitle { margin:0 0 30px; color:var(--muted); }
+  h2 { margin:44px 0 14px; padding-bottom:10px; border-bottom:2px solid var(--green); font-size:1.38rem; line-height:1.45; }
+  h3 { margin:26px 0 9px; font-size:1.08rem; line-height:1.5; }
+  p { margin:12px 0; }
+  ul, ol { margin:12px 0; padding-left:1.45rem; }
+  li { margin:8px 0; }
+  table { width:100%; margin:18px 0; border-collapse:collapse; font-size:.94rem; line-height:1.7; }
+  th, td { padding:11px 12px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { background:#edf5f0; }
+  code { padding:1px 4px; border-radius:3px; background:#f0f3f1; font-family:Consolas,monospace; }
+  .callout { margin:20px 0; padding:16px 18px; border-left:4px solid var(--green); background:var(--mint); }
+  .warning { border-color:var(--gold); background:#fbf4e8; }
+  .steps { counter-reset:step; list-style:none; padding:0; }
+  .steps li { position:relative; min-height:32px; margin:10px 0; padding-left:42px; }
+  .steps li::before { counter-increment:step; content:counter(step); position:absolute; left:0; top:0; display:grid; width:28px; height:28px; place-items:center; border-radius:50%; background:var(--green); color:white; font-weight:800; }
+  .cover { min-height:680px; display:flex; flex-direction:column; justify-content:space-between; margin:-54px -64px 36px; padding:64px; color:#f7fbf8; background:linear-gradient(145deg,#12352d 0%,#1c5143 58%,#8b6b35 150%); break-after:page; page-break-after:always; }
+  .cover .eyebrow { color:#c3d9c8; }
+  .cover-stamp { display:inline-block; margin-top:12px; padding:6px 10px; border:1px solid rgba(212,179,107,.75); color:#f2d99c; font-size:.76rem; font-weight:800; }
+  .cover h1 { max-width:650px; margin-top:90px; color:white; font-family:Georgia,"Batang",serif; font-size:3.2rem; line-height:1.2; }
+  .cover-revision-label { display:inline-block; margin-bottom:8px; padding:3px 8px; border:1px solid rgba(212,179,107,.65); color:#f2d99c; font-size:.7rem; font-weight:800; }
+  .cover-rights-row { display:flex; align-items:center; gap:18px; max-width:700px; margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.25); }
+  .cover-portrait { flex:0 0 auto; width:82px; height:110px; object-fit:cover; object-position:center 35%; opacity:.7; filter:saturate(.82); border-radius:2px; box-shadow:0 8px 18px rgba(0,0,0,.14); }
+  .cover .subtitle { max-width:570px; margin:18px 0 50px; color:#d8e6dc; font-size:1.1rem; }
+  .cover-mark { width:62px; height:4px; margin:24px 0; background:#d4b36b; }
+  .cover-meta { color:#d8e6dc; font-size:.88rem; line-height:1.55; }
+  .cover-copyright { min-width:0; flex:1; margin:0; color:#e7eee8; font-size:.76rem; line-height:1.55; }
+  .toc { min-height:80vh; display:flex; flex-direction:column; justify-content:center; margin-bottom:64px; padding:22px 26px; border:1px solid var(--line); background:#f6f8f6; break-after:page; page-break-after:always; }
+  .toc h2 { margin-top:0; }
+  .toc ol { columns:2; column-gap:40px; }
+  .toc li { break-inside:avoid; padding:2px 0; }
+  .toc a { color:var(--dark); text-decoration-color:#aabeb2; text-underline-offset:3px; }
+  .toc a:hover { color:var(--green); }
+  .chapter-page { min-height:85vh; margin-top:0; padding:44px 0 64px; border-top:1px solid var(--line); scroll-margin-top:18px; break-before:page; page-break-before:always; }
+  .chapter-page > h2 { margin-top:3px; }
+  .chapter-kicker { margin:0; color:var(--gold); font-size:.78rem; font-weight:800; }
+  .small { color:var(--muted); font-size:.92rem; }
+  .badge { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px solid #bdd1c5; color:var(--green); font-size:.78rem; font-weight:700; }
+  .matrix-note { padding:10px 13px; border:1px solid #e5d7b5; background:#fbf6e9; font-size:.9rem; }
+  footer { margin-top:42px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.86rem; }
+  @media (max-width:700px) {
+    main { margin:12px auto 32px; padding:38px 22px; }
+    .cover { min-height:650px; margin:-30px -14px 28px; padding:30px 22px; }
+    .cover h1 { margin-top:70px; font-size:2.6rem; }
+    .cover-rights-row { align-items:flex-start; gap:10px; }
+    .cover-portrait { width:62px; height:84px; }
+    .toc ol { columns:1; }
+    table { font-size:.85rem; }
+    th, td { padding:8px; }
+    .toolbar { padding:8px 12px; }
+  }
+  @media print {
+    body { background:white; }
+    .toolbar { display:none; }
+    main { max-width:none; margin:0; padding:0; box-shadow:none; }
+    .cover { min-height:265mm; margin:0; padding:22mm 18mm; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    .chapter-page, .toc { break-before:page; page-break-before:always; }
+    a { color:inherit; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <div class="toolbar-controls">
+    <label id="languageLabel" for="manualLanguage">언어</label>
+    <select id="manualLanguage" aria-label="언어">
+      <option value="ko" selected>한국어</option>
+      <option value="en">English</option>
+    </select>
+    <button type="button" id="printManualBtn" onclick="window.print()">인쇄 / PDF로 저장</button>
+  </div>
+</div>
+
+<main id="koManual" lang="ko">
+  <header class="cover">
+    <div><p class="eyebrow">SY-PTS · PUTTING TRAINING SYSTEM</p><div class="cover-mark"></div><span class="cover-stamp">사용자 안내 · USER EDITION</span></div>
+    <div><h1>SY-PTS<br>사용매뉴얼</h1><span class="cover-revision-label">초판 · 2026.10</span><p class="subtitle">퍼팅의 라이 판단, 방향 결정, 스트로크 루틴과 마무리 속도 결과를 기록하고 분석하는 SY Putting Training System 사용자 가이드</p></div>
+    <div class="cover-meta">제작자: S.Y Chun<br>초판 제작일: 2026년 10월 3일<br>앱 기준 버전: 26.101f
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-PTS 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="매뉴얼 제작자 S.Y Chun"></div>
+    </div>
+  </header>
+
+  <section class="chapter-page" id="ko-overview">
+    <p class="chapter-kicker">SY-PTS · OFFICIAL TRAINING GUIDE</p>
+    <h2>매뉴얼의 목적과 앱의 구성</h2>
+    <p><strong>SY-PTS(SY Putting Training System - Green Mission)</strong>은 선수가 M1 라이·방향 판단 훈련과 M2 속도·마무리 훈련을 기록하고, 훈련 결과를 지표와 시각화로 확인하며, 코치와 미션·피드백을 주고받도록 구성된 웹 앱입니다.</p>
+    <div class="callout"><strong>사용 원칙</strong><br>샷 결과와 판단을 가능한 한 실제에 맞게 입력하세요. 분석 지표는 입력한 기록의 품질에 좌우됩니다. 지표는 연습 기록을 돌아보기 위한 참고자료이며, 전문적인 코칭이나 실제 퍼팅 결과를 대신하지 않습니다.</div>
+    <h3>화면 구성</h3>
+    <table><thead><tr><th>메뉴</th><th>무엇을 하는 곳인가요?</th></tr></thead><tbody>
+      <tr><td>1) Framework</td><td>Low-Point, 경사 흐름, High-side, 속도와 Address→Putt 루틴 훈련 원칙을 확인합니다.</td></tr>
+      <tr><td>2) M1 입력</td><td>거리, 결과, Low-Point 예측/실제, 미스 유형, 5초 응답과 High-side 커밋을 기록합니다.</td></tr>
+      <tr><td>3) M2 입력</td><td>거리, 그린 속도, 실제 경사, 퍼팅 타입과 실제 마무리 범주를 기록합니다.</td></tr>
+      <tr><td>4) 분석 보기</td><td>자동 지표, 미스 원인, 거리별 결과 및 PDF 보고서를 확인합니다.</td></tr>
+      <tr><td>5) 시각화</td><td>좌우 결과 히트맵, M2 마무리 편차 히트맵과 베이지안 홀인 추정치를 확인합니다.</td></tr>
+      <tr><td>6) 코치 미션</td><td>코치가 미션을 배포하고 선수와 결과·질문·피드백을 주고받습니다.</td></tr>
+      <tr><td>7) 데이터</td><td>코치는 CSV를 내보내거나 불러오고, 선수는 현재 세션의 M1/M2 결과를 코치에게 전송합니다.</td></tr>
+      <tr><td>8) 선수 관리</td><td>코치가 가입 신청을 승인하고 선수 계정·가입 코드를 관리합니다.</td></tr>
+    </tbody></table>
+  </section>
+
+  <nav class="toc" aria-label="목차">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#ko-access">접속과 역할</a></li>
+      <li><a href="#ko-workflow">첫 사용과 훈련 순서</a></li>
+      <li><a href="#ko-m1">M1 라이·방향 판단 기록</a></li>
+      <li><a href="#ko-m2">M2 속도·마무리 기록</a></li>
+      <li><a href="#ko-metrics">분석 지표의 의미</a></li>
+      <li><a href="#ko-visual">분석·시각화·PDF</a></li>
+      <li><a href="#ko-coach">코치 미션과 선수 관리</a></li>
+      <li><a href="#ko-data">데이터 전송·CSV·문제 해결</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter-page" id="ko-access">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>접속과 역할</h2>
+    <h3>기존 계정으로 로그인</h3>
+    <ol class="steps">
+      <li>로그인 화면에서 선수 이름, 언어, 세션 날짜, 접속 역할(선수/지도자)을 선택합니다.</li>
+      <li>발급받은 패스코드를 입력하고 <strong>입장</strong>을 누릅니다.</li>
+      <li>인증에 실패하거나 잠금 안내가 표시되면 입력값을 확인하고, 잠시 기다린 뒤 다시 시도하거나 코치에게 문의합니다.</li>
+    </ol>
+    <h3>선수 자가 가입</h3>
+    <p><strong>선수 가입</strong> 탭에서 이름, 비밀번호, 비밀번호 확인, 코치가 안내한 가입 코드를 입력해 신청합니다. 신청 후에는 코치가 <strong>선수 관리</strong>에서 승인해야 로그인이 가능합니다. 비밀번호나 가입 코드를 다른 사람과 공유하지 마세요.</p>
+    <h3>세션 날짜와 역할</h3>
+    <ul>
+      <li>로그인할 때 선택한 이름·날짜가 훈련 세션의 기준입니다. 날짜를 바꾸면 다른 세션 기록으로 구분됩니다.</li>
+      <li><strong>선수</strong>는 훈련 기록과 코치에게 받은 미션을 이용합니다. <strong>지도자</strong>는 배정된 선수 관리, 미션 배포와 데이터 검토 기능을 이용합니다.</li>
+      <li>상단 언어 선택에서 한국어/English를 바꿀 수 있습니다. 회전 화살표 버튼은 새 세션 시작, 전원 버튼은 로그아웃입니다.</li>
+    </ul>
+    <div class="callout warning"><strong>계정 문제</strong><br>승인 대기, 패스코드 분실, 가입 코드 오류는 코치에게 문의하세요. 앱의 관리자·선수 관리 기능은 역할에 따라 표시가 달라집니다.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-workflow">
+    <p class="chapter-kicker">CHAPTER 02</p><h2>첫 사용과 훈련 순서</h2>
+    <ol class="steps">
+      <li>로그인 후 <strong>Framework</strong>와 프로그램 사용안내를 읽습니다.</li>
+      <li>코치가 지정한 훈련을 선택합니다. 일반적으로 M1은 라이·방향 판단, M2는 실제 마무리 속도 결과를 기록합니다.</li>
+      <li>각 퍼트 직후 기억이 정확할 때 해당 입력 섹션에서 항목을 선택하고 <strong>저장</strong>을 누릅니다.</li>
+      <li><strong>분석 보기</strong>와 <strong>시각화</strong>에서 누적 결과를 확인합니다. 작은 표본은 결론보다 변화 추세를 보는 데 활용합니다.</li>
+      <li>코치가 미션을 배정했다면 기한과 지시사항을 확인하고, 결과를 기록하거나 안내에 따라 전송합니다.</li>
+    </ol>
+    <p>페이지 상단의 큰 메뉴 버튼을 누르면 해당 섹션으로 이동합니다. 데이터는 앱의 세션에 저장되며, 네트워크 연결이 필요한 동기화 기능은 연결 상태에 따라 반영이 지연될 수 있습니다.</p>
+    <div class="callout">기록이 잘못된 경우 같은 샷을 중복 저장하지 않도록 주의하세요. 중요한 데이터는 CSV로 내보내 보관하고, 불러오기는 기존 데이터에 영향을 줄 수 있으므로 작업 전에 백업하세요.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-m1">
+    <p class="chapter-kicker">CHAPTER 03</p><h2>M1 라이·방향 판단 기록</h2>
+    <p>M1은 한 번의 퍼트에 대해 라이 판단과 결과 원인을 기록하는 훈련입니다. 실제 연습 절차와 코치 지시를 우선하고, 모든 항목은 해당 샷의 결과를 반영해 선택합니다.</p>
+    <table><thead><tr><th>항목</th><th>입력 방법과 의미</th></tr></thead><tbody>
+      <tr><td>거리</td><td>해당 퍼트의 거리 구간(5y 이내, 5–7y, 7–9y, 9–11y, 11y 이상)을 선택합니다.</td></tr>
+      <tr><td>Putt Result</td><td>홀인, 좌측 미스, 우측 미스 중 실제 결과를 선택합니다.</td></tr>
+      <tr><td>인지한 Low-Point</td><td>퍼트 전에 판단한 낮은 지점/중력 흐름 방향(왼쪽, 오른쪽, 평지)을 선택합니다.</td></tr>
+      <tr><td>실제 Low-Point</td><td>훈련 기준으로 확인한 실제 방향을 선택합니다. 예측값과 비교할 기준이 됩니다.</td></tr>
+      <tr><td>Miss Type</td><td>홀인/미스 없음, 방향 미스, 속도 미스, 방향+속도 미스 중 결과 원인에 맞는 항목을 선택합니다.</td></tr>
+      <tr><td>Stroke Time</td><td>어드레스부터 스트로크까지 5초를 초과했는지 선택합니다. “아니오”는 5초 이내입니다.</td></tr>
+      <tr><td>High-side Commit</td><td>코치가 요구한 High-side 라인 커밋을 유지했는지 Yes/No로 기록합니다.</td></tr>
+    </tbody></table>
+    <ol class="steps">
+      <li>거리 구간을 정하고 라이를 읽은 뒤 예측 Low-Point를 선택합니다.</li>
+      <li>퍼트 후 실제 결과와 Miss Type을 기록하고, 실제 Low-Point를 확인해 입력합니다.</li>
+      <li>5초 응답과 High-side Commit을 선택한 뒤 <strong>저장</strong>을 누릅니다.</li>
+    </ol>
+    <div class="callout warning"><strong>정확한 기록을 위해</strong><br>현재 M1 입력은 좌우 오차(cm), 실제 출발선 일치 여부, Apex 커밋을 직접 수집하지 않습니다. 미스 원인 분류는 사용자의 입력에 의존하며, 앱이 실제 스트로크 방향이나 High-side 여부를 영상으로 판정하는 것은 아닙니다.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-m2">
+    <p class="chapter-kicker">CHAPTER 04</p><h2>M2 속도·마무리 기록</h2>
+    <p>M2는 실제 퍼트 후 공이 홀을 기준으로 어디에서 멈췄는지 범주형으로 기록합니다. 목표한 속도 계획과 실제 마무리의 차이를 정밀 측정하는 화면은 아닙니다.</p>
+    <table><thead><tr><th>항목</th><th>입력 방법과 의미</th></tr></thead><tbody>
+      <tr><td>거리</td><td>5y 이내부터 11y 이상까지 거리 구간을 선택합니다.</td></tr>
+      <tr><td>그린 속도</td><td>매우 느림, 느림, 보통, 빠름, 매우 빠름 중 현재 그린 상태를 선택합니다.</td></tr>
+      <tr><td>Actual Slope</td><td>오르막 1–3, 평지(0), 내리막 1–3 중 실제 경사 단계를 입력합니다. 예측 경사와 비교하는 항목은 아닙니다.</td></tr>
+      <tr><td>Putting Type</td><td>직선, 브레이크 왼쪽, 브레이크 오른쪽 중 퍼팅 타입을 선택합니다.</td></tr>
+      <tr><td>Actual Finish</td><td>홀 기준 30cm 범위, 30cm 이상 오버/쇼트, 1m 이상 오버/쇼트 중 실제 마무리 구간을 선택합니다.</td></tr>
+    </tbody></table>
+    <p>마무리 기록은 점수로 환산됩니다. 입력 범주상 0은 10점, ±30은 7점, ±100은 3점입니다. 화면의 누적 평균은 해당 세션의 M2 점수 평균입니다.</p>
+    <div class="callout warning"><strong>측정 범위</strong><br>화면의 “cm” 및 평균 편차는 실제 거리 측정값이 아니라 선택한 범주의 대표값(0/30/100cm)입니다. 현재 입력에는 예측 속도, Speed Plan, Actual Pace가 없으므로 속도 계획-실행 일치율이나 예측 경사 오차를 산출하지 않습니다.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-metrics">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>분석 지표의 의미</h2>
+    <p>분석 보기에서 지표 제목을 누르면 정의와 산출 기준을 펼쳐 볼 수 있습니다. 퍼팅 미스 분석의 개별 지표 제목도 클릭할 수 있습니다. 데이터가 부족한 항목은 N/A로 표시될 수 있습니다.</p>
+    <table><thead><tr><th>지표</th><th>쉽게 이해하기</th></tr></thead><tbody>
+      <tr><td>SRI</td><td>M2 마무리 결과 지표입니다. 적정 마무리 비율 70%와 범주 편차를 점수화한 값 30%를 합산합니다. 경사 판독 지표가 아닙니다.</td></tr>
+      <tr><td>SII</td><td>M1에서 방향/복합 미스로 분류되지 않은 비율, 미스 중 방향 관련 미스 비율, 실전형 미스 원인 점수를 합산한 방향·Low-side 지표입니다. 방향 정확도를 직접 측정하지는 않습니다.</td></tr>
+      <tr><td>DCS</td><td>M1 홀인율, 전체 시도 대비 속도 관련 미스, Stage 3 루틴 점수를 합산합니다. 거리 정규화 좌우 오차는 포함하지 않습니다.</td></tr>
+      <tr><td>적정 마무리</td><td>유효 M2 중 마무리 범주가 −30~+30cm 범위인 비율입니다.</td></tr>
+      <tr><td>평균 마무리 편차(범주환산)</td><td>0/30/100cm 범주 대표값의 절대값 평균입니다. 정확한 센티미터 측정 결과가 아닙니다.</td></tr>
+      <tr><td>Stage 1 · 중력 인지</td><td>유효 Low-Point 예측 일치율 60%와 실전형 미스 원인 점수 40%를 반영합니다.</td></tr>
+      <tr><td>Stage 2 · 마무리 제어</td><td>SRI와 같은 점수입니다. M2 적정 마무리 비율 70%와 범주 편차 보정 점수 30%를 사용합니다.</td></tr>
+      <tr><td>Stage 3 · 루틴·커밋</td><td>M1에서 5초 이내 응답률 60%와 High-side Commit Yes 비율 40%를 반영합니다.</td></tr>
+      <tr><td>3단계 수행 평균</td><td>데이터가 존재하는 Stage 1·2·3 점수의 산술평균입니다. SII와 DCS는 이 평균에 포함하지 않습니다.</td></tr>
+    </tbody></table>
+    <h3>퍼팅 미스 분석 보조 지표</h3>
+    <ul>
+      <li><strong>전체 미스율:</strong> M1 중 홀인(center)이 아닌 기록의 비율입니다.</li>
+      <li><strong>Low-Point 정확도:</strong> 예측·실제 Low-Point가 모두 입력된 기록에서 두 값이 일치한 비율입니다.</li>
+      <li><strong>미스 시 Low-Point 불일치:</strong> 미스 중 양쪽 Low-Point 입력이 있는 표본에서 값이 다른 비율입니다.</li>
+      <li><strong>결과기반 Low-side:</strong> 좌/우 미스와 좌/우 예측 Low-Point가 있는 샷 중 미스 방향이 예측 Low-Point와 같은 비율입니다.</li>
+      <li><strong>방향/속도 관련 미스:</strong> 미스 중 Miss Type에 해당 원인이 포함된 비율입니다. 복합 미스는 방향 및 속도 두 항목 모두에 포함됩니다.</li>
+      <li><strong>미스원인가중치:</strong> Low-Point 일치(30%), 방향 미스 억제(35%), 속도 미스 억제(20%), High-side 커밋(15%)을 합산한 점수입니다.</li>
+      <li><strong>5초 이내:</strong> 5초 질문에 유효 응답한 M1 중 “아니오(5초 이내)”인 비율입니다.</li>
+      <li><strong>확신 유지:</strong> 유효 High-side 응답 중 Yes 비율입니다. Apex 커밋은 현재 입력되지 않습니다.</li>
+    </ul>
+    <p class="matrix-note"><strong>표본과 해석:</strong> 각 지표는 필요한 항목이 입력된 표본만 분모로 쓰는 경우가 있습니다. 표본 수를 함께 확인하세요. SII, DCS 및 미스 원인 점수는 규칙 기반 요약 지표로, 확률이나 객관적 장비 측정값을 뜻하지 않습니다.</p>
+  </section>
+
+  <section class="chapter-page" id="ko-visual">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>분석·시각화·PDF</h2>
+    <h3>분석 보기</h3>
+    <ul>
+      <li><strong>퍼팅 미스 분석:</strong> 전체 미스, Low-Point, Low-side, 원인 분류와 루틴 지표를 확인합니다. 제목을 눌러 정의를 펼칩니다.</li>
+      <li><strong>미스 유형 분석:</strong> Direction, Speed, Direction+Speed 유형을 M1 미스 중 건수와 비율로 표시합니다.</li>
+      <li><strong>Lie 결정훈련 거리별 분석:</strong> 거리별 시도, 홀인, 방향 분류 결과를 비교합니다. 현재 앱은 거리 구간을 분석 표에서 숫자로 변환하는 방식 때문에 범주형 거리가 하나의 그룹으로 합쳐져 보일 수 있습니다. 이 경우 세부 거리 비교를 근거로 삼지 말고 전체 기록 또는 원자료를 확인하세요.</li>
+      <li><strong>Speed 결정훈련 거리별 분석:</strong> 거리, 그린 속도, 퍼팅 타입별로 적정 범위·오버·쇼트 비율을 표시합니다. 유효 M2 마무리 기록을 기준으로 계산합니다.</li>
+    </ul>
+    <h3>시각화</h3>
+    <ul>
+      <li><strong>Left / Right Error Heatmap:</strong> 거리 구간에 따른 좌측/홀인/우측 결과 분포를 볼 수 있습니다. 영상이나 공의 정확한 편차를 측정하는 기능은 아닙니다.</li>
+      <li><strong>Finish Offset Heatmap (M2):</strong> 거리와 실제 경사 단계별 범주 기반 절대 마무리 편차 평균입니다. 실제 거리 측정값이 아닙니다.</li>
+      <li><strong>Bayesian Skill Update:</strong> M1 홀인/미스 기록으로 Beta(1,1) 사전분포를 갱신해 홀인 확률 평균과 구간을 표시합니다. 표본이 적을 때는 불확실성이 큽니다.</li>
+    </ul>
+    <p>분석 섹션의 <strong>분석보기 PDF 다운로드</strong>, 시각화 섹션의 <strong>시각화 PDF 다운로드</strong>를 눌러 해당 화면을 PDF로 저장합니다. 브라우저에서 인쇄 창이 열리면 PDF로 저장을 선택합니다. PDF 기능은 브라우저 네트워크 상태와 인쇄 설정의 영향을 받을 수 있습니다.</p>
+  </section>
+
+  <section class="chapter-page" id="ko-coach">
+    <p class="chapter-kicker">CHAPTER 07</p><h2>코치 미션과 선수 관리</h2>
+    <h3>선수: 미션 확인과 결과 공유</h3>
+    <ol class="steps">
+      <li><strong>코치 미션</strong>에서 수행할 미션을 열어 지시사항, 첨부 자료, 대상과 기한을 확인합니다.</li>
+      <li>요구된 훈련을 수행하고 앱에 저장할 M1/M2 기록은 해당 훈련 섹션에 입력합니다.</li>
+      <li>코치 미션의 대화 영역에서 코치 지시에 따라 결과, 질문 또는 메모를 전송합니다. 필요하면 7) 데이터의 선수 결과 전송을 사용합니다.</li>
+    </ol>
+    <h3>코치: 미션 배포와 피드백</h3>
+    <ul>
+      <li>대상 선수를 선택하고 Excel(.xlsx/.xls) 또는 CSV 미션 파일을 올리거나 직접 미션 제목·내용·기한을 입력합니다.</li>
+      <li>수행미션 목록에서 항목을 열어 대화 유형(미션 지시/피드백/질문·메모), 선수, 메시지를 작성하고 전송합니다. 전체 선수 공지는 대상 범위를 확인한 뒤 사용합니다.</li>
+      <li>선수가 보낸 결과는 선수 관리의 전송 데이터 목록에서 최신 데이터 동기화 후 확인할 수 있습니다.</li>
+      <li>미션 삭제·재배정은 영향을 받는 선수를 확인하고 신중히 진행합니다. 배정된 기한을 지키고 완료 기록이 공유됐는지 확인하세요.</li>
+    </ul>
+    <h3>선수 관리(코치 전용)</h3>
+    <p>가입 신청을 검토해 승인하고, 선수를 직접 등록하거나 등록 목록을 관리합니다. 자가 가입에 사용할 가입 코드를 설정할 수 있습니다. 승인 전 계정은 로그인이 제한될 수 있으므로 신청자 이름을 확인한 후 처리하세요.</p>
+    <div class="callout warning">미션 첨부파일이 업로드되지 않으면 네트워크나 저장소 연결을 확인하세요. 업로드 실패 시 로컬 화면에만 남을 수 있으므로 동기화 상태를 점검한 뒤 선수에게 배포 여부를 안내합니다.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-data">
+    <p class="chapter-kicker">CHAPTER 08</p><h2>데이터 전송·CSV·문제 해결</h2>
+    <h3>선수 결과 전송</h3>
+    <p><strong>7) 데이터</strong>에서 현재 선수와 세션 날짜의 M1/M2 기록을 코치에게 전송합니다. 코치는 <strong>8) 선수 관리 → 전송된 선수 데이터 → 최신 데이터 동기화</strong>를 눌러 목록을 갱신합니다. 전송 완료 메시지와 코치 측 목록을 모두 확인하세요.</p>
+    <h3>CSV 내보내기와 불러오기(코치 화면)</h3>
+    <ul>
+      <li><strong>CSV 다운로드</strong>는 현재 내보낼 수 있는 세션 기록을 파일로 저장합니다. 보관·외부 분석 전 파일을 안전한 위치에 저장합니다.</li>
+      <li>CSV 불러오기는 앱이 내보낸 것과 같은 형식의 파일을 사용합니다. <strong>병합</strong>은 기존 기록을 유지하며 추가하고, <strong>덮어쓰기</strong>는 기존 기록을 교체할 수 있으므로 반드시 백업 후 실행합니다.</li>
+      <li>선수 전송 및 클라우드 동기화는 연결이 필요할 수 있습니다. 전송 후 목록을 새로 고쳐 기록 건수와 이름·날짜를 확인합니다.</li>
+    </ul>
+    <h3>문제가 생겼을 때</h3>
+    <table><thead><tr><th>증상</th><th>확인 방법</th></tr></thead><tbody>
+      <tr><td>로그인할 수 없음</td><td>이름·날짜·역할·패스코드를 확인합니다. 자가 가입 계정은 코치 승인 여부를 확인합니다.</td></tr>
+      <tr><td>방금 저장한 기록이 안 보임</td><td>선택된 선수와 세션 날짜가 맞는지 확인하고, 분석 섹션을 다시 열거나 새로 고칩니다.</td></tr>
+      <tr><td>코치에게 보낸 데이터가 없음</td><td>네트워크 연결, 전송 결과 메시지, 선수 관리의 동기화 상태를 확인합니다.</td></tr>
+      <tr><td>CSV 불러오기가 실패함</td><td>동일 포맷 CSV인지, 파일이 손상되지 않았는지 확인합니다. 오류가 계속되면 원본 파일을 보관하고 코치에게 문의합니다.</td></tr>
+      <tr><td>분석값이 N/A</td><td>해당 지표에 필요한 M1/M2 표본과 필수 입력 항목이 있는지 확인합니다. 누락값은 유효 표본에서 제외될 수 있습니다.</td></tr>
+    </tbody></table>
+    <h3>용어 빠른 사전</h3>
+    <table><thead><tr><th>용어</th><th>이 매뉴얼에서의 의미</th></tr></thead><tbody>
+      <tr><td>M1</td><td>Lie/Direction 훈련 기록. Low-Point, 결과, 미스 유형과 루틴 응답을 입력합니다.</td></tr>
+      <tr><td>M2</td><td>Speed/Finish 훈련 기록. 실제 경사와 범주형 마무리 결과를 입력합니다.</td></tr>
+      <tr><td>Low-Point</td><td>훈련에서 판단하는 경사 흐름의 낮은 지점 방향.</td></tr>
+      <tr><td>High-side</td><td>코치가 지도하는 높은 쪽 라인에 대한 커밋 개념. 앱에서는 사용자가 Yes/No로 기록합니다.</td></tr>
+      <tr><td>유효 표본</td><td>특정 지표 계산에 필요한 입력 항목이 모두 기록된 샷.</td></tr>
+    </tbody></table>
+    <footer>© 2026 S.Y Chun. All rights reserved. · SY-PTS ver 26.101f 기준 · 매뉴얼 초판: 2026년 10월 3일</footer>
+  </section>
+</main>
+
+<main id="enManual" lang="en" hidden>
+  <header class="cover">
+    <div><p class="eyebrow">SY-PTS · PUTTING TRAINING SYSTEM</p><div class="cover-mark"></div><span class="cover-stamp">USER GUIDE · ORIGINAL EDITION</span></div>
+    <div><h1>SY-PTS<br>User Manual</h1><span class="cover-revision-label">FIRST EDITION · OCT 2026</span><p class="subtitle">A practical guide to recording and reviewing putting lie decisions, direction, stroke routine, and pace outcomes with the SY Putting Training System.</p></div>
+    <div class="cover-meta">Created by: S.Y Chun<br>First edition: October 3, 2026<br>App version: 26.101f
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>Intellectual Property Notice</strong><br>© 2026 S.Y Chun. All rights reserved. The text, structure, and editorial design of this manual are protected works. Reproduction, modification, distribution, publication, or commercial use, in whole or in part, requires prior written permission from the rights holder. SY-PTS and third-party marks and data remain the property of their respective owners.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="S.Y Chun, manual author"></div>
+    </div>
+  </header>
+
+  <section class="chapter-page" id="en-overview">
+    <p class="chapter-kicker">SY-PTS · OFFICIAL TRAINING GUIDE</p>
+    <h2>About This Manual and the App</h2>
+    <p><strong>SY-PTS (SY Putting Training System - Green Mission)</strong> is a web app for recording M1 lie/direction decisions and M2 pace/finish outcomes, reviewing the results through metrics and visualizations, and exchanging missions and feedback with a coach.</p>
+    <div class="callout"><strong>Use principle</strong><br>Enter each decision and result as accurately as possible. Analysis quality depends on the completeness of the recorded data. Metrics are references for reviewing practice; they do not replace coaching or actual putting outcomes.</div>
+    <h3>App sections</h3>
+    <table><thead><tr><th>Section</th><th>Purpose</th></tr></thead><tbody>
+      <tr><td>1) Framework</td><td>Review the Low-Point, slope flow, High-side, speed, and Address-to-Putt routine principles.</td></tr>
+      <tr><td>2) M1 Input</td><td>Record distance, result, predicted/actual Low-Point, miss type, 5-second response, and High-side commitment.</td></tr>
+      <tr><td>3) M2 Input</td><td>Record distance, green speed, actual slope, putting type, and actual finish category.</td></tr>
+      <tr><td>4) Analysis</td><td>Review auto metrics, miss causes, distance summaries, and analysis PDFs.</td></tr>
+      <tr><td>5) Visualization</td><td>Review left/right outcome and M2 finish-offset heatmaps and the Bayesian make estimate.</td></tr>
+      <tr><td>6) Coach Mission</td><td>Coaches assign missions; players and coaches exchange results, questions, and feedback.</td></tr>
+      <tr><td>7) Data</td><td>Coaches export/import CSV; players can send the current session’s M1/M2 records to a coach.</td></tr>
+      <tr><td>8) Player Management</td><td>Coaches approve signup requests and manage player accounts and signup codes.</td></tr>
+    </tbody></table>
+  </section>
+
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#en-access">Access and roles</a></li>
+      <li><a href="#en-workflow">First use and practice flow</a></li>
+      <li><a href="#en-m1">Recording M1 lie/direction decisions</a></li>
+      <li><a href="#en-m2">Recording M2 pace/finish outcomes</a></li>
+      <li><a href="#en-metrics">Understanding the metrics</a></li>
+      <li><a href="#en-visual">Analysis, visualization, and PDF</a></li>
+      <li><a href="#en-coach">Coach missions and player management</a></li>
+      <li><a href="#en-data">Data transfer, CSV, and troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter-page" id="en-access">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>Access and Roles</h2>
+    <h3>Sign in with an existing account</h3>
+    <ol class="steps">
+      <li>Enter your player name, language, session date, and role (Player or Coach) on the login screen.</li>
+      <li>Enter the passcode provided to you and select <strong>Enter</strong>.</li>
+      <li>If authentication fails or a lockout notice appears, check your entries, wait as instructed, or contact your coach.</li>
+    </ol>
+    <h3>Player self-registration</h3>
+    <p>On the <strong>Player Signup</strong> tab, enter your name, password, password confirmation, and the signup code supplied by your coach. A coach must approve the request in <strong>Player Management</strong> before the account can sign in. Do not share passwords or signup codes.</p>
+    <h3>Session date and role</h3>
+    <ul>
+      <li>The selected name and date identify the training session. Selecting another date creates a different session context.</li>
+      <li><strong>Players</strong> record practice and use assigned missions. <strong>Coaches</strong> manage assigned players, missions, and submitted data.</li>
+      <li>Use the language selector to switch between Korean and English. The circular-arrow button starts a new session; the power button signs out.</li>
+    </ul>
+    <div class="callout warning"><strong>Account issues</strong><br>Contact your coach about pending approval, a lost passcode, or an invalid signup code. Management controls are shown according to the signed-in role.</div>
+  </section>
+
+  <section class="chapter-page" id="en-workflow">
+    <p class="chapter-kicker">CHAPTER 02</p><h2>First Use and Practice Flow</h2>
+    <ol class="steps">
+      <li>After signing in, review the <strong>Framework</strong> and the Usage Guide.</li>
+      <li>Choose the practice assigned by your coach. M1 generally records lie/direction decisions; M2 records actual pace/finish outcomes.</li>
+      <li>Immediately after each putt, select the relevant entries in the appropriate section and press <strong>Save</strong>.</li>
+      <li>Review cumulative results in <strong>Analysis</strong> and <strong>Visualization</strong>. Treat small samples as trends, not firm conclusions.</li>
+      <li>If a coach assigned a mission, check its instructions and due date, complete it, and share the result as directed.</li>
+    </ol>
+    <p>Use the large section buttons at the top of the app to navigate. Records are saved to the app session. Cloud sync may take time depending on network connectivity.</p>
+    <div class="callout">Avoid saving the same putt twice if an entry was incorrect. Export important data as CSV for safekeeping. Import operations can affect existing records, so create a backup first.</div>
+  </section>
+
+  <section class="chapter-page" id="en-m1">
+    <p class="chapter-kicker">CHAPTER 03</p><h2>Recording M1 Lie/Direction Decisions</h2>
+    <p>M1 records the lie decision and outcome cause for one putt. Follow the actual practice procedure and coach’s instructions, and enter the observed result of that shot.</p>
+    <table><thead><tr><th>Field</th><th>How to enter it</th></tr></thead><tbody>
+      <tr><td>Distance</td><td>Select the distance band: within 5y, 5–7y, 7–9y, 9–11y, or 11y or more.</td></tr>
+      <tr><td>Putt Result</td><td>Select Holed, Left Miss, or Right Miss.</td></tr>
+      <tr><td>Predicted Low-Point</td><td>Select the perceived low-point/gravity-flow direction before putting: left, right, or flat.</td></tr>
+      <tr><td>Actual Low-Point</td><td>Select the actual direction according to the practice reference. This is compared with your prediction.</td></tr>
+      <tr><td>Miss Type</td><td>Select No Miss (Holed), Direction Miss, Speed Miss, or Direction + Speed Miss.</td></tr>
+      <tr><td>Stroke Time</td><td>Answer whether more than 5 seconds elapsed from address to stroke. “No” means within 5 seconds.</td></tr>
+      <tr><td>High-side Commit</td><td>Record Yes/No for maintaining the High-side line commitment prescribed by your coach.</td></tr>
+    </tbody></table>
+    <ol class="steps">
+      <li>Select the distance band, read the lie, and enter the predicted Low-Point.</li>
+      <li>After the putt, enter the actual result and miss type, then confirm the actual Low-Point.</li>
+      <li>Record the 5-second response and High-side commitment, then press <strong>Save</strong>.</li>
+    </ol>
+    <div class="callout warning"><strong>Measurement limits</strong><br>The current M1 form does not collect lateral error in centimeters, directly observed start-line accuracy, or Apex commitment. Miss causes depend on user classification; the app does not infer stroke direction or High-side from video.</div>
+  </section>
+
+  <section class="chapter-page" id="en-m2">
+    <p class="chapter-kicker">CHAPTER 04</p><h2>Recording M2 Pace/Finish Outcomes</h2>
+    <p>M2 records a category describing where the ball finished relative to the hole. It is not a precise comparison between a planned pace and the actual finish.</p>
+    <table><thead><tr><th>Field</th><th>How to enter it</th></tr></thead><tbody>
+      <tr><td>Distance</td><td>Select a band from within 5y through 11y or more.</td></tr>
+      <tr><td>Green Speed</td><td>Select Very Slow, Slow, Medium, Fast, or Very Fast.</td></tr>
+      <tr><td>Actual Slope</td><td>Select Uphill 1–3, Flat (0), or Downhill 1–3. This is not compared with a predicted slope.</td></tr>
+      <tr><td>Putting Type</td><td>Select Straight, Break Left, or Break Right.</td></tr>
+      <tr><td>Actual Finish</td><td>Select the finish band: within 30cm of the hole, 30cm or more over/short, or 1m or more over/short.</td></tr>
+    </tbody></table>
+    <p>The finish outcome is converted to a score: category 0 = 10 points, ±30 = 7 points, and ±100 = 3 points. The cumulative average is the M2 score average for the session.</p>
+    <div class="callout warning"><strong>Measurement limits</strong><br>The displayed centimeter values are representative values for the selected categories (0/30/100cm), not direct measurements. The current form does not collect predicted speed, Speed Plan, or Actual Pace, so it cannot calculate planned-versus-actual speed match or predicted-slope error.</div>
+  </section>
+
+  <section class="chapter-page" id="en-metrics">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>Understanding the Metrics</h2>
+    <p>In Analysis, click a metric title to expand its definition and calculation basis. Individual putting-miss metric titles are also clickable. Metrics may show N/A when the required sample is unavailable.</p>
+    <table><thead><tr><th>Metric</th><th>Plain-language meaning</th></tr></thead><tbody>
+      <tr><td>SRI</td><td>M2 pace-outcome index: 70% in-range finish rate plus 30% category-offset score. It is not a slope-reading metric.</td></tr>
+      <tr><td>SII</td><td>M1 direction/low-side index combining the share not classified as a direction/composite miss, direction-related miss share, and practical miss-cause score. Direction is not measured directly.</td></tr>
+      <tr><td>DCS</td><td>Combines M1 holed rate, speed-related misses per all attempts, and Stage 3 routine score. It does not include distance-normalized lateral error.</td></tr>
+      <tr><td>Speed In Range</td><td>Share of valid M2 finishes in the −30 to +30cm category.</td></tr>
+      <tr><td>Average Coded Finish Offset</td><td>Mean absolute representative value from the 0/30/100cm categories, not an exact distance measurement.</td></tr>
+      <tr><td>Stage 1 · Gravity</td><td>60% valid Low-Point match rate plus 40% practical miss-cause score.</td></tr>
+      <tr><td>Stage 2 · Finish Control</td><td>Same score as SRI: 70% M2 in-range rate plus 30% category-offset calibration score.</td></tr>
+      <tr><td>Stage 3 · Routine & Commitment</td><td>60% M1 within-5-second rate plus 40% High-side Commit = Yes rate.</td></tr>
+      <tr><td>3-Stage Performance Average</td><td>Arithmetic mean of Stage 1, 2, and 3 scores for which corresponding M1/M2 data exists. SII and DCS are excluded.</td></tr>
+    </tbody></table>
+    <h3>Putting-miss analysis details</h3>
+    <ul>
+      <li><strong>Total Miss Rate:</strong> Share of M1 records that are not holed (center).</li>
+      <li><strong>Low-Point Accuracy:</strong> Share of records with both predicted and actual Low-Point values that match.</li>
+      <li><strong>Low-Point Miss Mismatch:</strong> Among misses with both values recorded, share where predicted and actual Low-Point differ.</li>
+      <li><strong>Objective Low-side:</strong> Among misses with a left/right result and left/right predicted Low-Point, share where the miss side matches the predicted Low-Point side.</li>
+      <li><strong>Direction/Speed-related Miss:</strong> Share of misses whose Miss Type includes that cause. A combined miss contributes to both measures.</li>
+      <li><strong>Practical Miss-Cause Score:</strong> 30% Low-Point match + 35% inverse direction-related miss share + 20% inverse speed-related miss share + 15% High-side commitment.</li>
+      <li><strong>Within 5 Seconds:</strong> Among valid M1 responses, share marked “No (Within 5s)”.</li>
+      <li><strong>Confidence Retention:</strong> Share of valid High-side responses marked Yes. Apex commitment is not collected.</li>
+    </ul>
+    <p class="matrix-note"><strong>Samples and interpretation:</strong> Some metrics use only records containing the fields they require. Check sample counts. SII, DCS, and the miss-cause score are rule-based summaries, not probabilities or objective equipment measurements.</p>
+  </section>
+
+  <section class="chapter-page" id="en-visual">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>Analysis, Visualization, and PDF</h2>
+    <h3>Analysis</h3>
+    <ul>
+      <li><strong>Putting Miss Analysis:</strong> Review misses, Low-Point, low-side, cause classifications, and routine metrics. Click titles for definitions.</li>
+      <li><strong>Miss Type Analysis:</strong> Shows counts and shares of Direction, Speed, and Direction+Speed among M1 misses.</li>
+      <li><strong>Lie Decision Training by Distance:</strong> Compares attempts, holed outcomes, and direction classification by distance. The current app converts distance bands to numbers for this table, so category bands may be combined into one group. Do not rely on the displayed distance breakdown in that case; use overall results or source records.</li>
+      <li><strong>Speed Decision Training by Distance:</strong> Shows in-range, over, and short shares by distance band, green speed, and putting type. Valid M2 finish records are used.</li>
+    </ul>
+    <h3>Visualization</h3>
+    <ul>
+      <li><strong>Left / Right Error Heatmap:</strong> Shows the distribution of left, holed, and right results by distance bin. It does not measure video motion or exact ball deviation.</li>
+      <li><strong>Finish Offset Heatmap (M2):</strong> Average category-based absolute finish offset by distance and actual slope level. Values are not direct distance measurements.</li>
+      <li><strong>Bayesian Skill Update:</strong> Updates a Beta(1,1) prior using M1 holed/missed outcomes and displays an estimated make-probability mean and interval. Uncertainty is substantial with small samples.</li>
+    </ul>
+    <p>Select <strong>Download Analysis PDF</strong> in Analysis or <strong>Download Visualization PDF</strong> in Visualization to print/save that section as PDF. Select Save as PDF in the browser’s print dialog. PDF generation may depend on connectivity and browser print settings.</p>
+  </section>
+
+  <section class="chapter-page" id="en-coach">
+    <p class="chapter-kicker">CHAPTER 07</p><h2>Coach Missions and Player Management</h2>
+    <h3>Players: review missions and share results</h3>
+    <ol class="steps">
+      <li>Open <strong>Coach Mission</strong> and review the instructions, attachments, assignee, and due date.</li>
+      <li>Complete the drill and enter M1/M2 records in the corresponding training section when requested.</li>
+      <li>Use the mission conversation to send a result, question, or note as directed. If requested, use section 7 Data to send training records.</li>
+    </ol>
+    <h3>Coaches: assign missions and provide feedback</h3>
+    <ul>
+      <li>Select target players and upload an Excel (.xlsx/.xls) or CSV mission file, or enter the mission title, details, and due date directly.</li>
+      <li>Open an assigned mission, choose a message type (Mission, Feedback, or Question/Note), verify the player, write the message, and send. Check the recipient list before broadcasting.</li>
+      <li>After syncing, review player submissions in the Player Management data list.</li>
+      <li>Check affected players before deleting or reassigning a mission. Track its due date and confirm completion results have been shared.</li>
+    </ul>
+    <h3>Player Management (coach only)</h3>
+    <p>Review and approve signup requests, register players directly, manage the player list, and set the code used for player signup. Verify the applicant’s name before approval; accounts may not sign in until approved.</p>
+    <div class="callout warning">If a mission attachment does not upload, check connectivity and storage status. A failed upload may remain local only; verify sync before telling players that the mission is available.</div>
+  </section>
+
+  <section class="chapter-page" id="en-data">
+    <p class="chapter-kicker">CHAPTER 08</p><h2>Data Transfer, CSV, and Troubleshooting</h2>
+    <h3>Sending player records</h3>
+    <p>In <strong>7) Data</strong>, send the current player’s M1/M2 records for the selected session date to the coach. The coach can refresh the list with <strong>8) Player Management → Submitted Player Data → Sync Latest Data</strong>. Confirm both the success message and the coach-side listing.</p>
+    <h3>CSV export/import (coach view)</h3>
+    <ul>
+      <li><strong>Download CSV</strong> saves the session records available for export. Store the file safely before external analysis.</li>
+      <li>Import a CSV in the same format as the app export. <strong>Merge</strong> keeps existing records and appends data; <strong>Overwrite</strong> can replace existing records. Always back up first.</li>
+      <li>Player transfer and cloud synchronization may require a network connection. Refresh after sending and verify the count, player, and date.</li>
+    </ul>
+    <h3>Troubleshooting</h3>
+    <table><thead><tr><th>Issue</th><th>What to check</th></tr></thead><tbody>
+      <tr><td>Cannot sign in</td><td>Check name, date, role, and passcode. For self-registered accounts, confirm coach approval.</td></tr>
+      <tr><td>Saved record is not visible</td><td>Confirm the selected player and session date, then reopen or refresh Analysis.</td></tr>
+      <tr><td>Coach did not receive data</td><td>Check connectivity, the transfer result message, and sync status in Player Management.</td></tr>
+      <tr><td>CSV import fails</td><td>Confirm the file uses the matching format and is not damaged. Keep the original and contact the coach if the problem persists.</td></tr>
+      <tr><td>Metric shows N/A</td><td>Check that the required M1/M2 samples and input fields exist. Records with missing required values may be excluded.</td></tr>
+    </tbody></table>
+    <h3>Quick glossary</h3>
+    <table><thead><tr><th>Term</th><th>Meaning in this manual</th></tr></thead><tbody>
+      <tr><td>M1</td><td>Lie/Direction training record: Low-Point, outcome, miss type, and routine responses.</td></tr>
+      <tr><td>M2</td><td>Speed/Finish training record: actual slope and category-based finish outcome.</td></tr>
+      <tr><td>Low-Point</td><td>The low-point direction of the slope flow as used in the training drill.</td></tr>
+      <tr><td>High-side</td><td>The high-side line commitment coached for the putt. The app records the user’s Yes/No response.</td></tr>
+      <tr><td>Valid sample</td><td>A putt record containing the fields required for a particular metric.</td></tr>
+    </tbody></table>
+    <footer>© 2026 S.Y Chun. All rights reserved. · Based on SY-PTS ver 26.101f · First edition: October 3, 2026</footer>
+  </section>
+</main>
+
+<script>
+  const manualLanguage = document.getElementById("manualLanguage");
+  const languageLabel = document.getElementById("languageLabel");
+  const printManualBtn = document.getElementById("printManualBtn");
+  const koreanManual = document.getElementById("koManual");
+  const englishManual = document.getElementById("enManual");
+
+  manualLanguage.addEventListener("change", () => {
+    const isEnglish = manualLanguage.value === "en";
+    koreanManual.hidden = isEnglish;
+    englishManual.hidden = !isEnglish;
+    document.documentElement.lang = isEnglish ? "en" : "ko";
+    document.title = isEnglish ? "SY-PTS User Manual" : "SY-PTS 사용매뉴얼";
+    languageLabel.textContent = isEnglish ? "Language" : "언어";
+    manualLanguage.setAttribute("aria-label", languageLabel.textContent);
+    printManualBtn.textContent = isEnglish ? "Print / Save as PDF" : "인쇄 / PDF로 저장";
+  });
+</script>
+</body>
+</html>
