@@ -159,7 +159,7 @@ test('P phases and F frame A/B requests stay on their intended side of the top',
       frame3: ['downswing78', 'preImpact'],
       frame4: ['address', 'impact'],
       frame5: ['address', 'downswing62'],
-      frame6: ['downswing62', 'impact'],
+      frame6: ['downswing78', 'impact'],
     };
     for (const [frame, targets] of Object.entries(expected)) {
       context.selectedSegment = frame;
