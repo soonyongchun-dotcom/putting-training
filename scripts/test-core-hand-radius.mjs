@@ -577,28 +577,33 @@ test('F6 searches the shaft-parallel P6 phase and does not time unrelated videos
   assert.equal(context.computePhaseTimeDelta(1, 1.06, false), null);
   assert.equal(context.computePhaseTimeDelta(null, 1.06, true), null);
   const tempo = context.computeTempoSequenceReport({ timeDeltaSec: 0.4667, releaseIndex: 39, sequenceIndex: 3 });
-  assert.equal(tempo.score100, 100);
+  assert.equal(tempo.score100, 30);
 });
 
-test('F6 release observations never affect scores; effective weights match actual penalties', () => {
+test('F6 timing and release contribute to provisional scores with normalized weights', () => {
   const input = { timeDeltaSec: 0.4667, sequenceIndex: 3, releaseIndex: 39 };
   const low = context.computeTempoSequenceReport(input);
   const high = context.computeTempoSequenceReport({ ...input, releaseIndex: 500 });
-  assert.equal(low.score100, high.score100);
-  assert.equal(low.sRelease, null);
-  assert.equal(low.releaseWeight, 0);
-  assert.equal(low.totalMetrics, 1);
-  close(low.tempoWeight, 0);
-  close(low.sequenceWeight, 1);
+  assert.equal(low.score100, 30);
+  assert.equal(high.score100, 60);
+  assert.equal(low.sRelease, 100);
+  assert.equal(low.totalMetrics, 3);
+  close(low.tempoWeight, 0.4);
+  close(low.releaseWeight, 0.3);
+  close(low.sequenceWeight, 0.3);
   const supplemental = context.computeTempoSequenceReport(input, { penalty: 25 });
-  close(supplemental.tempoWeight + supplemental.sequenceWeight + supplemental.downswingWeight, 1);
-  assert.equal(context.computeTempoSequenceReport({ releaseIndex: 500 }).score100, null);
+  close(supplemental.tempoWeight + supplemental.releaseWeight
+    + supplemental.sequenceWeight + supplemental.downswingWeight, 1);
+  close(supplemental.tempoWeight, 0.36);
+  close(supplemental.releaseWeight, 0.27);
+  close(supplemental.sequenceWeight, 0.27);
+  assert.equal(context.computeTempoSequenceReport({ releaseIndex: 500 }).score100, 100);
   const missingTiming = context.computeTempoSequenceReport({ sequenceIndex: 3, releaseIndex: 39 });
   assert.equal(missingTiming.tempoWeight, 0);
   assert.equal(missingTiming.sequenceWeight, 1);
 });
 
-test('reported F4/F6 no longer penalize projected radius or unverified playback time', () => {
+test('F6 P6-to-P7 timing penalty uses the historical provisional reference band', () => {
   const evidence = { pathFit: 0.3, penalty: 70 };
   const previous = context.getDownswingSideEvidence;
   context.getDownswingSideEvidence = () => evidence;
@@ -607,17 +612,30 @@ test('reported F4/F6 no longer penalize projected radius or unverified playback 
       radiusF3: 0.629 / 0.593, radiusCurrent: 0.629 };
     assert.equal(context.computeSegmentScore({ fm }, 'frame4'), 7.5);
     const report = context.computeTempoSequenceReport({ timeDeltaSec: 0.2946, sequenceIndex: 2.20 }, evidence);
-    assert.equal(report.score100, 93);
-    assert.equal(report.sTempo, null);
-    close(report.sequenceWeight, 0.9);
+    assert.equal(report.score100, 41);
+    assert.equal(report.sTempo, 100);
+    close(report.sequenceWeight, 0.27);
     close(report.downswingWeight, 0.1);
-    for (const timeDeltaSec of [0.02, 0.06, 0.8, null]) {
-      assert.equal(context.computeTempoSequenceReport({ timeDeltaSec, sequenceIndex: 2.20 }, evidence).score100, 93);
-    }
-    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.06 }, null).score100, null);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.02, sequenceIndex: 2.20 }, evidence).score100, 66);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.06, sequenceIndex: 2.20 }, evidence).score100, 90);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.8, sequenceIndex: 2.20 }, evidence).score100, 81);
+    assert.equal(context.computeTempoSequenceReport({ sequenceIndex: 2.20 }, evidence).score100, 81);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.8 }, null).score100, null);
   } finally {
     context.getDownswingSideEvidence = previous;
   }
+});
+
+test('F6 reproduces the distinct provisional scores shown by the two supplied reports', () => {
+  const reportA = context.computeTempoSequenceReport({
+    timeDeltaSec: 0.1163, releaseIndex: 31, sequenceIndex: 3,
+  });
+  const reportB = context.computeTempoSequenceReport({
+    timeDeltaSec: 0.0632, releaseIndex: 20, sequenceIndex: 3,
+  });
+  assert.equal(reportA.score100, 52);
+  assert.equal(reportB.score100, 70);
+  assert.ok(reportA.score100 < reportB.score100);
 });
 
 test('three-point average bonus uses independent phase contributions, requires all four scores, and caps at ten', () => {
@@ -773,6 +791,10 @@ test('F2 uses actual lag, F3 uses extension state, and F4 ignores incompatible a
   f2.fm.laggingAngleDelta = -120;
   assert.equal(context.computeSegmentScore(f2, 'frame2'), score);
   assert.ok(context.scoreLagAngle(68.1) > context.scoreLagAngle(147));
+  assert.equal(context.scoreLagAngle(47.3), 1);
+  assert.ok(context.scoreLagAngle(102.7) < 0.25);
+  const noLag = { fm: { laggingAngleBDeg: 102.7, radiusCompressionRatio: 0.351, pelvisLateralDelta: -0.056 } };
+  assert.equal(context.computeSegmentScore(noLag, 'frame2'), 5);
   assert.equal(context.scoreLagAngle(190), null);
   const f3 = { fm: { kneeExtDelta: 2, kneeExtensionDegB: 175 } };
   const extensionScore = context.computeSegmentScore(f3, 'frame3');
@@ -788,6 +810,24 @@ test('F2 uses actual lag, F3 uses extension state, and F4 ignores incompatible a
   f4.fm.radiusF4 = 0.7;
   assert.equal(context.computeSegmentScore(f4, 'frame4'), impactScore);
   for (const value of [-0.02, 0, 0.02]) close(context.scoreLateRadiusExpansion(value), 0.5);
+});
+
+test('F2 scores the supplied amateur and professional reports by actual lag angle', () => {
+  const reports = [
+    { id: 'amateur-20241226', angle: 102.7, compression: 0.351, shift: -0.056, expected: 5 },
+    { id: 'amateur-20250218', angle: 109.8, compression: 0.512, shift: 0.272, expected: 6.5 },
+    { id: 'Rory-reference', angle: 42.2, compression: 0.402, shift: 0.237, expected: 10 },
+    { id: 'Tiger-reference', angle: 64.9, compression: 0.398, shift: 0.275, expected: 10 },
+  ];
+  for (const report of reports) {
+    assert.equal(context.computeSegmentScore({
+      fm: {
+        laggingAngleBDeg: report.angle,
+        radiusCompressionRatio: report.compression,
+        pelvisLateralDelta: report.shift,
+      },
+    }, 'frame2'), report.expected, report.id);
+  }
 });
 
 test('reported F1 score and independent F5/F6 behavior remain unchanged', () => {
