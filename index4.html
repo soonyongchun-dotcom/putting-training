@@ -1,4 +1,4 @@
-﻿ <!DOCTYPE html> 
+ <!DOCTYPE html> 
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -1622,13 +1622,13 @@
         <div class="analysis-section-title" id="analysisFrontSectionTitle">A영상 분석</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <em id="analysisFrontHeightTag" style="font-size:0.72rem;color:rgba(180,210,255,0.75);white-space:nowrap;"></em>
-          <button id="swingNarrativeToggleBtn" onclick="toggleSwingNarrative()"
+          <button id="swingNarrativeToggleBtn" type="button" aria-expanded="false" aria-controls="swingNarrativeBlock" onclick="toggleSwingNarrative()"
             style="display:none;font-size:0.72rem;padding:2px 9px;border-radius:12px;border:1px solid rgba(255,200,60,0.5);background:rgba(255,180,30,0.12);color:#ffd86c;cursor:pointer;white-space:nowrap;">
-            분석 결과 보기 ▼
+            전체 프레임 분석결과 보기 ▼
           </button>
         </div>
       </div>
-      <div id="swingNarrativeBlock" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(0,0,0,0.28);border:1px solid rgba(255,200,60,0.18);border-radius:8px;font-size:0.78rem;line-height:1.6;color:#c8d8f0;"></div>
+      <div id="swingNarrativeBlock" hidden style="margin-top:8px;padding:10px 12px;background:rgba(0,0,0,0.28);border:1px solid rgba(255,200,60,0.18);border-radius:8px;font-size:0.78rem;line-height:1.6;color:#c8d8f0;"></div>
       <p class="small">반경은 골반·양손 중심 기준입니다. 같은 카메라·배율로 F1 A 어드레스부터 분석하세요. 기존 점수 기준은 경험적 참고값이며 새 반경 정의에 대한 검증 기준은 아닙니다.</p>
        <div class="analysis-metric" id="analysisFrontMoment" style="display:none"></div>
       <div class="analysis-metric" id="analysisFrontRadius"
@@ -1718,14 +1718,14 @@
           <div class="analysis-f5-body">
             <div class="analysis-f5-metrics">
               <div class="analysis-metric" id="analysisDeltaCardF6TimeDelta"
-                      data-tooltip="잠정 채점 40%. P6→P7 40~80ms는 무감점, 40ms 미만/80ms 초과는 최대 500ms까지 감점합니다. 같은 영상의 선택 시점 기준이며 프레임레이트·시점 오차 때문에 수행능력 기준으로 검증된 값은 아닙니다.">&#916;t 템포: -</div>
+                      data-tooltip="P6→P7 선택 시점 간 시간차 관측값입니다. 프레임레이트·시점 선택 오차와 수행능력 기준이 검증되지 않아 종합 점수에서는 제외합니다.">&#916;t 템포: -</div>
               <div class="analysis-metric" id="analysisDeltaCardF6Release"
-                     data-tooltip="잠정 채점 30% (측면 경로 포함 시 27%). Release Index = (r_impact / r_downswing) × (180° − θ_lag). 기존 110/40 기준을 사용하며, 새 반경 정의에서 검증되지 않은 참고 점수입니다.">래깅-릴리즈: -</div>
+                     data-tooltip="Release Index = (r_impact / r_downswing) × (180° − θ_lag). 기존 기준이 새 반경 정의에서 검증되지 않아 관측 참고치로만 표시하고 종합 점수에서는 제외합니다.">래깅-릴리즈: -</div>
               <div class="analysis-metric" id="analysisDeltaCardF6Sequence"
-                     data-tooltip="잠정 채점 30% (측면 경로 포함 시 27%). |골반의 탑→P6 수평 변위| / (|C7의 탑→P7 수평 변위| + ε), F1 B 탑 참조. 비율 ≥1.5는 이 항목에서 감점이 없으며, 실제 시간 순서나 리드 동작을 측정하지 않습니다.">상대 변위 비율: -</div>
+                     data-tooltip="종합 점수의 주 지표. |골반의 탑→P6 수평 변위| / (|C7의 탑→P7 수평 변위| + ε), F1 B 탑 참조. 비율 ≥1.5는 감점이 없으며 실제 방향·시간 순서나 리드 동작을 입증하지 않습니다.">상대 변위 비율: -</div>
             </div>
             <div class="analysis-f5-score-box" id="analysisDeltaCardF6Score"
-                   data-tooltip="F6 잠정점수: 시간차 40%·Release Index 30%·상대 변위 30%. 측면 경로가 있으면 36%·27%·27%·경로 10%. 누락 항목은 재정규화합니다. 점수 기준은 검증된 수행능력 등급이 아닙니다.">점수: -</div>
+                   data-tooltip="F6 잠정점수: 상대 변위 100%. 측면 P5→P6 전달 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외합니다.">점수: -</div>
           </div>
         </div>
       </div>
@@ -1744,7 +1744,7 @@
     <div id="analysisTypeReference"></div>
     <div id="analysisBonusReference" class="analysis-summary"></div>
     <div id="analysisThreePointSpread" class="analysis-summary" style="white-space:pre-wrap;text-align:left;"></div>
-    <div class="analysis-summary" style="text-align:left;">잠정 채점 v3: F2 래깅 40%·압축 40%·이동 20%. F3 신전 35%·축 안정 25%·자세 전환 40%. F4 정렬 70%·C7 X/Y 각 15%. F3/F4 측면 경로는 10%. F6 시간차 40%·Release Index 30%·상대 변위 30%, 측면 경로가 있으면 36%·27%·27%·경로 10%. F4 손 반경은 관측 전용. F6 시간차·Release Index 기준은 미검증이며 참고 점수입니다. 누락 항목은 재정규화합니다. F1→F2 3점 R 압축과 F2→F3 재전개를 각각 계산: 2% 이하 0, 15% 이상 1, 사이 선형. 두 값을 50:50 평균해 0~1점 가점(한쪽만 충족해도 부분 가점). F1–F4 완료 평균에 적용, 상한 10점. 다섯 보고서 압축 범위 1.1~18.1% 참고; 재전개 기준은 검증 전입니다. 변화율은 이전 R 대비이며 기준선 대비 %p가 아닙니다.</div>
+    <div class="analysis-summary" style="text-align:left;">잠정 채점 v3: F2 래깅 40%·압축 40%·이동 20%. F3 신전 35%·축 안정 25%·자세 전환 40%. F4 정렬 70%·C7 X/Y 각 15%. F3/F4 측면 경로는 10%. F6 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 종합점수에서 제외합니다. F4 손 반경은 관측 전용. 누락 항목은 재정규화합니다. F1→F2 3점 R 압축과 F2→F3 재전개를 각각 계산: 2% 이하 0, 15% 이상 1, 사이 선형. 두 값을 50:50 평균해 0~1점 가점(한쪽만 충족해도 부분 가점). F1–F4 완료 평균에 적용, 상한 10점. 다섯 보고서 압축 범위 1.1~18.1% 참고; 재전개 기준은 검증 전입니다. 변화율은 이전 R 대비이며 기준선 대비 %p가 아닙니다.</div>
     </details>
     <div class="analysis-swing-type" id="analysisSwingType"></div>
     <div id="geminiReportBlock" style="display:none;margin:12px 0 0;padding:12px;background:rgba(19,87,61,0.2);border:1px solid rgba(82,216,150,0.45);border-radius:8px;text-align:left;line-height:1.65;color:#e7fff1;white-space:pre-wrap;"></div>
@@ -1871,28 +1871,26 @@
     '자세 전환: 브레이싱 40%·고관절 조기상승 억제 30%·C7 조기상승 억제 30%. 고관절 상승 0.5→4%, C7 상승 0→4% 감점. 반경/각도×반경은 관측 전용, 힘·속도 측정 아님.': 'Posture transition: bracing 40%, early hip-rise control 30%, early C7-rise control 30%. Hip-rise penalty 0.5→4%, C7-rise penalty 0→4%. Radius/angle×radius are observations, not forces or speed.',
     'F4 잠정점수: B 팔–샤프트 절대각 70%·C7 X/Y 각 15%. 측면 경로가 있으면 기본 90%+경로 10%. 손 반경·각도×반경·기울기 변화는 관측 전용입니다.': 'Provisional F4: B arm–shaft angle 70%, C7 X/Y 15% each. With side path: 90% primary + 10% path. Hand radius, angle×radius and lean changes are observations only.',
     'F2→F4와 F3→F4 손 반경은 관측 전용, 점수 미반영. 2D 투영 반경은 촬영 방향·깊이의 영향을 받으며 클럽헤드 반경·에너지가 아닙니다.': 'F2→F4 and F3→F4 hand radii are observations only, not scored. Projected 2D radius depends on camera direction and depth; it is not clubhead radius or energy.',
-    '잠정 채점 40%. P6→P7 40~80ms는 무감점, 40ms 미만/80ms 초과는 최대 500ms까지 감점합니다. 같은 영상의 선택 시점 기준이며 프레임레이트·시점 오차 때문에 수행능력 기준으로 검증된 값은 아닙니다.': 'Provisional weight 40%. P6→P7 at 40–80 ms has no penalty; shorter/longer intervals are penalized up to 500 ms. Based on selected points in the same video; not validated as a performance standard because of frame-rate and selection error.',
-    '잠정 채점 30% (측면 경로 포함 시 27%). Release Index = (r_impact / r_downswing) × (180° − θ_lag). 기존 110/40 기준을 사용하며, 새 반경 정의에서 검증되지 않은 참고 점수입니다.': 'Provisional weight 30% (27% with side-path evidence). Release Index = (r_impact / r_downswing) × (180° − θ_lag). Uses the legacy 110/40 thresholds; a reference score not validated for the new radius definition.',
-    '잠정 채점 30% (측면 경로 포함 시 27%). |골반의 탑→P6 수평 변위| / (|C7의 탑→P7 수평 변위| + ε), F1 B 탑 참조. 비율 ≥1.5는 이 항목에서 감점이 없으며, 실제 시간 순서나 리드 동작을 측정하지 않습니다.': 'Provisional weight 30% (27% with side-path evidence). |Pelvis shift top→P6| / (|C7 shift top→P7| + ε), referencing F1 B. Ratio ≥1.5 incurs no penalty on this component; actual timing order and lead motion are not measured.',
-    'F6 잠정점수: 시간차 40%·Release Index 30%·상대 변위 30%. 측면 경로가 있으면 36%·27%·27%·경로 10%. 누락 항목은 재정규화합니다. 점수 기준은 검증된 수행능력 등급이 아닙니다.': 'Provisional F6: timing 40%, Release Index 30%, relative displacement 30%. With side-path evidence: 36%, 27%, 27%, and 10% path. Missing metrics are reweighted; this is not a validated performance grade.',
+    'P6→P7 선택 시점 간 시간차 관측값입니다. 프레임레이트·시점 선택 오차와 수행능력 기준이 검증되지 않아 종합 점수에서는 제외합니다.': 'Observed interval between selected P6 and P7 times. Excluded from the total score because frame-rate, selection error and performance thresholds are unvalidated.',
+    'Release Index = (r_impact / r_downswing) × (180° − θ_lag). 기존 기준이 새 반경 정의에서 검증되지 않아 관측 참고치로만 표시하고 종합 점수에서는 제외합니다.': 'Release Index = (r_impact / r_downswing) × (180° − θ_lag). Shown for reference only and excluded from the total score because the legacy threshold is unvalidated for the new radius definition.',
+    '종합 점수의 주 지표. |골반의 탑→P6 수평 변위| / (|C7의 탑→P7 수평 변위| + ε), F1 B 탑 참조. 비율 ≥1.5는 감점이 없으며 실제 방향·시간 순서나 리드 동작을 입증하지 않습니다.': 'Primary total-score metric. |Pelvis shift top→P6| / (|C7 shift top→P7| + ε), referencing F1 B. Ratio ≥1.5 incurs no penalty; it does not establish actual direction, timing order or lead motion.',
+    'F6 잠정점수: 상대 변위 100%. 측면 P5→P6 전달 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외합니다.': 'Provisional F6: relative displacement 100%. With side P5→P6 path, displacement 90% and path 10%. Timing and Release Index are unvalidated observations excluded from scoring.',
     '채점은 B 임팩트 팔–샤프트 절대각 140→175° 램프. A→B 변화는 관측 전용이며 음수라는 이유만으로 감점하지 않습니다. 실제 릴리즈 속도를 측정하지 않습니다.': 'Score the B impact arm–shaft angle with a 140→175° ramp. A→B change is observation only; a negative change alone is not penalized. Release speed is not measured.',
     'C7→왼어깨 기울기 변화는 관측 전용이며 점수 미반영. 이 두 점의 각도만으로 척추 측굴·얼리 익스텐션을 확정하지 않습니다.': 'C7→left-shoulder lean change is observation only, not scored. This two-point angle cannot confirm spinal side bend or early extension.',
     '자세 전환 지수: -': 'Posture transition index: -',
     '수직신전 중심 스윙': 'Vertical-Extension-Driven Swing',
-    '잠정 채점 v3: F2 래깅 40%·압축 40%·이동 20%. F3 신전 35%·축 안정 25%·자세 전환 40%. F4 정렬 70%·C7 X/Y 각 15%. F3/F4 측면 경로는 10%. F6 시간차 40%·Release Index 30%·상대 변위 30%, 측면 경로가 있으면 36%·27%·27%·경로 10%. F4 손 반경은 관측 전용. F6 시간차·Release Index 기준은 미검증이며 참고 점수입니다. 누락 항목은 재정규화합니다. F1→F2 3점 R 압축과 F2→F3 재전개를 각각 계산: 2% 이하 0, 15% 이상 1, 사이 선형. 두 값을 50:50 평균해 0~1점 가점(한쪽만 충족해도 부분 가점). F1–F4 완료 평균에 적용, 상한 10점. 다섯 보고서 압축 범위 1.1~18.1% 참고; 재전개 기준은 검증 전입니다. 변화율은 이전 R 대비이며 기준선 대비 %p가 아닙니다.': 'Provisional scoring v3: F2 lag 40%, compression 40%, shift 20%. F3 extension 35%, axis 25%, posture 40%. F4 alignment 70%, C7 X/Y 15% each; F3/F4 side path 10%. F6 timing 40%, Release Index 30%, relative displacement 30%; with side-path evidence: 36%, 27%, 27%, and 10% path. F4 hand radius is observation only. F6 timing and Release Index thresholds are unvalidated reference scores. Missing metrics are reweighted. Score F1→F2 three-point R compression and F2→F3 re-expansion independently: ≤2% gives 0, ≥15% gives 1, linear between. Average 50:50 for a 0–1 bonus, including partial credit for one phase. Apply to the completed F1–F4 average, capped at 10. Five reports show 1.1–18.1% compression; re-expansion remains unvalidated. Changes are relative to previous R, not reference-line percentage points.',
+    '잠정 채점 v3: F2 래깅 40%·압축 40%·이동 20%. F3 신전 35%·축 안정 25%·자세 전환 40%. F4 정렬 70%·C7 X/Y 각 15%. F3/F4 측면 경로는 10%. F6 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 종합점수에서 제외합니다. F4 손 반경은 관측 전용. 누락 항목은 재정규화합니다. F1→F2 3점 R 압축과 F2→F3 재전개를 각각 계산: 2% 이하 0, 15% 이상 1, 사이 선형. 두 값을 50:50 평균해 0~1점 가점(한쪽만 충족해도 부분 가점). F1–F4 완료 평균에 적용, 상한 10점. 다섯 보고서 압축 범위 1.1~18.1% 참고; 재전개 기준은 검증 전입니다. 변화율은 이전 R 대비이며 기준선 대비 %p가 아닙니다.': 'Provisional scoring v3: F2 lag 40%, compression 40%, shift 20%. F3 extension 35%, axis 25%, posture 40%. F4 alignment 70%, C7 X/Y 15% each; F3/F4 side path 10%. F6 relative displacement 100%; with side-path evidence, displacement 90% and path 10%. Timing and Release Index are unvalidated observations excluded from the total score. F4 hand radius is observation only. Missing metrics are reweighted. Score F1→F2 three-point R compression and F2→F3 re-expansion independently: ≤2% gives 0, ≥15% gives 1, linear between. Average 50:50 for a 0–1 bonus, including partial credit for one phase. Apply to the completed F1–F4 average, capped at 10. Five reports show 1.1–18.1% compression; re-expansion remains unvalidated. Changes are relative to previous R, not reference-line percentage points.',
     '입력 신장은 선수 정보입니다. 거리 비율은 어드레스 머리–왼발 기준선으로 계산하며 키/170을 곱하지 않습니다. 이 기준선은 실제 신장의 cm 측정값이 아닙니다.': 'Entered height is athlete information. Distance ratios use the address head-to-left-foot reference, without a height/170 multiplier. This projected reference is not a physical height measurement in cm.',
     'F1 어드레스에서 머리–왼발 기준선의 두 점을 클릭하거나 드래그하세요. 같은 영상은 A 기준선을 공유하며, 다른 영상은 각각 지정합니다. 키는 입력 신장이고 거리 %에는 중복 곱하지 않습니다.': 'Click or drag the head-to-left-foot reference at F1 address. The same file shares the A reference; different files need separate references. Entered height is not multiplied into distance percentages.',
     '|골반의 탑→P6 수평 변위| / (|C7의 탑→P7 수평 변위| + ε)': '|Pelvis horizontal shift from top→P6| / (|C7 horizontal shift from top→P7| + ε)',
     '탑 좌표는 Frame 1 B패널에서 참조 (F1 선행 분석 필요)': 'Top coordinates come from Frame 1 B (analyze F1 first)',
     '비율 ≥1.5 만점 / 0 이하 0점': 'Ratio ≥1.5 incurs no penalty on this component; ≤0 incurs the maximum penalty',
-    '시간차 기본 비중 4:3 중 4, 보완 모드 36:27:27:10 중 36 — 사용 가능한 항목으로 재정규화': 'Timing proportion: 4 in base 4:3:3; 36 in supplemental 36:27:27:10 — reweighted over available components',
-    '상대 변위 기본 비중 4:3 중 3, 보완 모드 36:27:27:10 중 27 — 사용 가능한 항목으로 재정규화': 'Displacement proportion: 3 in base 4:3:3; 27 in supplemental 36:27:27:10 — reweighted over available components',
-    'Release Index — 잠정 점수 반영': 'Release Index — included in provisional score',
-    '새 반경 정의에서 검증되지 않은 기존 110/40 기준을 사용합니다.': 'Uses legacy 110/40 thresholds, unvalidated for the new radius definition.',
-    'F6 잠정 점수 — 시간차 40%·Release Index 30%·상대 변위 30%': 'Provisional F6 score — timing 40%, Release Index 30%, relative displacement 30%',
-    '기본 비중: 시간차 4 : Release Index 3 : 상대 변위 3': 'Base proportions: timing 4 : Release Index 3 : relative displacement 3',
-    '보완 모드 비중: 시간차 36 : Release Index 27 : 상대 변위 27 : 측면 경로 10': 'Supplemental proportions: timing 36 : Release Index 27 : relative displacement 27 : side path 10',
-    '사용 가능한 항목으로 재정규화하며 실제 적용 비중을 표시합니다.': 'Available components are reweighted; the effective weights are shown.',
+    '시간차 — 점수 미반영, 관측 참고치': 'Timing interval — observation only, not scored',
+    'Release Index — 관측 참고치, 점수 미반영': 'Release Index — observation only, not scored',
+    '새 반경 정의에서 검증되지 않은 기존 110/40 기준은 관측 참고치로만 표시합니다.': 'Legacy 110/40 thresholds are shown for observation only; unvalidated for the new radius definition.',
+    'F6 잠정 점수 — 상대 변위 100% (측면 경로 시 90:10)': 'Provisional F6 score — displacement 100% (90:10 with side-path evidence)',
+    '점수 비중: 상대 변위 100%, 측면 경로가 있으면 상대 변위 90 : 경로 10': 'Score proportions: displacement 100%; with side-path evidence, displacement 90 : path 10',
+    '시간차와 Release Index는 미검증 참고값이며 종합 점수에서 제외합니다.': 'Timing and Release Index are unvalidated observations and excluded from the total score.',
     'P6/P7 시점과 같은 영상 여부를 확인하세요. 검증된 수행능력 등급은 아닙니다.': 'Check P6/P7 phases and matching video sources. This is not a validated performance grade.',
     '코어-손 압축·전개 반경': 'Core-Hand Compression / Expansion Radius',
     '코어-손 반경 = 골반 중심과 양손 중심 사이의 2D 거리': 'Core-hand radius = 2D distance between the pelvis center and both-hands center',
@@ -1947,7 +1945,10 @@
     '다음': 'Next', '분석 실행': 'Analyze', '포인트 선택 필요': 'Select Points',
     '현재 세션만 사용': 'Current session only', '프레임 선택': 'Select frame',
     'A영상 분석': 'Front A Analysis', '분석 결과 보기 ▼': 'Show Analysis Results ▼',
-    '분석 결과 접기 ▲': 'Hide Analysis Results ▲', '프레임별 비교 분석': 'Frame-by-Frame Comparison',
+    '분석 결과 접기 ▲': 'Hide Analysis Results ▲',
+    '전체 프레임 분석결과 보기 ▼': 'Show All Frame Analysis Results ▼',
+    '전체 프레임 분석결과 접기 ▲': 'Hide All Frame Analysis Results ▲',
+    '프레임별 비교 분석': 'Frame-by-Frame Comparison',
     '비거리 모션 평균: -': 'Distance Motion Average: -', '일관성 모션 평균: -': 'Consistency Motion Average: -',
     '비거리 모션 평균: 측정 불가': 'Distance Motion Average: not measurable', '일관성 모션 평균: 측정 불가': 'Consistency Motion Average: not measurable',
     '현재 자세 마지막 점 취소': 'Undo Last Point for Current Pose', '백스윙 입력 초기화': 'Reset Backswing Input',
@@ -2256,7 +2257,7 @@
     'F3 다운스윙 후기: 지면반력과 축 고정': 'F3 Late Downswing: Ground Force and Axis Stability',
     'F4 임팩트: 반경 확장과 릴리즈': 'F4 Impact: Radius Expansion and Release',
     'F5 일관성: 어드레스 대비 다운스윙 재현성': 'F5 Consistency: Downswing Reproducibility vs. Address',
-    'F6 리듬/템포: Δt 템포와 래깅-릴리즈·상대 변위 비율': 'F6 Rhythm and Tempo: Δt, Lag-Release, and Relative Displacement Ratio',
+    'F6 리듬/템포: 시간차·Release Index(참고)와 상대 변위 비율(점수)': 'F6 Rhythm and Tempo: timing and Release Index (observations), relative displacement ratio (scored)',
     '척추각 변화 ': 'Spine-angle change ', '어깨 회전 ': 'shoulder turn ', '래깅각 변화 ': 'lag-angle change ',
     '골반 이동 ': 'pelvis shift ', '무릎 신전 변화 ': 'knee-extension change ', 'C7 스웨이 ': 'C7 sway ',
     '반경 변화 ': 'radius change ', '팔-샤프트 정렬 변화 ': 'arm-shaft alignment change ', '측면 기울기 변화 ': 'lateral-tilt change ',
@@ -2437,7 +2438,7 @@
     'F1~F6 중 2개 이상 분석하면 표시됩니다.': 'Shown after at least two of F1–F6 are analyzed.',
     '스윙 유형 추정:': 'Swing Type Estimate:', '백스윙 유형:': 'Backswing Type:',
     '유형 1 · 축회전 중심': 'Type 1 · Axis-Rotation Driven', '유형 2 · 하체이동 중심': 'Type 2 · Lower-Body-Shift Driven',
-    '유형 3 · 코어 압축·팽창 중심': 'Type 3 · Core Compression-Extension Driven',
+    '유형 3 · 코어 압축·팽창 중심': 'Type 3 · Core Lag-Extension Driven',
     'F1~F6 지표 기반 상대 적합도 · GRF는 2D 동작 proxy 추정치': 'Relative fit based on F1–F6 metrics · GRF is estimated from 2D motion proxies',
     '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)': 'Undetermined (does not match any of the five defined patterns)',
     '백스윙 유형 판정 보류': 'Backswing Type Undetermined', '백스윙 유형 ': 'Backswing Type ',
@@ -4274,6 +4275,21 @@
     };
   }
 
+  function getR10ConsistencyPercent(shots, ellipseAvailable, sigma = 1.5) {
+    if (!Array.isArray(shots) || shots.length < 2 || !hasMetric(sigma) || sigma <= 0) return null;
+    const inliers = shots.filter(shot => ellipseAvailable
+      ? hasMetric(shot.mahalanobis) && shot.mahalanobis <= sigma
+      : hasMetric(shot.distanceZ) && hasMetric(shot.sideZ)
+        && Math.abs(shot.distanceZ) <= sigma && Math.abs(shot.sideZ) <= sigma).length;
+    return inliers / shots.length * 100;
+  }
+
+  function combineConsistencyScores(motionPercent, r10Percent) {
+    if (!hasMetric(motionPercent) || motionPercent < 0 || motionPercent > 100
+      || !hasMetric(r10Percent) || r10Percent < 0 || r10Percent > 100) return null;
+    return (motionPercent + r10Percent) / 2;
+  }
+
   function computeConsistencyReport(fm, downswingEvidence = getDownswingSideEvidence()) {
     const weightedMean = parts => {
       const available = parts.filter(part => hasMetric(part.value));
@@ -4365,8 +4381,8 @@
 
   /**
    * Frame 6 — 리듬/템포·키네매틱 시퀀스 리포트 (100점 만점, 감점 방식)
-   * 시간차·Release Index·상대 변위와 선택적 측면 경로를 유효 항목만 재정규화해 반영한다.
-   * 시간차와 Release Index 기준은 미검증 잠정 지표다.
+   * 검증되지 않은 시간차와 Release Index는 관측 참고치로만 표시한다.
+   * 종합점수는 상대 변위와 선택적 측면 전달 경로 근거로 산출한다.
    */
   function computeTempoSequenceReport(fm, downswingEvidence = getDownswingSideEvidence()) {
     let sTempo = null;
@@ -4390,22 +4406,15 @@
       sSequence = fm.sequenceIndex < 1.5 ? clamp((1.5 - fm.sequenceIndex) / 1.5, 0, 1) * 100 : 0;
     }
 
-    // 유효 항목만 가중치 재정규화
+    // Time and release thresholds are unvalidated, so they do not contribute to the score.
     const sDownswing = downswingEvidence ? downswingEvidence.penalty : null;
-    const parts = (downswingEvidence
-      ? [
-        { key: 'tempo', s: sTempo, w: 0.36 },
-        { key: 'release', s: sRelease, w: 0.27 },
-        { key: 'sequence', s: sSequence, w: 0.27 },
-        { key: 'downswing', s: sDownswing, w: 0.10 },
-      ]
-      : [
-        { key: 'tempo', s: sTempo, w: 0.40 },
-        { key: 'release', s: sRelease, w: 0.30 },
-        { key: 'sequence', s: sSequence, w: 0.30 },
-      ]).filter(p => p.s != null);
+    const parts = [
+      { key: 'sequence', s: sSequence, w: downswingEvidence ? 0.90 : 1 },
+      { key: 'downswing', s: sDownswing, w: 0.10 },
+    ].filter(p => p.s != null);
     const wSum = parts.reduce((sum, p) => sum + p.w, 0);
-    const weighted = wSum > 0 ? parts.reduce((sum, p) => sum + p.w * p.s, 0) / wSum : null;
+    const weighted = hasMetric(sSequence) && wSum > 0
+      ? parts.reduce((sum, p) => sum + p.w * p.s, 0) / wSum : null;
 
     // 클릭 좌표 오차로 인한 가짜 정밀도를 제거하기 위해 1점 단위로 반올림
     const score100 = weighted == null ? null : roundToStep(clamp(100 - weighted, 0, 100), 1);
@@ -4419,7 +4428,7 @@
       downswingEvidenceActive: !!downswingEvidence, tempoWeight: effectiveWeight('tempo'),
       releaseWeight: effectiveWeight('release'), sequenceWeight: effectiveWeight('sequence'),
       downswingWeight: effectiveWeight('downswing'),
-      provisional: true, tempoZone, availableMetrics: parts.length, totalMetrics: downswingEvidence ? 4 : 3 };
+      provisional: true, tempoZone, availableMetrics: parts.length, totalMetrics: downswingEvidence ? 2 : 1 };
   }
 
   /**
@@ -4456,6 +4465,13 @@
   function scoreLagAngle(angle) {
     if (!hasMetric(angle) || angle < 0 || angle > 180) return null;
     return angle < 30 ? rampScore(angle, 0, 30) : bandScore(angle, 60, 120);
+  }
+
+  function scoreP6LagRetention(angle) {
+    if (!hasMetric(angle) || angle < 0 || angle > 180) return null;
+    if (angle < 70) return rampScore(angle, 30, 70);
+    if (angle > 110) return 1 - rampScore(angle, 110, 150);
+    return 1;
   }
 
   function getImpactAlignment(fm) {
@@ -5148,7 +5164,7 @@
           scoreEl.textContent = `종합점수: 측정 불가 (0/${rep.totalMetrics} 지표 측정)`;
         } else {
           const coverage = rep.availableMetrics < rep.totalMetrics ? ` (${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)` : '';
-          scoreEl.innerHTML = `<span class="analysis-f5-score-part">${getSwingUiText('잠정점수', 'Provisional score')}: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">${getSwingUiText('시간차·Release Index 기준 미검증 · 수행능력 등급 아님', 'Timing/Release Index thresholds unvalidated · not a performance grade')}${coverage}</span>`;
+          scoreEl.innerHTML = `<span class="analysis-f5-score-part">${getSwingUiText('잠정점수', 'Provisional score')}: ${rep.score100.toFixed(1)} / 100</span> <span class="analysis-f5-score-part">${getSwingUiText('상대 변위 기반 · 수행능력 등급 검증 전', 'Displacement-based · performance grade unvalidated')}${coverage}</span>`;
         }
       } else {
         const avail = countAvailableMetrics(segment, fm);
@@ -5279,18 +5295,18 @@
       if (analysisDeltaCardF6TimeDelta) analysisDeltaCardF6TimeDelta.textContent =
         dtValid
           ? getSwingUiText(
-            `Δt ${(fm.timeDeltaSec * 1000).toFixed(1)}ms — ${zoneTxt} · ${hasMetric(rep.sTempo) ? `원감점 ${rep.sTempo.toFixed(0)}점 × ${Math.round(rep.tempoWeight * 100)}% = ${(rep.sTempo * rep.tempoWeight).toFixed(1)}점` : '유효 범위 밖으로 채점 제외'} (잠정 기준).`,
-            `Δt ${(fm.timeDeltaSec * 1000).toFixed(1)}ms — ${zoneTxt} · ${hasMetric(rep.sTempo) ? `penalty ${rep.sTempo.toFixed(0)} × ${Math.round(rep.tempoWeight * 100)}% = ${(rep.sTempo * rep.tempoWeight).toFixed(1)}` : 'outside scoring range; excluded'} (provisional threshold).`)
+            `Δt ${(fm.timeDeltaSec * 1000).toFixed(1)}ms${zoneTxt ? ` — ${zoneTxt}` : ''} · 관측 참고치 (미검증 기준, 점수 미반영).`,
+            `Δt ${(fm.timeDeltaSec * 1000).toFixed(1)}ms${zoneTxt ? ` — ${zoneTxt}` : ''} · observation only (unvalidated threshold, not scored).`)
           : 'Δt 템포: 측정 불가 (A/B 패널에 같은 영상 로드 후 P6/P7 시점 설정 필요)';
       if (analysisDeltaCardF6Release) analysisDeltaCardF6Release.textContent =
         fm.releaseIndex != null
           ? getSwingUiText(
-            `Release Index ${fm.releaseIndex.toFixed(0)} — 원감점 ${hasMetric(rep.sRelease) ? rep.sRelease.toFixed(0) : '—'}점 × ${Math.round(rep.releaseWeight * 100)}% = ${hasMetric(rep.sRelease) ? (rep.sRelease * rep.releaseWeight).toFixed(1) : '—'}점 (잠정·미검증; 코어-손 r ${fm.rotRadiusA6?.toFixed(4) ?? '—'}→${fm.rotRadiusB6?.toFixed(4) ?? '—'}, 래깅 ${fm.lagAngleA6?.toFixed(1) ?? '—'}°).`,
-            `Release Index ${fm.releaseIndex.toFixed(0)} — penalty ${hasMetric(rep.sRelease) ? rep.sRelease.toFixed(0) : '—'} × ${Math.round(rep.releaseWeight * 100)}% = ${hasMetric(rep.sRelease) ? (rep.sRelease * rep.releaseWeight).toFixed(1) : '—'} (provisional/unvalidated; core-hand r ${fm.rotRadiusA6?.toFixed(4) ?? '—'}→${fm.rotRadiusB6?.toFixed(4) ?? '—'}, lag ${fm.lagAngleA6?.toFixed(1) ?? '—'}°).`)
+            `Release Index ${fm.releaseIndex.toFixed(0)} — 관측 참고치 (기존 기준 미검증, 점수 미반영; 코어-손 r ${fm.rotRadiusA6?.toFixed(4) ?? '—'}→${fm.rotRadiusB6?.toFixed(4) ?? '—'}, 래깅 ${fm.lagAngleA6?.toFixed(1) ?? '—'}°).`,
+            `Release Index ${fm.releaseIndex.toFixed(0)} — observation only (legacy threshold unvalidated, not scored; core-hand r ${fm.rotRadiusA6?.toFixed(4) ?? '—'}→${fm.rotRadiusB6?.toFixed(4) ?? '—'}, lag ${fm.lagAngleA6?.toFixed(1) ?? '—'}°).`)
           : '래깅-릴리즈: 데이터 부족';
       if (analysisDeltaCardF6Sequence) analysisDeltaCardF6Sequence.textContent =
         fm.sequenceIndex != null
-          ? `상대 변위 비율 ${fm.sequenceIndex.toFixed(2)}(골반 이동 ${fm.comShiftTop6 != null ? (fm.comShiftTop6 * 100).toFixed(1) + '%' : '-'} / C7 이동 ${fm.c7ShiftTop6 != null ? (fm.c7ShiftTop6 * 100).toFixed(1) + '%' : '-'}) → 원감점 ${hasMetric(rep.sSequence) ? rep.sSequence.toFixed(0) : '-'}점 × ${Math.round((rep.sequenceWeight ?? 0.30) * 100)}% = ${hasMetric(rep.sSequence) ? (rep.sSequence * (rep.sequenceWeight ?? 0.30)).toFixed(1) : '-'}점 차감${getDownswingSideEvidence() ? ` · 측면 P5→P6 전달 원감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%` : ''}`
+          ? `상대 변위 비율 ${fm.sequenceIndex.toFixed(2)}(골반 이동 ${fm.comShiftTop6 != null ? (fm.comShiftTop6 * 100).toFixed(1) + '%' : '-'} / C7 이동 ${fm.c7ShiftTop6 != null ? (fm.c7ShiftTop6 * 100).toFixed(1) + '%' : '-'}) → 상대 변위 감점 ${hasMetric(rep.sSequence) ? rep.sSequence.toFixed(0) : '-'}점 × ${Math.round((rep.sequenceWeight ?? 0) * 100)}% = ${hasMetric(rep.sSequence) ? (rep.sSequence * (rep.sequenceWeight ?? 0)).toFixed(1) : '-'}점${getDownswingSideEvidence() ? ` · 측면 P5→P6 전달 보조 감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%` : ''}`
           : '상대 변위 비율: Frame 1(백스윙탑) 선행 분석 필요';
     }
       // B-frame 기본 지표 표시
@@ -5325,9 +5341,10 @@
     const block = document.getElementById('swingNarrativeBlock');
     const btn   = document.getElementById('swingNarrativeToggleBtn');
     if (!block || !btn) return;
-    const open = block.style.display === 'none';
-    block.style.display = open ? 'block' : 'none';
-    btn.textContent = open ? '분석 결과 접기 ▲' : '분석 결과 보기 ▼';
+    const open = block.hidden;
+    block.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    btn.textContent = translateUiText(open ? '전체 프레임 분석결과 접기 ▲' : '전체 프레임 분석결과 보기 ▼');
   }
 
   function buildSwingNarrative(frontResult, sideResult, deltaResult, segment) {
@@ -5418,22 +5435,26 @@
     else if (segment === 'frame6') {
       const rep = fm._tempo || computeTempoSequenceReport(fm);
       const scoreText = hasMetric(rep.score100)
-        ? `${rep.score100.toFixed(1)}점 / 100 (${getSwingUiText('잠정 · 시간차/Release Index 기준 미검증', 'provisional · timing/Release Index thresholds unvalidated')}, ${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)`
+        ? `${rep.score100.toFixed(1)}점 / 100 (${getSwingUiText('잠정 · 상대 변위 중심', 'provisional · displacement-based')}, ${rep.availableMetrics}/${rep.totalMetrics} 지표 반영)`
         : `측정 불가 (${rep.availableMetrics}/${rep.totalMetrics} 지표 측정)`;
       lines.push(`${bold(`F6 리듬/템포·상대 변위 비율 — 종합 ${scoreText}`)}`);
       const dtMs = fm.timeDeltaSec != null ? (fm.timeDeltaSec * 1000).toFixed(1) : null;
       lines.push(getSwingUiText(
-        `Δt(P6→P7) ${dtMs != null ? dtMs + 'ms' : '—'} — ${hasMetric(rep.sTempo) ? `원감점 ${rep.sTempo.toFixed(0)}점 × ${Math.round(rep.tempoWeight * 100)}% = ${(rep.sTempo * rep.tempoWeight).toFixed(1)}점` : '유효 범위 밖으로 채점 제외'}. 40~80ms 무감점 기준은 미검증 잠정값입니다.`,
-        `Δt(P6→P7) ${dtMs != null ? dtMs + 'ms' : '—'} — ${hasMetric(rep.sTempo) ? `penalty ${rep.sTempo.toFixed(0)} × ${Math.round(rep.tempoWeight * 100)}% = ${(rep.sTempo * rep.tempoWeight).toFixed(1)}` : 'outside scoring range; excluded'}. The 40–80ms no-penalty band is provisional and unvalidated.`));
+        `Δt(P6→P7) ${dtMs != null ? dtMs + 'ms' : '—'} — 관측 참고치이며 미검증 기준으로 점수에 반영하지 않습니다.`,
+        `Δt(P6→P7) ${dtMs != null ? dtMs + 'ms' : '—'} — observation only; excluded from scoring because its threshold is unvalidated.`));
       const relTxt = fm.releaseIndex != null ? fm.releaseIndex.toFixed(0) : null;
-      lines.push(getSwingUiText(`Release Index ${relTxt ?? '—'} — ${hasMetric(rep.sRelease) ? `원감점 ${rep.sRelease.toFixed(0)}점 × ${Math.round(rep.releaseWeight * 100)}% = ${(rep.sRelease * rep.releaseWeight).toFixed(1)}점` : '채점 자료 부족'}. 기존 110/40 기준을 적용한 잠정값이며 새 반경 정의에서 검증되지 않았습니다.`,
-        `Release Index ${relTxt ?? '—'} — ${hasMetric(rep.sRelease) ? `penalty ${rep.sRelease.toFixed(0)} × ${Math.round(rep.releaseWeight * 100)}% = ${(rep.sRelease * rep.releaseWeight).toFixed(1)}` : 'insufficient scoring data'}. Provisional legacy 110/40 thresholds, unvalidated for the new radius definition.`));
+      lines.push(getSwingUiText(`Release Index ${relTxt ?? '—'} — 관측 참고치이며 기존 기준이 새 반경 정의에서 검증되지 않아 점수에 반영하지 않습니다.`,
+        `Release Index ${relTxt ?? '—'} — observation only; excluded because the legacy threshold is unvalidated for the new radius definition.`));
       const seqTxt = fm.sequenceIndex != null ? fm.sequenceIndex.toFixed(2) : null;
-      lines.push(`상대 변위 비율 ${seqTxt != null ? seqTxt : '—'} [|ΔX_COM(탑→P6)| / (|ΔX_C7(탑→P7)| + ε), ≥1.5 만점; 방향·실제 시간 순서는 미측정] — ${seqTxt != null && fm.sequenceIndex >= 1.5 ? hl('시퀀스 지수 항목 만점', true) : seqTxt != null ? hl('시퀀스 지수 항목 부분 점수', false) : 'Frame 1(백스윙탑) 선행 분석 필요'}${rep.sSequence != null ? ` — 원감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round((rep.sequenceWeight ?? 0.30) * 100)}% = ${(rep.sSequence * (rep.sequenceWeight ?? 0.30)).toFixed(1)}점 차감` : ''}`);
-      if (rep.downswingEvidenceActive) lines.push(`측면 P5→P6 전달 경로 원감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%`);
+      lines.push(getSwingUiText(
+        `상대 변위 비율 ${seqTxt != null ? seqTxt : '—'} [|ΔX_COM(탑→P6)| / (|ΔX_C7(탑→P7)| + ε), ≥1.5 만점; 방향·실제 시간 순서는 미측정] — ${seqTxt != null && fm.sequenceIndex >= 1.5 ? hl('시퀀스 지수 항목 만점', true) : seqTxt != null ? hl('시퀀스 지수 항목 부분 점수', false) : 'Frame 1(백스윙탑) 선행 분석 필요'}${rep.sSequence != null ? ` — 상대 변위 감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}점` : ''}`,
+        `Relative displacement ratio ${seqTxt ?? '—'} [|ΔX_COM(top→P6)| / (|ΔX_C7(top→P7)| + ε), full fit ≥1.5; direction and actual temporal sequence are not measured] — ${seqTxt != null && fm.sequenceIndex >= 1.5 ? hl('full displacement fit', true) : seqTxt != null ? hl('partial displacement fit', false) : 'Frame 1 top-of-backswing analysis required'}${rep.sSequence != null ? ` — displacement penalty ${rep.sSequence.toFixed(0)} × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}` : ''}`));
+      if (rep.downswingEvidenceActive) lines.push(getSwingUiText(
+        `측면 P5→P6 전달 경로 보조 감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%`,
+        `Supplemental side P5→P6 path penalty ${rep.sDownswing.toFixed(0)} × ${Math.round(rep.downswingWeight * 100)}%`));
       if (fm.sideBendB6 != null) lines.push(`임팩트 Side Bend ${fm.sideBendB6.toFixed(1)}° — 측면 척추 꺾임 (방향성/스퀘어 임팩트 참고 지표)`);
-      lines.push(getSwingUiText('F6는 시간차 40%·Release Index 30%·상대 변위 30%(측면 경로가 있으면 각각 36%·27%·27%와 경로 10%)의 잠정 점수입니다. 시간차·Release Index 기준은 미검증이며 실제 수행능력·에너지 전달 등급이 아닙니다.',
-        'F6 provisionally weights timing 40%, Release Index 30%, and relative displacement 30% (36%, 27%, 27%, plus 10% side path when available). Timing and Release Index thresholds are unvalidated; this is not a performance or energy-transfer grade.'));
+      lines.push(getSwingUiText('F6 점수는 상대 변위 100%(측면 P5→P6 전달 경로가 있으면 상대 변위 90%·경로 10%)로 계산합니다. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외하며, 이 점수도 검증된 수행능력·에너지 전달 등급은 아닙니다.',
+        'F6 scores relative displacement at 100% (90% displacement and 10% side P5→P6 path when available). Timing and Release Index remain unvalidated observations and are excluded; this is not a validated performance or energy-transfer grade.'));
     }
 
     // 공통 — 레버 시퀀스 요약 (F4에서만)
@@ -5450,16 +5471,61 @@
     return lines.map(l => `<div style="margin-bottom:4px">${l}</div>`).join('');
   }
 
+  function buildAllFramesNarrative() {
+    const frames = [
+      { id: 'frame1', label: getSwingUiText('Frame 1 — 백스윙 탑·축 고정/꼬임', 'Frame 1 — Top of backswing, axis stability and coil') },
+      { id: 'frame2', label: getSwingUiText('Frame 2 — 래깅·코어 이동', 'Frame 2 — Lag and core shift') },
+      { id: 'frame3', label: getSwingUiText('Frame 3 — 다운스윙 후기·지면반력 참고', 'Frame 3 — Late downswing and ground-force proxies') },
+      { id: 'frame4', label: getSwingUiText('Frame 4 — 임팩트 정렬·반경', 'Frame 4 — Impact alignment and radius') },
+      { id: 'frame5', label: getSwingUiText('Frame 5 — 일관성', 'Frame 5 — Consistency') },
+      { id: 'frame6', label: getSwingUiText('Frame 6 — 리듬·템포·시퀀스', 'Frame 6 — Rhythm, tempo and sequence') },
+    ];
+    return frames.map(({ id, label }) => {
+      const delta = segmentDeltaHistory[id];
+      let detail = getSwingUiText(
+        '아직 이 프레임의 A/B 분석 결과가 없습니다.',
+        'No A/B analysis is available for this frame yet.');
+      if (delta && delta.fm) {
+        const metricsA = frameMetricsHistory[id] || {};
+        const metricsB = frameSideMetricsHistory[id] || {};
+        const frontResult = {
+          frameMetrics: metricsA,
+          radiusProxy: metricsA._radiusA,
+          angleDeg: hasMetric(metricsA._radiusA) && hasMetric(metricsA._arcA)
+            ? metricsA._arcA / metricsA._radiusA : 0,
+        };
+        const sideResult = {
+          frameMetrics: metricsB,
+          radiusProxy: metricsA._radiusB,
+          angleDeg: hasMetric(metricsA._radiusB) && hasMetric(metricsA._arcB)
+            ? metricsA._arcB / metricsA._radiusB : 0,
+        };
+        detail = buildSwingNarrative(frontResult, sideResult, delta, id);
+        const score = segmentScoreHistory[id];
+        const scoreOutOf100 = id === 'frame5' || id === 'frame6';
+        const displayedScore = hasMetric(score) ? score * (scoreOutOf100 ? 10 : 1) : null;
+        const scoreText = hasMetric(displayedScore)
+          ? `${displayedScore.toFixed(1)} ${scoreOutOf100 ? '/ 100' : '/ 10'}`
+          : getSwingUiText('측정 불가', 'not measurable');
+        detail = `<div style="margin-bottom:6px"><strong>${getSwingUiText('프레임 점수', 'Frame score')}: ${scoreText}</strong></div>${detail}`;
+      }
+      return `<section style="padding:9px 10px;margin:0 0 8px;border:1px solid rgba(255,255,255,0.14);border-radius:8px;background:rgba(255,255,255,0.035)">`
+        + `<h3 style="margin:0 0 7px;color:#ffd86c;font-size:0.9rem">${label}</h3>${detail}</section>`;
+    }).join('');
+  }
+
   function updateSwingNarrative(frontResult, sideResult, deltaResult, segment) {
     const btn   = document.getElementById('swingNarrativeToggleBtn');
     const block = document.getElementById('swingNarrativeBlock');
     if (!btn || !block) return;
-    const html = buildSwingNarrative(frontResult, sideResult, deltaResult, segment);
+    const html = buildAllFramesNarrative();
     _lastNarrativeHtml = html;
-    block.innerHTML = html;
+    block.innerHTML = html || `<div>${getSwingUiText(
+      '이 프레임의 해석 내용을 만들지 못했습니다. 선택한 프레임의 A/B 분석을 다시 실행하세요.',
+      'Could not build the interpretation for this frame. Re-run the A/B analysis for the selected frame.')}</div>`;
     btn.style.display = '';
-    // 이미 열려있으면 내용만 갱신
-    if (block.style.display !== 'none') block.style.display = 'block';
+    btn.setAttribute('aria-expanded', String(!block.hidden));
+    btn.textContent = translateUiText(block.hidden ? '전체 프레임 분석결과 보기 ▼' : '전체 프레임 분석결과 접기 ▲');
   }
 
   /**
@@ -5593,27 +5659,24 @@
       `Vertical interval check — observation only; excluded from engine fits and scores\n${intervals}\nPositive=rise, negative=drop, relative to the F1 address reference. Each interval requires the same video and ordered saved times. Pelvis center and lead hip are distinct landmarks. Knee extension with a descending lead hip may accompany rotation/tilt; it does not establish absence of vertical drive. Confirm late-downswing F3 A, pre-impact F3 B and impact F4 B. F2 B→F3 A does not cover the entire early squat; no speed, force or ground reaction is calculated.`);
   }
 
-  function getType3CombinedEvidence(three, vertical) {
-    const times = ['frame1', 'frame2', 'frame3', 'frame4']
-      .map(frame => frameStateHistory.side?.[frame]?.videoTime);
-    const ordered = times.every(hasMetric) && times.slice(1).every((time, i) => time > times[i]);
+  function getType3CombinedEvidence(frame6, vertical, impactAlignment) {
+    const phaseDeltaSec = hasMetric(frame6?.timeDeltaSec) ? frame6.timeDeltaSec : null;
+    const ordered = hasMetric(phaseDeltaSec) && phaseDeltaSec > 0;
+    const sameVideo = areVideoSourcesSame();
     const issues = [];
-    if (!areVideoSourcesSame()) issues.push(getSwingUiText('A/B 영상 불일치', 'A/B sources differ'));
-    times.forEach((time, i) => {
-      if (!hasMetric(time)) issues.push(getSwingUiText(`F${i + 1} B 저장 시점 누락`, `F${i + 1} B saved time missing`));
-      if (i > 0 && hasMetric(time) && hasMetric(times[i - 1]) && time <= times[i - 1]) {
-        issues.push(getSwingUiText(
-          `F${i} B→F${i + 1} B 동일·역순 (${times[i - 1].toFixed(3)}s→${time.toFixed(3)}s)`,
-          `F${i} B→F${i + 1} B same/reversed (${times[i - 1].toFixed(3)}s→${time.toFixed(3)}s)`));
-      }
-    });
-    if (!three.available) issues.push(getSwingUiText('F1~F4 B 3점 R 누락', 'F1–F4 B spread missing'));
-    if (!vertical.available) issues.push(getSwingUiText('F3 수직 지표·A/B 시점 확인 필요', 'Check F3 vertical metrics and A/B times'));
-    const available = areVideoSourcesSame() && ordered && three.available && vertical.available;
-    const compressionFit = available ? rampScore(-three.topToF2, 2, 15) : null;
-    const expansionFit = available ? rampScore(three.f3ToF4, 2, 10) : null;
-    const fit = available ? .35 * compressionFit + .35 * expansionFit + .30 * vertical.fit : null;
-    return { available, ordered, times, issues, compressionFit, expansionFit, fit };
+    if (!sameVideo) issues.push(getSwingUiText('A/B 영상 불일치', 'A/B sources differ'));
+    if (!ordered) issues.push(getSwingUiText('F6 P6→P7 같은 영상의 순방향 시점 필요', 'F6 requires same-video forward P6→P7 timing'));
+    const lagRetentionFit = scoreP6LagRetention(frame6?.lagAngleA6);
+    if (!hasMetric(lagRetentionFit)) issues.push(getSwingUiText('F6 P6 래깅각 누락', 'F6 P6 lag angle missing'));
+    const impactExtensionFit = hasMetric(impactAlignment) && impactAlignment >= 0 && impactAlignment <= 180
+      ? rampScore(impactAlignment, 140, 175) : null;
+    if (!hasMetric(impactExtensionFit)) issues.push(getSwingUiText('F4 B 임팩트 팔–샤프트 각도 누락', 'F4 B impact arm–shaft angle missing'));
+    if (!vertical.available || !hasMetric(vertical.fit)) issues.push(getSwingUiText('F3 수직 적합도·A/B 시점 확인 필요', 'Check F3 vertical fit and A/B times'));
+    const available = sameVideo && ordered
+      && hasMetric(lagRetentionFit) && hasMetric(impactExtensionFit)
+      && vertical.available && hasMetric(vertical.fit);
+    const fit = available ? .30 * lagRetentionFit + .30 * impactExtensionFit + .40 * vertical.fit : null;
+    return { available, ordered, phaseDeltaSec, issues, lagRetentionFit, impactExtensionFit, fit };
   }
 
   function formatType3CombinedEvidence(result) {
@@ -5621,13 +5684,13 @@
     if (!e) return '';
     const n = value => hasMetric(value) ? value.toFixed(3) : '—';
     return getSwingUiText(
-      `유형 3 실험적 압축–전개·수직 결합: F1→F2 3점 압축 35% + F3→F4 3점 팽창 35% + 기존 수직 근거 30%. 이전 R 대비 압축은 2% 이하 0·15% 이상 1, 팽창은 2% 이하 0·10% 이상 1, 사이 완만한 램프. 팽창 만점 기준 10%는 실험적 완화값이며 생체역학적 검증 전입니다. 계속 압축되거나 정지한 구간에는 팽창 가점 없음. 압축 ${n(e.compressionFit)}·팽창 ${n(e.expansionFit)}·수직 ${n(result.verticalEvidence.fit)} → 결합 ${n(e.fit)}. ${e.available ? '동일 영상·F1~F4 B 순서·3점·수직 근거 확인.' : '필수 근거 누락: 동일 영상·F1~F4 B 저장 시점 순서·3점 R·F3 수직 지표 확인. 대체값 없이 판정 보류.'} 기존 수직 적합도와 TKE 수직 동반동작 조건은 별도로 유지합니다. 형상 변화는 힘·파워 비중이 아니며 선수 이름이나 예상 유형으로 점수를 강제하지 않습니다.`,
-      `Experimental Type 3 compression–expansion/vertical composite: F1→F2 three-point compression 35% + F3→F4 expansion 35% + existing vertical evidence 30%. Changes relative to previous R use smooth ramps: compression ≤2%=0, ≥15%=1; expansion ≤2%=0, ≥10%=1. The relaxed 10% expansion saturation is experimental, not biomechanically validated. Continued compression or no motion earns no expansion credit. Compression ${n(e.compressionFit)}, expansion ${n(e.expansionFit)}, vertical ${n(result.verticalEvidence.fit)} → composite ${n(e.fit)}. ${e.available ? 'Same video, ordered F1–F4 B times, spread and vertical evidence confirmed.' : 'Required evidence missing: check source, ordered F1–F4 B times, three-point R and F3 vertical metrics. Hold without substitutes.'} Original vertical fit and TKE vertical coactivation criteria remain separate. Shape change is not force or power share; names and expected types do not override scores.`)
-      + '\n' + getSwingUiText('B 저장 시점: ', 'Saved B times: ')
-      + e.times.map((time, i) => `F${i + 1} B ${hasMetric(time) ? time.toFixed(3) + 's' : '—'}`).join(' | ')
+      `유형 3 실험적 래깅–임팩트 전개·수직 결합: P6 래깅 유지 30% + P7 임팩트 팔–샤프트 펴짐 30% + 수직 근거 40%. P6 코킹은 기존 F5에서 사용하던 70~110° 이상 구간을 중심으로 평가하고 30~70°·110~150°에서 완만히 감점합니다. P7 전개는 F4 B 팔–샤프트 정렬(140~175° 램프)을 사용합니다. 기준은 실험적이며 힘·파워 측정이나 검증된 선수 기준이 아닙니다. F6 같은 영상 P6→P7 순방향 시점과 각 근거, F3 수직 근거가 모두 필요하고 누락 시 재정규화 없이 판정을 보류합니다. 3점 퍼짐 변화는 관측 진단으로만 표시하며 이 결합 점수에는 넣지 않습니다. 래깅 ${n(e.lagRetentionFit)}·임팩트 전개 ${n(e.impactExtensionFit)}·수직 ${n(result.verticalEvidence.fit)} → 결합 ${n(e.fit)}. ${e.available ? '동일 영상 P6→P7 순서·P6 래깅·임팩트 정렬·수직 근거 확인.' : '필수 근거 누락: 동일 영상 P6→P7 시점·P6 래깅각·F4 B 임팩트 정렬·F3 수직 지표를 확인하세요. 대체값 없이 판정 보류.'} 기존 수직 적합도와 TKE 수직 동반동작 조건은 별도로 유지합니다.`,
+      `Experimental Type 3 lag–impact extension/vertical composite: P6 lag retention 30% + P7 impact arm–shaft extension 30% + vertical evidence 40%. P6 is centered on the existing F5 70–110° target band, tapering through 30–70° and 110–150°. P7 uses F4 B arm–shaft alignment (140–175° ramp). These are provisional, not measured force/power or validated player standards. Same-video forward P6→P7 timing, both phase metrics and F3 vertical evidence are required; missing evidence holds without reweighting. Three-point spread changes remain observational diagnostics and do not enter this composite. Lag ${n(e.lagRetentionFit)}, impact extension ${n(e.impactExtensionFit)}, vertical ${n(result.verticalEvidence.fit)} → composite ${n(e.fit)}. ${e.available ? 'Same-video ordered P6→P7, P6 lag, impact alignment and vertical evidence confirmed.' : 'Required evidence missing: check same-video P6→P7 timing, P6 lag angle, F4 B impact alignment and F3 vertical metrics. Hold without substitutes.'} Original vertical fit and TKE vertical coactivation criteria remain separate.`)
+      + '\n' + getSwingUiText('P6→P7 시차: ', 'P6→P7 interval: ')
+      + (hasMetric(e.phaseDeltaSec) ? `${(e.phaseDeltaSec * 1000).toFixed(1)}ms` : '—')
       + (e.issues.length ? '\n' + getSwingUiText('보류 사유: ', 'Hold reasons: ') + e.issues.join(' · ')
-        + '\n' + getSwingUiText('해당 B패널 시점을 수정하고 해당 프레임을 다시 분석하세요. F3 B는 임팩트 직전, F4 B는 그보다 뒤인 임팩트입니다.',
-          'Correct the affected B-panel time and reanalyze that frame. F3 B is pre-impact; F4 B is later, at impact.') : '');
+        + '\n' + getSwingUiText('F6은 A=P6 다운스윙 중기, B=P7 임팩트로 설정하고 F4 B는 임팩트 순간을 선택하세요.',
+          'Set F6 A to mid-downswing P6 and F6 B to impact P7; select the impact instant for F4 B.') : '');
   }
 
   function getVerticalEngineEvidence(f3) {
@@ -5671,7 +5734,7 @@
       'Absolute fits are 0–1. Relative fit (%) = each absolute fit / sum of all three × 100. F1–F6 quality scores do not directly determine engine type.',
       'ATE = axis stability 65% + upper-turn proxy 35%. Axis: F1 C7 displacement 45%, F3 sway 30%, F3 early rise 25%. Turn proxy = min(|F1 shoulder-line change| / 90°, 1); not measured 3D rotation.',
       'LSE = pelvis-shift fit × (0.80 + 0.20 × bracing fit). Use F2 shoulder–pelvis-relative shift only, with an experimental smooth 0→13% ramp anchored to the median of three examples. Previous 0→30% F5-first results are retained for comparison. Same-video evidence required; direction and temporal lead are not established.',
-      'Type 3 (VEE* experimental composite) = F1→F2 three-point compression 35% + F3→F4 expansion 35% + vertical base fit 30%. Shape changes: compression smooth 2→15%, expansion smooth 2→10%. Relaxed expansion saturation is experimental, not biomechanically validated; no motion or continued compression earns no expansion credit. Vertical base = extension 0→8° 50% + lead-hip rise 0.5→3% 50%. All components, same video and increasing F1–F4 B times required; missing evidence holds assignment, without reweighting. No additional distance/compression multiplier.',
+      'Type 3 (VEE* experimental composite) = P6 lag retention 30% + P7 impact arm–shaft extension 30% + vertical base fit 40%. P6 lag uses a 70–110° target band with 30–70° and 110–150° tapering; impact extension uses the F4 B 140→175° alignment ramp. These are provisional geometric proxies, not measured power or validated player standards. F6 must have same-video forward P6→P7 timing; F3 vertical evidence is also required. Missing evidence holds assignment without reweighting. Three-point spread changes are diagnostic only and do not enter the Type 3 score.',
       'The scored rise landmark is the lead hip, not pelvis center. F2 B→F3 A→F3 B→F4 B pelvis-center intervals are additional timing/vertical-motion checks only; they do not change these fits.',
       'Evaluate in this order: 1) Hold if required evidence is missing, or the leading absolute fit is below 0.40.',
       '2) Experimental coactivation → TKE: axis stability ≥0.40, turn proxy ≥0.50, pelvis shift ≥10%, F3 extension ≥3° AND hip rise ≥1%. This precedes relative-share comparisons.',
@@ -5684,7 +5747,7 @@
       '절대 적합도는 0~1. 상대 적합도(%) = 각 절대 적합도 ÷ 세 유형 합 ×100. F1~F6 품질 점수를 직접 엔진 유형으로 바꾸지는 않습니다.',
       'ATE = 축 안정 65% + 상체 회전 참고 35%. 축 안정: F1 C7 변위 45%·F3 Sway 30%·F3 조기상승 25%. 회전 참고 = min(|F1 어깨선 변화|÷90°, 1); 실제 3D 회전량이 아닙니다.',
       'LSE = 골반 이동 적합도 × (0.80 + 0.20×브레이싱 적합도). F2 어깨–골반 길이 대비 이동만 사용. 세 사례 중앙값을 참고한 실험적 0→13% 완만한 램프. 이전 F5 우선·0→30% 값은 비교용으로 보존합니다. 같은 영상 근거가 필요하며 방향·시간적 선행을 입증하지 않습니다.',
-      '유형 3(VEE* 실험적 결합) = F1→F2 3점 압축 35% + F3→F4 팽창 35% + 수직 기본 적합도 30%. 압축은 2→15%, 팽창은 2→10% 완만한 램프. 팽창 만점 완화는 실험적 기준이며 생체역학적 검증 전; 정지·계속 압축은 팽창 가점 없음. 수직 기본 = 신전 0→8° 50% + 왼고관절 상승 0.5→3% 50%. 전 항목·같은 영상·F1~F4 B 순서가 필요하며 누락 시 재정규화 없이 보류. 추가 거리/압축 배율은 적용하지 않습니다.',
+      '유형 3(VEE* 실험적 결합) = P6 래깅 유지 30% + P7 임팩트 팔–샤프트 펴짐 30% + 수직 기본 적합도 40%. P6 래깅은 70~110° 목표 구간이며 30~70°·110~150°에서 완만히 감점하고, 임팩트 전개는 F4 B 140~175° 정렬 램프를 사용합니다. 실제 파워 측정값이나 검증된 선수 기준이 아닌 잠정 기하학적 지표입니다. F6 같은 영상 P6→P7 순방향 시점과 F3 수직 근거가 필요하며 누락 시 재정규화 없이 보류합니다. 3점 퍼짐 변화는 관측 진단이며 Type 3 점수에는 포함하지 않습니다.',
       '상승 채점점은 골반 중심이 아닌 왼고관절입니다. F2 B→F3 A→F3 B→F4 B 골반 중심 이동은 추가 시점·수직 동작 확인용이며 적합도를 바꾸지 않습니다.',
       '다음 순서로 판정: ① 필수 근거 누락 또는 1위 절대 적합도 0.40 미만이면 보류.',
       '② 실험적 동반 동작 TKE: 축 안정 ≥0.40·회전 참고 ≥0.50·골반 이동 ≥10%·F3 신전 ≥3° 및 고관절 상승 ≥1%. 상대 비율 비교보다 먼저 적용합니다.',
@@ -5788,7 +5851,9 @@
     ]);
     // Shift magnitude with bracing support; temporal lead is not measured.
     const type2 = hasMetric(linearEvidence.fit) ? linearEvidence.fit : 0;
-    const type3CombinedEvidence = getType3CombinedEvidence(threePointEvidence, verticalEvidence);
+    const f4 = segmentDeltaHistory.frame4 && segmentDeltaHistory.frame4.fm;
+    const f6 = segmentDeltaHistory.frame6 && segmentDeltaHistory.frame6.fm;
+    const type3CombinedEvidence = getType3CombinedEvidence(f6, verticalEvidence, getImpactAlignment(f4));
     const type3 = hasMetric(type3CombinedEvidence.fit) ? type3CombinedEvidence.fit : 0;
 
     const scores = { type1, type2, type3 };
@@ -5819,8 +5884,8 @@
       'VEE: 같은 영상 F3 A/B의 무릎 신전 변화와 고관절 상승, A보다 뒤인 B 시점을 확인해야 합니다.',
       'VEE: confirm same-video F3 A/B knee-extension change, hip rise and B later than A.'));
     if (!type3CombinedEvidence.available) missingEngineEvidence.push(getSwingUiText(
-      '유형 3 결합 근거 부족: 동일 영상 F1~F4 B의 3점 R·증가하는 저장 시점·F3 수직 지표가 필요합니다. 참고 안내를 확인하세요.',
-      'Type 3 composite evidence missing: same-video F1–F4 B spread, increasing saved times and F3 vertical metrics required. Check the Reference Guide.')
+      '유형 3 결합 근거 부족: 동일 영상 F6 P6→P7 순방향 시점·P6 래깅각·F4 B 임팩트 정렬·F3 수직 지표가 필요합니다. 참고 안내를 확인하세요.',
+      'Type 3 composite evidence missing: same-video forward F6 P6→P7 timing, P6 lag angle, F4 B impact alignment and F3 vertical metrics are required. Check the Reference Guide.')
       + ' ' + type3CombinedEvidence.issues.join(' · '));
     return { pct, share, scores, analyzedCount, threePointEvidence, distanceCompressionCycle, compressionCycle,
       verticalEvidence, linearEvidence, type3CombinedEvidence, previousScores, previousPct, previousVerticalScore, previousVerticalPct,
@@ -5833,18 +5898,18 @@
     const result = classifySwingType();
     const downswingEvidence = getDownswingSideEvidence();
     const labels = uiLanguage === 'en'
-      ? { type1: 'Type 1 · ATE · Axial-Torque Engine', type2: 'Type 2 · LSE · Linear-Shift Engine', type3: 'Type 3 · VEE* · Shape/Vertical Composite' }
-      : { type1: '유형 1 · ATE · 축회전 중심형', type2: '유형 2 · LSE · 하체이동 중심형', type3: '유형 3 · VEE* · 압축–전개·수직 결합' };
+      ? { type1: 'Type 1 · ATE · Axial-Torque Engine', type2: 'Type 2 · LSE · Linear-Shift Engine', type3: 'Type 3 · VEE* · Lag/Extension/Vertical Composite' }
+      : { type1: '유형 1 · ATE · 축회전 중심형', type2: '유형 2 · LSE · 하체이동 중심형', type3: '유형 3 · VEE* · 래깅–임팩트 전개·수직 결합' };
     const descriptions = uiLanguage === 'en'
       ? {
         type1: '2D axis stability and upper-turn fit; not a measured torque.',
         type2: 'Same-video F2 shift fit, experimentally calibrated to three examples; not force or temporal lead.',
-        type3: 'Experimental shape/vertical composite, not a vertical-force measurement.',
+        type3: 'Experimental P6 lag, impact extension and vertical composite; not a force measurement.',
       }
       : {
         type1: '2D 축 안정성과 상체 회전 적합도이며 토크 측정값이 아닙니다.',
         type2: '같은 영상 F2 이동의 세 사례 기반 실험적 보정 적합도. 힘·시간적 선행은 미측정.',
-        type3: '실험적 형상 압축·전개와 수직 근거의 결합. 수직 힘 측정값이 아닙니다.',
+        type3: '실험적 P6 래깅·임팩트 전개·수직 근거의 결합. 힘 측정값이 아닙니다.',
       };
     const rows = [];
     const referenceRows = [];
@@ -5877,17 +5942,15 @@
         'VEE 해석 주의: 무릎은 신전되지만 왼고관절은 하강합니다. 낮은 상대 적합도만으로 수직 구동이 약하다고 단정하지 마세요. 참고 안내에서 골반 중심 이동·F3 시점을 확인하세요.',
         'VEE caution: the knee extends while the lead hip descends. Low relative fit alone does not establish weak vertical drive. Check pelvis-center intervals and F3 timing in the Reference Guide.')}</div>`);
       referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('유형 판정 근거와 한계', 'Classification Evidence and Limitations')}</div><span class="swing-type-note">${getSwingUiText(
-          '잠정 2D 유형: ATE 축/회전, LSE 같은 영상 골반 이동, 유형 3은 압축–전개·수직 결합(VEE*). %는 상대 적합도이지 파워 비중·확률이 아닙니다. 근거 누락 시 프로필 판정 보류.',
-          'Provisional 2D types: ATE axis/turn, LSE same-video shift, Type 3 experimental shape/vertical composite (VEE*). Percentages are relative fits, not power shares or probabilities. Missing evidence holds profile assignment.')}</span><div>${formatLinearEngineEvidence(result)}</div><div>${formatEngineEvidence(result)}</div><div>${formatEngineCoactivation(result)}</div></section>`);
+          '잠정 2D 유형: ATE 축/회전, LSE 같은 영상 골반 이동, 유형 3은 P6 래깅·P7 임팩트 전개·수직 결합(VEE*). %는 상대 적합도이지 파워 비중·확률이 아닙니다. 근거 누락 시 프로필 판정 보류.',
+          'Provisional 2D types: ATE axis/turn, LSE same-video shift, Type 3 experimental P6 lag/P7 impact extension/vertical composite (VEE*). Percentages are relative fits, not power shares or probabilities. Missing evidence holds profile assignment.')}</span><div>${formatLinearEngineEvidence(result)}</div><div>${formatEngineEvidence(result)}</div><div>${formatEngineCoactivation(result)}</div></section>`);
       const three = result.threePointEvidence;
       const pctText = value => hasMetric(value) ? `${value > 0 ? '+' : ''}${value.toFixed(1)}%` : '—';
-      referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('3점 변화 — 엔진 분류 실험적 근거', 'Three-point changes — experimental engine evidence')}</div>`
+      referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('3점 변화 — 관측 진단(엔진 점수 미반영)', 'Three-point changes — observational diagnostics (not scored for engine type)')}</div>`
         + `<div>${formatType3CombinedEvidence(result)}</div>`
         + `<div>F1→F2 ${pctText(three.topToF2)} | F2→F3 ${pctText(three.f2ToF3)} | F3→F4 ${pctText(three.f3ToF4)} | F2→F4 ${pctText(three.f2ToF4)}</div>`
-        + `<div>${three.available
-          ? getSwingUiText('결합 지표는 2~15% 변화만 연속 반영합니다. 반복 입력 오차·생체역학 검증 전입니다.',
-            'Composite fits continuously scale changes from 2–15%. Landmark-error and biomechanical validation remain pending.')
-          : getSwingUiText('F1~F4 B의 3점 데이터 부족: 유형/프로필 판정 보류.', 'Missing F1-F4 B three-point data: type/profile assignment held.')}</div></section>`);
+        + `<div>${getSwingUiText('3점 퍼짐 변화는 형태 참고값입니다. Type 3 결합 점수는 P6 래깅 유지·임팩트 팔–샤프트 전개·수직 근거를 사용합니다.',
+          'Three-point spread changes are shape observations. The Type 3 composite uses P6 lag retention, impact arm–shaft extension and vertical evidence.')}</div></section>`);
     }
     if (backswingClassification || result) {
       const backswingCode = getBackswingProfileCode(backswingClassification);
@@ -5900,7 +5963,7 @@
       const engineIndex = engine ? SWING_POWER_ENGINES.findIndex(item => item.code === engine.code) : -1;
       const engineName = engine
         ? (engine.code === 'VEE' && result?.type3CombinedEvidence
-          ? getSwingUiText('압축–전개·수직 결합 (VEE*)', 'Shape/Vertical Composite (VEE*)')
+          ? getSwingUiText('래깅–임팩트 전개·수직 결합 (VEE*)', 'Lag/Impact Extension/Vertical Composite (VEE*)')
           : (uiLanguage === 'en' ? engine.en : engine.ko))
         : uiLanguage === 'en' ? 'Not determined' : '판정 보류';
       rows.push(`<section class="analysis-type-section analysis-profile-match"><div class="analysis-type-heading">${uiLanguage === 'en' ? 'Swing Classification' : '스윙 유형 분류'}</div>`
@@ -6022,8 +6085,8 @@
       else warnings.push(getSwingUiText('근거 지표는 준비됐지만 세 유형 점수 합계가 0이어서 엔진을 판정하지 못했습니다. 입력 좌표와 기준선을 확인한 뒤 프레임을 다시 분석하세요.', 'The evidence is available, but all three type scores sum to zero. Check the points and reference line, then reanalyze the frames.'));
     } else {
       if (swingResult.type3CombinedEvidence) warnings.push(getSwingUiText(
-        '유형 3은 VEE* 실험적 압축–전개·수직 결합 지표입니다. 기존 35개 프로필 코드와 연결하지만 수직 파워 우세를 입증하지 않습니다. 균형 TKE도 기존 신전 ≥3°·왼고관절 상승 ≥1% 및 수직 적합도 ≥0.40이 필요합니다.',
-        'Type 3 is the experimental VEE* shape/vertical composite. It retains the 35-profile mapping but does not establish dominant vertical power. Balanced TKE also requires extension ≥3°, lead-hip rise ≥1% and vertical fit ≥0.40.'));
+        '유형 3은 VEE* 실험적 P6 래깅·임팩트 전개·수직 결합 지표입니다. 기존 35개 프로필 코드와 연결하지만 수직 파워 우세를 입증하지 않습니다. 균형 TKE도 기존 신전 ≥3°·왼고관절 상승 ≥1% 및 수직 적합도 ≥0.40이 필요합니다.',
+        'Type 3 is the experimental VEE* P6 lag/impact extension/vertical composite. It retains the 35-profile mapping but does not establish dominant vertical power. Balanced TKE also requires extension ≥3°, lead-hip rise ≥1% and vertical fit ≥0.40.'));
       if (swingResult.missingEngineEvidence?.length) warnings.push(...swingResult.missingEngineEvidence);
       warnings.push(getSwingUiText('엔진·프로필은 2D 지표 기반 잠정 후보입니다. 비율은 유형 간 상대 적합도이지 확률·파워 비중이 아닙니다.',
         'Engine/profile assignments are provisional 2D candidates. Shares are relative fits, not probabilities or power contributions.'));
@@ -6083,8 +6146,8 @@
       lines.push(formatLinearEngineEvidence(result));
       lines.push(formatEngineCoactivation(result));
       const labels = uiLanguage === 'en'
-        ? { type1: 'ATE · Axial-Torque Engine', type2: 'LSE · Linear-Shift Engine', type3: 'VEE* · Shape/Vertical Composite' }
-        : { type1: 'ATE · 축회전 중심형', type2: 'LSE · 하체이동 중심형', type3: 'VEE* · 압축–전개·수직 결합' };
+        ? { type1: 'ATE · Axial-Torque Engine', type2: 'LSE · Linear-Shift Engine', type3: 'VEE* · Lag/Extension/Vertical Composite' }
+        : { type1: 'ATE · 축회전 중심형', type2: 'LSE · 하체이동 중심형', type3: 'VEE* · 래깅–임팩트 전개·수직 결합' };
       const engineDecision = getPowerEngineDecision(result);
       if (engineDecision && engineDecision.mode === 'fusion') {
         const types = engineDecision.types.map(type => `${labels[type]} ${result.pct[type]}%`).join(' + ');
@@ -6188,12 +6251,7 @@
     // F5·F6(일관성)은 100점 만점 독립 지표 — F1~F4 평균에 포함하지 않음
     if (analysisSegmentScoreF5) analysisSegmentScoreF5.textContent = `F5: ${scoreLabel('frame5', 10)}`;
     if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = `F6: ${scoreLabel('frame6', 10)}`;
-    if (analysisConsistencyAverage) {
-      const cScores = ['frame5', 'frame6'].map(getStoredSegmentScore).filter(hasMetric);
-      const cAvg = cScores.length ? cScores.reduce((sum, v) => sum + v, 0) / cScores.length * 10 : null;
-      const analyzed = segmentDeltaHistory.frame5 || segmentDeltaHistory.frame6;
-      analysisConsistencyAverage.textContent = cAvg !== null ? `일관성 모션 평균: ${cAvg.toFixed(1)} / 100` : `일관성 모션 평균: ${analyzed ? '측정 불가' : '-'}`;
-    }
+    updateConsistencyAverageDisplay();
     if (analysisSegmentAverage) {
       const summary = getDistanceMotionSummary();
       const analyzed = ['frame1', 'frame2', 'frame3', 'frame4'].some(id => segmentDeltaHistory[id]);
@@ -6206,6 +6264,33 @@
       const reference = document.getElementById('analysisBonusReference');
       if (reference) reference.textContent = hasMetric(summary.score) || analyzed ? formatDistanceMotionSummary(summary) : '';
     }
+  }
+
+  function updateConsistencyAverageDisplay() {
+    if (!analysisConsistencyAverage) return;
+    const motionScores = ['frame5', 'frame6'].map(getStoredSegmentScore).filter(hasMetric);
+    const motionAverage = motionScores.length
+      ? motionScores.reduce((sum, score) => sum + score, 0) / motionScores.length * 10 : null;
+    const analyzed = segmentDeltaHistory.frame5 || segmentDeltaHistory.frame6;
+    const r10Percent = r10Analysis && r10Analysis.consistencyPercent15;
+    if (!hasMetric(r10Percent)) {
+      analysisConsistencyAverage.textContent = motionAverage !== null
+        ? `일관성 모션 평균: ${motionAverage.toFixed(1)} / 100`
+        : `일관성 모션 평균: ${analyzed ? '측정 불가' : '-'}`;
+      return;
+    }
+    if (!hasMetric(motionAverage)) {
+      analysisConsistencyAverage.textContent = getSwingUiText(
+        `일관성 모션 평균: 측정 불가 (영상 지표 부족 · R10 1.5σ ${r10Percent.toFixed(1)}%)`,
+        `Consistency Motion Average: not measurable (video metric unavailable · R10 1.5σ ${r10Percent.toFixed(1)}%)`);
+      return;
+    }
+    const combined = combineConsistencyScores(motionAverage, r10Percent);
+    const motionCoverage = motionScores.length < 2
+      ? getSwingUiText(` · 영상 지표 ${motionScores.length}/2`, ` · video metrics ${motionScores.length}/2`) : '';
+    analysisConsistencyAverage.textContent = getSwingUiText(
+      `일관성 모션 평균: ${combined.toFixed(1)} / 100 (영상 50% ${motionAverage.toFixed(1)}${motionCoverage} + R10 1.5σ 50% ${r10Percent.toFixed(1)})`,
+      `Consistency Motion Average: ${combined.toFixed(1)} / 100 (video 50% ${motionAverage.toFixed(1)}${motionCoverage} + R10 1.5σ 50% ${r10Percent.toFixed(1)})`);
   }
 
   function updateSummary(frontResult, sideResult, deltaResult) {
@@ -6239,7 +6324,7 @@
       frame3: 'F3 다운스윙 후기: 지면반력과 축 고정',
       frame4: 'F4 임팩트: 반경 확장과 릴리즈',
       frame5: 'F5 일관성: 어드레스 대비 다운스윙 재현성',
-      frame6: 'F6 리듬/템포: Δt 템포와 래깅-릴리즈·상대 변위 비율',
+      frame6: 'F6 리듬/템포: 시간차·Release Index(참고)와 상대 변위 비율(점수)',
     };
     const frameResults = formatDistanceMotionSummary(distanceSummary) + '\n' + Object.entries(segmentDeltaHistory).map(([id, result]) => {
       if (!result) return `${frameLabels[id]}: 아직 분석하지 않음`;
@@ -6261,8 +6346,8 @@
       if (id === 'frame6') {
         const tempo = metrics._tempo || {};
         lines.push(getSwingUiText(
-          `리듬/템포 잠정 ${formatGeminiMetric(tempo.score100)} / 100 (시간차·Release Index 포함, 두 기준 미검증), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, 상대 변위 비율 ${formatGeminiMetric(metrics.sequenceIndex, 2)} (수행능력 등급 아님)`,
-          `Provisional sequence ${formatGeminiMetric(tempo.score100)} / 100 (includes timing and Release Index; both thresholds unvalidated), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, relative displacement ${formatGeminiMetric(metrics.sequenceIndex, 2)} (not a performance grade)`));
+          `리듬/템포 잠정 ${formatGeminiMetric(tempo.score100)} / 100 (상대 변위·측면 경로 기준; 시간차·Release Index는 참고값), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, 상대 변위 비율 ${formatGeminiMetric(metrics.sequenceIndex, 2)} (수행능력 등급 아님)`,
+          `Provisional sequence ${formatGeminiMetric(tempo.score100)} / 100 (based on relative displacement and optional side path; Δt and Release Index are observation-only), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, relative displacement ${formatGeminiMetric(metrics.sequenceIndex, 2)} (not a performance grade)`));
       }
       return lines.join('; ');
     }).join('\n');
@@ -6447,8 +6532,12 @@
     if (analysisSideDetail) analysisSideDetail.innerHTML = '';
     const nb = document.getElementById('swingNarrativeBlock');
     const nb2 = document.getElementById('swingNarrativeToggleBtn');
-    if (nb)  { nb.style.display = 'none'; nb.innerHTML = ''; }
-    if (nb2) nb2.style.display = 'none';
+    if (nb)  { nb.hidden = true; nb.innerHTML = ''; }
+    if (nb2) {
+      nb2.style.display = 'none';
+      nb2.setAttribute('aria-expanded', 'false');
+      nb2.textContent = translateUiText('전체 프레임 분석결과 보기 ▼');
+    }
     geminiReportLanguage = null;
     if (geminiReportBlock) { geminiReportBlock.style.display = 'none'; geminiReportBlock.textContent = ''; }
   }
@@ -9828,6 +9917,7 @@
   function loadR10Csv(file) {
     r10Shots = [];
     r10Analysis = null;
+    updateConsistencyAverageDisplay();
     r10SourceName = '';
     r10Units = {};
     r10SelectedShotNo = null;
@@ -9944,7 +10034,8 @@
     const outlierCount = shots.filter(shot => shot.isOutlier).length;
     const validRatio = (shots.length - outlierCount) / shots.length * 100;
     return { shots, distanceKey, sideKey, distanceStats, sideStats, k, ellipseAvailable,
-      outlierCount, validRatio, factor: validRatio,
+      outlierCount, validRatio, consistencyPercent15: getR10ConsistencyPercent(shots, ellipseAvailable),
+      factor: validRatio,
       meanDistance, meanSide, varianceDistance, varianceSide, covariance };
   }
 
@@ -9984,6 +10075,7 @@
       return;
     }
     r10Analysis = analysis;
+    updateConsistencyAverageDisplay();
     const copy = uiLanguage === 'en'
       ? { shots: 'Shots in session', outliers: 'Shots outside center',
         note: 'Consistency is the share of shots inside the session-centered 2D kσ ellipse. Individual distance and lateral Z-scores label miss tendencies; they do not establish swing causes.',
@@ -10536,6 +10628,7 @@
   r10ClearBtn.addEventListener('click', () => {
     r10CsvInput.value = '';
     r10Shots = []; r10Analysis = null; r10SourceName = ''; r10Units = {}; r10SelectedShotNo = null;
+    updateConsistencyAverageDisplay();
     r10Dashboard.hidden = true; r10ClearBtn.disabled = true; r10ReportOpenBtn.disabled = true;
     r10ReportPreview.hidden = true; r10GeneratedReport = null;
     setR10Status(r10Text('CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.', 'Load a CSV to use it as supporting evidence for the motion analysis.'));

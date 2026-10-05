@@ -56,6 +56,18 @@ export const verticalCalibrationFixtures = [
   },
 ];
 
+export const type3PhaseFixtures = [
+  {
+    id: 'YouTube-261005',
+    p6LagAngleDeg: 103.2,
+    p6ToP7Ms: 330.9,
+    impactArmShaftAngleDeg: 175.2,
+    verticalFit: 0.479,
+    threePointChanges: [-10.4, -9.7, -7.5],
+    reportedEnginePct: { type1: 43.8, type2: 36.6, type3: 19.6 },
+  },
+];
+
 export const swingReportFixtures = [
   {
     id: 'Lee-261001',

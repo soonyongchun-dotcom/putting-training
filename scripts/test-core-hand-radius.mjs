@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { swingReportFixtures, engineCalibrationFixtures, verticalCalibrationFixtures } from './swing-report-fixtures.mjs';
+import { swingReportFixtures, engineCalibrationFixtures, verticalCalibrationFixtures, type3PhaseFixtures } from './swing-report-fixtures.mjs';
 
 const html = readFileSync(new URL('../index4.html', import.meta.url), 'utf8');
 const context = vm.createContext({
@@ -36,7 +36,7 @@ for (const name of [
   'computeThreePointSpread', 'getThreePointSpreadChange', 'updateThreePointSpreadDisplay',
   'combineMetricScores', 'computeSegmentScore', 'countAvailableMetrics',
   'computeRawSegmentScore', 'formatFrameScoreCalibration',
-  'scoreLagAngle', 'getImpactAlignment', 'getLateRadiusExpansion', 'scoreLateRadiusExpansion',
+  'scoreLagAngle', 'scoreP6LagRetention', 'getImpactAlignment', 'getLateRadiusExpansion', 'scoreLateRadiusExpansion',
   'getFrameScoreParts', 'getThreePointDirectionFit', 'getPowerEngineDecision',
   'getVerticalEngineEvidence', 'formatEngineEvidence',
   'getVerticalMotionDiagnostics', 'formatVerticalMotionDiagnostics',
@@ -45,6 +45,8 @@ for (const name of [
   'getEngineCoactivation', 'formatEngineCoactivation',
   'formatPowerEngineRules',
   'getDistanceMotionSummary', 'formatDistanceMotionSummary',
+  'getR10ConsistencyPercent', 'combineConsistencyScores',
+  'buildAllFramesNarrative',
   'areFramePointsComplete', 'getNextAnalysisFrame', 'continueFrameSelection',
   'computePhaseTimeDelta', 'getMotionSearchRequest', 'advanceGuideStep', 'isPanelComplete',
   'getFrameMaxPoints',
@@ -68,6 +70,57 @@ vm.runInContext(html.slice(translationStart, translationEnd), context);
 loadFunction('translateUiText');
 
 const point = (type, x, y) => ({ type, x, y });
+
+test('R10 consistency uses the fixed 1.5-sigma center ratio and combines 50:50', () => {
+  const ellipseRatio = context.getR10ConsistencyPercent([
+    { mahalanobis: 0 }, { mahalanobis: 1.49 }, { mahalanobis: 1.5 }, { mahalanobis: 1.51 },
+  ], true);
+  assert.equal(ellipseRatio, 75);
+  const axisRatio = context.getR10ConsistencyPercent([
+    { distanceZ: 1.5, sideZ: 0 }, { distanceZ: 0, sideZ: -1.5 },
+    { distanceZ: 1.51, sideZ: 0 }, { distanceZ: 0, sideZ: 0 },
+  ], false);
+  assert.equal(axisRatio, 75);
+  assert.equal(context.combineConsistencyScores(80, 60), 70);
+  assert.equal(context.getR10ConsistencyPercent([{ mahalanobis: 0 }], true), null);
+  assert.equal(context.combineConsistencyScores(80, null), null);
+});
+
+test('all-frame interpretation includes six sections and distinguishes unanalyzed frames', () => {
+  const original = {
+    deltas: context.segmentDeltaHistory,
+    scores: context.segmentScoreHistory,
+    metrics: context.frameMetricsHistory,
+    sideMetrics: context.frameSideMetricsHistory,
+    build: context.buildSwingNarrative,
+  };
+  try {
+    context.segmentDeltaHistory = { frame1: { fm: {} }, frame4: { fm: {} }, frame5: { fm: {} } };
+    context.segmentScoreHistory = { frame1: 8.5, frame4: 7.25, frame5: 9.3 };
+    context.frameMetricsHistory = { frame1: { _radiusA: 1, _radiusB: 0.8 }, frame4: {}, frame5: {} };
+    context.frameSideMetricsHistory = { frame1: {}, frame4: {}, frame5: {} };
+    context.buildSwingNarrative = (_front, _side, _delta, frame) => `<div>${frame} interpretation</div>`;
+
+    const html = context.buildAllFramesNarrative();
+    for (let frame = 1; frame <= 6; frame++) {
+      assert.match(html, new RegExp(`Frame ${frame}`));
+    }
+    assert.match(html, /frame1 interpretation/);
+    assert.match(html, /frame4 interpretation/);
+    assert.match(html, /frame5 interpretation/);
+    assert.match(html, /No A\/B analysis is available for this frame yet\./);
+    assert.ok(html.includes('8.5 / 10'));
+    assert.ok(html.includes('7.3 / 10'));
+    assert.ok(html.includes('93.0 / 100'));
+  } finally {
+    context.segmentDeltaHistory = original.deltas;
+    context.segmentScoreHistory = original.scores;
+    context.frameMetricsHistory = original.metrics;
+    context.frameSideMetricsHistory = original.sideMetrics;
+    context.buildSwingNarrative = original.build;
+  }
+});
+
 function pointsFor(frame, handX = 0.8) {
   const coreType = ['frame3', 'frame4'].includes(frame) ? 'pelvisCenter' : 'pelvis';
   const points = [
@@ -577,33 +630,50 @@ test('F6 searches the shaft-parallel P6 phase and does not time unrelated videos
   assert.equal(context.computePhaseTimeDelta(1, 1.06, false), null);
   assert.equal(context.computePhaseTimeDelta(null, 1.06, true), null);
   const tempo = context.computeTempoSequenceReport({ timeDeltaSec: 0.4667, releaseIndex: 39, sequenceIndex: 3 });
-  assert.equal(tempo.score100, 30);
+  assert.equal(tempo.score100, 100);
 });
 
-test('F6 timing and release contribute to provisional scores with normalized weights', () => {
+test('F6 excludes unvalidated timing and Release Index from the score', () => {
   const input = { timeDeltaSec: 0.4667, sequenceIndex: 3, releaseIndex: 39 };
   const low = context.computeTempoSequenceReport(input);
   const high = context.computeTempoSequenceReport({ ...input, releaseIndex: 500 });
-  assert.equal(low.score100, 30);
-  assert.equal(high.score100, 60);
+  assert.equal(low.score100, 100);
+  assert.equal(high.score100, 100);
   assert.equal(low.sRelease, 100);
-  assert.equal(low.totalMetrics, 3);
-  close(low.tempoWeight, 0.4);
-  close(low.releaseWeight, 0.3);
-  close(low.sequenceWeight, 0.3);
+  assert.equal(low.totalMetrics, 1);
+  close(low.tempoWeight, 0);
+  close(low.releaseWeight, 0);
+  close(low.sequenceWeight, 1);
   const supplemental = context.computeTempoSequenceReport(input, { penalty: 25 });
   close(supplemental.tempoWeight + supplemental.releaseWeight
     + supplemental.sequenceWeight + supplemental.downswingWeight, 1);
-  close(supplemental.tempoWeight, 0.36);
-  close(supplemental.releaseWeight, 0.27);
-  close(supplemental.sequenceWeight, 0.27);
-  assert.equal(context.computeTempoSequenceReport({ releaseIndex: 500 }).score100, 100);
+  close(supplemental.tempoWeight, 0);
+  close(supplemental.releaseWeight, 0);
+  close(supplemental.sequenceWeight, 0.9);
+  close(supplemental.downswingWeight, 0.1);
+  assert.equal(supplemental.score100, 98);
+  assert.equal(context.computeTempoSequenceReport({ releaseIndex: 500 }).score100, null);
   const missingTiming = context.computeTempoSequenceReport({ sequenceIndex: 3, releaseIndex: 39 });
   assert.equal(missingTiming.tempoWeight, 0);
   assert.equal(missingTiming.sequenceWeight, 1);
 });
 
-test('F6 P6-to-P7 timing penalty uses the historical provisional reference band', () => {
+test('F6 example keeps the 457.9ms and Release Index penalties out of the score', () => {
+  const report = context.computeTempoSequenceReport({
+    timeDeltaSec: 0.4579,
+    releaseIndex: 40,
+    sequenceIndex: 3,
+  }, { penalty: 70 });
+  assert.equal(report.score100, 93);
+  assert.equal(report.sTempo, 100);
+  assert.equal(report.sRelease, 100);
+  assert.equal(report.tempoWeight, 0);
+  assert.equal(report.releaseWeight, 0);
+  assert.equal(report.sequenceWeight, 0.9);
+  assert.equal(report.downswingWeight, 0.1);
+});
+
+test('F6 score uses only relative displacement and optional side-path evidence', () => {
   const evidence = { pathFit: 0.3, penalty: 70 };
   const previous = context.getDownswingSideEvidence;
   context.getDownswingSideEvidence = () => evidence;
@@ -612,30 +682,30 @@ test('F6 P6-to-P7 timing penalty uses the historical provisional reference band'
       radiusF3: 0.629 / 0.593, radiusCurrent: 0.629 };
     assert.equal(context.computeSegmentScore({ fm }, 'frame4'), 7.5);
     const report = context.computeTempoSequenceReport({ timeDeltaSec: 0.2946, sequenceIndex: 2.20 }, evidence);
-    assert.equal(report.score100, 41);
+    assert.equal(report.score100, 93);
     assert.equal(report.sTempo, 100);
-    close(report.sequenceWeight, 0.27);
+    close(report.sequenceWeight, 0.9);
     close(report.downswingWeight, 0.1);
-    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.02, sequenceIndex: 2.20 }, evidence).score100, 66);
-    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.06, sequenceIndex: 2.20 }, evidence).score100, 90);
-    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.8, sequenceIndex: 2.20 }, evidence).score100, 81);
-    assert.equal(context.computeTempoSequenceReport({ sequenceIndex: 2.20 }, evidence).score100, 81);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.02, sequenceIndex: 2.20 }, evidence).score100, 93);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.06, sequenceIndex: 2.20 }, evidence).score100, 93);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.8, sequenceIndex: 2.20 }, evidence).score100, 93);
+    assert.equal(context.computeTempoSequenceReport({ sequenceIndex: 2.20 }, evidence).score100, 93);
+    assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.06 }, evidence).score100, null);
     assert.equal(context.computeTempoSequenceReport({ timeDeltaSec: 0.8 }, null).score100, null);
   } finally {
     context.getDownswingSideEvidence = previous;
   }
 });
 
-test('F6 reproduces the distinct provisional scores shown by the two supplied reports', () => {
+test('F6 score remains stable when unvalidated time and release values differ', () => {
   const reportA = context.computeTempoSequenceReport({
     timeDeltaSec: 0.1163, releaseIndex: 31, sequenceIndex: 3,
   });
   const reportB = context.computeTempoSequenceReport({
     timeDeltaSec: 0.0632, releaseIndex: 20, sequenceIndex: 3,
   });
-  assert.equal(reportA.score100, 52);
-  assert.equal(reportB.score100, 70);
-  assert.ok(reportA.score100 < reportB.score100);
+  assert.equal(reportA.score100, 100);
+  assert.equal(reportB.score100, 100);
 });
 
 test('three-point average bonus uses independent phase contributions, requires all four scores, and caps at ten', () => {
@@ -726,14 +796,15 @@ test('engine evidence distinguishes missing data, compression-only, and compress
   close(context.combineEngineCompressionEvidence(0.4, null), 0.4);
 });
 
-test('classification consumes three-point engine evidence without modifying frame scores', () => {
+test('three-point spread remains diagnostic and cannot change Type 3 engine fit', () => {
   context.areVideoSourcesSame = () => true;
   context.getSwingTypeReadiness = () => ({ ready: true });
   context.segmentDeltaHistory = {
     frame1: { fm: { c7XPercent: 1, c7YPercent: 1, xFactorDelta: -90 } },
     frame2: { fm: { radiusCompressionRatio: 0.2, pelvisLateralDelta: 0.25 } },
     frame3: { fm: { c7SwayPercent: 1, c7RisePercent: 0, kneeExtDelta: 15, hipDropPercent: 2, leadLegBraceRatioB: 0.1 } },
-    frame4: { fm: { armShaftDelta: 50 } },
+    frame4: { fm: { armShaftDelta: 50, armShaftAngleBDeg: 175 } },
+    frame6: { fm: { timeDeltaSec: 0.08, lagAngleA6: 90 } },
   };
   context.frameMetricsHistory = {
     frame1: { _swingRadiusB: 1 }, frame2: { _swingRadiusB: 0.8 }, frame4: { _swingRadiusB: 0.9 },
@@ -745,12 +816,9 @@ test('classification consumes three-point engine evidence without modifying fram
     frame1: { threePointSpreadRatio: 0.4 }, frame2: { threePointSpreadRatio: 0.2 },
     frame3: { threePointSpreadRatio: 0.15 }, frame4: { threePointSpreadRatio: 0.3 },
   };
-  context.frameStateHistory = { front: {}, side: Object.fromEntries([1,2,3,4].map(i=>[
-    `frame${i}`,{videoTime:i},
-  ])) };
   const after = context.classifySwingType();
   close(after.compressionCycle, after.distanceCompressionCycle * 0.75 + 0.25);
-  assert.notEqual(before.pct.type3, after.pct.type3);
+  assert.equal(before.pct.type3, after.pct.type3);
   assert.equal(JSON.stringify(context.segmentScoreHistory), frameScores);
   context.segmentDeltaHistory = {};
   context.frameSideMetricsHistory = {};
@@ -870,6 +938,7 @@ test('five PDF experiments retain motion differences instead of converging to ni
       context.segmentDeltaHistory = {
         frame1: { fm: sample.f1 }, frame2: { fm: sample.f2 },
         frame3: { fm: f3 }, frame4: { fm: f4 },
+        frame6: { fm: { timeDeltaSec: 0.06, lagAngleA6: 90 } },
       };
       const scores = ['frame2', 'frame3', 'frame4'].map(frame =>
         context.computeSegmentScore(context.segmentDeltaHistory[frame], frame));
@@ -1018,90 +1087,81 @@ test('updated Lee report keeps observed extension distinct from inferred power o
   }
 });
 
-test('Type 3 uses exact 35:35:30 weights, no neutral credit, and strictly required ordered evidence', () => {
-        context.areVideoSourcesSame = () => true;
-        context.frameStateHistory = { front: {}, side: Object.fromEntries([1,2,3,4].map(i=>[
-          `frame${i}`,{videoTime:i},
-        ])) };
-        const vertical = { available: true, fit: .6 };
-        const three = { available: true, topToF2: -15, f3ToF4: 15 };
-        try {
-          close(context.getType3CombinedEvidence(three, vertical).fit, .88);
-          close(context.getType3CombinedEvidence({ ...three, topToF2: 0, f3ToF4: 0 }, vertical).fit, .18);
-          close(context.getType3CombinedEvidence({ ...three, topToF2: -2, f3ToF4: 2 }, vertical).fit, .18);
-          close(context.getType3CombinedEvidence({ ...three, topToF2: -8.5, f3ToF4: 6 }, vertical).fit, .53);
-          close(context.getType3CombinedEvidence({ ...three, f3ToF4: -15 }, vertical).fit, .53);
-          close(context.getType3CombinedEvidence(three, { ...vertical, fit: 0 }).fit, .7);
-          assert.equal(context.getType3CombinedEvidence({ ...three, available: false }, vertical).fit, null);
-          assert.equal(context.getType3CombinedEvidence(three, { ...vertical, available: false }).fit, null);
-          for (const time of [3, 2, null]) {
-            context.frameStateHistory.side.frame4.videoTime = time;
-            const evidence = context.getType3CombinedEvidence(three, vertical);
-            assert.equal(evidence.fit, null);
-            assert.ok(evidence.issues.some(issue => issue.includes('F4 B')));
-            const text = context.formatType3CombinedEvidence({ type3CombinedEvidence: evidence, verticalEvidence: vertical });
-            assert.match(text, /F3 B 3.000s/);
-            assert.match(text, /Hold reasons/);
-            assert.match(text, /reanalyze that frame/);
-          }
-          context.frameStateHistory.side.frame4.videoTime = 4;
-          const complete = context.getType3CombinedEvidence(three, vertical);
-          assert.equal(complete.issues.length, 0);
-          assert.equal(complete.times.length, 4);
-          context.areVideoSourcesSame = () => false;
-          assert.equal(context.getType3CombinedEvidence(three, vertical).fit, null);
-          const balanced = { share: { type1: .34, type2: .33, type3: .33 },
-            scores: { type1: .7, type2: .7, type3: .7 },
-            type3CombinedEvidence: { available: true }, verticalEvidence: { fit: 0 },
-            coactivation: { all: false, vertical: false } };
-          assert.equal(context.getPowerEngineDecision(balanced).code, null, 'shape alone cannot create TKE');
-          assert.equal(context.getPowerEngineDecision({ ...balanced, verticalEvidence: { fit: .5 },
-            coactivation: { all: false, vertical: true } }).code, 'TKE');
-        } finally {
-          context.frameStateHistory = { front: {}, side: {} };
-          context.areVideoSourcesSame = () => false;
-        }
+test('Type 3 scores P6 lag retention, P7 impact extension and vertical evidence at 30:30:40', () => {
+  const oldLanguage = context.uiLanguage;
+  context.areVideoSourcesSame = () => true;
+  const vertical = { available: true, fit: .6 };
+  const p6p7 = { timeDeltaSec: .06, lagAngleA6: 90 };
+  try {
+    for (const [lag, expected] of [[20, 0], [30, 0], [50, .5], [70, 1], [90, 1],
+      [110, 1], [130, .5], [150, 0], [170, 0]]) {
+      close(context.scoreP6LagRetention(lag), expected);
+      const evidence = context.getType3CombinedEvidence(
+        { ...p6p7, lagAngleA6: lag }, vertical, 175);
+      close(evidence.lagRetentionFit, expected);
+      close(evidence.impactExtensionFit, 1);
+      close(evidence.fit, .30 * expected + .30 + .40 * .6);
+    }
+    for (const [alignment, expected] of [[139, 0], [140, 0], [157.5, .5], [175, 1], [180, 1]]) {
+      const evidence = context.getType3CombinedEvidence(p6p7, vertical, alignment);
+      close(evidence.impactExtensionFit, expected);
+      close(evidence.fit, .30 + .30 * expected + .40 * .6);
+    }
+    for (const invalid of [null, -0.01, 0, NaN]) {
+      const evidence = context.getType3CombinedEvidence(
+        { ...p6p7, timeDeltaSec: invalid }, vertical, 175);
+      assert.equal(evidence.available, false);
+      assert.equal(evidence.fit, null);
+    }
+    assert.equal(context.getType3CombinedEvidence({ ...p6p7, lagAngleA6: null }, vertical, 175).fit, null);
+    assert.equal(context.getType3CombinedEvidence(p6p7, vertical, null).fit, null);
+    assert.equal(context.getType3CombinedEvidence(p6p7, { ...vertical, available: false }, 175).fit, null);
+    const incomplete = context.getType3CombinedEvidence(p6p7, vertical, null);
+    const text = context.formatType3CombinedEvidence({
+      type3CombinedEvidence: incomplete, verticalEvidence: vertical,
+    });
+    assert.match(text, /P6→P7/);
+    assert.match(text, /Hold reasons/);
+    context.areVideoSourcesSame = () => false;
+    assert.equal(context.getType3CombinedEvidence(p6p7, vertical, 175).fit, null);
+    const balanced = { share: { type1: .34, type2: .33, type3: .33 },
+      scores: { type1: .7, type2: .7, type3: .7 },
+      type3CombinedEvidence: { available: true }, verticalEvidence: { fit: 0 },
+      coactivation: { all: false, vertical: false } };
+    assert.equal(context.getPowerEngineDecision(balanced).code, null, 'shape alone cannot create TKE');
+    assert.equal(context.getPowerEngineDecision({ ...balanced, verticalEvidence: { fit: .5 },
+      coactivation: { all: false, vertical: true } }).code, 'TKE');
+  } finally {
+    context.areVideoSourcesSame = () => false;
+    context.uiLanguage = oldLanguage;
+  }
 });
 
-test('Type 3 relaxes only expansion saturation to 10%, preserving zero credit and other components', () => {
-  const old = { frameStateHistory: context.frameStateHistory, uiLanguage: context.uiLanguage,
-    areVideoSourcesSame: context.areVideoSourcesSame };
+test('YouTube report Type 3 fit reflects retained P6 lag and impact extension despite shrinking three-point spread', () => {
+  const sample = type3PhaseFixtures.find(item => item.id === 'YouTube-261005');
+  assert.ok(sample);
   context.areVideoSourcesSame = () => true;
-  context.frameStateHistory = { front: {}, side: Object.fromEntries([1, 2, 3, 4].map(i => [
-    `frame${i}`, { videoTime: i },
-  ])) };
-  const vertical = { available: true, fit: .6 };
   try {
-    for (const [change, expected] of [[-15, 0], [0, 0], [2, 0], [4, .15625],
-      [6, .5], [8, .84375], [10, 1], [15, 1], [25, 1]]) {
-      const evidence = context.getType3CombinedEvidence(
-        { available: true, topToF2: -8.5, f3ToF4: change }, vertical);
-      close(evidence.compressionFit, .5);
-      close(evidence.expansionFit, expected);
-      close(evidence.fit, .35 * .5 + .35 * expected + .30 * .6);
-      const previous = .35 * .5 + .35 * context.rampScore(change, 2, 15) + .30 * .6;
-      assert.ok(evidence.fit >= previous);
-      const total = .85 + .9 + evidence.fit;
-      close(.85 / total + .9 / total + evidence.fit / total, 1);
-      if (change > 2 && change < 15) {
-        assert.ok(evidence.fit / total > previous / (.85 + .9 + previous));
-        assert.ok(.85 / total < .85 / (.85 + .9 + previous));
-        assert.ok(.9 / total < .9 / (.85 + .9 + previous));
-      }
-      for (const language of ['ko', 'en']) {
-        context.uiLanguage = language;
-        const rules = context.formatPowerEngineRules();
-        assert.match(rules, /2→15%/);
-        assert.match(rules, /2→10%/);
-        const text = context.formatType3CombinedEvidence({
-          type3CombinedEvidence: evidence, verticalEvidence: vertical,
-        });
-        assert.match(text, /15%/);
-        assert.match(text, /10%/);
-      }
-    }
+    const evidence = context.getType3CombinedEvidence({
+      timeDeltaSec: sample.p6ToP7Ms / 1000,
+      lagAngleA6: sample.p6LagAngleDeg,
+    }, { available: true, fit: sample.verticalFit }, sample.impactArmShaftAngleDeg);
+    close(evidence.lagRetentionFit, 1);
+    close(evidence.impactExtensionFit, 1);
+    close(evidence.fit, .30 + .30 + .40 * sample.verticalFit);
+    assert.ok(sample.threePointChanges.every(change => change < 0),
+      'the measured three-point metric contracts through impact and is not a suitable expansion proxy here');
+    const oldFit = .30 * context.rampScore(-sample.threePointChanges[0], 2, 15)
+      + .30 * context.rampScore(sample.threePointChanges[2], 2, 10)
+      + .40 * sample.verticalFit;
+    const otherFits = oldFit * (100 / sample.reportedEnginePct.type3 - 1);
+    const type2Fit = otherFits * sample.reportedEnginePct.type2
+      / (sample.reportedEnginePct.type1 + sample.reportedEnginePct.type2);
+    const updatedType3Pct = evidence.fit / (otherFits + evidence.fit) * 100;
+    assert.ok(updatedType3Pct > sample.reportedEnginePct.type3);
+    assert.ok(evidence.fit > type2Fit, 'Type 3 should no longer rank below the inferred Type 2 fit');
   } finally {
-    Object.assign(context, old);
+    context.areVideoSourcesSame = () => false;
   }
 });
 
@@ -1184,6 +1244,7 @@ test('Rory report metrics produce a measured motion candidate without name-based
     frame3: { fm: { kneeExtDelta: 4.6, kneeExtensionDegB: 178.7, hipDropPercent: -1.4,
       c7RisePercent: 1.2, c7SwayPercent: .1, leadLegBraceRatioB: .05 } },
     frame4: { fm: { armShaftAngleBDeg: 158.2 } },
+    frame6: { fm: { timeDeltaSec: .06, lagAngleA6: 90 } },
   };
   context.frameMetricsHistory = Object.fromEntries([4.518,2.701,1.335,.989].map((r,i)=>[
     `frame${i+1}`,{_swingRadiusB:r},
@@ -1256,6 +1317,8 @@ test('three reference reports gain LSE balance without forced ATE/VEE ordering o
       context.segmentDeltaHistory = {
         frame1: { fm: { ...sample.f1 } }, frame2: { fm: { ...sample.f2 } },
         frame3: { fm: { ...sample.f3, enginePhaseDeltaSec: .03 } },
+        frame4: { fm: { armShaftAngleBDeg: 165 } },
+        frame6: { fm: { timeDeltaSec: .06, lagAngleA6: 90 } },
       };
       context.frameMetricsHistory = Object.fromEntries(sample.radii.map((r, i) => [
         `frame${i + 1}`, { _swingRadiusB: r },
