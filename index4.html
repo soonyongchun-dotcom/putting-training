@@ -9903,6 +9903,8 @@
         sideSpeedFactor,
         backswingFrames,
         backswingClassified: !!backswingClassification,
+        // 백스윙 입력점이 지워진 뒤에도(예: 정면 영상 재선택) 판정 결과가 유지되므로 결과 자체도 저장한다.
+        backswingClassificationResult: backswingClassification,
         backswingPhase: backswingPhaseSelect.value,
         swingCompareData,
         swingComparePhase,
@@ -10083,6 +10085,19 @@
     }
   }
 
+  function sanitizeStoredBackswingClassification(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || value.error) return null;
+    const result = {};
+    for (const [key, item] of Object.entries(value)) {
+      if (item == null || typeof item === 'boolean' || typeof item === 'string' || Number.isFinite(item)) result[key] = item;
+      else if (Array.isArray(item) && item.length <= 20
+        && item.every(entry => entry == null || typeof entry === 'boolean' || Number.isFinite(entry))) result[key] = item.slice();
+    }
+    if (result.profileCode != null && !SWING_BACKSWING_CODES.some(item => item.code === result.profileCode)) return null;
+    if (result.type != null && typeof result.type !== 'string') return null;
+    return getBackswingProfileCode(result) ? result : null;
+  }
+
   function restoreAnalysisProject(project) {
     validateAnalysisProject(project);
     const state = project.analysis;
@@ -10132,8 +10147,13 @@
       if (Number.isFinite(sideFrame.videoTime) && sideVideo.src) sideVideo.currentTime = Math.min(sideFrame.videoTime, sideVideo.duration || sideFrame.videoTime);
     }
     backswingFrames = copyProjectValue(state.backswingFrames || {});
-    backswingClassification = state.backswingClassified ? classifyBackswing(backswingFrames) : null;
-    if (backswingClassification?.error) backswingClassification = null;
+    backswingClassification = null;
+    if (state.backswingClassified) {
+      // 입력점이 모두 있으면 최신 판정 로직으로 다시 계산하고, 없거나 실패하면 저장된 판정 결과를 사용한다.
+      const recomputed = classifyBackswing(backswingFrames);
+      backswingClassification = recomputed && !recomputed.error ? recomputed
+        : sanitizeStoredBackswingClassification(state.backswingClassificationResult);
+    }
     backswingPhaseSelect.value = BACKSWING_PHASES.includes(state.backswingPhase) ? state.backswingPhase : 'address';
     backswingActive = false;
     backswingPanel.classList.remove('visible');
