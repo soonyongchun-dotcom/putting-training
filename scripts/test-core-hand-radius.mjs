@@ -474,6 +474,18 @@ test('updated radius tooltips are completely translated into English', () => {
   }
 });
 
+test('frame comparison translates axis and head-pelvis metric labels into English', () => {
+  for (const [korean, english] of [
+    ['C7–골반 동반 0.07', 'C7–pelvis coupling 0.07'],
+    ['축 고정: 어드레스→F3 C7 +0.071%', 'Axis Hold: Address→F3 C7 +0.071%'],
+    ['축 고정: 어드레스→F3 C7 +0.071% (방향 미확인)', 'Axis Hold: Address→F3 C7 +0.071% (direction unknown)'],
+    ['임팩트 골반–C7 간격 12.1%', 'Impact pelvis–C7 gap 12.1%'],
+    ['다운스윙 동반 0.02', 'Downswing coupling 0.02'],
+  ]) {
+    assert.equal(context.translateUiText(korean, 'en'), english);
+  }
+});
+
 test('frame completion requires every semantic point rather than array length', () => {
   const types = context.getFramePointTypesForView('frame4', 'front');
   const points = types.map(type => point(type, 0.5, 0.5));
