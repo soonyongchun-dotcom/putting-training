@@ -68,6 +68,16 @@ export const type3PhaseFixtures = [
   },
 ];
 
+export const frameTransitionFixtures = [
+  {
+    id: 'Oh-Sumin-driver-261005',
+    threePointSpreadPct: [19.50, 16.81, 15.36, 14.50],
+    intervalChangesPct: [-13.8, -8.7, -5.6],
+    reportedFrameScores: { frame3: 8.5, frame4: 8.5 },
+    reportedEnginePct: { type1: 34.7, type2: 31.7, type3: 33.6 },
+  },
+];
+
 export const swingReportFixtures = [
   {
     id: 'Lee-261001',

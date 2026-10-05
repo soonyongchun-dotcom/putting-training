@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { swingReportFixtures, engineCalibrationFixtures, verticalCalibrationFixtures, type3PhaseFixtures } from './swing-report-fixtures.mjs';
+import { swingReportFixtures, engineCalibrationFixtures, verticalCalibrationFixtures,
+  type3PhaseFixtures, frameTransitionFixtures } from './swing-report-fixtures.mjs';
 
 const html = readFileSync(new URL('../index4.html', import.meta.url), 'utf8');
 const context = vm.createContext({
@@ -51,6 +52,7 @@ for (const name of [
   'computePhaseTimeDelta', 'getMotionSearchRequest', 'advanceGuideStep', 'isPanelComplete',
   'getFrameMaxPoints',
   'getThreePointEngineEvidence', 'combineEngineCompressionEvidence', 'weightedAvg01',
+  'getCompressionTransitionEvidence',
   'classifySwingType', 'getStoredArmShaftDelta',
   'findNearestPointIndex', 'refreshStoredFrameAnalyses', 'reuseSharedFramePoints',
   'getReusableFrameGroup',
@@ -445,7 +447,8 @@ test('reference guide defaults closed and retains auxiliary evidence outside the
   assert.ok(guide[1].includes('id="analysisThreePointSpread"'));
   assert.ok(guide[1].includes('id="analysisTypeReference"'));
   assert.ok(guide[1].includes('id="analysisBonusReference"'));
-  assert.ok(guide[1].includes('잠정 채점 v3'));
+  assert.ok(guide[1].includes('잠정 채점 v4'));
+  assert.ok(guide[1].includes('최대 0.5점 보완'));
   assert.equal(context.translateUiText('참고 안내 — 측정 근거·채점 기준·한계', 'en'),
     'Reference Guide — Evidence, Scoring and Limitations');
   const card = html.match(/  function updateSwingTypeCard\([\s\S]*?\n  }/)[0];
@@ -895,6 +898,79 @@ test('F2 scores the supplied amateur and professional reports by actual lag angl
         pelvisLateralDelta: report.shift,
       },
     }, 'frame2'), report.expected, report.id);
+  }
+});
+
+test('Oh Sumin report adds bounded F3/F4 compression-easing supplements without requiring positive expansion', () => {
+  const sample = frameTransitionFixtures.find(item => item.id === 'Oh-Sumin-driver-261005');
+  assert.ok(sample);
+  const old = {
+    same: context.areVideoSourcesSame,
+    frameSideMetricsHistory: context.frameSideMetricsHistory,
+    frameStateHistory: context.frameStateHistory,
+    groundForce: context.computeGroundForceTransitionReport,
+    frameScoreParts: context.getFrameScoreParts,
+  };
+  context.areVideoSourcesSame = () => true;
+  context.computeGroundForceTransitionReport = () => ({ score100: 84.93 });
+  context.getFrameScoreParts = () => [{ value: 0.85, weight: 1 }];
+  context.frameSideMetricsHistory = {};
+  context.frameStateHistory = { front: {}, side: {} };
+  try {
+    const frame3 = { fm: { kneeExtensionDegB: 168.875, kneeExtDelta: 6.04,
+      c7SwayPercent: 8.04 } };
+    const frame4 = { fm: { armShaftAngleBDeg: 166.425,
+      c7XPercent: 9.55, c7YPercent: 9.55 } };
+    const base3 = context.computeSegmentScore(frame3, 'frame3');
+    const base4 = context.computeSegmentScore(frame4, 'frame4');
+    assert.equal(base3, sample.reportedFrameScores.frame3);
+    assert.equal(base4, sample.reportedFrameScores.frame4);
+
+    context.frameSideMetricsHistory = Object.fromEntries(sample.threePointSpreadPct.map((value, i) => [
+      `frame${i + 1}`, { threePointSpreadRatio: value / 100 },
+    ]));
+    context.frameStateHistory.side = Object.fromEntries([1, 2, 3, 4].map(i => [
+      `frame${i}`, { videoTime: i },
+    ]));
+    const trend = context.getCompressionTransitionEvidence();
+    assert.equal(trend.available, true);
+    const [f1, f2, f3, f4] = sample.threePointSpreadPct;
+    const topToF2 = (f2 - f1) / f1 * 100;
+    const f2ToF3 = (f3 - f2) / f2 * 100;
+    const f3ToF4 = (f4 - f3) / f3 * 100;
+    close(trend.initialCompressionPct, -topToF2);
+    close(trend.f3EasingPct, f2ToF3 - topToF2);
+    close(trend.f4EasingPct, f3ToF4 - f2ToF3);
+    assert.ok(trend.f3Bonus > 0.48 && trend.f3Bonus <= 0.5);
+    assert.ok(trend.f4Bonus > 0.3 && trend.f4Bonus < 0.35);
+    assert.deepEqual(sample.intervalChangesPct, [-13.8, -8.7, -5.6]);
+    assert.ok(sample.intervalChangesPct.every(value => value < 0),
+      'ongoing contraction remains eligible when each interval moves toward zero');
+
+    const updated3 = context.computeSegmentScore(frame3, 'frame3');
+    const updated4 = context.computeSegmentScore(frame4, 'frame4');
+    assert.equal(updated3, 9);
+    assert.equal(updated4, 9);
+    assert.ok(updated3 > base3 && updated4 > base4);
+    assert.match(context.formatFrameScoreCalibration(frame3), /F2B→F3B eased \+5\.2 pp/);
+    assert.match(context.formatFrameScoreCalibration(frame4), /F3B→F4B eased \+3\.0 pp/);
+
+    context.frameStateHistory.side.frame4.videoTime = 2;
+    assert.equal(context.getCompressionTransitionEvidence().available, false,
+      'reversed phase timestamps cannot earn the supplement');
+    context.areVideoSourcesSame = () => false;
+    assert.equal(context.getCompressionTransitionEvidence().available, false,
+      'different video sources cannot earn the supplement');
+    assert.equal(sample.reportedEnginePct.type3, 33.6,
+      'frame-score supplements do not alter engine classification evidence');
+  } finally {
+    Object.assign(context, {
+      areVideoSourcesSame: old.same,
+      frameSideMetricsHistory: old.frameSideMetricsHistory,
+      frameStateHistory: old.frameStateHistory,
+      computeGroundForceTransitionReport: old.groundForce,
+      getFrameScoreParts: old.frameScoreParts,
+    });
   }
 });
 
