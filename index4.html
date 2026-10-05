@@ -1153,6 +1153,7 @@
   .analysis-profile-code { margin-top: 4px; color: #ffe2a0; font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; }
   .analysis-profile-name { margin-top: 3px; color: #effaf6; font-weight: 650; }
   .analysis-profile-basis { display: block; margin-top: 4px; color: #b8cccb; font-size: 0.8rem; }
+  .analysis-project-note { margin: 0 0 7px; color: #a9c1bd; font-size: 0.76rem; }
   @media (max-width: 640px) {
     .analysis-classification-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
     .analysis-classification-item + .analysis-classification-item {
@@ -1326,6 +1327,9 @@
   .r10-report-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 9px 0 13px; border-bottom: 2px solid #dcebe5; color: #596d67; font-size: 0.78rem; }
   .r10-report-lead { margin: 13px 0; padding: 11px 13px; border-left: 3px solid #39856e; background: #eff7f3; color: #294b41; font-size: 0.88rem; }
   .r10-report-synthesis { margin-bottom: 10px; background: #f8fbf9; }
+  .r10-report-video-priority { margin-bottom: 10px; border-left: 4px solid #39856e !important; background: #f1f8f4; }
+  .r10-report-video-priority ul { padding-left: 20px; }
+  .r10-report-video-priority li { margin: 5px 0; }
   .r10-report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .r10-report-section { min-width: 0; padding: 12px; border: 1px solid #dce6e2; border-radius: 5px; break-inside: avoid; }
   .r10-report-section p { margin: 5px 0; color: #334640; font-size: 0.82rem; }
@@ -1546,6 +1550,9 @@
         <button type="button" id="backswingToggleBtn" title="A 영상의 측면 스윙으로 백스윙 궤적 분류">백스윙 유형 결정</button>
         <button type="button" id="distanceReferenceBtn" title="F1 어드레스에서 머리–왼발 기준선의 두 점을 클릭하거나 드래그하세요. 같은 영상은 A 기준선을 공유하며, 다른 영상은 각각 지정합니다. 키는 입력 신장이고 거리 %에는 중복 곱하지 않습니다.">기준선 지정</button>
         <button type="button" id="distanceMeasureBtn" title="두 점 사이의 화면상 거리를 측정">거리 산출</button>
+        <button type="button" id="saveAnalysisProjectBtn" title="프레임 선택과 분석 결과를 프로젝트 파일로 저장">분석 저장</button>
+        <button type="button" id="loadAnalysisProjectBtn" title="저장한 프로젝트 파일을 불러오기">분석 불러오기</button>
+        <input type="file" id="analysisProjectFileInput" accept=".json,application/json" aria-label="저장된 분석 프로젝트 선택">
         <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
         <button type="button" id="geminiAnalysisBtn" title="Gemini로 최종 스윙 결과를 쉬운 말로 분석">AI 분석</button>
         <button type="button" id="downloadPdfBtn">PDF 다운로드</button>
@@ -1553,6 +1560,7 @@
       </div>
     </div>
     <div class="analysis-panel-controls">
+      <p class="analysis-project-note" id="analysisProjectNote">프로젝트에는 영상 파일이 포함되지 않습니다. 같은 원본 영상을 먼저 불러온 뒤 분석 파일을 불러오세요.</p>
       <div class="analysis-guide-row">
         <div class="analysis-guide" id="analysisGuide">분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.</div>
         <div class="analysis-guide-actions">
@@ -1815,7 +1823,7 @@
           <th id="r10ShotColumn">샷</th><th id="r10DistanceColumn">거리</th><th id="r10SideColumn">좌우</th><th id="r10ReasonColumn">판정</th>
         </tr></thead><tbody id="r10OutlierRows"></tbody></table></div>
         <p class="r10-note" id="r10MethodNote">세션 샷 중심의 2D 타원 안에 들어오는 샷 비율입니다. 샷별 이탈 방향과 D-Plane 수치는 영상 모션 분석의 보조 자료이며 원인을 단독 확정하지 않습니다.</p>
-        <button type="button" class="r10-report-open" id="r10ReportOpenBtn" disabled>스윙 종합보고서 생성</button>
+        <button type="button" class="r10-report-open" id="r10ReportOpenBtn" disabled>영상 보완 종합보고서 생성</button>
       </div>
     </div>
     <section class="r10-report-preview" id="r10ReportPreview" hidden aria-live="polite">
@@ -2160,6 +2168,11 @@
     '래깅-릴리즈 지수': 'Lag-Release Index', '상대 변위 비율': 'Relative Displacement Ratio',
     '시퀀스 지수': 'relative displacement ratio', '임팩트 Side Bend': 'Impact Side Bend', '측면 척추 꺾임': 'side bend of the spine',
     '방향성/스퀘어 임팩트 참고 지표': 'reference metric for direction and a square impact',
+    '분석 저장': 'Save analysis', '분석 불러오기': 'Load analysis',
+    '프레임 선택과 분석 결과를 프로젝트 파일로 저장': 'Save frame selections and analysis results to a project file',
+    '저장한 프로젝트 파일을 불러오기': 'Load a saved analysis project',
+    '저장된 분석 프로젝트 선택': 'Choose a saved analysis project',
+    '프로젝트에는 영상 파일이 포함되지 않습니다. 같은 원본 영상을 먼저 불러온 뒤 분석 파일을 불러오세요.': 'Video files are not included. Load the same source videos before opening the analysis project.',
     '이 점수는 P6→P7 시간차와 2D 반경·이동 지표를 합산한 추정치입니다. 타구 방향·실제 에너지 전달은 판정하지 않으며, A/B 패널에 같은 영상을 로드해야 Δt가 유효합니다.': 'This estimate combines the P6-to-P7 time interval with 2D radius and displacement metrics. It does not determine ball direction or actual energy transfer. Load the same video in A and B for a valid Δt.',
     '레버 시퀀스:': 'Lever sequence:', '추정치입니다.': 'This is an estimate.', '영상을 불러오세요': 'Load a video',
     '점수: ': 'Score: ', ' Generated:': ' Generated:', '생성일:': 'Generated:',
@@ -9655,6 +9668,384 @@
     resetAllBtn.addEventListener('click', resetAll);
   }
 
+  const ANALYSIS_PROJECT_FORMAT = 'sy-gsap-analysis-project';
+  const ANALYSIS_PROJECT_VERSION = 1;
+  const ANALYSIS_PROJECT_MAX_BYTES = 25 * 1024 * 1024;
+  const ANALYSIS_FRAME_IDS = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'];
+  const saveAnalysisProjectBtn = document.getElementById('saveAnalysisProjectBtn');
+  const loadAnalysisProjectBtn = document.getElementById('loadAnalysisProjectBtn');
+  const analysisProjectFileInput = document.getElementById('analysisProjectFileInput');
+
+  function copyProjectValue(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function buildAnalysisProject() {
+    return {
+      format: ANALYSIS_PROJECT_FORMAT,
+      version: ANALYSIS_PROJECT_VERSION,
+      savedAt: new Date().toISOString(),
+      media: { front: videoFileIdentity.front, side: videoFileIdentity.side },
+      analysis: {
+        frameStateHistory,
+        frameMetricsHistory,
+        frameSideMetricsHistory,
+        baselineFrontResult,
+        segmentScoreHistory,
+        segmentDeltaHistory,
+        selectedSegment,
+        frontPoints,
+        frontLines,
+        sidePoints,
+        sideLines,
+        distanceLinesByView,
+        distanceReferenceLinesByView,
+        frame1ReferenceSnapshot,
+        height: analysisHeightInput.value,
+        frontZoom,
+        sideZoom,
+        frontSpeedFactor,
+        sideSpeedFactor,
+        backswingFrames,
+        backswingClassified: !!backswingClassification,
+        backswingPhase: backswingPhaseSelect.value,
+        swingCompareData,
+        swingComparePhase,
+        lastDistanceSegment,
+        lastConsistencySegment,
+        analysisSummary: analysisSummary ? analysisSummary.textContent : '',
+        analysisPanelCollapsed: analysisPanel.classList.contains('collapsed'),
+      },
+      r10: {
+        shots: r10Shots,
+        sourceName: r10SourceName,
+        units: r10Units,
+        distanceKey: r10DistanceKey,
+        sideKey: r10SideKey,
+        outlierK: r10OutlierK.value,
+        selectedShotNo: r10SelectedShotNo,
+        reportProfileNumber: r10GeneratedReport ? r10GeneratedReport.profile.n : null,
+        reportVisible: !r10ReportPreview.hidden,
+        panelVisible: !r10AnalysisPanel.hidden,
+      },
+    };
+  }
+
+  function isSafeProjectTree(value, depth = 0, budget = { nodes: 0 }) {
+    budget.nodes += 1;
+    if (budget.nodes > 250000 || depth > 40) return false;
+    if (value == null || typeof value === 'boolean') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') return value.length <= 10000 && !/[<>]/.test(value);
+    if (Array.isArray(value)) return value.length <= 20000 && value.every(item => isSafeProjectTree(item, depth + 1, budget));
+    if (typeof value !== 'object' || Object.getPrototypeOf(value) !== Object.prototype) return false;
+    return Object.entries(value).every(([key, item]) =>
+      key.length <= 100 && !['__proto__', 'prototype', 'constructor'].includes(key)
+      && isSafeProjectTree(item, depth + 1, budget));
+  }
+
+  function isProjectPoint(point) {
+    return point && typeof point === 'object'
+      && Number.isFinite(point.x) && point.x >= 0 && point.x <= 1
+      && Number.isFinite(point.y) && point.y >= 0 && point.y <= 1
+      && typeof point.type === 'string' && point.type.length <= 50;
+  }
+
+  function isProjectCoordinate(point) {
+    return point && typeof point === 'object'
+      && Number.isFinite(point.x) && point.x >= 0 && point.x <= 1
+      && Number.isFinite(point.y) && point.y >= 0 && point.y <= 1;
+  }
+
+  function isProjectLine(line) {
+    return line && isProjectCoordinate(line.start)
+      && isProjectCoordinate(line.end)
+      && (line.distancePx == null || Number.isFinite(line.distancePx));
+  }
+
+  function isProjectReferenceLines(lines) {
+    return lines && typeof lines === 'object' && !Array.isArray(lines)
+      && ['front', 'side'].every(view =>
+      lines[view] == null || (isProjectCoordinate(lines[view].start) && isProjectCoordinate(lines[view].end)));
+  }
+
+  function validateFrameInputs(history) {
+    if (!history || typeof history !== 'object' || Array.isArray(history)
+      || Object.keys(history).some(view => !['front', 'side'].includes(view))) return false;
+    return ['front', 'side'].every(view => history[view] && typeof history[view] === 'object' && !Array.isArray(history[view])
+      && Object.keys(history[view]).every(frame => ANALYSIS_FRAME_IDS.includes(frame))
+      && ANALYSIS_FRAME_IDS.every(frame => {
+        const entry = history[view][frame];
+        if (entry == null) return true;
+        return Array.isArray(entry.points) && entry.points.length <= 12 && entry.points.every(isProjectPoint)
+          && Array.isArray(entry.lines) && entry.lines.length <= 100 && entry.lines.every(isProjectLine)
+          && (entry.videoTime == null || (Number.isFinite(entry.videoTime) && entry.videoTime >= 0));
+      }));
+  }
+
+  function validateFrameResultMap(results, requireDelta = false) {
+    return results && typeof results === 'object' && !Array.isArray(results)
+      && Object.keys(results).every(frame => ANALYSIS_FRAME_IDS.includes(frame))
+      && ANALYSIS_FRAME_IDS.every(frame => {
+        const result = results[frame];
+        if (result == null) return true;
+        return typeof result === 'object' && !Array.isArray(result)
+          && (!requireDelta || result.fm == null || (typeof result.fm === 'object' && !Array.isArray(result.fm)));
+      });
+  }
+
+  function validateAnalysisProject(project) {
+    if (!project || project.format !== ANALYSIS_PROJECT_FORMAT || project.version !== ANALYSIS_PROJECT_VERSION
+      || !project.media || !project.analysis || !project.r10 || !isSafeProjectTree(project)) {
+      throw new Error(r10Text('분석 프로젝트 파일 형식 또는 버전이 올바르지 않습니다.', 'The analysis project format or version is not supported.'));
+    }
+    const state = project.analysis;
+    if (!ANALYSIS_FRAME_IDS.includes(state.selectedSegment)
+      || !validateFrameInputs(state.frameStateHistory)
+      || !Array.isArray(state.frontPoints) || !state.frontPoints.every(isProjectPoint)
+      || !Array.isArray(state.sidePoints) || !state.sidePoints.every(isProjectPoint)
+      || !Array.isArray(state.frontLines) || !state.frontLines.every(isProjectLine)
+      || !Array.isArray(state.sideLines) || !state.sideLines.every(isProjectLine)
+      || !validateFrameResultMap(state.segmentDeltaHistory, true)
+      || !validateFrameResultMap(state.frameMetricsHistory)
+      || !validateFrameResultMap(state.frameSideMetricsHistory)
+      || !state.segmentScoreHistory || typeof state.segmentScoreHistory !== 'object' || Array.isArray(state.segmentScoreHistory)
+      || !state.distanceReferenceLinesByView
+      || !isProjectReferenceLines(state.distanceReferenceLinesByView)
+      || !state.distanceLinesByView || typeof state.distanceLinesByView !== 'object' || Array.isArray(state.distanceLinesByView)
+      || !['front', 'side'].every(view =>
+        Array.isArray(state.distanceLinesByView[view]) && state.distanceLinesByView[view].length <= 100
+        && state.distanceLinesByView[view].every(isProjectLine))
+      || !state.frame1ReferenceSnapshot || typeof state.frame1ReferenceSnapshot !== 'object'
+      || Array.isArray(state.frame1ReferenceSnapshot) || !['front', 'side'].every(view =>
+        state.frame1ReferenceSnapshot[view] == null
+        || (Number.isFinite(state.frame1ReferenceSnapshot[view]) && state.frame1ReferenceSnapshot[view] > 0))
+      || state.frontPoints.length > 12 || state.sidePoints.length > 12
+      || state.frontLines.length > 100 || state.sideLines.length > 100
+      || !Number.isInteger(Number(state.height)) || Number(state.height) < 160 || Number(state.height) > 190
+      || !['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].includes(state.lastDistanceSegment)
+      || !['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].includes(state.lastConsistencySegment)
+      || Object.keys(state.segmentScoreHistory).some(frame => !ANALYSIS_FRAME_IDS.includes(frame))
+      || ANALYSIS_FRAME_IDS.some(frame => state.segmentScoreHistory[frame] != null
+        && (!Number.isFinite(state.segmentScoreHistory[frame])
+          || state.segmentScoreHistory[frame] < 0
+          || state.segmentScoreHistory[frame] > (['frame1', 'frame2', 'frame3', 'frame4'].includes(frame) ? 10 : 100)))
+      || !state.backswingFrames || typeof state.backswingFrames !== 'object' || Array.isArray(state.backswingFrames)
+      || Object.keys(state.backswingFrames).some(phase => !BACKSWING_PHASES.includes(phase))
+      || Object.values(state.backswingFrames).some(entry => !entry || !Array.isArray(entry.points)
+        || entry.points.length > 3 || !entry.points.every(isProjectCoordinate)
+        || (entry.time != null && (!Number.isFinite(entry.time) || entry.time < 0)))
+      || !Array.isArray(project.r10.shots) || project.r10.shots.length > 5000
+      || !['carry', 'total'].includes(project.r10.distanceKey)
+      || !['carrySide', 'totalSide'].includes(project.r10.sideKey)
+      || (project.r10.reportProfileNumber != null
+        && (!Number.isInteger(project.r10.reportProfileNumber) || project.r10.reportProfileNumber < 1 || project.r10.reportProfileNumber > 35))) {
+      throw new Error(r10Text('저장된 프레임·점수·R10 데이터가 올바르지 않습니다.', 'The saved frame, score, or R10 data is invalid.'));
+    }
+    for (const view of ['front', 'side']) {
+      const identity = project.media[view];
+      if (identity != null && videoFileIdentity[view] !== identity) {
+        const label = view === 'front' ? 'A' : 'B';
+        throw new Error(r10Text(
+          `저장한 프로젝트의 ${label} 영상과 현재 영상이 일치하지 않습니다. 저장에 사용한 원본 영상을 먼저 불러온 뒤 프로젝트를 다시 여세요.`,
+          `The current ${label} video does not match the project. Load the original video used for this project, then open it again.`
+        ));
+      }
+    }
+    project.r10.shots.forEach(shot => {
+      if (!shot || !Number.isFinite(shot.shotNo)
+        || ['carry', 'total', 'carrySide', 'totalSide', 'clubPath', 'faceAngle', 'faceToPath',
+          'attackAngle', 'smash', 'spinAxis', 'ballSpeed', 'clubSpeed', 'launchAngle'].some(key =>
+          shot[key] != null && !Number.isFinite(shot[key]))
+        || ['clubType', 'shotDate', 'playerName'].some(key => shot[key] != null && typeof shot[key] !== 'string')) {
+        throw new Error(r10Text('저장된 R10 샷 데이터가 올바르지 않습니다.', 'The saved R10 shot data is invalid.'));
+      }
+    });
+  }
+
+  function saveAnalysisProject() {
+    try {
+      const project = buildAnalysisProject();
+      const json = JSON.stringify(project, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      if (blob.size > ANALYSIS_PROJECT_MAX_BYTES) {
+        alert(r10Text('분석 프로젝트가 25 MB를 초과해 저장할 수 없습니다.', 'The analysis project exceeds the 25 MB size limit.'));
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const baseName = (document.getElementById('frontFileName')?.textContent || 'SwingAnalysis')
+        .replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9가-힣_-]/g, '_') || 'SwingAnalysis';
+      link.href = url;
+      link.download = `${baseName}_analysis_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('분석 프로젝트 저장 실패', error);
+      alert(r10Text('분석 프로젝트를 저장하지 못했습니다. 브라우저 저장 공간을 확인한 뒤 다시 시도하세요.', 'Could not save the analysis project. Check browser storage and try again.'));
+    }
+  }
+
+  function restoreAnalysisProject(project) {
+    validateAnalysisProject(project);
+    const state = project.analysis;
+    frameStateHistory = copyProjectValue(state.frameStateHistory);
+    frameMetricsHistory = copyProjectValue(state.frameMetricsHistory);
+    frameSideMetricsHistory = copyProjectValue(state.frameSideMetricsHistory);
+    baselineFrontResult = copyProjectValue(state.baselineFrontResult);
+    segmentScoreHistory = copyProjectValue(state.segmentScoreHistory);
+    segmentDeltaHistory = copyProjectValue(state.segmentDeltaHistory);
+    distanceLinesByView = copyProjectValue(state.distanceLinesByView);
+    distanceReferenceLinesByView = copyProjectValue(state.distanceReferenceLinesByView);
+    frame1ReferenceSnapshot = copyProjectValue(state.frame1ReferenceSnapshot);
+    selectedSegment = state.selectedSegment;
+    analysisSegmentSelect.value = selectedSegment;
+    analysisHeightInput.value = state.height;
+    frontZoom = clamp(Number(state.frontZoom) || 1, 0.2, 4);
+    sideZoom = clamp(Number(state.sideZoom) || 1, 0.2, 4);
+    frontZoomRange.value = frontZoom;
+    sideZoomRange.value = sideZoom;
+    frontSpeedFactor = clamp(Number(state.frontSpeedFactor) || 1, 0.1, 4);
+    sideSpeedFactor = clamp(Number(state.sideSpeedFactor) || 1, 0.1, 4);
+    frontSpeedRange.value = frontSpeedFactor;
+    sideSpeedRange.value = sideSpeedFactor;
+    selectedView = null;
+    frontWrapper.classList.remove('selected', 'hidden');
+    sideWrapper.classList.remove('selected', 'hidden');
+    frontZoomRange.closest('.zoom-controls').style.display = '';
+    sideZoomRange.closest('.zoom-controls').style.display = '';
+    updateSelectionButtons();
+    applyVideoZoom(frontVideo, frontZoom);
+    applyVideoZoom(sideVideo, sideZoom);
+    applyPlaybackRates();
+    frontPoints = copyProjectValue(state.frontPoints);
+    frontLines = copyProjectValue(state.frontLines);
+    sidePoints = copyProjectValue(state.sidePoints);
+    sideLines = copyProjectValue(state.sideLines);
+    const frontFrame = frameStateHistory.front[selectedSegment];
+    const sideFrame = frameStateHistory.side[selectedSegment];
+    if (frontFrame) {
+      frontPoints = copyProjectValue(frontFrame.points);
+      frontLines = copyProjectValue(frontFrame.lines);
+      if (Number.isFinite(frontFrame.videoTime) && frontVideo.src) frontVideo.currentTime = Math.min(frontFrame.videoTime, frontVideo.duration || frontFrame.videoTime);
+    }
+    if (sideFrame) {
+      sidePoints = copyProjectValue(sideFrame.points);
+      sideLines = copyProjectValue(sideFrame.lines);
+      if (Number.isFinite(sideFrame.videoTime) && sideVideo.src) sideVideo.currentTime = Math.min(sideFrame.videoTime, sideVideo.duration || sideFrame.videoTime);
+    }
+    backswingFrames = copyProjectValue(state.backswingFrames || {});
+    backswingClassification = state.backswingClassified ? classifyBackswing(backswingFrames) : null;
+    if (backswingClassification?.error) backswingClassification = null;
+    backswingPhaseSelect.value = BACKSWING_PHASES.includes(state.backswingPhase) ? state.backswingPhase : 'address';
+    backswingActive = false;
+    backswingPanel.classList.remove('visible');
+    backswingResult.textContent = backswingClassification
+      ? `${r10Text('복원된 백스윙 분류', 'Restored backswing classification')}: ${getBackswingProfileCode(backswingClassification) || r10Text('판정 보류', 'undetermined')}`
+      : '';
+    swingCompareData = createEmptySwingCompareData();
+    if (state.swingCompareData) {
+      for (const view of ['front', 'side']) {
+        for (const phase of SWING_COMPARE_PHASES) {
+          const entry = state.swingCompareData[view]?.[phase.id];
+          if (!entry || !Array.isArray(entry.points)) continue;
+          swingCompareData[view][phase.id] = {
+            points: entry.points.filter(point => point && SWING_COMPARE_POINT_TYPES.some(type => type.id === point.type)
+              && isProjectPoint({ ...point, type: String(point.type) })).map(point => ({ x: point.x, y: point.y, type: point.type })),
+            videoTime: Number.isFinite(entry.videoTime) ? entry.videoTime : null,
+          };
+        }
+      }
+    }
+    swingComparePhase = SWING_COMPARE_PHASES.some(phase => phase.id === state.swingComparePhase) ? state.swingComparePhase : 'address';
+    swingComparePhaseSelect.value = swingComparePhase;
+    lastDistanceSegment = ['frame1', 'frame2', 'frame3', 'frame4'].includes(state.lastDistanceSegment) ? state.lastDistanceSegment : 'frame1';
+    lastConsistencySegment = ['frame5', 'frame6'].includes(state.lastConsistencySegment) ? state.lastConsistencySegment : 'frame5';
+    if (analysisSummary) analysisSummary.textContent = state.analysisSummary || r10Text('저장한 영상 분석 결과를 복원했습니다.', 'Saved video-analysis results restored.');
+    analysisPanel.classList.toggle('collapsed', state.analysisPanelCollapsed !== false);
+    analysisToggleBtn.textContent = analysisPanel.classList.contains('collapsed') ? translateUiText('펼치기') : translateUiText('접기');
+    frameEditMode = !!(frontFrame || sideFrame);
+    frameProgressNotice = null;
+    autoFrameAdvanceTarget = null;
+    guideView = 'front';
+    guideStep = 0;
+    if (analysisGuide) analysisGuide.textContent = r10Text('저장된 프레임 선택과 분석 결과를 복원했습니다.', 'Saved frame selections and analysis results restored.');
+    if (analysisGuideStep) analysisGuideStep.textContent = '';
+    updateSegmentScoresDisplay();
+    updateAllFramesMetricBar();
+    updateThreePointSpreadDisplay();
+    updateSwingCompareResults();
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+
+    r10Shots = copyProjectValue(project.r10.shots);
+    r10SourceName = project.r10.sourceName || '';
+    r10Units = copyProjectValue(project.r10.units || {});
+    r10DistanceKey = project.r10.distanceKey;
+    r10SideKey = project.r10.sideKey;
+    r10OutlierK.value = ['1.5', '2'].includes(String(project.r10.outlierK)) ? String(project.r10.outlierK) : '1.5';
+    r10SelectedShotNo = Number.isFinite(project.r10.selectedShotNo) ? project.r10.selectedShotNo : null;
+    r10GeneratedReport = null;
+    r10ReportPreview.hidden = true;
+    r10Dashboard.hidden = r10Shots.length < 2;
+    r10ClearBtn.disabled = r10Shots.length < 2;
+    r10ReportOpenBtn.disabled = r10Shots.length < 2;
+    if (r10Shots.length >= 2) {
+      renderR10Analysis();
+      if (project.r10.reportProfileNumber) {
+        r10GeneratedReport = buildR10SwingReport(project.r10.reportProfileNumber);
+        if (r10GeneratedReport) {
+          r10ReportSheet.innerHTML = r10GeneratedReport.html;
+          r10ReportPreview.hidden = !project.r10.reportVisible;
+        }
+      }
+      setR10Status(`${r10SourceName || r10Text('복원된 R10 분석', 'Restored R10 analysis')} · ${r10Shots.length} ${r10Text('개 샷 복원', 'shots restored')}`);
+    } else {
+      r10Analysis = null;
+      r10SourceName = '';
+      r10Status.textContent = r10Text('R10 데이터가 포함되지 않은 프로젝트입니다.', 'This project does not include R10 data.');
+    }
+    r10AnalysisPanel.hidden = !project.r10.panelVisible;
+    r10EvaluationToggleBtn.setAttribute('aria-expanded', String(!r10AnalysisPanel.hidden));
+    updateSwingTypeCard();
+    checkButtonsEnabled();
+    updateStatus();
+  }
+
+  if (saveAnalysisProjectBtn) saveAnalysisProjectBtn.addEventListener('click', saveAnalysisProject);
+  if (loadAnalysisProjectBtn && analysisProjectFileInput) {
+    loadAnalysisProjectBtn.addEventListener('click', () => analysisProjectFileInput.click());
+    analysisProjectFileInput.addEventListener('change', async event => {
+      const file = event.target.files && event.target.files[0];
+      analysisProjectFileInput.value = '';
+      if (!file) return;
+      if (file.size > ANALYSIS_PROJECT_MAX_BYTES) {
+        alert(r10Text('분석 파일은 25 MB 이하만 불러올 수 있습니다.', 'Analysis project files must be 25 MB or smaller.'));
+        return;
+      }
+      try {
+        const project = JSON.parse(await file.text());
+        validateAnalysisProject(project);
+        const hasCurrentWork = r10Shots.length > 0 || backswingClassification
+          || ANALYSIS_FRAME_IDS.some(frame => segmentDeltaHistory[frame]
+            || frameStateHistory.front[frame] || frameStateHistory.side[frame]);
+        if (hasCurrentWork && !confirm(r10Text(
+          '현재 분석 결과를 저장된 프로젝트로 바꿉니다. 계속할까요?',
+          'Replace the current analysis with the saved project?'
+        ))) return;
+        restoreAnalysisProject(project);
+        alert(r10Text('분석 프로젝트를 복원했습니다. 동일한 원본 영상의 프레임 선택과 분석 결과를 이어서 사용할 수 있습니다.', 'Analysis project restored. Continue with the saved frame selections and results for the same source videos.'));
+      } catch (error) {
+        console.error('분석 프로젝트 불러오기 실패', error);
+        alert(error instanceof SyntaxError
+          ? r10Text('JSON 분석 프로젝트 파일을 읽지 못했습니다.', 'Could not parse the analysis project JSON file.')
+          : error.message || r10Text('분석 프로젝트를 복원하지 못했습니다.', 'Could not restore the analysis project.'));
+      }
+    });
+  }
+
   saveFrameBtn.addEventListener('click', () => {
     if(!frontVideo.paused || !sideVideo.paused){
       alert("Pause the video(s) before saving.");
@@ -9768,9 +10159,9 @@
   function setR10LanguageCopy() {
     const copy = uiLanguage === 'en'
       ? {
-        title: 'R10 Impact Support', subtitle: 'Shot-center consistency · miss pattern · motion-analysis context',
+        title: 'R10 Video-Assisted Analysis', subtitle: 'Use R10 shot patterns to prioritize video motion review',
         file: 'Choose Garmin R10 CSV', clear: 'Clear', status: 'Load a CSV to use it as supporting evidence for the motion analysis.',
-        reportButton: 'Create swing report', profileTitle: 'Swing profile number', profilePrompt: 'Enter the confirmed SY-GSAP profile number. Its backswing pattern and power engine are filled from the profile automatically. (01–35)',
+        reportButton: 'Create video-review report', profileTitle: 'Swing profile number', profilePrompt: 'Enter the confirmed SY-GSAP profile number. Its backswing pattern and power engine are filled from the profile automatically. (01–35)',
         profileLabel: 'Profile number', generate: 'Generate report', cancel: 'Cancel', pdf: 'Download PDF', closeReport: 'Collapse',
         model: 'Consistency model', distance: 'Distance metric', side: 'Lateral deviation', threshold: 'Outlier threshold k',
         modelA: 'A · Valid shot ratio', modelB: 'B · Coefficient of variation', modelC: 'C · D-Plane composite index',
@@ -9796,9 +10187,9 @@
         unitShots: 'shots', noEllipse: '2D ellipse unavailable (at least 3 non-collinear shots required).',
       }
       : {
-        title: 'R10 임팩트 보조 분석', subtitle: '샷 중심 일관성 · 미스샷 패턴 · 영상 분석 참고',
+        title: 'R10 영상 보조 분석', subtitle: 'R10 샷 패턴을 바탕으로 영상 모션 보완 우선순위를 확인합니다.',
         file: 'Garmin R10 CSV 선택', clear: '초기화', status: 'CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.',
-        reportButton: '스윙 종합보고서 생성', profileTitle: '스윙 프로필 번호', profilePrompt: '확정된 SY-GSAP 프로필 번호를 입력하세요. 백스윙 유형과 스윙 엔진은 번호에서 자동으로 연결됩니다. (01~35)',
+        reportButton: '영상 보완 종합보고서 생성', profileTitle: '스윙 프로필 번호', profilePrompt: '확정된 SY-GSAP 프로필 번호를 입력하세요. 백스윙 유형과 스윙 엔진은 번호에서 자동으로 연결됩니다. (01~35)',
         profileLabel: '프로필 번호', generate: '보고서 생성', cancel: '취소', pdf: 'PDF 다운로드', closeReport: '접기',
         model: '일관성 모델', distance: '거리 지표', side: '좌우 편차', threshold: '아웃라이어 기준 k',
         modelA: 'A · 유효 타격 비율', modelB: 'B · 변동계수 점수', modelC: 'C · D-Plane 복합 지수',
@@ -10452,12 +10843,89 @@
       : null;
     const videoProfileMatches = observedBackswing && observedEngine
       ? observedBackswing === profile.g && observedEngine === profile.e : null;
+    const mechanicsProfile = videoProfileMatches === false ? observedProfile : profile;
+    const mechanicsDescription = mechanicsProfile ? getR10ProfileMechanics(mechanicsProfile) : null;
+    const mechanicsReference = mechanicsDescription
+      ? `<p><strong>${r10Text('연결할 프로필 역학', 'Profile mechanics reference')}:</strong> ${escapeR10ReportText(mechanicsDescription.backswing)} · ${escapeR10ReportText(mechanicsDescription.engine)}${videoProfileMatches === false ? ` (${r10Text('관측 분류 기준', 'based on observed classification')})` : videoProfileMatches === true ? ` (${r10Text('영상 분류 일치', 'matches video classification')})` : ` (${r10Text('영상 확인 전 가설', 'hypothesis pending video confirmation')})`}</p>`
+      : `<p>${r10Text('영상 분류가 없어 프로필 역학을 이번 스윙에 연결하지 않았습니다.', 'No video classification is available; profile mechanics are not linked to this swing.')}</p>`;
     const motionEvidence = [];
     if (observedBackswing) motionEvidence.push(`${r10Text('영상 백스윙 분류', 'Video backswing classification')}: ${observedBackswing} (${observedBackswing === profile.g ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
     if (observedEngine) motionEvidence.push(`${r10Text('영상 엔진 분류', 'Video engine classification')}: ${observedEngine} (${observedEngine === profile.e ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
     if (hasMetric(f2.laggingAngleDelta)) motionEvidence.push(`${r10Text('F2 래깅각 변화', 'F2 lag-angle change')}: ${f2.laggingAngleDelta.toFixed(1)}°`);
     if (hasMetric(f3.c7RisePercent)) motionEvidence.push(`${r10Text('F3 C7 상하 변위', 'F3 C7 vertical displacement')}: ${f3.c7RisePercent.toFixed(1)}%`);
     if (hasMetric(f5.handOffsetDelta)) motionEvidence.push(`${r10Text('F5 손 이탈', 'F5 hand separation')}: ${(f5.handOffsetDelta * 100).toFixed(1)}%`);
+    const videoEngineCue = mechanicsProfile ? ({
+      ATE: r10Text('축을 안정시킨 회전 토크 중심', 'rotation around a stable axis'),
+      LSE: r10Text('전환부 골반의 선형 이동과 하체 리드', 'linear pelvis shift and lower-body lead through transition'),
+      VEE: r10Text('하체 로딩 뒤 수직 신전과 리드레그 브레이싱', 'vertical extension after lower-body loading and lead-leg bracing'),
+      RLH: r10Text('축회전과 정밀한 골반 이동의 시차 결합', 'sequenced axial rotation and precise pelvis shift'),
+      RVH: r10Text('축회전과 하체 구동·수직 신전의 결합', 'axial rotation combined with lower-body drive and vertical extension'),
+      LVH: r10Text('골반 이동과 수직 신전의 순차 결합', 'sequenced pelvis shift and vertical extension'),
+      TKE: r10Text('회전·선형 이동·수직 신전의 순차 결합', 'sequenced rotation, linear shift, and vertical extension'),
+    })[mechanicsProfile.e] : '';
+    const videoPhaseCues = {
+      frame1: r10Text('F1 탑에서 C7 축·척추각과 어깨 회전, 손·클럽의 분류 플레인 위치를 확인합니다.', 'At the F1 top, check C7 axis/spine angle, shoulder turn, and hand/club position against the classified plane.'),
+      frame2: r10Text('F2 전환에서 골반 리드와 손 반경 압축, 래깅이 프로필의 파워 기전과 맞물리는 순서를 확인합니다.', 'At F2 transition, check the sequence linking pelvis lead, hand-radius compression, and lag to the profile power mechanism.'),
+      frame3: r10Text('F3에서 축 안정과 하체 신전·브레이싱 또는 회전/이동 순서가 함께 나타나는지 확인합니다.', 'At F3, check whether axis stability accompanies lower-body extension/bracing or the profile rotation/shift sequence.'),
+      frame4: r10Text('F4 임팩트에서 팔-샤프트 정렬과 C7 위치를 확인하고, R10 결과를 원인으로 단정하지 않습니다.', 'At F4 impact, check arm-shaft alignment and C7 position; do not treat R10 outcomes as proof of cause.'),
+      frame5: r10Text('F5에서 프로필 동작 순서가 반복될 때 손·C7·골반·클럽의 복귀가 재현되는지 비교합니다.', 'At F5, compare whether hand, C7, pelvis, and club return consistently when the profile sequence is repeated.'),
+      frame6: r10Text('F6에서 골반·몸통의 상대 변위와 측면 전달 경로가 프로필의 힘 전달 순서와 맞는지 확인합니다.', 'At F6, check whether relative pelvis/torso displacement and side-view delivery path fit the profile force-transfer sequence.'),
+    };
+    const videoMetricDetails = {
+      frame1: [
+        [r10Text('어깨 회전(2D)', 'Shoulder turn (2D)'), hasMetric(segmentDeltaHistory.frame1?.fm?.xFactorDelta) ? `${segmentDeltaHistory.frame1.fm.xFactorDelta.toFixed(1)}°` : null],
+        [r10Text('탑 샤프트각', 'Top shaft angle'), hasMetric(segmentDeltaHistory.frame1?.fm?.topShaftAngleDeg) ? `${segmentDeltaHistory.frame1.fm.topShaftAngleDeg.toFixed(1)}°` : null],
+        ['C7 X/Y', hasMetric(segmentDeltaHistory.frame1?.fm?.c7XPercent) && hasMetric(segmentDeltaHistory.frame1?.fm?.c7YPercent) ? `${segmentDeltaHistory.frame1.fm.c7XPercent.toFixed(1)}% / ${segmentDeltaHistory.frame1.fm.c7YPercent.toFixed(1)}%` : null],
+      ],
+      frame2: [
+        [r10Text('실제 래깅각', 'Measured lag angle'), hasMetric(f2.laggingAngleBDeg) ? `${f2.laggingAngleBDeg.toFixed(1)}°` : null],
+        [r10Text('탑→F2 압축', 'Top→F2 compression'), hasMetric(f2.radiusCompressionRatio) ? `${(f2.radiusCompressionRatio * 100).toFixed(1)}%` : null],
+        [r10Text('골반 이동', 'Pelvis shift'), hasMetric(f2.pelvisLateralDelta) ? `${(f2.pelvisLateralDelta * 100).toFixed(1)}%` : null],
+      ],
+      frame3: [
+        [r10Text('무릎 신전각', 'Knee extension'), hasMetric(f3.kneeExtensionDegB) ? `${f3.kneeExtensionDegB.toFixed(1)}°` : null],
+        ['C7 Sway', hasMetric(f3.c7SwayPercent) ? `${f3.c7SwayPercent.toFixed(1)}%` : null],
+        [r10Text('자세 전환 proxy', 'Posture-transition proxy'), hasMetric(f3._groundForce?.score100) ? `${f3._groundForce.score100.toFixed(0)}/100` : null],
+      ],
+      frame4: [
+        [r10Text('팔-샤프트 정렬', 'Arm-shaft alignment'), hasMetric(getImpactAlignment(segmentDeltaHistory.frame4?.fm || {})) ? `${getImpactAlignment(segmentDeltaHistory.frame4.fm).toFixed(1)}°` : null],
+        ['C7 X/Y', hasMetric(segmentDeltaHistory.frame4?.fm?.c7XPercent) && hasMetric(segmentDeltaHistory.frame4?.fm?.c7YPercent) ? `${segmentDeltaHistory.frame4.fm.c7XPercent.toFixed(1)}% / ${segmentDeltaHistory.frame4.fm.c7YPercent.toFixed(1)}%` : null],
+      ],
+      frame5: [
+        [r10Text('손 이탈', 'Hand separation'), hasMetric(f5.handOffsetDelta) ? `${(f5.handOffsetDelta * 100).toFixed(1)}%` : null],
+        [r10Text('골반 이동', 'Pelvis shift'), hasMetric(f5.pelvisShiftRatio) ? `${(f5.pelvisShiftRatio * 100).toFixed(1)}%` : null],
+      ],
+      frame6: [
+        [r10Text('상대 변위 비율', 'Relative displacement ratio'), hasMetric(segmentDeltaHistory.frame6?.fm?.sequenceIndex) ? segmentDeltaHistory.frame6.fm.sequenceIndex.toFixed(2) : null],
+        [r10Text('측면 전달 경로', 'Side-view delivery path'), getDownswingSideEvidence() ? r10Text('측정됨', 'measured') : null],
+      ],
+    };
+    const videoFrames = [
+      { id: 'frame1', label: 'F1', denominator: 10, score: segmentScoreHistory.frame1, threshold: 8 },
+      { id: 'frame2', label: 'F2', denominator: 10, score: segmentScoreHistory.frame2, threshold: 8 },
+      { id: 'frame3', label: 'F3', denominator: 10, score: segmentScoreHistory.frame3, threshold: 8 },
+      { id: 'frame4', label: 'F4', denominator: 10, score: segmentScoreHistory.frame4, threshold: 8 },
+      { id: 'frame5', label: 'F5', denominator: 100, score: f5._consistency?.score100, threshold: 70 },
+      { id: 'frame6', label: 'F6', denominator: 100, score: segmentDeltaHistory.frame6?.fm?._tempo?.score100, threshold: 70 },
+    ];
+    const lowVideoFrames = videoFrames.filter(frame => hasMetric(frame.score) && frame.score < frame.threshold);
+    const lowVideoFrameHtml = lowVideoFrames.length
+      ? `<ul>${lowVideoFrames.map(frame => {
+        const metrics = (videoMetricDetails[frame.id] || []).filter(([, value]) => value)
+          .map(([label, value]) => `${label} ${value}`).join(' · ') || r10Text('세부 측정값 없음', 'No detail metrics available');
+        return `<li><strong>${frame.label} ${r10Text('우선 확인', 'priority review')} · ${frame.score.toFixed(1)}/${frame.denominator}</strong> — ${escapeR10ReportText(metrics)}<br>${escapeR10ReportText(videoPhaseCues[frame.id])} ${escapeR10ReportText(videoEngineCue)}</li>`;
+      }).join('')}</ul>`
+      : `<p>${r10Text('기준 미만의 측정 점수는 없습니다. 점수 미측정 프레임은 보완 판정에서 제외했습니다.', 'No measured frame score is below the review threshold. Unscored frames are excluded from the assessment.')}</p>`;
+    const videoPriorityHtml = `<section class="r10-report-section r10-report-video-priority"><h3>${r10Text('영상 분석 보완 우선순위', 'Video-analysis priorities')}</h3>`
+      + `<p>${escapeR10ReportText(videoProfileMatches === false
+        ? `${r10Text('선택 프로필과 영상 분류가 달라, 실제 영상 분류', 'The selected profile differs from the video classification; use the observed classification')} ${observedBackswing}::${observedEngine} ${r10Text('의 역학을 기준으로 낮은 점수 프레임을 해석합니다.', 'to interpret low-scoring frames.')}`
+        : videoProfileMatches === true
+          ? `${r10Text('영상 분류가 선택 프로필과 일치합니다. 아래 연결은 해당 프로필의 역학 가설을 낮은 점수 프레임의 확인 항목으로 번역한 것입니다.', 'Video classification matches the selected profile. The links below translate its mechanics hypothesis into review checks for low-scoring frames.')}`
+          : `${r10Text('영상 분류가 아직 완료되지 않아 선택 프로필은 참고 가설로만 사용합니다. 낮은 점수는 측정된 프레임 모션 기준으로 확인하세요.', 'Video classification is incomplete, so the selected profile is only a reference hypothesis. Review low scores against measured frame motion.')}`)}</p>`
+      + mechanicsReference
+      + lowVideoFrameHtml
+      + `<p>${r10Text('R10 결과는 점검할 샷 패턴을 제시하고, 낮은 프레임 점수는 영상에서 확인할 모션 후보를 좁힙니다. 함께 나타났다는 사실만으로 인과관계를 확정하지 말고, 동일 클럽의 재측정으로 보완 여부를 확인하세요.', 'R10 identifies shot patterns to investigate and low frame scores narrow the motion candidates to review. Co-occurrence does not establish causality; confirm improvement with a same-club retest.')}</p>`
+      + `<small class="r10-report-evidence">${r10Text('우선 점검 기준: F1–F4 &lt;8/10, F5–F6 &lt;70/100. F1–F4는 지표 기반 잠정점수, F5 일관성과 F6 템포·시퀀스 점수도 수행능력 기준으로 검증되지 않았습니다. 실제 영상 입력이 없는 지표는 추정하지 않습니다.', 'Review thresholds: F1–F4 &lt;8/10 and F5–F6 &lt;70/100. F1–F4 are provisional metric scores; F5 consistency and F6 tempo/sequence scores are not validated performance standards. Metrics without video input are not inferred.')}</small></section>`;
     const drillItems = [];
     if (directionIssue === 'OUT_TO_IN_CLOSED_FACE_PATTERN') drillItems.push({ title: r10Text('전환 샬로잉 펌프', 'Transition shallowing pumps'), text: r10Text('3세트 × 8회. P4에서 P5까지 하체 리드를 느끼고, P6 허리 높이에서 손과 팔꿈치가 몸 앞에 유지되는지 측면 영상으로 확인합니다.', '3 × 8 reps. Feel the lower-body lead from P4 to P5; use side video to check that hands and elbow stay in front at P6 waist height.') });
     if (directionIssue === 'IN_TO_OUT_OPEN_FACE_PATTERN') drillItems.push({ title: r10Text('연결 유지 후 릴리스', 'Connected-arm release'), text: r10Text('3세트 × 8회. 허리 높이 하프스윙으로 손-몸 간격을 유지하고, 페이스-경로 및 좌우 편차를 비교합니다.', '3 × 8 reps. Use waist-high half swings to maintain hand-body spacing, then compare face-to-path and lateral deviation.') });
@@ -10564,9 +11032,10 @@
     return {
       profile,
       html: `<div class="r10-report-kicker">SY-GSAP · ${r10Text('스윙 종합 분석', 'Swing Synthesis Report')}</div>
-        <h2>${escapeR10ReportText(r10Text('스윙 보완 리포트', 'Swing Development Report'))}</h2>
+        <h2>${escapeR10ReportText(r10Text('R10 영상 보조분석 종합보고서', 'R10 Video-Assisted Swing Analysis Report'))}</h2>
         <div class="r10-report-meta"><span>${r10Text('프로필', 'Profile')} ${String(profile.n).padStart(2, '0')} · ${escapeR10ReportText(profile.g)}::${escapeR10ReportText(profile.e)}</span><span>${escapeR10ReportText(profileName)}</span><span>${r10Text('클럽', 'Club')}: ${escapeR10ReportText(clubLabel)}</span><span>${escapeR10ReportText(dateLabel)}</span><span>${shots.length} ${r10Text('샷', 'shots')}</span></div>
         <div class="r10-report-lead">${escapeR10ReportText(profileMatchText)} <small>${r10Text('입력 프로필은 분석 기준이며 R10에서 역판정한 결과가 아닙니다.', 'Selected profile is the analysis reference, not inferred from R10.')}</small></div>
+        ${videoPriorityHtml}
         ${synthesisHtml}
         <div class="r10-report-grid">
           <section class="r10-report-section"><h3>${r10Text('방향성 보완', 'Directional review')}</h3><strong>${escapeR10ReportText(directionTitle)}</strong><p>${escapeR10ReportText(directionInterpretation)}</p><ul>${metric(r10Text('Club Path 평균', 'Mean Club Path'), clubPath, '°')}${metric(r10Text('Face to Path 평균', 'Mean Face to Path'), faceToPath, '°')}${metric(r10Text('Spin Axis 원형 평균', 'Circular mean Spin Axis'), spinAxis, '°')}${metric(r10Text('클럽 페이스 평균', 'Mean Face Angle'), faceAngle, '°')}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(directionCorrection)}</p><small class="r10-report-evidence">${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(directionEvidenceCount)} (${directionEvidenceCount}/3 ${r10Text('지표,', 'metrics,')} ${shots.length} ${r10Text('샷; 인과 모션은 영상 확인 필요', 'shots; causal motion requires video verification')})</small></section>
