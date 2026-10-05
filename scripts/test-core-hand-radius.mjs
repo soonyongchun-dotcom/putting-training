@@ -9,6 +9,7 @@ const html = readFileSync(new URL('../index4.html', import.meta.url), 'utf8');
 const context = vm.createContext({
   uiLanguage: 'en',
   frameEditMode: false,
+  ANALYSIS_FRAME_IDS: ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'],
   areVideoSourcesSame: () => false,
   frontVideo: { videoWidth: 1, videoHeight: 1 },
   sideVideo: { videoWidth: 1, videoHeight: 1 },
@@ -21,6 +22,7 @@ const context = vm.createContext({
   frameSideMetricsHistory: {},
   frameStateHistory: { front: {}, side: {} },
   updateSegmentComparisonCard: () => {},
+  showGuide: () => {},
 });
 
 function loadFunction(name) {
@@ -31,6 +33,9 @@ function loadFunction(name) {
 
 for (const name of [
   'clamp', 'hasMetric', 'smoothstep01', 'bandScore', 'rampScore', 'roundToStep',
+  'getForwardDrift', 'getSwingTargetSign', 'scoreHeadPelvisCoupling', 'scoreImpactHeadPelvisGap',
+  'computeHeadPelvisDifferentialShift', 'getHeadPelvisSeparationFit',
+  'scoreExponentialReferenceBand', 'scoreImpactDownswingCoupling',
   'computeFrameMetrics', 'computeArcCompactScore', 'computeTransferScore',
   'computeImpactScore', 'applyProjectionNormalization', 'computeGroundForceTransitionReport',
   'computeTempoSequenceReport', 'refreshFrameRadiusExpansion',
@@ -38,6 +43,7 @@ for (const name of [
   'combineMetricScores', 'computeSegmentScore', 'countAvailableMetrics',
   'computeRawSegmentScore', 'formatFrameScoreCalibration',
   'scoreLagAngle', 'scoreP6LagRetention', 'getImpactAlignment', 'getLateRadiusExpansion', 'scoreLateRadiusExpansion',
+  'getF2MetricBreakdown', 'formatF2ProReferenceComparison',
   'getFrameScoreParts', 'getThreePointDirectionFit', 'getPowerEngineDecision',
   'getVerticalEngineEvidence', 'formatEngineEvidence',
   'getVerticalMotionDiagnostics', 'formatVerticalMotionDiagnostics',
@@ -53,8 +59,10 @@ for (const name of [
   'getFrameMaxPoints',
   'getThreePointEngineEvidence', 'combineEngineCompressionEvidence', 'weightedAvg01',
   'getCompressionTransitionEvidence',
+  'getThreePointProfilePenalty',
   'classifySwingType', 'getStoredArmShaftDelta',
-  'findNearestPointIndex', 'refreshStoredFrameAnalyses', 'reuseSharedFramePoints',
+  'findNearestPointIndex', 'refreshStoredFrameAnalyses', 'hasProjectFrameInputs',
+  'clearDerivedAnalysisState', 'reuseSharedFramePoints',
   'getReusableFrameGroup',
   'deletePoint', 'saveFrameInputState', 'getGuideStepForPoints', 'getAutoPointType',
   'addPoint',
@@ -189,6 +197,8 @@ test('F2-F6 delta distances use calibrated references and preserve body-relative
   const sandbox = vm.createContext({
     hasMetric: context.hasMetric, clamp: context.clamp,
     getThreePointSpreadChange: context.getThreePointSpreadChange,
+    getSwingTargetSign: () => null,
+    getAddressC7DriftPercent: () => ({ value: null, directional: false }),
     frontVideo: { videoWidth: 1, videoHeight: 1 },
     sideVideo: { videoWidth: 1, videoHeight: 1 },
     getLockedReferenceLineLength: view => view === 'front' ? 0.8 : 0.4,
@@ -322,7 +332,7 @@ test('auxiliary display handles incomplete data, history updates, languages and 
   assert.match(element.textContent, /F2 B → F4 B: \+50.0% \(expansion\)/);
   context.uiLanguage = 'ko';
   context.updateThreePointSpreadDisplay();
-  assert.match(element.textContent, /점수 미반영/);
+  assert.match(element.textContent, /실험적 F3\/F4 전환 감점/);
   context.frameSideMetricsHistory = {};
   context.updateThreePointSpreadDisplay();
   assert.doesNotMatch(element.textContent, /-50.0%/);
@@ -471,6 +481,20 @@ test('updated radius tooltips are completely translated into English', () => {
     const decoded = tooltip[1].replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)));
     assert.doesNotMatch(context.translateUiText(decoded, 'en'), /[가-힣]/, id);
     assert.equal(context.translateUiText(decoded, 'ko'), decoded);
+  }
+});
+
+test('updated exponential F2 and F4 reference-band tooltips translate without Korean', () => {
+  for (const id of [
+    'analysisDeltaCardF2Score', 'analysisDeltaCardF2LagAngle',
+    'analysisDeltaCardF2RadiusCompression', 'analysisDeltaCardF2CoreShift',
+    'analysisDeltaCardF4Score', 'analysisDeltaCardF4RMax',
+  ]) {
+    const tooltip = html.match(new RegExp(`id="${id}"[^>]*data-tooltip="([^"]*)"`));
+    assert.ok(tooltip, id);
+    const decoded = tooltip[1].replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)));
+    const translated = context.translateUiText(decoded, 'en');
+    assert.doesNotMatch(translated, /[가-힣]/, id);
   }
 });
 
@@ -634,6 +658,50 @@ test('related rebuild restores the active editor and uses each saved frame time 
   assert.equal(calls[0].times.b, 1.5);
   assert.equal(calls[1].times.b, 2.5);
   context.performAnalysis = originalAnalysis;
+});
+
+test('project restore detects saved raw frame inputs and clears every derived metric cache', () => {
+  const emptyState = {
+    frameStateHistory: { front: {}, side: {} },
+    frontPoints: [], frontLines: [], sidePoints: [], sideLines: [],
+  };
+  assert.equal(context.hasProjectFrameInputs(emptyState), false);
+  emptyState.frameStateHistory.front.frame2 = {
+    points: [point('pelvis', 0.4, 0.5)], lines: [],
+  };
+  assert.equal(context.hasProjectFrameInputs(emptyState), true);
+  delete emptyState.frameStateHistory.front.frame2;
+  emptyState.sideLines = [{ start: { x: .2, y: .2 }, end: { x: .4, y: .4 } }];
+  assert.equal(context.hasProjectFrameInputs(emptyState), true);
+
+  context.baselineFrontResult = { stale: true };
+  context.frameMetricsHistory = { frame1: { stale: true } };
+  context.frameSideMetricsHistory = { frame1: { stale: true } };
+  context.segmentScoreHistory = { frame1: 9 };
+  context.segmentDeltaHistory = { frame1: { stale: true } };
+  context.clearDerivedAnalysisState();
+  assert.equal(context.baselineFrontResult, null);
+  for (const name of ['frameMetricsHistory', 'frameSideMetricsHistory', 'segmentScoreHistory', 'segmentDeltaHistory']) {
+    assert.deepEqual({ ...context[name] }, Object.fromEntries(context.ANALYSIS_FRAME_IDS.map(frame => [frame, null])));
+  }
+});
+
+test('project restore invalidates old async work and only reports recalculated scores after rebuilding inputs', () => {
+  const restoreStart = html.indexOf('  function restoreAnalysisProject(project)');
+  const restoreEnd = html.indexOf('  if (saveAnalysisProjectBtn)', restoreStart);
+  assert.ok(restoreStart >= 0 && restoreEnd > restoreStart);
+  const restore = html.slice(restoreStart, restoreEnd);
+  assert.ok(restore.indexOf('analysisGeneration += 1') < restore.indexOf('frameStateHistory = copyProjectValue'));
+  assert.ok(restore.indexOf('clearDerivedAnalysisState()') < restore.indexOf('refreshStoredFrameAnalyses()'));
+  assert.match(restore, /if \(hasFrameInputs\) refreshStoredFrameAnalyses\(\);/);
+  assert.match(restore, /frontVideo\.readyState < 1[\s\S]*?sideVideo\.readyState < 1/);
+  assert.doesNotMatch(restore, /Stored frame re-analysis failed|console\.warn/);
+  const loaderStart = html.indexOf("analysisProjectFileInput.addEventListener('change'");
+  const loaderEnd = html.indexOf('\n  }', loaderStart);
+  const loader = html.slice(loaderStart, loaderEnd);
+  assert.match(loader, /frontPoints\.length > 0[\s\S]*?sideLines\.length > 0/);
+  assert.match(loader, /Analysis project restored; metrics and scores were recalculated/);
+  assert.match(loader, /Motion metrics and scores were not recalculated/);
 });
 
 test('F6 searches the shaft-parallel P6 phase and does not time unrelated videos', () => {
@@ -860,8 +928,8 @@ test('metric scores preserve missing data, coverage and provisional labels witho
     assert.equal(missing.scoreCoverage.available, 0);
     const result = { fm: frame === 'frame2' ? { laggingAngleBDeg: 68 }
       : frame === 'frame3' ? { kneeExtensionDegB: 177 } : { armShaftAngleBDeg: 177 } };
-    assert.equal(context.computeSegmentScore(result, frame), 10);
-    assert.equal(result.segmentRawScore, 10);
+    assert.equal(context.computeSegmentScore(result, frame), frame === 'frame2' ? 9.5 : 10);
+    assert.equal(result.segmentRawScore, frame === 'frame2' ? 9.5 : 10);
     assert.equal(result.experimentalScoreCalibration, false);
     assert.equal(result.scoreCoverage.available, 1);
     assert.match(context.formatFrameScoreCalibration(result), /Provisional metric score/);
@@ -869,15 +937,15 @@ test('metric scores preserve missing data, coverage and provisional labels witho
 });
 
 test('F2 uses actual lag, F3 uses extension state, and F4 ignores incompatible angle-radius proxies', () => {
-  const f2 = { fm: { laggingAngleBDeg: 68.1, laggingAngleDelta: 62.4, radiusCompressionRatio: 0.442, pelvisLateralDelta: 0.145 } };
+  const f2 = { fm: { laggingAngleBDeg: 68.1, laggingAngleDelta: 62.4, radiusCompressionRatio: 0.442, pelvisLateralDelta: 0.145, targetSign2: 1 } };
   const score = context.computeSegmentScore(f2, 'frame2');
   f2.fm.laggingAngleDelta = -120;
   assert.equal(context.computeSegmentScore(f2, 'frame2'), score);
   assert.ok(context.scoreLagAngle(68.1) > context.scoreLagAngle(147));
   assert.equal(context.scoreLagAngle(47.3), 1);
   assert.ok(context.scoreLagAngle(102.7) < 0.25);
-  const noLag = { fm: { laggingAngleBDeg: 102.7, radiusCompressionRatio: 0.351, pelvisLateralDelta: -0.056 } };
-  assert.equal(context.computeSegmentScore(noLag, 'frame2'), 5);
+  const noLag = { fm: { laggingAngleBDeg: 102.7, radiusCompressionRatio: 0.351, pelvisLateralDelta: -0.056, targetSign2: 1 } };
+  assert.equal(context.computeSegmentScore(noLag, 'frame2'), 4.5);
   assert.equal(context.scoreLagAngle(190), null);
   const f3 = { fm: { kneeExtDelta: 2, kneeExtensionDegB: 175 } };
   const extensionScore = context.computeSegmentScore(f3, 'frame3');
@@ -895,10 +963,107 @@ test('F2 uses actual lag, F3 uses extension state, and F4 ignores incompatible a
   for (const value of [-0.02, 0, 0.02]) close(context.scoreLateRadiusExpansion(value), 0.5);
 });
 
+test('F2 protects the observed pro C7 range and penalizes large absolute C7 travel', () => {
+  const f2 = { fm: {
+    laggingAngleBDeg: 82.3,
+    radiusCompressionRatio: 0.277,
+    pelvisLateralDelta: 0.239,
+    c7LateralDelta2: 0.06,
+    targetSign2: 1,
+  } };
+  const score = context.computeSegmentScore(f2, 'frame2');
+  close(f2.fm.headPelvisCouplingRatio2, 0.06 / 0.239);
+  close(f2.fm.headStableScore2, 1);
+  const excessiveC7 = context.getF2MetricBreakdown({
+    laggingAngleBDeg: 60, radiusCompressionRatio: 0.4,
+    pelvisLateralDelta: 0.24, c7LateralDelta2: 0.305,
+  });
+  assert.ok(excessiveC7.headStability < 0.2);
+  assert.equal(score, 5.5);
+});
+
+test('F2 scores absolute pelvis and C7 shift magnitudes regardless of target direction', () => {
+  const fm = {
+    laggingAngleBDeg: 82.3,
+    radiusCompressionRatio: 0.277,
+    pelvisLateralDelta: 0.239,
+    c7LateralDelta2: 0.06,
+    targetSign2: null,
+  };
+  const breakdown = context.getF2MetricBreakdown(fm);
+  close(breakdown.pelvisShiftMagnitude, 0.239);
+  assert.ok(breakdown.pelvisShiftScore > 0);
+  close(breakdown.headPelvisCoupling, 0.06 / 0.239);
+  const reversed = context.getF2MetricBreakdown({
+    ...fm, pelvisLateralDelta: -fm.pelvisLateralDelta, c7LateralDelta2: -fm.c7LateralDelta2,
+    targetSign2: 1,
+  });
+  close(reversed.pelvisShiftScore, breakdown.pelvisShiftScore);
+  close(reversed.headStability, breakdown.headStability);
+  const oldLanguage = context.uiLanguage;
+  try {
+    context.uiLanguage = 'ko';
+    assert.match(context.formatF2ProReferenceComparison(fm, breakdown), /좌우 방향이 아닌 크기 기준/);
+    context.uiLanguage = 'en';
+    assert.match(context.formatF2ProReferenceComparison(fm, breakdown), /magnitude only, direction ignored/);
+  } finally {
+    context.uiLanguage = oldLanguage;
+  }
+});
+
+test('F2 report breakdown and pro comparisons surface lag, compression and C7-pelvis gaps', () => {
+  const fm = {
+    laggingAngleBDeg: 82.3,
+    radiusCompressionRatio: 0.277,
+    pelvisLateralDelta: 0.239,
+    c7LateralDelta2: 0.06,
+    targetSign2: 1,
+  };
+  const breakdown = context.getF2MetricBreakdown(fm);
+  close(breakdown.headPelvisCoupling, 0.06 / 0.239);
+  const oldLanguage = context.uiLanguage;
+  try {
+    context.uiLanguage = 'ko';
+    const text = context.formatF2ProReferenceComparison(fm, breakdown);
+    assert.match(text, /82\.3° vs Rory 42\.2° \/ Tiger 64\.9° \(\+40\.1° \/ \+17\.4°; 프로 참고 상한 초과·거리별 지수 감점\)/);
+    assert.match(text, /27\.7% vs Rory 40\.2% \/ Tiger 39\.8% \(-12\.5%p \/ -12\.1%p; 프로 참고 범위 이탈·거리별 지수 감점\)/);
+    assert.match(text, /23\.9% vs Rory 23\.7% \/ Tiger 27\.5% \(\+0\.2%p \/ -3\.6%p; 선수 참고 이동 크기 범위 안\)/);
+    assert.match(text, /X 이동 크기 차 17\.9%p, 동반률 25\.1% \(안정 계수 1\.00; 좌우 방향이 아닌 크기 기준/);
+    assert.match(text, /프로 C7 비교자료 없음/);
+
+    context.uiLanguage = 'en';
+    const english = context.formatF2ProReferenceComparison(fm, breakdown);
+    assert.match(english, /Versus pro references/);
+    assert.match(english, /X magnitude difference 17\.9 pp, co-movement 25\.1% \(stability factor 1\.00/);
+    assert.doesNotMatch(english, /[가-힣]/);
+  } finally {
+    context.uiLanguage = oldLanguage;
+  }
+});
+
+test('F4 impact-separation tooltip and reference explain the scored displacement difference', () => {
+  const tooltip = html.match(/id="analysisDeltaCardF4C7XY"[^>]*data-tooltip="([^"]*)"/);
+  assert.ok(tooltip);
+  const decoded = tooltip[1].replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)));
+  const oldLanguage = context.uiLanguage;
+  try {
+    context.uiLanguage = 'en';
+    const translatedTooltip = context.translateUiText(decoded, 'en');
+    assert.match(translatedTooltip, /address-to-impact C7 and pelvis X-shift magnitudes/);
+    assert.match(translatedTooltip, /Top→impact C7\/pelvis coupling/);
+    assert.doesNotMatch(translatedTooltip, /[가-힣]/);
+    assert.match(context.translateUiText(
+      'F4 임팩트 분리 추가감점: 같은 영상에서 주소→임팩트 각 X 이동의 절댓값을 비교하며 좌우 방향은 무시합니다. C7과 골반의 이동 크기 차이가 작고 다운스윙 중 함께 움직일수록 감점이 커집니다. 두 근거를 50:50으로 반영해 최대 3점 감점합니다.',
+      'en'), /F4 additional impact-separation deduction/);
+  } finally {
+    context.uiLanguage = oldLanguage;
+  }
+});
+
 test('F2 scores the supplied amateur and professional reports by actual lag angle', () => {
   const reports = [
-    { id: 'amateur-20241226', angle: 102.7, compression: 0.351, shift: -0.056, expected: 5 },
-    { id: 'amateur-20250218', angle: 109.8, compression: 0.512, shift: 0.272, expected: 6.5 },
+    { id: 'amateur-20241226', angle: 102.7, compression: 0.351, shift: -0.056, expected: 4.5 },
+    { id: 'amateur-20250218', angle: 109.8, compression: 0.512, shift: 0.272, expected: 5.5 },
     { id: 'Rory-reference', angle: 42.2, compression: 0.402, shift: 0.237, expected: 10 },
     { id: 'Tiger-reference', angle: 64.9, compression: 0.398, shift: 0.275, expected: 10 },
   ];
@@ -908,8 +1073,180 @@ test('F2 scores the supplied amateur and professional reports by actual lag angl
         laggingAngleBDeg: report.angle,
         radiusCompressionRatio: report.compression,
         pelvisLateralDelta: report.shift,
+        targetSign2: 1,
       },
     }, 'frame2'), report.expected, report.id);
+  }
+});
+
+test('F4 scores address-to-impact magnitude separation regardless of direction, not instantaneous gap', () => {
+  const proLike = context.computeHeadPelvisDifferentialShift(0.20, 0.22, 0.40, 0.49);
+  close(proLike.c7Shift, 2);
+  close(proLike.pelvisShift, 9);
+  close(proLike.separationDelta, 7);
+  const reversed = context.computeHeadPelvisDifferentialShift(0.20, 0.18, 0.40, 0.31);
+  close(reversed.c7Shift, proLike.c7Shift);
+  close(reversed.pelvisShift, proLike.pelvisShift);
+  close(reversed.separationDelta, proLike.separationDelta);
+  const wholeBodySlide = context.computeHeadPelvisDifferentialShift(0.20, 0.28, 0.40, 0.48);
+  close(wholeBodySlide.c7Shift, 8);
+  close(wholeBodySlide.pelvisShift, 8);
+  close(wholeBodySlide.separationDelta, 0);
+  assert.equal(context.getHeadPelvisSeparationFit({}, {
+    impactSeparationDelta4: 9, impactGap4: 0, c7CouplingDown4: 0.1,
+  }), 1);
+  close(context.getHeadPelvisSeparationFit({}, {
+    impactSeparationDelta4: 0, impactGap4: 9, c7CouplingDown4: 0.1,
+  }), 0.375);
+
+  const old = {
+    getFrameScoreParts: context.getFrameScoreParts,
+    getCompressionTransitionEvidence: context.getCompressionTransitionEvidence,
+  };
+  try {
+    context.getFrameScoreParts = () => [{ value: 1, weight: 1 }];
+    context.getCompressionTransitionEvidence = () => ({ f4Bonus: 0 });
+    const separated = { fm: { impactSeparationDelta4: 9, c7CouplingDown4: 0.1 } };
+    const movingTogether = { fm: { impactSeparationDelta4: 0, c7CouplingDown4: 0.1 } };
+    assert.equal(context.computeSegmentScore(separated, 'frame4'), 10);
+    assert.equal(context.computeSegmentScore(movingTogether, 'frame4'), 8.5);
+    assert.equal(movingTogether.fm.headPelvisPenalty4, 1.5);
+  } finally {
+    context.getFrameScoreParts = old.getFrameScoreParts;
+    context.getCompressionTransitionEvidence = old.getCompressionTransitionEvidence;
+  }
+});
+
+test('ordered three-point compression profile protects pro ranges and exponentially penalizes amateur deviations', () => {
+  const old = {
+    same: context.areVideoSourcesSame,
+    spread: context.frameSideMetricsHistory,
+    frames: context.frameStateHistory,
+  };
+  const evidenceFor = ([topToF2, f2ToF3, f3ToF4]) => {
+    const radii = [0.20];
+    for (const change of [topToF2, f2ToF3, f3ToF4]) {
+      radii.push(radii[radii.length - 1] * (1 + change / 100));
+    }
+    context.areVideoSourcesSame = () => true;
+    context.frameSideMetricsHistory = Object.fromEntries(radii.map((value, i) => [
+      `frame${i + 1}`, { threePointSpreadRatio: value },
+    ]));
+    context.frameStateHistory = { front: {}, side: Object.fromEntries(radii.map((_, i) => [
+      `frame${i + 1}`, { videoTime: i / 30 },
+    ])) };
+    return context.getCompressionTransitionEvidence();
+  };
+  try {
+    for (const proProfile of [
+      [-18.4, -10.6, 0.4],
+      [-23.3, -9.1, -2.5],
+      [-19.5, -6.2, 4.2],
+      [-12.9, -2.4, 0.1],
+    ]) {
+      const transition = evidenceFor(proProfile);
+      assert.equal(transition.available, true);
+      close(transition.frame3ReferenceFit, 1);
+      close(transition.frame4ReferenceFit, 1);
+      close(context.getThreePointProfilePenalty(transition, 'frame3').penalty, 0);
+      close(context.getThreePointProfilePenalty(transition, 'frame4').penalty, 0);
+    }
+
+    const femaleAmateur = evidenceFor([7.0, 2.1, -7.4]);
+    const maleAmateur = evidenceFor([-21.6, 0.8, 5.0]);
+    assert.ok(femaleAmateur.frame3ReferenceFit < 0.35);
+    assert.ok(femaleAmateur.frame4ReferenceFit < 0.60);
+    assert.ok(maleAmateur.frame3ReferenceFit < 0.85);
+    assert.ok(maleAmateur.frame4ReferenceFit < 0.80);
+    const femaleF3Penalty = context.getThreePointProfilePenalty(femaleAmateur, 'frame3').penalty;
+    const maleF3Penalty = context.getThreePointProfilePenalty(maleAmateur, 'frame3').penalty;
+    assert.ok(femaleF3Penalty > maleF3Penalty);
+    assert.ok(femaleF3Penalty > 1);
+    assert.ok(maleF3Penalty > 0 && maleF3Penalty < 0.5);
+
+    const previousParts = context.getFrameScoreParts;
+    const previousTransition = context.getCompressionTransitionEvidence;
+    try {
+      context.getFrameScoreParts = () => [{ value: 1, weight: 1 }];
+      context.getCompressionTransitionEvidence = () => femaleAmateur;
+      const f3Result = { fm: {} };
+      const f4Result = { fm: {} };
+      assert.equal(context.computeSegmentScore(f3Result, 'frame3'), 9);
+      assert.equal(context.computeSegmentScore(f4Result, 'frame4'), 9);
+      close(f3Result.fm.compressionProfilePenalty3, femaleF3Penalty);
+      close(f4Result.fm.compressionProfilePenalty4,
+        context.getThreePointProfilePenalty(femaleAmateur, 'frame4').penalty);
+    } finally {
+      context.getFrameScoreParts = previousParts;
+      context.getCompressionTransitionEvidence = previousTransition;
+    }
+  } finally {
+    context.areVideoSourcesSame = old.same;
+    context.frameSideMetricsHistory = old.spread;
+    context.frameStateHistory = old.frames;
+  }
+});
+
+test('four supplied player projects stay inside exponential F2/F4 reference ranges', () => {
+  const players = [
+    { lag: 59.17, compression: 47.95, pelvis: 10.25, c7: 4.74, ratio: 0.462, radius: 0.606, score: 10 },
+    { lag: 65.81, compression: 48.92, pelvis: 20.97, c7: 7.59, ratio: 0.271, radius: 0.180, score: 10 },
+    { lag: 49.53, compression: 47.21, pelvis: 15.90, c7: 14.60, ratio: 0.462, radius: 0.105, score: 10 },
+    { lag: 61.31, compression: 36.15, pelvis: 20.19, c7: 6.14, ratio: 0.022, radius: 0.083, score: 10 },
+  ];
+  for (const player of players) {
+    close(context.scoreLagAngle(player.lag), 1);
+    close(context.scoreExponentialReferenceBand(player.compression, 35, 50, 0.18), 1);
+    close(context.scoreExponentialReferenceBand(player.pelvis, 10, 28, 0.12), 1);
+    close(context.scoreExponentialReferenceBand(player.c7, 0, 15, 0.12), 1);
+    close(context.scoreImpactDownswingCoupling(player.ratio), 1);
+    assert.equal(context.computeSegmentScore({ fm: {
+      laggingAngleBDeg: player.lag,
+      radiusCompressionRatio: player.compression / 100,
+      pelvisLateralDelta: player.pelvis / 100,
+      c7LateralDelta2: player.c7 / 100,
+    } }, 'frame2'), player.score);
+  }
+  const amateurLag = [82.30, 98.21].map(context.scoreLagAngle);
+  const amateurCompression = [27.68, 49.63]
+    .map(value => context.scoreExponentialReferenceBand(value, 35, 50, 0.18));
+  const amateurPelvis = [23.94, 33.24]
+    .map(value => context.scoreExponentialReferenceBand(value, 10, 28, 0.12));
+  const amateurC7 = [5.96, 30.49]
+    .map(value => context.scoreExponentialReferenceBand(value, 0, 15, 0.12));
+  assert.ok(amateurLag[0] < 0.25 && amateurLag[1] < amateurLag[0]);
+  assert.ok(amateurCompression[0] < 0.5 && amateurCompression[1] === 1);
+  assert.equal(amateurPelvis[0], 1);
+  assert.ok(amateurPelvis[1] < 0.6);
+  assert.equal(amateurC7[0], 1);
+  assert.ok(amateurC7[1] < 0.2);
+  const amateurScores = [
+    { lag: 82.30, compression: 27.68, pelvis: 23.94, c7: 5.96, expected: 5.5 },
+    { lag: 98.21, compression: 49.63, pelvis: 33.24, c7: 30.49, expected: 2.5 },
+  ];
+  for (const amateur of amateurScores) {
+    assert.equal(context.computeSegmentScore({ fm: {
+      laggingAngleBDeg: amateur.lag,
+      radiusCompressionRatio: amateur.compression / 100,
+      pelvisLateralDelta: amateur.pelvis / 100,
+      c7LateralDelta2: amateur.c7 / 100,
+    } }, 'frame2'), amateur.expected);
+  }
+});
+
+test('single-interval core-hand radius magnitude does not replace the ordered profile score', () => {
+  const scoreAt = radiusF4 => context.computeSegmentScore({
+    fm: { armShaftAngleBDeg: 175, c7XPercent: 0, c7YPercent: 0, radiusF3: 1, radiusF4 },
+  }, 'frame4');
+  const previousTransition = context.getCompressionTransitionEvidence;
+  context.getCompressionTransitionEvidence = () => ({ f4Bonus: 0, frame4ReferenceFit: 1 });
+  try {
+    const neutral = scoreAt(1);
+    assert.equal(neutral, 10);
+    assert.equal(scoreAt(1.71), neutral);
+    assert.equal(scoreAt(0.29), neutral);
+  } finally {
+    context.getCompressionTransitionEvidence = previousTransition;
   }
 });
 
@@ -962,10 +1299,10 @@ test('Oh Sumin report adds bounded F3/F4 compression-easing supplements without 
     const updated3 = context.computeSegmentScore(frame3, 'frame3');
     const updated4 = context.computeSegmentScore(frame4, 'frame4');
     assert.equal(updated3, 9);
-    assert.equal(updated4, 9);
-    assert.ok(updated3 > base3 && updated4 > base4);
-    assert.match(context.formatFrameScoreCalibration(frame3), /F2B→F3B eased \+5\.2 pp/);
-    assert.match(context.formatFrameScoreCalibration(frame4), /F3B→F4B eased \+3\.0 pp/);
+    assert.equal(updated4, 8);
+    assert.ok(updated3 > base3 && updated4 < base4);
+    assert.match(context.formatFrameScoreCalibration(frame3), /Three-point trajectory: F1B→F2B -13\.8% · F2B→F3B -8\.6%/);
+    assert.match(context.formatFrameScoreCalibration(frame4), /outside-player-band deduction −0\.28/);
 
     context.frameStateHistory.side.frame4.videoTime = 2;
     assert.equal(context.getCompressionTransitionEvidence().available, false,
@@ -1038,10 +1375,17 @@ test('five PDF experiments retain motion differences instead of converging to ni
       assert.equal(context.getPowerEngineDecision(context.classifySwingType()).code, null);
       context.areVideoSourcesSame = () => true;
       for (const score of scores) assert.ok(Number.isFinite(score) && score >= 0 && score <= 10);
-      output.push({ id: sample.id, scores, engine: decision.code });
+      output.push({
+        id: sample.id,
+        scores,
+        radiusPenalty: context.segmentDeltaHistory.frame4.fm.proReferenceExpansionPenalty4,
+        engine: decision.code,
+      });
     }
-    assert.ok(output[1].scores[2] < output[0].scores[2], 'Yu side path/stability differs from Lee');
-    assert.ok(new Set(output.map(item => item.scores[2])).size >= 3, 'F4 retains distinct outcomes');
+    assert.ok(output[0].radiusPenalty < 0.01 && output[1].radiusPenalty < 0.01,
+      'Lee and Yu F3→F4 radius magnitudes stay in the expanded player reference envelope');
+    assert.ok(new Set(output.map(item => item.scores[2])).size >= 2,
+      `F4 retains distinct outcomes: ${JSON.stringify(output)}`);
     console.log('PDF metric-score regression:', JSON.stringify(output));
   } finally {
     context.areVideoSourcesSame = () => false;
