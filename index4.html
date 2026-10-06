@@ -3941,7 +3941,11 @@
       return;
     }
     if (!analysisGuide || !analysisGuideStep || !analysisGuideNextBtn) return;
-    const message = (frameEditMode ? getSwingUiText(
+    const showFrameEditToolbar = frameEditMode
+      && !swingCompareActive
+      && !distanceMeasureActive
+      && !distanceReferenceActive;
+    const message = (showFrameEditToolbar ? getSwingUiText(
       '수정 모드: 점을 클릭/우클릭하면 삭제됩니다. 빈 위치를 클릭해 누락된 점을 입력한 후 분석 실행하세요. 다른 프레임의 점은 변경하지 않습니다.\n',
       'Edit mode: click/right-click a point to delete it. Click an empty location to replace missing points, then analyze. Other frames keep their own points.\n') : '') + getGuideMessage();
     analysisGuide.textContent = message;
@@ -3949,9 +3953,9 @@
     analysisGuideStep.textContent = guideStep > 0 ? `STEP ${guideStep} / ${maxSteps}` : '';
     // 포인트 클릭 시 STEP이 자동으로 넘어가므로, 버튼은 "다음 단계 이동"이 아닌 "선택 완료 확인 후 분석 실행" 역할
     analysisGuideNextBtn.textContent = (guideView && hasGuideSelectionCompleted())
-      ? frameEditMode ? getSwingUiText('프레임 분석 갱신', 'Refresh frame analysis')
+      ? showFrameEditToolbar ? getSwingUiText('프레임 분석 갱신', 'Refresh frame analysis')
         : getSwingUiText('분석·다음 선택', 'Analyze / Continue') : getSwingUiText('포인트 선택 필요', 'Select points first');
-    analysisGuideNextBtn.title = frameEditMode ? getSwingUiText(
+    analysisGuideNextBtn.title = showFrameEditToolbar ? getSwingUiText(
       '현재 프레임의 수정 내용을 분석하고 해당 프레임 분석 지표를 갱신합니다. 현재 프레임에 머무릅니다.',
       'Analyze edits and refresh metrics for the current frame. Stay on this frame.') : getSwingUiText(
       '현재 패널을 분석하고 미완료 A/B 패널로 이동합니다. 둘 다 완료되면 다음 프레임으로 이동합니다. 재사용 포인트와 영상 시점을 먼저 확인하세요.',
@@ -8548,6 +8552,7 @@
       swingCompareToggleBtn.textContent = swingCompareActive ? 'A/B 비교 종료' : 'A/B 스윙 비교';
       swingCompareToggleBtn.classList.toggle('swing-compare-active', swingCompareActive);
     }
+    showGuide();
     updateSwingCompareGuide();
     redrawSwingCompareOverlays();
   }
@@ -9762,6 +9767,11 @@
       deleteSwingComparePoint(view, pos);
       return;
     }
+    if (distanceMeasureActive || distanceReferenceActive) {
+      deleteDistanceSelection(view, pos, ctx, canvas, video, zoom);
+      return;
+    }
+    if (backswingActive) return;
     // 우클릭(또는 롱프레스)으로 특정 점/라인을 선택적으로 삭제 — 순서와 무관하게 언제든 가능
     deletePoint(points, lines, pos, ctx, canvas, video, zoom, 0.03, view);
   }
@@ -10607,6 +10617,7 @@
       if (!distanceMeasureActive) {
         distancePendingPoints = { front: [], side: [] };
       }
+      showGuide();
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
     });
@@ -10630,6 +10641,7 @@
         distanceMeasureBtn.style.background = '';
         distanceMeasureBtn.style.borderColor = '';
       }
+      showGuide();
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
     });
