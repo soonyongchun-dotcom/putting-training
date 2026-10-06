@@ -14,7 +14,9 @@ where schemaname = 'public'
     'sytpt_assigned_missions',
     'sytpt_mission_progress',
     'sytpt_self_eval',
-    'sytpt_match_info'
+    'sytpt_match_info',
+    'player_biometrics',
+    'player_r10_shots'
   )
 order by tablename;
 
@@ -29,7 +31,9 @@ where schemaname = 'public'
     'sytpt_assigned_missions',
     'sytpt_mission_progress',
     'sytpt_self_eval',
-    'sytpt_match_info'
+    'sytpt_match_info',
+    'player_biometrics',
+    'player_r10_shots'
   )
 order by tablename, policyname;
 

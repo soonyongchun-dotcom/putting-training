@@ -38,6 +38,17 @@
 - 로그아웃 검증
   - Supabase Auth signOut + 로컬 세션 제거
 
+### 같은 기기의 자동 로그인 및 앱 간 공유
+- index3.html과 index4.html은 sytpt-auth.js의 동일한 Supabase 세션 저장소(`sytpt_sb_auth`)를 사용합니다. 배포 시 이 공통 파일도 함께 올려야 합니다.
+- 로그인 성공 후 비밀번호가 아닌 Supabase access/refresh token을 브라우저 localStorage에 저장합니다. 새로고침·다음 실행 시 토큰 갱신과 서버 사용자 확인 후 DB 프로필 권한을 다시 검사합니다.
+- index4.html은 코치만 허용합니다. 선수 세션으로 분석 앱에 접근해도 index3.html의 선수 로그인은 유지됩니다.
+- index3.html의 스윙모션분석 연결은 같은 배포의 index4.html을 열어 세션을 공유합니다. HTTPS 사이트의 동일한 origin·브라우저 프로필에서 사용하세요. 로컬 file:// 실행의 저장소 공유는 브라우저에 따라 보장되지 않습니다.
+- 로그아웃하면 공유 세션을 삭제합니다. 브라우저 데이터 삭제, 서버 세션 만료·취소, 비공개 모드 또는 저장소 차단 시 다시 로그인해야 합니다. 공용 기기에서는 사용 후 로그아웃하세요.
+- 로그인 ID/실제 이메일, 기본·레거시 별칭, 이전 성공 이메일 힌트를 두 앱에서 동일하게 처리합니다. 별칭 후보가 `invalid_credentials`로 실패하고 다음 후보가 성공하는 경우 개발자 도구에 HTTP 400이 남을 수 있습니다.
+- HTTP 400만으로 원인을 확정할 수 없습니다. 화면 오류와 Supabase 응답 `code`를 확인하세요: `invalid_credentials`는 ID/비밀번호 또는 Auth 계정 매핑, `email_not_confirmed`는 이메일 인증, 429는 인증 요청 제한입니다.
+- 검증: index3 로그인 → index4 자동 로그인 → 각각 새로고침 → 브라우저 재실행 → 로그아웃 후 두 앱 차단. 승인 대기/비활성 선수의 자동 복원도 차단되는지 확인합니다.
+- 자동 회귀 테스트: `node --test scripts/test-shared-auth.mjs` (실제 Supabase 계정 요청 없이 저장소·이메일 후보·복원·권한·로그아웃 검사).
+
 ## 5) 보안 정리
 - sytpt_users.password 컬럼을 더 이상 사용하지 않음
 - 운영 안정화 후 password 컬럼 제거 권장

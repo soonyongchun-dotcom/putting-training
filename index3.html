@@ -308,6 +308,7 @@
     .inline-edit-trigger{cursor:pointer;text-decoration:underline;text-underline-offset:2px}
   </style>
   <script src="supabase.min.js"></script>
+  <script src="sytpt-auth.js"></script>
 </head>
 <body>
   <div class="auth-screen" id="authScreen">
@@ -568,7 +569,7 @@
     <!-- COACH PORTAL -->
     <section id="coachPortal" style="display:none">
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px;gap:8px">
-        <button class="btn" type="button" onclick="window.open('https://soonyongchun-dotcom.github.io/putting-training/index4.html','_blank','noopener,noreferrer')">스윙모션분석 연결</button>
+        <button class="btn" type="button" onclick="window.open('index4.html','_blank','noopener,noreferrer')">스윙모션분석 연결</button>
         <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">경기데이터 입력</button>
       </div>
       <div class="row coach-kpi-row" style="margin-bottom:14px">
@@ -750,17 +751,8 @@
       throw new Error('Supabase service role key is not allowed in the browser');
     }
 
-    // 인메모리 auth storage: Tracking Prevention이 localStorage를 차단해도 정상 동작
-    const _memStore = (function(){
-      var store={};
-      return {
-        getItem:function(k){return Object.prototype.hasOwnProperty.call(store,k)?store[k]:null;},
-        setItem:function(k,v){store[k]=String(v);},
-        removeItem:function(k){delete store[k];}
-      };
-    })();
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { storage: _memStore, storageKey: 'sytpt_sb_auth', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }
+      auth: { storage: SytptAuth.storage, storageKey: SytptAuth.storageKey, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }
     });
 
     async function openIndex1WithSession(url){
@@ -805,7 +797,6 @@
     const STORAGE_COMM_LAST_READ = "sytpt_comm_last_read";
     const STORAGE_SIGNUP_COOLDOWN_UNTIL = "sytpt_signup_cooldown_until";
     const STORAGE_SIGNUP_RATE_LIMIT_STATE = "sytpt_signup_rate_limit_state";
-    const STORAGE_AUTH_EMAIL_HINT_PREFIX = "sytpt_auth_email_hint_";
     const STORAGE_LAST_LOGIN_ID = "sytpt_last_login_id";
     const STORAGE_COACH_KPI_LAST = "sytpt_coach_kpi_last";
     const STORAGE_READ_RECEIPT_ACTIVATED_AT = "sytpt_read_receipt_activated_at";
@@ -1791,32 +1782,11 @@
     function normalizeLoginId(v){
       return String(v||'').trim().toLowerCase();
     }
-    function toUtf8Hex(v){
-      try{
-        return Array.from(new TextEncoder().encode(String(v||'')))
-          .map(function(b){return b.toString(16).padStart(2,'0');})
-          .join('');
-      }catch(_){
-        return '';
-      }
-    }
-    const AUTH_ALIAS_DOMAIN='syegtp.app';
-    const AUTH_ALIAS_LEGACY_DOMAIN='syegtp.local';
     function buildAuthEmailFromId(loginId){
-      const normalized=normalizeLoginId(loginId);
-      const asciiLocal=normalized.replace(/[^a-z0-9._-]/g,'');
-      const fallbackLocal=('id'+toUtf8Hex(normalized)).slice(0,48);
-      const local=(asciiLocal||fallbackLocal).replace(/^\.+|\.+$/g,'');
-      if(!local) return '';
-      return local+'@'+AUTH_ALIAS_DOMAIN;
+      return SytptAuth.buildAliasEmails(loginId)[0]||'';
     }
     function buildLegacyAuthEmailFromId(loginId){
-      const normalized=normalizeLoginId(loginId);
-      const asciiLocal=normalized.replace(/[^a-z0-9._-]/g,'');
-      const fallbackLocal=('id'+toUtf8Hex(normalized)).slice(0,48);
-      const local=(asciiLocal||fallbackLocal).replace(/^\.+|\.+$/g,'');
-      if(!local) return '';
-      return local+'@'+AUTH_ALIAS_LEGACY_DOMAIN;
+      return SytptAuth.buildAliasEmails(loginId)[1]||'';
     }
     function buildSignupAuthEmailCandidates(loginId){
       var a=buildAuthEmailFromId(loginId);
@@ -1881,18 +1851,35 @@
       }
       return user||null;
     }
+    let authSessionSyncVersion=0;
     async function syncLocalSessionWithAuth(){
+      const version=++authSessionSyncVersion;
       const authRes=await sb.auth.getSession();
+      if(authRes.error) throw authRes.error;
+      if(version!==authSessionSyncVersion) return null;
       const authSession=authRes&&authRes.data?authRes.data.session:null;
       if(!authSession||!authSession.user){
         clearSession();
         return null;
       }
-      const users=await getUsers();
-      const mapped=findUserForAuthSession(users, authSession.user);
+      const userRes=await sb.auth.getUser();
+      if(userRes.error) throw userRes.error;
+      if(!userRes.data || !userRes.data.user) throw new Error('인증 서버에서 사용자 정보를 받지 못했습니다.');
+      const usersRes=await sb.from('sytpt_users').select('id,name,role,approval_status');
+      if(usersRes.error) throw usersRes.error;
+      if(version!==authSessionSyncVersion) return null;
+      const users=(usersRes.data||[]).map(fromDbUser);
+      const mapped=findUserForAuthSession(users, userRes.data.user);
       if(!mapped){
         clearSession();
-        return null;
+        throw new Error('인증 계정과 연결된 프로필이 없습니다. 코치에게 계정 매핑을 요청하세요.');
+      }
+      if(mapped.role==='player'&&String(mapped.approvalStatus||'').toLowerCase()!=='approved'){
+        clearSession();
+        await safeAuthSignOut();
+        throw new Error(mapped.approvalStatus==='inactive'
+          ? '비활성화된 선수 계정입니다. 코치에게 문의하세요.'
+          : '코치 승인 대기 중인 선수 계정입니다.');
       }
       setSession({id:mapped.id,name:mapped.name,role:mapped.role});
       return mapped;
@@ -1943,39 +1930,13 @@
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').trim());
     }
     function getAuthEmailHint(loginInput){
-      const key=normalizeLoginId(loginInput);
-      if(!key) return '';
-      return String(localStorage.getItem(STORAGE_AUTH_EMAIL_HINT_PREFIX+key)||'').trim().toLowerCase();
+      return SytptAuth.getEmailHint(loginInput);
     }
     function setAuthEmailHint(loginInput, email){
-      const key=normalizeLoginId(loginInput);
-      const v=String(email||'').trim().toLowerCase();
-      if(!key||!looksLikeEmail(v)) return;
-      localStorage.setItem(STORAGE_AUTH_EMAIL_HINT_PREFIX+key,v);
+      SytptAuth.setEmailHint(loginInput, email);
     }
     function buildAuthEmailCandidates(input, userOrUsers){
-      var list=[];
-      var raw=String(input||'').trim();
-      var hint=getAuthEmailHint(raw);
-      if(hint) list.push(hint);
-      if(raw&&looksLikeEmail(raw)) list.push(raw.toLowerCase());
-
-      var users=Array.isArray(userOrUsers)?userOrUsers:(userOrUsers?[userOrUsers]:[]);
-      users.forEach(function(user){
-        if(user&&user.id) list.push(buildAuthEmailFromId(user.id));
-        if(user&&user.id) list.push(buildLegacyAuthEmailFromId(user.id));
-        if(user&&user.name) list.push(buildAuthEmailFromId(user.name));
-        if(user&&user.name) list.push(buildLegacyAuthEmailFromId(user.name));
-      });
-
-      if(raw) list.push(buildAuthEmailFromId(raw));
-      if(raw) list.push(buildLegacyAuthEmailFromId(raw));
-      var uniq=[];
-      list.forEach(function(v){
-        var email=String(v||'').trim().toLowerCase();
-        if(email&&looksLikeEmail(email)&&uniq.indexOf(email)===-1) uniq.push(email);
-      });
-      return uniq;
+      return SytptAuth.buildEmailCandidates(input, userOrUsers);
     }
     function isAllowedAttachment(file){
       const ext=(file.name.split('.').pop()||'').toLowerCase();
@@ -3727,20 +3688,16 @@
           break;
         }
         lastAuthError=authLogin.error;
+        if(!SytptAuth.isInvalidCredentials(lastAuthError)) break;
       }
       if(!authLogin||authLogin.error){
-        var hintedUser=matchedUsers[0]||null;
-        if(hintedUser&&hintedUser.role==='coach'){
-          err.textContent='관리자 인증 계정이 없거나 비밀번호가 일치하지 않습니다. Auth 계정 이관 상태를 확인하세요.';
-        }else{
-          err.textContent='아이디 또는 비밀번호가 올바르지 않거나 인증 계정이 없습니다.';
-        }
+        err.textContent=SytptAuth.errorMessage(lastAuthError, 'ko');
         if(lastAuthError) console.warn('auth login failed', lastAuthError);
         return;
       }
       if(usedAuthEmail) setAuthEmailHint(id,usedAuthEmail);
       var authUser=authLogin.data&&authLogin.data.user;
-      // auth 성공 후 인증된 세션으로 재조회 (인메모리 스토리지 환경에서 RLS 우회)
+      // 인증 후에는 로그인 계정의 RLS 권한으로 프로필을 재조회합니다.
       if(!users.length){
         users=await getUsers();
         matchedUsers=findUsersForLogin(users,id);
@@ -4028,27 +3985,48 @@
         }
       }catch(e){}
 
-      await syncLocalSessionWithAuth();
+      clearSession();
+      try{
+        await syncLocalSessionWithAuth();
+      }catch(error){
+        console.error('Supabase session restoration failed', error);
+        clearSession();
+        document.getElementById('authError').textContent=SytptAuth.errorMessage(error, 'ko');
+      }
       if(getSession()) setupRealtimeSubscriptions();
       sb.auth.onAuthStateChange(function(event, session){
         if(event==='SIGNED_OUT' || !session){
+          ++authSessionSyncVersion;
           stopRealtimeSubscriptions();
           clearSession();
           applySessionUI();
           return;
         }
-        syncLocalSessionWithAuth().then(function(){
-          if(getSession()) setupRealtimeSubscriptions();
-          applySessionUI();
-        }).catch(function(){
-          stopRealtimeSubscriptions();
-          clearSession();
-          applySessionUI();
-        });
+        if(event!=='SIGNED_IN'&&event!=='USER_UPDATED') return;
+        setTimeout(function(){
+          syncLocalSessionWithAuth().then(function(){
+            if(getSession()) setupRealtimeSubscriptions();
+            applySessionUI();
+          }).catch(function(error){
+            console.error('Supabase session synchronization failed', error);
+            stopRealtimeSubscriptions();
+            clearSession();
+            document.getElementById('authError').textContent=SytptAuth.errorMessage(error, 'ko');
+            applySessionUI();
+          });
+        },0);
       });
       await applySessionUI();
+      if(!SytptAuth.persistenceAvailable){
+        alert('브라우저가 로그인 저장을 차단하여 다음 실행 시 다시 로그인해야 합니다.');
+      }
     }
-    init();
+    init().catch(function(error){
+      console.error('Supabase login initialization failed', error);
+      clearSession();
+      document.getElementById('authError').textContent=SytptAuth.errorMessage(error, 'ko');
+      applySessionUI();
+    });
   </script>
 </body>
 </html>

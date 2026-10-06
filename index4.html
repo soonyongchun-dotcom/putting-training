@@ -6,6 +6,7 @@
 <title>SY-GSAP (Golf Swing Analysis Platform)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
 <script src="supabase.min.js"></script>
+<script src="sytpt-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -427,6 +428,9 @@
   .login-page .swing-compare-panel {
     display: none !important;
   }
+  .login-page > :not(#loginOverlay) {
+    visibility: hidden !important;
+  }
   .login-box {
     background: rgba(255,255,255,0.95);
     border-radius: 12px;
@@ -716,6 +720,7 @@
     margin: 0 auto 18px;
     width: min(95vw, 990px);
     max-width: 990px;
+    box-sizing: border-box;
     border-radius: 12px;
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.12);
@@ -750,10 +755,81 @@
     flex: 1;
     font-size: 1.3rem;
     font-weight: 800;
-    text-align: center;
+    text-align: left;
     letter-spacing: 0.06em;
     text-transform: none;
     color: #ffffff;
+  }
+  .analysis-header-toggle {
+    flex: 0 0 auto;
+  }
+  .analysis-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    padding-top: 2px;
+  }
+  .analysis-toolbar-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 5px 7px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9px;
+    background: rgba(0,0,0,0.16);
+  }
+  .analysis-toolbar-label {
+    margin: 0 2px;
+    color: #aec4d4;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .analysis-toolbar button,
+  .analysis-toolbar select {
+    min-height: 34px;
+    padding: 5px 9px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    color: #f7fbff;
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+  .analysis-toolbar select {
+    width: min(38vw, 280px);
+    min-width: 165px;
+    background: #173149;
+  }
+  .analysis-toolbar button {
+    background: #174e72;
+  }
+  .analysis-toolbar .analysis-frame-refresh {
+    background: #087b69;
+    border-color: #45c8a7;
+    color: #f2fffb;
+    font-weight: 750;
+  }
+  .analysis-toolbar .analysis-project-load {
+    background: #315c91;
+    border-color: #75a9ed;
+  }
+  .analysis-toolbar .analysis-project-save {
+    background: #176b57;
+    border-color: #62c7a4;
+  }
+  .analysis-toolbar .analysis-danger {
+    background: rgba(156,46,53,0.5);
+    border-color: rgba(255,123,128,0.68);
+    color: #ffdfe0;
+  }
+  .analysis-toolbar .analysis-display-toggle {
+    margin-left: auto;
+    background: rgba(255,255,255,0.1);
   }
   .analysis-panel-controls {
     display: flex;
@@ -769,14 +845,15 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
-    max-width: calc(100% - 130px);
+    width: 100%;
+    max-width: none;
   }
   .analysis-panel-controls .analysis-height-control {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: nowrap;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
   .analysis-height-field select {
     width: 50px;
@@ -798,16 +875,38 @@
     padding: 5px 12px;
     font-size: 0.9rem;
   }
+  @media (max-width: 640px) {
+    .analysis-toolbar { align-items: stretch; }
+    .analysis-toolbar-group { flex: 1 1 100%; }
+    .analysis-toolbar select { flex: 1; width: auto; min-width: 0; }
+    .analysis-frame-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
+      grid-template-areas: "label label" "select action";
+    }
+    .analysis-frame-actions .analysis-toolbar-label { grid-area: label; }
+    .analysis-frame-actions select { grid-area: select; }
+    .analysis-frame-actions .analysis-frame-refresh {
+      grid-area: action;
+      max-width: 145px;
+      white-space: normal;
+    }
+    .analysis-toolbar .analysis-display-toggle { margin-left: 0; }
+    .analysis-guide { flex: 1 1 100%; }
+    .analysis-guide-actions { margin-left: 0; }
+  }
   #r10EvaluationToggleBtn {
-    width: 40px;
-    height: 40px;
-    padding: 0;
+    width: auto;
+    min-width: 64px;
+    height: 34px;
+    padding: 5px 9px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    font-size: 1.1rem;
-    line-height: 1;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.25;
   }
   #distanceReferenceBtn, #distanceMeasureBtn {
     background: #006b5e;
@@ -1208,7 +1307,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 10px;
+    margin-left: auto;
   }
   .analysis-guide-step {
     color: #cfd8ff;
@@ -1377,7 +1476,7 @@
 </div>
 
 <div class="top-bar">
-  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.106f</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">Ver 26.107-fa</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <label class="language-select" for="languageSelect">언어
     <select id="languageSelect" aria-label="언어">
       <option value="ko">한국어</option>
@@ -1513,7 +1612,7 @@
 
 <section class="backswing-panel" id="backswingPanel" aria-label="백스윙 유형 결정">
   <strong>측면 스윙 궤적 분류 · A 영상</strong>
-  <p>측면 스윙을 A에 불러오세요.</p>
+  <p>측면 영상을 A에 불러와 포인트를 입력하세요. 입력을 종료하면 원래 A 영상으로 돌아가며 프레임 점수는 유지됩니다.</p>
   <label for="backswingPhase">선택 자세</label>
   <select id="backswingPhase">
     <option value="address">어드레스</option><option value="p1">P1 · 테이크어웨이 시작</option>
@@ -1544,27 +1643,44 @@
   <div class="analysis-panel-header">
     <div class="analysis-panel-header-top">
       <span class="analysis-title">Motion Analysis</span>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-        <button type="button" id="r10EvaluationToggleBtn" title="Garmin R10 CSV 보조 평가" aria-label="Garmin R10 CSV 보조 평가" aria-expanded="false">📊</button>
-        <button type="button" id="swingCompareToggleBtn" title="서로 다른 A/B 스윙의 6개 주요 시점을 비교">A/B 스윙 비교</button>
-        <button type="button" id="backswingToggleBtn" title="A 영상의 측면 스윙으로 백스윙 궤적 분류">백스윙 유형 결정</button>
+      <button type="button" id="analysisToggleBtn" class="analysis-header-toggle">펼치기</button>
+    </div>
+    <div class="analysis-toolbar" aria-label="Motion Analysis actions">
+      <div class="analysis-toolbar-group analysis-frame-actions">
+        <label class="analysis-toolbar-label" for="analysisSegmentSelect">분석 프레임</label>
+        <select id="analysisSegmentSelect" aria-label="분석 프레임">
+          <option value="frame1">Frame 1 — 백스윙 탑·축 고정/꼬임 [A: 어드레스 → B: 백스윙 최정점]</option>
+          <option value="frame2">Frame 2 — 래깅·코어 이동 [A: 어드레스 → B: 다운스윙 3/5, 양손 허리 높이]</option>
+          <option value="frame3">Frame 3 — 다운스윙 후기·지면반력 [A: 다운스윙 4/5 → B: 임팩트 직전]</option>
+          <option value="frame4">Frame 4 — 임팩트 각도·반경 [A: 어드레스 기준 → B: 임팩트 순간]</option>
+          <option value="frame5">Frame 5 — 일관성 [A: 어드레스(P1) → B: 다운스윙 3/5, 손 허리 높이(P6)]</option>
+          <option value="frame6">Frame 6 — 리듬·템포·시퀀스 [A: 다운스윙 중기(P6, 샤프트 수평) → B: 임팩트(P7)]</option>
+        </select>
+        <button type="button" id="analysisGuideNextBtn" class="analysis-frame-refresh">다음</button>
+      </div>
+      <div class="analysis-toolbar-group analysis-measure-actions">
         <button type="button" id="distanceReferenceBtn" title="F1 어드레스에서 머리–왼발 기준선의 두 점을 클릭하거나 드래그하세요. 같은 영상은 A 기준선을 공유하며, 다른 영상은 각각 지정합니다. 키는 입력 신장이고 거리 %에는 중복 곱하지 않습니다.">기준선 지정</button>
         <button type="button" id="distanceMeasureBtn" title="두 점 사이의 화면상 거리를 측정">거리 산출</button>
-        <button type="button" id="saveAnalysisProjectBtn" title="프레임 선택과 분석 결과를 프로젝트 파일로 저장">분석 저장</button>
-        <button type="button" id="loadAnalysisProjectBtn" title="저장한 프로젝트 파일을 불러오기">분석 불러오기</button>
+        <button type="button" id="swingCompareToggleBtn" title="서로 다른 A/B 스윙의 6개 주요 시점을 비교">A/B 스윙 비교</button>
+        <button type="button" id="backswingToggleBtn" title="A 영상의 측면 스윙으로 백스윙 궤적 분류">백스윙 유형 결정</button>
+        <button type="button" id="r10EvaluationToggleBtn" title="Garmin R10 CSV 보조 평가" aria-label="Garmin R10 CSV 보조 평가" aria-expanded="false">📊 R10</button>
+      </div>
+      <div class="analysis-toolbar-group analysis-project-actions" aria-label="분석 프로젝트">
+        <span class="analysis-toolbar-label">프로젝트</span>
+        <button type="button" id="loadAnalysisProjectBtn" class="analysis-project-load" title="저장한 프로젝트 파일을 불러오기">분석 불러오기</button>
+        <button type="button" id="saveAnalysisProjectBtn" class="analysis-project-save" title="프레임 선택과 분석 결과를 프로젝트 파일로 저장">분석 저장</button>
         <input type="file" id="analysisProjectFileInput" accept=".json,application/json" aria-label="저장된 분석 프로젝트 선택">
-        <button type="button" id="resetAllBtn" style="background:rgba(200,60,60,0.18);border:1px solid rgba(255,90,90,0.45);color:#ff8888;">전체 초기화</button>
+      </div>
+      <div class="analysis-toolbar-group analysis-output-actions" aria-label="분석 결과">
         <button type="button" id="geminiAnalysisBtn" title="Gemini로 최종 스윙 결과를 쉬운 말로 분석">AI 분석</button>
         <button type="button" id="downloadPdfBtn">PDF 다운로드</button>
-        <button type="button" id="analysisToggleBtn">펼치기</button>
+        <button type="button" id="resetAllBtn" class="analysis-danger">전체 초기화</button>
       </div>
     </div>
     <div class="analysis-panel-controls">
-      <p class="analysis-project-note" id="analysisProjectNote">프로젝트에는 영상 파일이 포함되지 않습니다. 프레임 입력 지표를 다시 계산하려면 저장에 사용한 A/B 원본 영상을 먼저 불러오고 영상 정보가 준비된 뒤 분석 파일을 불러오세요.</p>
       <div class="analysis-guide-row">
-        <div class="analysis-guide" id="analysisGuide">분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.</div>
+        <div class="analysis-guide" id="analysisGuide">분석 진행 시점을 선택하고 프레임별 랜드마크를 지정하세요.</div>
         <div class="analysis-guide-actions">
-          <button type="button" id="analysisGuideNextBtn">다음</button>
           <span class="analysis-guide-step" id="analysisGuideStep"></span>
         </div>
       </div>
@@ -1611,15 +1727,19 @@
           <span class="height-unit">cm</span>
         </div>
         <div class="analysis-height-field">
-          <select id="analysisSegmentSelect">
-            <option value="frame1">Frame 1 — 백스윙 탑·축 고정/꼬임 [A: 어드레스 → B: 백스윙 최정점]</option>
-            <option value="frame2">Frame 2 — 래깅·코어 이동 [A: 어드레스 → B: 다운스윙 3/5, 양손 허리 높이]</option>
-            <option value="frame3">Frame 3 — 다운스윙 후기·지면반력 [A: 다운스윙 4/5 → B: 임팩트 직전]</option>
-            <option value="frame4">Frame 4 — 임팩트 각도·반경 [A: 어드레스 기준 → B: 임팩트 순간]</option>
-            <option value="frame5">Frame 5 — 일관성 [A: 어드레스(P1) → B: 다운스윙 3/5, 손 허리 높이(P6)]</option>
-            <option value="frame6">Frame 6 — 리듬·템포·시퀀스 [A: 다운스윙 중기(P6, 샤프트 수평) → B: 임팩트(P7)]</option>
-          </select>
-          <span class="height-unit">프레임 선택</span>
+          <input id="analysisBodyMassInput" type="number" min="30" max="200" step="0.1" placeholder="체중" aria-label="선수 체중(kg)" title="동력 프록시의 체격 입력값입니다. 정확한 실측 체중을 입력하세요." style="width:82px;">
+          <span class="height-unit">kg</span>
+        </div>
+        <div class="analysis-height-field">
+          <input id="analysisLeanMassInput" type="number" min="20" max="150" step="0.1" placeholder="골격근량" aria-label="골격근량(kg)" title="체성분 측정값이 있을 때만 입력하세요. 체중이나 BMI에서 추정하지 않습니다." style="width:92px;">
+          <span class="height-unit">kg</span>
+        </div>
+        <div class="analysis-height-field">
+          <input id="analysisPlayerCodeInput" type="text" maxlength="64" placeholder="익명 선수코드" aria-label="익명 선수코드" title="선수 단위 보정·검증 분리를 위한 익명 코드입니다." style="width:120px;">
+        </div>
+        <div class="analysis-height-field">
+          <input id="analysisKnownDistanceInput" type="number" min="0" max="600" step="0.1" placeholder="알려진 총 비거리" aria-label="알려진 총 비거리(미터)" title="캐리+런 총 비거리입니다. 프록시 계산에는 사용하지 않고 사후 검증·보정 자료로 저장합니다." style="width:120px;">
+          <span class="height-unit">m · 캐리+런</span>
         </div>
       </div>
     </div>
@@ -1867,6 +1987,91 @@
 <script>
   const UI_LANGUAGE_STORAGE_KEY = 'gsap_ui_language';
   const UI_TRANSLATIONS_EN = {
+    '체중': 'Body mass',
+    '골격근량': 'Lean mass',
+    '골격근량(kg)': 'Lean mass (kg)',
+    '선수 체중(kg)': 'Player body mass (kg)',
+    '익명 선수코드': 'Anonymous player code',
+    '알려진 총 비거리': 'Known total distance',
+    '알려진 총 비거리(미터)': 'Known total distance (meters)',
+    '동력 프록시의 체격 입력값입니다. 정확한 실측 체중을 입력하세요.': 'Body-size input for the power proxy. Enter measured body mass.',
+    '체성분 측정값이 있을 때만 입력하세요. 체중이나 BMI에서 추정하지 않습니다.': 'Enter only if measured by a body-composition test. Do not estimate from body mass or BMI.',
+    '선수 단위 보정·검증 분리를 위한 익명 코드입니다.': 'Anonymous code for separating calibration and validation by player.',
+    '캐리+런 총 비거리입니다. 프록시 계산에는 사용하지 않고 사후 검증·보정 자료로 저장합니다.': 'Total carry-plus-roll distance. Stored for later validation and calibration; not used in the proxy calculation.',
+    'm · 캐리+런': 'm · carry + roll',
+    '척추각도 유지(어드→탑):': 'Spine-angle retention (Address → Top):',
+    '척추각도: 데이터 부족': 'Spine angle: insufficient data',
+    '어깨회전(2D):': 'Shoulder turn (2D):',
+    '어깨회전: 데이터 부족': 'Shoulder turn: insufficient data',
+    '샤프트 수평(탑):': 'Shaft level (Top):',
+    '샤프트 수평(탑): 데이터 부족(6단계 그립/클럽헤드 필요)': 'Shaft level (Top): insufficient data (six grip/clubhead landmarks required)',
+    'C7 변위:': 'C7 displacement:',
+    'C7–골반 동반 ': 'C7–pelvis coupling ',
+    'C7 좌표 부족(A/B 패널 모두에 C7 클릭 필요)': 'C7 coordinates missing (mark C7 in both A and B panels)',
+    '기준선 미지정(기준선 지정 버튼 필요)': 'Reference line not set (use Set Reference Line)',
+    '래깅각 변화:': 'Lag-Angle Change:',
+    '래깅각: 데이터 부족': 'Lag angle: insufficient data',
+    '코어-손 압축:': 'Core-to-hand compression:',
+    '코어-손 압축: Frame 1 포인트는 확인됨(정규화 오류) — Frame 1 A패널을 다시 분석해 기준 반경을 확정하세요': 'Core-to-hand compression: Frame 1 points are present (normalization error) — reanalyze Frame 1 in A to confirm the reference radius',
+    '코어-손 압축: Frame 1 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요': 'Core-to-hand compression: analyze the Frame 1 top first (six B-panel grip/clubhead landmarks)',
+    '코어-손 압축: Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)': 'Core-to-hand compression: insufficient Frame 2 data (mark the hand center and pelvis center)',
+    '코어 X 이동 크기:': 'Core X-shift magnitude:',
+    'C7 이동 크기 ': 'C7 shift magnitude ',
+    '(방향 무시)': '(direction ignored)',
+    '동반률 ': 'coupling ',
+    '(안정 계수 ×': '(stability factor ×',
+    '코어 이동: 데이터 부족': 'Core shift: insufficient data',
+    '수직신장 변화:': 'Vertical-extension change:',
+    '수직신장: 데이터 부족': 'Vertical extension: insufficient data',
+    '축 고정:': 'Axis hold:',
+    '(방향 미확인)': '(direction unknown)',
+    'C7 Sway: 데이터 부족': 'C7 sway: insufficient data',
+    '지면반력 전환: 데이터 부족': 'Ground-force transition: insufficient data',
+    '자세 전환(힘 측정 아님)': 'Posture transition (not force)',
+    '관측 참고치 (미검증 기준, 점수 미반영)': 'observation only (unvalidated threshold, not scored)',
+    '각도·반경 참고 지수:': 'Angle-Radius Reference Index:',
+    '스윙 반경 전개:': 'Swing-radius expansion:',
+    '팔-샤프트 정렬 변화:': 'Arm-shaft alignment change:',
+    '측면 P5→P6 전달 ': 'Side-view P5→P6 delivery ',
+    '측면기울기 변화:': 'Lateral-tilt change:',
+    '측면기울기: 데이터 부족': 'Lateral tilt: insufficient data',
+    'C7 어드레스→임팩트': 'C7 Address→Impact',
+    'X 이동 크기 C7 ': 'C7 X-shift magnitude ',
+    '골반 ': 'pelvis ',
+    '크기 차 ': 'magnitude difference ',
+    '순간 간격 ': 'instantaneous gap ',
+    '탑→임팩트 동반 ': 'top-to-impact coupling ',
+    '분리 감점 ': 'separation deduction ',
+    '관측 전용': 'observation only',
+    'F3 점수 10% 반영': '10% included in F3 score',
+    'F4 점수 10% 반영': '10% included in F4 score',
+    'pt1 손위치: 데이터 부족': 'pt1 hand position: insufficient data',
+    'pt2 C7축: 데이터 부족': 'pt2 C7 axis: insufficient data',
+    'pt3 골반이동: 데이터 부족': 'pt3 pelvis shift: insufficient data',
+    'pt4 클럽헤드: 데이터 부족': 'pt4 clubhead: insufficient data',
+    '조건부 보완 모드: 정면·측면 교차 좌표로 계산한 손 이동 감점은 제외': 'Conditional adjustment mode: hand-shift penalty from cross-view coordinates is excluded',
+    '조건부 보완 모드: 정면·측면 교차 좌표로 계산한 C7 이동 감점은 제외': 'Conditional adjustment mode: C7-shift penalty from cross-view coordinates is excluded',
+    '조건부 보완 모드: 정면·측면 교차 좌표로 계산한 골반 이동 감점은 제외': 'Conditional adjustment mode: pelvis-shift penalty from cross-view coordinates is excluded',
+    '샤프트각 ': 'Shaft angle ',
+    '이상 70~110°': 'target 70–110°',
+    '이상 ≥50°': 'target ≥50°',
+    '기준 구간(40~80ms)보다 짧음': 'below the target range (40–80 ms)',
+    '기준 구간(40~80ms) 내': 'within the target range (40–80 ms)',
+    '기준 구간(40~80ms)보다 김': 'above the target range (40–80 ms)',
+    '래깅-릴리즈: 데이터 부족': 'Lag-release: insufficient data',
+    '래깅-릴리즈: 측정 불가 (A/B 패널에 같은 영상 로드 후 P6/P7 시점 설정 필요)': 'Lag-release: not measurable (load the same video in A and B, then set P6/P7)',
+    'Δt 템포: 측정 불가 (A/B 패널에 같은 영상 로드 후 P6/P7 시점 설정 필요)': 'Δt tempo: not measurable (load the same video in A and B, then set P6/P7 phases)',
+    'C7 변위: Frame 1(어드레스) 선행 분석 필요': 'C7 displacement: analyze Frame 1 (Address) first',
+    'C7 변위: Frame 1 A C7 기준점과 F4 B C7 포인트 확인 필요': 'C7 displacement: check the Frame 1 A C7 reference and F4 B C7 point',
+    'C7 변위: 기준선 미지정(기준선 지정 버튼 필요)': 'C7 displacement: reference line not set (use Set Reference Line)',
+    '상대 변위 비율: Frame 1(백스윙탑) 선행 분석 필요': 'Relative displacement ratio: analyze Frame 1 (top of backswing) first',
+    '골반 리드 비율 ': 'Pelvis-lead ratio ',
+    '타깃 방향 +': '+ = toward target',
+    '방향 미확인 → 최대 80%': 'direction unknown → capped at 80%',
+    ' (방향 무시)': '(direction ignored)',
+    'F4−F3 참고 차이 ': 'F4−F3 reference difference ',
+    'Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)': 'Frame 2 data missing (mark hand center and pelvis center)',
+    'Frame 2 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요': 'Analyze Frame 1 top (six B-panel grip/clubhead landmarks) first',
     '참고 안내 — 측정 근거·채점 기준·한계': 'Reference Guide — Evidence, Scoring and Limitations',
     ' · 지표 기반 잠정점수 (표시 보간 없음 · 수행능력 검증 전)': ' · Provisional metric score (no display interpolation · performance unvalidated)',
     ' · 다른 영상 A/B 좌표 이동 채점 제외': ' · Cross-video A/B coordinate shifts excluded',
@@ -1941,11 +2146,12 @@
     'A/B 스윙 비교': 'A/B Swing Comparison', '백스윙 유형 결정': 'Classify Backswing Type',
     '측면 스윙 궤적 분류 · A 영상': 'Side-View Swing Path Classification · Video A',
     '측면 스윙을 A에 불러오세요.': 'Load a side-view swing video in A.',
+    '측면 영상을 A에 불러와 포인트를 입력하세요. 입력을 종료하면 원래 A 영상으로 돌아가며 프레임 점수는 유지됩니다.': 'Load a side-view video in A and enter the checkpoints. When you finish, the original A video is restored and frame scores are preserved.',
     '백스윙 입력 종료': 'Finish Backswing Input', '기준선 지정': 'Set Reference Line',
     '거리 산출': 'Measure Distance', '전체 초기화': 'Reset All',
     'AI 분석': 'AI Analysis', 'AI 분석 중...': 'Analyzing...',
     'PDF 다운로드': 'Download PDF', '펼치기': 'Expand', '접기': 'Collapse',
-    '분석 버튼을 눌러 스윙 단계별 안내를 시작하세요.': 'Select an analysis button to start the step-by-step swing guide.',
+    '분석 진행 시점을 선택하고 프레임별 랜드마크를 지정하세요.': 'Select the analysis phase and set the landmarks for each frame.',
     '시점 찾기': 'Find Position',
     '영상은 브라우저에서만 분석합니다. 처음 사용 시 외부 CDN에서 분석 모듈과 모델을 내려받습니다.': 'Video is processed in this browser only. The analysis library and model are downloaded from an external CDN on first use.',
     'P1 테이크어웨이 시작': 'P1 takeaway start',
@@ -1958,7 +2164,8 @@
     '다운스윙 4/5 근처': 'Downswing 4/5', '임팩트 직전': 'Just before impact',
     '임팩트 근처': 'Near impact', '다운스윙 중기, P6 근처': 'Downswing midpoint, near P6',
     '다음': 'Next', '분석 실행': 'Analyze', '포인트 선택 필요': 'Select Points',
-    '현재 세션만 사용': 'Current session only', '프레임 선택': 'Select frame',
+    '현재 세션만 사용': 'Current session only', '프레임 선택': 'Select frame', '분석 프레임': 'Analysis frame',
+    '프레임 분석 갱신': 'Refresh frame analysis', '프로젝트': 'Project',
     'A영상 분석': 'Front A Analysis', '분석 결과 보기 ▼': 'Show Analysis Results ▼',
     '분석 결과 접기 ▲': 'Hide Analysis Results ▲',
     '전체 프레임 분석결과 보기 ▼': 'Show All Frame Analysis Results ▼',
@@ -1970,6 +2177,7 @@
     '유형 판정': 'Classify Type', '백스윙 유형별 특징': 'Backswing Type Guide',
     '측면 백스윙 궤적 분류 · A 영상': 'Side-View Backswing Path Classification · Video A',
     '측면 스윙을 A에 불러오세요.': 'Load a side-view swing video in A.',
+    '측면 영상을 A에 불러와 포인트를 입력하세요. 입력을 종료하면 원래 A 영상으로 돌아가며 프레임 점수는 유지됩니다.': 'Load a side-view video in A and enter the checkpoints. When you finish, the original A video is restored and frame scores are preserved.',
     '선택 자세': 'Select Pose', '어드레스': 'Address', '백스윙 탑': 'Top of Backswing',
     '비교표 접기': 'Collapse Comparison Table', '비교표 펼치기': 'Expand Comparison Table',
     '현재 시점 지우기': 'Clear Current Phase', '비교 초기화': 'Reset Comparison',
@@ -2563,7 +2771,7 @@
     ', 래깅 ': ', lag ', '(골반 이동 ': '(pelvis shift ', ' / C7 이동 ': ' / C7 shift ',
     '비거리 모션 평균: ': 'Distance Motion Average: ', '일관성 모션 평균: ': 'Consistency Motion Average: ',
   };
-  const UI_TRANSLATION_PREFIX_KEYS = new Set(['점수: ', '다음:', '종합 편차 ', '종합 ', '탑 ', '압축', '유지/확장', '손목 중심', '코어 중심', '클럽헤드 중심', '부분 코킹', '점 / 100', '점 × ', '점 차감', '원감점 ', 'A수평폭:', '브레이싱 ', '고관절↓ ', 'C7 조기상승 ', '반경 F2→F3 ', '반경 F3→F4 ', 'F4 각도·반경 참고 ', '측면 P5→P6 전달 적합도 ', 'P5→P6 경로 적합도 ', '측면 P5→P6 전달 원감점 ', 'P5→P6 전달 경로 원감점 ', '손이탈 ', '골반이동 ', 'C7 변위 ', ' (B 절대각 ', ' (F2 대비 ', ' (F4−F3 참고 차이 ', 'F2 대비', '오버', '키 보정 ', '주요 각도: ', ' (템포 기준)', '통과', '이탈', '해당', '미해당', '전 구간 통과', '구간 이탈', '안쪽', '엘보 ', '상한 ', 'P3 손 복귀 일치도 ', '몸통 길이 대비 편차 ', '종합점수: ', '래깅각: ', '래깅각 ', '(스웨이 ', ' / 라이즈 ', '정상 범위', ', 래깅 ', '(골반 이동 ', ' / C7 이동 ', '측정 불가']);
+  const UI_TRANSLATION_PREFIX_KEYS = new Set(['점수: ', '다음:', '종합 편차 ', '종합 ', '탑 ', '압축', '유지/확장', '손목 중심', '코어 중심', '클럽헤드 중심', '부분 코킹', '점 / 100', '점 × ', '점 차감', '원감점 ', 'A수평폭:', '브레이싱 ', '고관절↓ ', 'C7 조기상승 ', '반경 F2→F3 ', '반경 F3→F4 ', 'F4 각도·반경 참고 ', '측면 P5→P6 전달 적합도 ', 'P5→P6 경로 적합도 ', '측면 P5→P6 전달 원감점 ', 'P5→P6 전달 경로 원감점 ', '손이탈 ', '골반이동 ', 'C7 변위 ', ' (B 절대각 ', ' (F2 대비 ', ' (F4−F3 참고 차이 ', 'F2 대비', '오버', '키 보정 ', '주요 각도: ', ' (템포 기준)', '통과', '이탈', '해당', '미해당', '전 구간 통과', '구간 이탈', '안쪽', '엘보 ', '상한 ', 'P3 손 복귀 일치도 ', '몸통 길이 대비 편차 ', '종합점수: ', '래깅각: ', '래깅각 ', '(스웨이 ', ' / 라이즈 ', '정상 범위', ', 래깅 ', '(골반 이동 ', ' / C7 이동 ', '측정 불가', '(방향 무시)', '동반률 ', '(안정 계수 ×', '골반 ', '크기 차 ', '순간 간격 ', '분리 감점 ', '관측 전용', '지표 측정']);
   const UI_TRANSLATION_KEYS = Object.keys(UI_TRANSLATIONS_EN)
     .filter(key => key.length >= 8 || (key.length >= 2 && /[:：]$/.test(key)) || UI_TRANSLATION_PREFIX_KEYS.has(key))
     .sort((a, b) => b.length - a.length);
@@ -2882,6 +3090,10 @@
   const clearPointsBtn = document.getElementById('clearPointsBtn');
   const statusSpan = document.getElementById('status');
   const analysisHeightInput = document.getElementById('analysisHeightInput');
+  const analysisBodyMassInput = document.getElementById('analysisBodyMassInput');
+  const analysisLeanMassInput = document.getElementById('analysisLeanMassInput');
+  const analysisPlayerCodeInput = document.getElementById('analysisPlayerCodeInput');
+  const analysisKnownDistanceInput = document.getElementById('analysisKnownDistanceInput');
   const analysisSegmentSelect = document.getElementById('analysisSegmentSelect');
   const analysisGuide = document.getElementById('analysisGuide');
   const analysisPointReuseStatus = document.getElementById('analysisPointReuseStatus');
@@ -3157,6 +3369,8 @@
   let frameStateHistory = { front: {}, side: {} };
   let frameMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
   let frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
+  let r10Analysis = null;
+  let r10Units = {};
   updateThreePointSpreadDisplay();
   let baselineFrontResult = null;
   let segmentScoreHistory = {
@@ -3637,11 +3851,11 @@
     analysisGuideStep.textContent = guideStep > 0 ? `STEP ${guideStep} / ${maxSteps}` : '';
     // 포인트 클릭 시 STEP이 자동으로 넘어가므로, 버튼은 "다음 단계 이동"이 아닌 "선택 완료 확인 후 분석 실행" 역할
     analysisGuideNextBtn.textContent = (guideView && hasGuideSelectionCompleted())
-      ? frameEditMode ? getSwingUiText('선택 완료 · 전체 관련 분석 갱신', 'Finish selection / Refresh related analyses')
+      ? frameEditMode ? getSwingUiText('프레임 분석 갱신', 'Refresh frame analysis')
         : getSwingUiText('분석·다음 선택', 'Analyze / Continue') : getSwingUiText('포인트 선택 필요', 'Select points first');
     analysisGuideNextBtn.title = frameEditMode ? getSwingUiText(
-      '수정 내용을 분석하고 저장된 모든 프레임의 관련 점수·엔진 판정을 갱신합니다. 현재 프레임에 머무릅니다.',
-      'Analyze edits and refresh related scores and engine classification for all saved frames. Stay on this frame.') : getSwingUiText(
+      '현재 프레임의 수정 내용을 분석하고 해당 프레임 분석 지표를 갱신합니다. 현재 프레임에 머무릅니다.',
+      'Analyze edits and refresh metrics for the current frame. Stay on this frame.') : getSwingUiText(
       '현재 패널을 분석하고 미완료 A/B 패널로 이동합니다. 둘 다 완료되면 다음 프레임으로 이동합니다. 재사용 포인트와 영상 시점을 먼저 확인하세요.',
       'Analyze this panel, then open the incomplete A/B panel or the next frame when both are complete. Verify reused points and video phases first.');
     // 안내 문구를 해당 영상 패널(A는 왼쪽, B는 오른쪽) 위에도 함께 띄워 시선 이동 없이 바로 확인 가능하게 함
@@ -5965,22 +6179,6 @@
     if (w <= 0) return null;
     return valid.reduce((sum, p) => sum + p.value * p.weight, 0) / w;
   }
-  const ENGINE_VECTOR_WEIGHTS = Object.freeze({ type1: 1, type2: 1, type3: 1 });
-
-  function computeEngineVectorProxy(scores) {
-    const components = Object.fromEntries(Object.entries(ENGINE_VECTOR_WEIGHTS).map(([key, weight]) => [
-      key,
-      { score100: hasMetric(scores[key]) ? clamp(scores[key], 0, 1) * 100 : null, weight },
-    ]));
-    const complete = Object.values(components).every(component => hasMetric(component.score100));
-    const weightTotal = Object.values(components).reduce((sum, component) => sum + component.weight, 0);
-    const score100 = complete && weightTotal > 0
-      ? Object.values(components).reduce((sum, component) => sum + component.score100 * component.weight, 0) / weightTotal
-      : null;
-    return { score100, components,
-      coverage: Object.values(components).filter(component => hasMetric(component.score100)).length };
-  }
-
   function getSwingUiText(korean, english) {
     return uiLanguage === 'en' ? english : korean;
   }
@@ -6028,7 +6226,13 @@
     return { ready: missing.length === 0, missing };
   }
 
-  function refreshScoresForBackswingEvidence() {
+  function refreshScoresForBackswingEvidence({ rebuildStoredFrames = false } = {}) {
+    const hasStoredFrameInputs = ['front', 'side'].some(view =>
+      Object.values(frameStateHistory[view] || {}).some(frame => frame?.points?.length || frame?.lines?.length));
+    if (rebuildStoredFrames && hasStoredFrameInputs) {
+      refreshStoredFrameAnalyses();
+      return;
+    }
     ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].forEach(segment => {
       const deltaResult = segmentDeltaHistory[segment];
       if (!deltaResult) return;
@@ -6304,11 +6508,6 @@
 
     const scores = { type1, type2, type3 };
     if (Object.values(scores).some(score => !hasMetric(score))) return null;
-    const engineVectorProxy = computeEngineVectorProxy({
-      type1: hasMetric(axisStability) && hasMetric(upperTurn) ? type1 : null,
-      type2: linearEvidence.fit,
-      type3: verticalEvidence.available ? verticalEvidence.fit : null,
-    });
     const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
     if (total <= 0) return null;
     const previousScores = { ...scores, type2: linearEvidence.previousFit };
@@ -6340,12 +6539,11 @@
       + ' ' + type3CombinedEvidence.issues.join(' · '));
     return { pct, share, scores, analyzedCount, threePointEvidence, distanceCompressionCycle, compressionCycle,
       verticalEvidence, linearEvidence, type3CombinedEvidence, previousScores, previousPct, previousVerticalScore, previousVerticalPct,
-      engineVectorProxy,
       coactivation: getEngineCoactivation(axisStability, upperTurn, shiftRatio, verticalEvidence),
       missingEngineEvidence, provisional: true };
   }
 
-  function updateSwingTypeCard() {
+  function refreshSwingClassificationViews() {
     if (!analysisSwingType) return;
     const result = classifySwingType();
     const downswingEvidence = getDownswingSideEvidence();
@@ -6365,7 +6563,42 @@
       };
     const rows = [];
     const referenceRows = [];
+    rows.push(`<div class="swing-type-note">${getSwingUiText(
+      '백스윙 궤적과 파워 엔진은 입력 순서와 무관하게 최신 판정 결과를 함께 표시합니다. 백스윙 재판정 시 연동 프레임 점수와 프로필 조합도 갱신됩니다.',
+      'Backswing path and power-engine results are displayed together regardless of input order. Reclassifying the backswing also refreshes dependent frame scores and the matched profile.')}</div>`);
     referenceRows.push(`<section class="analysis-type-section" style="white-space:pre-wrap">${formatPowerEngineRules()}</section>`);
+    const proxy = getProvisionalPowerProxy();
+    const r10SpeedEvidence = getR10SpeedHeightEvidence();
+    rows.push(`<section class="analysis-type-section analysis-profile-warning"><div class="analysis-type-heading">${getSwingUiText('영상 기반 동력 추정', 'Video-Based Power Estimate')}</div>`
+      + `<div>${proxy.value == null
+        ? getSwingUiText(`잠정 비교지수: 산출 보류 · 필요 입력: ${proxy.missing.join(' · ')}`,
+          `Provisional comparison index: unavailable · required inputs: ${proxy.missing.join(' · ')}`)
+        : getSwingUiText(`잠정 비교지수 ${proxy.value.toFixed(3)} · 근거 ${Math.round(proxy.weightCoverage * 100)}% · 보정 전 임시 가중치`,
+          `Provisional comparison index ${proxy.value.toFixed(3)} · ${Math.round(proxy.weightCoverage * 100)}% component coverage · temporary pre-calibration weights`)}</div></section>`);
+    const distanceInputValue = analysisKnownDistanceInput?.value.trim();
+    const observedDistance = distanceInputValue ? Number(distanceInputValue) : NaN;
+    const knownDistanceLabel = Number.isFinite(observedDistance) && observedDistance >= 0
+      ? `${observedDistance.toFixed(1)} m` : getSwingUiText('미입력', 'not recorded');
+    const proxyDetail = proxy.value == null ? proxy.missing.join(' · ')
+      : getSwingUiText(
+        `잠정 비교지수 ${proxy.value.toFixed(3)} (파워·비거리 단위 아님, 반영 근거 ${Math.round(proxy.weightCoverage * 100)}%). 요소: 비거리 모션 ${proxy.components.motionFit.toFixed(3)}×0.30, 신장 ${proxy.components.height.toFixed(3)}×0.08, 체중 ${proxy.components.bodyMass.toFixed(3)}×0.12, 골격근량 ${hasMetric(proxy.components.leanMass) ? proxy.components.leanMass.toFixed(3) + '×0.12' : '미측정·미반영'}, 회전 ${proxy.components.turn.toFixed(3)}×0.10, 압축 ${proxy.components.compression.toFixed(3)}×0.10, 재전개 ${proxy.components.reExpansion.toFixed(3)}×0.10, P6→P7 빠르기 ${proxy.components.tempo.toFixed(3)}×0.08. 입력 가능한 항목 가중치 합으로 나눈 가중 평균입니다. 기준값·가중치는 문헌의 상관계수에서 직접 변환한 회귀계수가 아니라 검증 전 임시값입니다.`,
+        `Provisional comparison index ${proxy.value.toFixed(3)} (not power or distance units; ${Math.round(proxy.weightCoverage * 100)}% component coverage). Terms: distance-motion ${proxy.components.motionFit.toFixed(3)}×0.30, height ${proxy.components.height.toFixed(3)}×0.08, body mass ${proxy.components.bodyMass.toFixed(3)}×0.12, lean mass ${hasMetric(proxy.components.leanMass) ? proxy.components.leanMass.toFixed(3) + '×0.12' : 'not measured; omitted'}, turn ${proxy.components.turn.toFixed(3)}×0.10, compression ${proxy.components.compression.toFixed(3)}×0.10, re-expansion ${proxy.components.reExpansion.toFixed(3)}×0.10, P6→P7 tempo ${proxy.components.tempo.toFixed(3)}×0.08. Weighted mean over available inputs. Reference values and weights are provisional, not regression coefficients inferred from literature correlations.`);
+    const r10SpeedDetail = !r10SpeedEvidence ? getSwingUiText(
+      'R10 클럽·볼 속도: CSV 미입력. 2D 영상만으로 속도나 %BW를 추정하지 않습니다.',
+      'R10 club/ball speed: no CSV loaded. Speed and %BW are not inferred from 2D video.')
+      : r10SpeedEvidence.speeds.map(speed => {
+        const label = speed.key === 'clubSpeed'
+          ? getSwingUiText('클럽헤드 속도', 'Clubhead speed')
+          : getSwingUiText('볼 속도', 'Ball speed');
+        const measured = Number.isFinite(speed.stats.mean)
+          ? `${speed.stats.mean.toFixed(1)} ${getR10DisplayUnit(speed.key)}` : getSwingUiText('측정 없음', 'not measured');
+        const normalized = Number.isFinite(speed.normalized)
+          ? ` · ${speed.normalized.toFixed(2)} s⁻¹ (${getSwingUiText('속도/신장', 'speed/height')})` : '';
+        return `${label}: ${measured}${normalized}`;
+      }).join(' · ');
+    referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('영상 동력 프록시 · 임시 가중치', 'Video-Based Power Proxy · Provisional Weights')}</div><div>${proxyDetail}</div><div>${getSwingUiText(
+      `보정용 관측 총 비거리(캐리+런): ${knownDistanceLabel}. ${r10SpeedDetail} 체중 기반 Fz 상한은 실제 지면반력이 아니며, Force plate 자료가 없어 Fz/BW(%BW)는 산출하지 않습니다. 총 비거리와 R10 속도는 영상 프록시와 분리된 검증 결과입니다. 선수별 반복 스윙을 익명 코드로 묶어 학습·검증을 분리한 뒤 예상 비거리를 보정해야 합니다. 신장·체중·골격근량의 문헌 상관값은 표본/클럽/조건에 종속되므로 보편적 회귀계수나 35개 프로필 분기 기준으로 직접 쓰지 않습니다. 단일 선수의 체중 변화 사례도 훈련·기술·장비 효과를 분리하지 못하면 체중의 인과효과로 볼 수 없습니다. 현재 신장·체중 비율은 임시 참고항이며, 실제 allometric 지수는 선수 단위 자료에서 추정해야 합니다.`,
+      `Observed total distance for calibration (carry plus roll): ${knownDistanceLabel}. ${r10SpeedDetail} A body-mass-based Fz ceiling is not measured ground force; Fz/BW (%BW) is withheld because no force-plate data are available. Total distance and R10 speeds are validation outcomes kept separate from the video proxy. Use anonymous player codes to group repeated swings and split training/validation by player before fitting distance estimates. Literature correlations for height, mass and lean mass depend on sample, club and conditions; they are not universal regression coefficients or direct criteria for branching the 35 profiles. A single player's before/after mass change cannot establish a causal mass effect unless training, technique and equipment changes are separated. The current height/mass ratios are provisional references; allometric exponents must be estimated from player-level data.`)}</div></section>`);
     const engineDecision = result ? getPowerEngineDecision(result) : null;
     if (result) {
       let headline = result.missingEngineEvidence?.length
@@ -6387,26 +6620,29 @@
       rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('스윙 유형 추정', 'Swing Type Estimate')}</div>`
         + `<div><strong>${getSwingUiText('주요 적합 조합:', 'Leading fit:')}</strong> ${headline}</div>`
         + `<div class="analysis-type-list">${fitRows}</div></section>`);
-      const evs = result.engineVectorProxy;
-      const evsLabels = uiLanguage === 'en'
-        ? { type1: 'ATE · axis stability / upper turn', type2: 'LSE · same-video pelvis shift', type3: 'VEE vertical · knee extension / lead-hip rise' }
-        : { type1: 'ATE · 축 안정 / 상체 회전', type2: 'LSE · 같은 영상 골반 이동', type3: 'VEE 수직 · 무릎 신전 / 리드고관절 상승' };
-      const evsRows = Object.entries(evs.components).map(([key, component]) =>
-        `<div class="analysis-type-row"><span class="analysis-type-row-label">${evsLabels[key]}</span>`
-        + `<span class="analysis-type-row-value">${hasMetric(component.score100) ? `${component.score100.toFixed(0)}/100 · w=${component.weight}` : '—'}</span></div>`
+      const scoreLabels = uiLanguage === 'en'
+        ? { type1: 'ATE · axis / upper turn', type2: 'LSE · linear shift', type3: 'VEE · lag / impact / vertical' }
+        : { type1: 'ATE · 축 / 상체 회전', type2: 'LSE · 선형 이동', type3: 'VEE · 래깅 / 임팩트 / 수직' };
+      const scoreAvailable = {
+        type1: hasMetric(result.scores.type1),
+        type2: hasMetric(result.linearEvidence.fit),
+        type3: hasMetric(result.type3CombinedEvidence.fit),
+      };
+      const scoreRows = Object.entries(scoreLabels).map(([key, label]) =>
+        `<div class="analysis-type-row"><span class="analysis-type-row-label">${label}</span>`
+        + `<span class="analysis-type-row-value">${scoreAvailable[key] ? result.scores[key].toFixed(3) : '—'}</span></div>`
       ).join('');
-      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('EVS 프록시 · 비정규화 엔진 적합도', 'EVS proxy · unshared engine fits')}</div>`
-        + `<div>${getSwingUiText('종합 EVS 프록시:', 'Composite EVS proxy:')} ${hasMetric(evs.score100) ? `${evs.score100.toFixed(1)} / 100` : getSwingUiText('산출 보류', 'Unavailable')} · ${evs.coverage}/3 ${getSwingUiText('축 근거', 'axes available')}</div>`
-        + `<div class="analysis-type-list">${evsRows}</div>`
-        + `<span class="swing-type-note">${getSwingUiText(
-          '실험적 모션 프록시이며 실제 힘·토크·파워 측정값은 아닙니다. 산출 기준과 한계는 참고 안내를 확인하세요.',
-          'Experimental motion proxy, not measured force, torque, or power. See the reference guide for calculation criteria and limitations.')}</span></section>`);
+      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('엔진유형 판정 입력값', 'Engine Classification Inputs')}</div>`
+        + `<div class="analysis-type-list">${scoreRows}</div></section>`);
       if (result.missingEngineEvidence?.length) rows.push(`<div class="swing-type-note">${getSwingUiText(
         '유형 판정 보류: 누락 지표·시점은 참고 안내에서 확인하세요.',
         'Classification held: check missing metrics and phases in the Reference Guide.')} ${result.type3CombinedEvidence.issues.join(' · ')}</div>`);
       if (result.verticalEvidence.diagnostics.extensionWithHipDrop) rows.push(`<div class="swing-type-note">${getSwingUiText(
         'VEE 해석 주의: 무릎은 신전되지만 왼고관절은 하강합니다. 낮은 상대 적합도만으로 수직 구동이 약하다고 단정하지 마세요. 참고 안내에서 골반 중심 이동·F3 시점을 확인하세요.',
         'VEE caution: the knee extends while the lead hip descends. Low relative fit alone does not establish weak vertical drive. Check pelvis-center intervals and F3 timing in the Reference Guide.')}</div>`);
+      referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('엔진유형 점수 해석', 'Engine-Type Score Interpretation')}</div><div>${getSwingUiText(
+        '위 엔진유형 판정 입력값은 분류 로직이 실제 사용하는 type1/type2/type3 점수 원값이며, 화면 표시에서 100점 척도로 변환하거나 별도 상한을 적용하지 않습니다. 이 점수는 각 엔진 모션 근거의 정규화 적합도이지 실제 파워가 아닙니다. 유형별 %는 이 점수 합계 안에서의 상대 적합도이며, 실험 보정 전에는 파워 기여율로 해석하지 않습니다.',
+        'The engine classification inputs above are the exact type1/type2/type3 scores used by the classifier; display applies no 100-point conversion or additional cap. They are normalized fits to motion evidence, not actual power. The type percentages are relative fits within their sum and must not be read as power shares before experimental calibration.')}</div></section>`);
       referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('유형 판정 근거와 한계', 'Classification Evidence and Limitations')}</div><span class="swing-type-note">${getSwingUiText(
           '잠정 2D 유형: ATE 축/회전, LSE 같은 영상 골반 이동, 유형 3은 P6 래깅·P7 임팩트 전개·수직 결합(VEE*). %는 상대 적합도이지 파워 비중·확률이 아닙니다. 근거 누락 시 프로필 판정 보류.',
           'Provisional 2D types: ATE axis/turn, LSE same-video shift, Type 3 experimental P6 lag/P7 impact extension/vertical composite (VEE*). Percentages are relative fits, not power shares or probabilities. Missing evidence holds profile assignment.')}</span><div>${formatLinearEngineEvidence(result)}</div><div>${formatEngineEvidence(result)}</div><div>${formatEngineCoactivation(result)}</div></section>`);
@@ -6417,9 +6653,15 @@
         + `<div>F1→F2 ${pctText(three.topToF2)} | F2→F3 ${pctText(three.f2ToF3)} | F3→F4 ${pctText(three.f3ToF4)} | F2→F4 ${pctText(three.f2ToF4)}</div>`
         + `<div>${getSwingUiText('3점 퍼짐 변화는 형태 참고값입니다. Type 3 결합 점수는 P6 래깅 유지·임팩트 팔–샤프트 전개·수직 근거를 사용합니다.',
           'Three-point spread changes are shape observations. The Type 3 composite uses P6 lag retention, impact arm–shaft extension and vertical evidence.')}</div></section>`);
-      referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('EVS 프록시 산출 안내', 'EVS proxy calculation notes')}</div><div>${getSwingUiText(
-        '실험적 2D 모션 프록시입니다. 현재 상한은 ATE 상체회전 90° 및 축 안정성 밴드, LSE 골반 이동 13%, 수직 근거 무릎 신전 8°·F3 A시점 C7–발목 길이 대비 고관절 상승 3%(상승 점수는 0.5%부터)입니다. 화면상 인물 크기 영향을 줄이기 위해 EVS 수직 상승률은 F3 A의 C7–발목 길이로 정규화합니다. 기본 가중치는 1:1:1이며 ENGINE_VECTOR_WEIGHTS 상수에서 조정합니다. 이는 선수 집단으로 검증된 상한이 아닙니다. 누락 축은 0점으로 간주하지 않고 3개 모두 있을 때만 종합점을 표시합니다. 실제 힘·토크·파워 측정값이 아니며, C7의 Y축 회전은 현재 직접 측정되지 않습니다.',
-        'Experimental 2D motion proxy. Current caps are 90° upper turn plus an axis-stability band for ATE, 13% pelvis shift for LSE, and 8° knee extension / 3% lead-hip rise relative to C7-to-ankle length at F3 A for vertical evidence (rise scoring starts at 0.5%). EVS vertical rise is normalized to C7-to-ankle length at F3 A to reduce sensitivity to apparent on-screen player size. Default weights are 1:1:1 and can be adjusted in the ENGINE_VECTOR_WEIGHTS constant. These caps are not validated against a player cohort. Missing axes are not treated as zero; the composite is shown only when all three are available. This is not measured force, torque, or power; C7 Y-axis rotation is not directly measured.')}</div></section>`);
+    } else {
+      const readiness = getSwingTypeReadiness();
+      const reasons = readiness.missing.length
+        ? readiness.missing
+        : [getSwingUiText(
+          '필수 입력은 있으나 엔진 점수 합계가 0이거나 유효한 엔진 결과를 만들지 못했습니다. 프레임 입력과 기준선을 확인한 뒤 다시 분석하세요.',
+          'Required inputs are present, but engine scores sum to zero or could not produce a valid result. Check the frame inputs and reference line, then reanalyze.')];
+      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('스윙 파워 엔진 판정 보류', 'Swing Power Engine Undetermined')}</div>`
+        + reasons.map(reason => `<div>${reason}</div>`).join('') + `</section>`);
     }
     if (backswingClassification || result) {
       const backswingCode = getBackswingProfileCode(backswingClassification);
@@ -6661,6 +6903,60 @@
     return result.segmentScore;
   }
 
+  function getProvisionalPowerProxy() {
+    const motionScore = getDistanceMotionSummary().score;
+    const heightCm = Number(analysisHeightInput?.value);
+    const bodyMassKg = Number(analysisBodyMassInput?.value);
+    const leanMassInput = analysisLeanMassInput?.value.trim();
+    const leanMassKg = leanMassInput ? Number(leanMassInput) : null;
+    const turnDeg = segmentDeltaHistory.frame1?.fm?.xFactorDelta;
+    const compressionRatio = segmentDeltaHistory.frame2?.fm?.radiusCompressionRatio;
+    const expansionRatio = getLateRadiusExpansion(segmentDeltaHistory.frame3?.fm || {});
+    const phaseDeltaSec = segmentDeltaHistory.frame6?.fm?.timeDeltaSec;
+    const missing = [];
+    if (!hasMetric(motionScore)) missing.push(getSwingUiText('F1–F4 비거리 모션 평균', 'F1–F4 distance-motion average'));
+    if (!Number.isFinite(heightCm) || heightCm < 160 || heightCm > 190) missing.push(getSwingUiText('신장', 'height'));
+    if (!Number.isFinite(bodyMassKg) || bodyMassKg < 30 || bodyMassKg > 200) missing.push(getSwingUiText('체중', 'body mass'));
+    if (!hasMetric(turnDeg)) missing.push('F1 ' + getSwingUiText('어깨 회전 변화', 'shoulder-turn change'));
+    if (!hasMetric(compressionRatio)) missing.push('F2 ' + getSwingUiText('압축률', 'compression ratio'));
+    if (!hasMetric(expansionRatio)) missing.push('F3→F4 ' + getSwingUiText('재전개율', 're-expansion ratio'));
+    if (!hasMetric(phaseDeltaSec) || phaseDeltaSec <= 0) missing.push('F6 ' + getSwingUiText('같은 영상의 P6→P7 시간', 'same-video P6→P7 interval'));
+    if (missing.length) return { value: null, missing };
+
+    const weightedTerms = [
+      { key: 'motionFit', value: motionScore / 9, weight: 0.30 },
+      { key: 'height', value: heightCm / 170, weight: 0.08 },
+      { key: 'bodyMass', value: bodyMassKg / 75, weight: 0.12 },
+      { key: 'leanMass', value: hasMetric(leanMassKg) ? leanMassKg / 60 : null, weight: 0.12 },
+      { key: 'turn', value: Math.abs(turnDeg) / 45, weight: 0.10 },
+      { key: 'compression', value: Math.max(0, compressionRatio) / 0.35, weight: 0.10 },
+      { key: 'reExpansion', value: Math.max(0, expansionRatio) / 0.20, weight: 0.10 },
+      { key: 'tempo', value: 0.05 / phaseDeltaSec, weight: 0.08 },
+    ];
+    const availableTerms = weightedTerms.filter(term => hasMetric(term.value));
+    const weightCoverage = availableTerms.reduce((sum, term) => sum + term.weight, 0);
+    const value = availableTerms.reduce((sum, term) => sum + term.value * term.weight, 0) / weightCoverage;
+    const components = Object.fromEntries(weightedTerms.map(term => [term.key, term.value]));
+    return { value, components, weightCoverage, missing: [], leanMassAvailable: hasMetric(leanMassKg) };
+  }
+
+  function getR10SpeedHeightEvidence() {
+    if (!r10Analysis?.shots?.length) return null;
+    const heightMeters = Number(analysisHeightInput?.value) / 100;
+    if (!Number.isFinite(heightMeters) || heightMeters <= 0) return null;
+    const speeds = ['clubSpeed', 'ballSpeed'].map(key => {
+      const stats = getR10MetricStats(key);
+      const unit = r10Unit(key).trim().toLowerCase();
+      if (!Number.isFinite(stats.mean)) return { key, stats, normalized: null, unit: '' };
+      const metersPerSecond = ['mph', '마일/시간', '마일시'].includes(unit) ? stats.mean * 0.44704
+        : ['km/h', 'kph', '킬로미터/시간', '킬로미터시'].includes(unit) ? stats.mean / 3.6
+          : ['m/s', '미터/초'].includes(unit) ? stats.mean : null;
+      return { key, stats, normalized: metersPerSecond == null ? null : metersPerSecond / heightMeters,
+        unit: metersPerSecond == null ? getR10DisplayUnit(key) : 's⁻¹' };
+    });
+    return { speeds, clubTypeCount: new Set(r10Analysis.shots.map(shot => shot.clubType).filter(Boolean)).size };
+  }
+
   function getDistanceMotionSummary(scores = ['frame1', 'frame2', 'frame3', 'frame4'].map(getStoredSegmentScore),
     history = frameSideMetricsHistory) {
     const valid = scores.filter(hasMetric);
@@ -6710,7 +7006,7 @@
         updateSegmentComparisonCard(frame, segmentDeltaHistory[frame]);
       }
     });
-    updateSwingTypeCard();
+    refreshSwingClassificationViews();
     const scoreLabel = (frame, scale = 1) => hasMetric(getStoredSegmentScore(frame))
       ? (getStoredSegmentScore(frame) * scale).toFixed(1)
       : segmentDeltaHistory[frame] ? '측정 불가' : '-';
@@ -7062,6 +7358,11 @@
     autoFrameAdvanceTarget = null;
     selectedSegment = 'frame1';
     analysisSegmentSelect.value = 'frame1';
+    analysisBodyMassInput.value = '';
+    analysisLeanMassInput.value = '';
+    analysisPlayerCodeInput.value = '';
+    analysisKnownDistanceInput.value = '';
+    validateLeanMass();
     distanceMeasureActive = false;
     distanceReferenceActive = false;
     distanceReferencePendingPoints = { front: [], side: [] };
@@ -7139,13 +7440,23 @@
   let backswingActive = false;
   let backswingFrames = {};
   let backswingClassification = null;
+  let backswingClassificationCacheKey = null;
+  let backswingOriginalVideo = null;
   let backswingProgressNotice = null;
 
   function invalidateBackswingClassification() {
     const hadClassification = backswingClassification !== null;
     backswingClassification = null;
+    if (backswingClassificationCacheKey) {
+      try {
+        localStorage.removeItem(backswingClassificationCacheKey);
+      } catch (error) {
+        reportBackswingCacheError('삭제', error);
+      }
+      backswingClassificationCacheKey = null;
+    }
     if (hadClassification) refreshScoresForBackswingEvidence();
-    else updateSwingTypeCard();
+    else refreshSwingClassificationViews();
   }
 
   function updateBackswingGuide() {
@@ -7187,8 +7498,39 @@
     if (backswingActive) drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
   }
 
+  function restoreBackswingOriginalVideo() {
+    if (!backswingOriginalVideo) return;
+    const original = backswingOriginalVideo;
+    const temporarySrc = frontVideo.src;
+    frontVideo.pause();
+    if (temporarySrc !== original.src && original.src) {
+      frontVideo.src = original.src;
+      applyPlaybackRates();
+      const restoreTime = () => {
+        if (frontVideo.src === original.src && Number.isFinite(original.time)) {
+          frontVideo.currentTime = Math.min(original.time, frontVideo.duration || original.time);
+        }
+      };
+      if (frontVideo.readyState >= 1) restoreTime();
+      else frontVideo.addEventListener('loadedmetadata', restoreTime, { once: true });
+      if (temporarySrc.startsWith('blob:')) URL.revokeObjectURL(temporarySrc);
+    }
+    videoFileIdentity.front = original.identity;
+    setFileName('frontFileName', { name: original.fileName });
+    backswingOriginalVideo = null;
+  }
+
   function setBackswingMode(active) {
+    if (active && !backswingActive) {
+      backswingOriginalVideo = frontVideo.src ? {
+        src: frontVideo.src,
+        time: Number.isFinite(frontVideo.currentTime) ? frontVideo.currentTime : 0,
+        identity: videoFileIdentity.front,
+        fileName: document.getElementById('frontFileName')?.textContent || '',
+      } : null;
+    }
     backswingActive = active;
+    if (!active) restoreBackswingOriginalVideo();
     frontFindPositionStatus.textContent = '';
     sideFindPositionStatus.textContent = '';
     backswingPanel.classList.toggle('visible', active);
@@ -7440,6 +7782,7 @@
       return;
     }
     backswingClassification = result;
+    saveBackswingClassificationCache();
     const title = document.createElement('button');
     title.type = 'button';
     title.className = 'backswing-result-title';
@@ -7492,7 +7835,7 @@
       title.setAttribute('aria-expanded', String(!detail.hidden));
     });
     backswingResult.replaceChildren(title, detail);
-    refreshScoresForBackswingEvidence();
+    refreshScoresForBackswingEvidence({ rebuildStoredFrames: true });
   });
   let sidePoints = [];
   let frontLines = [];
@@ -7955,43 +8298,21 @@
 
   const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
-  const authMemoryStorage = (() => {
-    const store = {};
-    return {
-      getItem: key => Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null,
-      setItem: (key, value) => { store[key] = String(value); },
-      removeItem: key => { delete store[key]; },
-    };
-  })();
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { storage: authMemoryStorage, storageKey: 'gsap_sb_auth', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+    auth: { storage: SytptAuth.storage, storageKey: SytptAuth.storageKey, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
   });
-  const AUTH_ALIAS_DOMAIN = 'syegtp.app';
-  const AUTH_ALIAS_LEGACY_DOMAIN = 'syegtp.local';
   function normalizeLoginId(value) {
     return String(value || '').trim().toLowerCase();
   }
-  function toUtf8Hex(value) {
-    return Array.from(new TextEncoder().encode(String(value || '')))
-      .map(byte => byte.toString(16).padStart(2, '0')).join('');
-  }
   function buildAuthEmailCandidates(loginId) {
-    const input = String(loginId || '').trim().toLowerCase();
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
-      return input.endsWith(`@${AUTH_ALIAS_DOMAIN}`) || input.endsWith(`@${AUTH_ALIAS_LEGACY_DOMAIN}`) ? [input] : [];
-    }
-    const normalized = normalizeLoginId(input);
-    const asciiLocal = normalized.replace(/[^a-z0-9._-]/g, '');
-    const fallbackLocal = (`id${toUtf8Hex(normalized)}`).slice(0, 48);
-    const local = (asciiLocal || fallbackLocal).replace(/^\.+|\.+$/g, '');
-    if (!local) return [];
-    return [`${local}@${AUTH_ALIAS_DOMAIN}`, `${local}@${AUTH_ALIAS_LEGACY_DOMAIN}`];
+    return SytptAuth.buildEmailCandidates(loginId);
   }
   async function safeAuthSignOut() {
     try { await sb.auth.signOut({ scope: 'local' }); }
     catch (error) { console.warn('Supabase sign-out failed:', error); }
   }
   let currentUser = null;
+  let authStateVersion = 0;
 
   function setLoggedIn(isLoggedIn){
     document.body.classList.toggle('authenticated', isLoggedIn);
@@ -8003,6 +8324,57 @@
     if(!isLoggedIn) currentUser = null;
   }
 
+  async function authorizeAnalysisUser(authUser, version) {
+    const { data: profiles, error } = await sb.from('sytpt_users')
+      .select('id,name,role,approval_status')
+      .limit(2000);
+    if (error) throw error;
+    if (version !== authStateVersion) return false;
+    const loginId = normalizeLoginId(authUser.user_metadata && authUser.user_metadata.login_id);
+    const authEmail = String(authUser.email || '').toLowerCase();
+    const profile = (loginId && (profiles || []).find(user => normalizeLoginId(user.id) === loginId))
+      || (profiles || []).find(user => SytptAuth.buildAliasEmails(user.id).includes(authEmail));
+    if (!profile) {
+      setLoggedIn(false);
+      loginStatus.textContent = getSwingUiText('인증 계정과 연결된 SY-GSAP 프로필이 없습니다. 관리자에게 확인하세요.', 'No SY-GSAP profile is linked to this authenticated account. Contact an administrator.');
+      return false;
+    }
+    const role = String(profile.role || '').trim().toLowerCase();
+    if (role !== 'coach') {
+      setLoggedIn(false);
+      loginStatus.textContent = getSwingUiText('코치 관리자 계정만 이 앱에 접근할 수 있습니다.', 'Only coach administrator accounts can access this app.');
+      return false;
+    }
+    currentUser = { id: profile.id, name: profile.name, role };
+    setLoggedIn(true);
+    loginPassword.value = '';
+    loginStatus.textContent = '';
+    return true;
+  }
+
+  async function restoreAnalysisSession() {
+    const version = ++authStateVersion;
+    loginBtn.disabled = true;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      if (version !== authStateVersion || !data.session) return;
+      loginStatus.textContent = getSwingUiText('저장된 로그인 확인 중...', 'Checking saved sign-in...');
+      const { data: userData, error: userError } = await sb.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) throw new Error(getSwingUiText('인증 서버에서 사용자 정보를 받지 못했습니다.', 'Authentication returned no user profile.'));
+      await authorizeAnalysisUser(userData.user, version);
+    } catch (error) {
+      console.error('Supabase session restoration failed:', error);
+      if (version === authStateVersion) {
+        setLoggedIn(false);
+        loginStatus.textContent = SytptAuth.errorMessage(error, uiLanguage);
+      }
+    } finally {
+      loginBtn.disabled = false;
+    }
+  }
+
   async function initLogin(){
     localStorage.removeItem('gsap_logged_in');
     localStorage.removeItem('gsap_users');
@@ -8010,6 +8382,15 @@
     const text = (ko, en) => uiLanguage === 'en' ? en : ko;
     setLoggedIn(false);
     if(loginStatus) loginStatus.textContent = text('SY-GSAP 계정으로 로그인하세요.', 'Sign in with your SY-GSAP account.');
+    const persistenceNotice = document.createElement('div');
+    persistenceNotice.id = 'authPersistenceNotice';
+    persistenceNotice.style.cssText = 'margin-top:8px;font-size:0.8rem;color:#9a4d00;';
+    persistenceNotice.hidden = true;
+    loginStatus.after(persistenceNotice);
+    function updatePersistenceNotice() {
+      persistenceNotice.hidden = SytptAuth.persistenceAvailable;
+      persistenceNotice.textContent = text('브라우저가 로그인 저장을 차단하여 다음 실행 시 다시 로그인해야 합니다.', 'Your browser blocks sign-in storage. Sign in again next time.');
+    }
     loginBtn.addEventListener('click', async () => {
       const loginId = loginEmail.value.trim();
       const password = loginPassword.value;
@@ -8019,12 +8400,14 @@
         return;
       }
       loginBtn.disabled = true;
+      const version = ++authStateVersion;
       if(loginStatus) loginStatus.textContent = text('로그인 중...', 'Signing in...');
       try {
         let authResult = null;
         for (const email of authEmails) {
           authResult = await sb.auth.signInWithPassword({ email, password });
           if (!authResult.error) break;
+          if (!SytptAuth.isInvalidCredentials(authResult.error)) break;
         }
         if(!authResult || authResult.error){
           if (authResult && authResult.error) {
@@ -8034,7 +8417,7 @@
               message: authResult.error.message,
             });
           }
-          if(loginStatus) loginStatus.textContent = text('아이디 또는 비밀번호가 올바르지 않습니다.', 'Invalid login ID or password.');
+          if(loginStatus) loginStatus.textContent = SytptAuth.errorMessage(authResult && authResult.error, uiLanguage);
           return;
         }
         const authUser = authResult.data && authResult.data.user;
@@ -8043,32 +8426,15 @@
           if(loginStatus) loginStatus.textContent = text('인증 서버에서 사용자 정보를 받지 못했습니다.', 'Authentication returned no user profile.');
           return;
         }
-        const { data: profiles, error: profileError } = await sb.from('sytpt_users')
-          .select('id,name,role,approval_status')
-          .limit(2000);
-        if(profileError) throw profileError;
-        const authEmail = String(authUser.email || '').toLowerCase();
-        const profile = (profiles || []).find(user => buildAuthEmailCandidates(user.id).includes(authEmail));
-        if(!profile){
-          await safeAuthSignOut();
-          if(loginStatus) loginStatus.textContent = text('인증 계정과 연결된 SY-GSAP 프로필이 없습니다. 관리자에게 확인하세요.', 'No SY-GSAP profile is linked to this authenticated account. Contact an administrator.');
-          return;
-        }
-        const role = String(profile.role || '').trim().toLowerCase();
-        if(role !== 'coach'){
-          await safeAuthSignOut();
-          if(loginStatus) loginStatus.textContent = text('코치 관리자 계정만 이 앱에 접근할 수 있습니다.', 'Only coach administrator accounts can access this app.');
-          return;
-        }
-        currentUser = { id: profile.id, name: profile.name, role };
-        setLoggedIn(true);
-        if(loginStatus) loginStatus.textContent = '';
+        SytptAuth.setEmailHint(loginId, authUser.email);
+        await authorizeAnalysisUser(authUser, version);
       } catch(error) {
         console.error('Supabase login failed:', error);
-        await safeAuthSignOut();
+        setLoggedIn(false);
         if(loginStatus) loginStatus.textContent = text('프로필 확인에 실패했습니다. 네트워크 또는 Supabase 접근 정책을 확인하세요.', 'Could not verify the account profile. Check your connection or access policy.');
       } finally {
         loginBtn.disabled = false;
+        updatePersistenceNotice();
       }
     });
     loginPassword.addEventListener('keyup', e => {
@@ -8076,6 +8442,7 @@
     });
     if(logoutBtn) logoutBtn.addEventListener('click', async () => {
       logoutBtn.disabled = true;
+      ++authStateVersion;
       await safeAuthSignOut();
       setLoggedIn(false);
       loginPassword.value = '';
@@ -8083,11 +8450,23 @@
       logoutBtn.disabled = false;
     });
     sb.auth.onAuthStateChange((event, session) => {
-      if(event === 'SIGNED_OUT' || !session) setLoggedIn(false);
+      if(event === 'SIGNED_OUT' || !session) {
+        ++authStateVersion;
+        setLoggedIn(false);
+      } else if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && !loginBtn.disabled) {
+        setTimeout(() => { restoreAnalysisSession(); }, 0);
+      }
     });
+    await restoreAnalysisSession();
+    updatePersistenceNotice();
   }
 
-  initLogin();
+  initLogin().catch(error => {
+    console.error('Supabase login initialization failed:', error);
+    setLoggedIn(false);
+    loginBtn.disabled = false;
+    loginStatus.textContent = SytptAuth.errorMessage(error, uiLanguage);
+  });
 
   function applyVideoZoom(videoElem, zoom){
     const baseTransform = `translate(-50%, -50%) scale(${zoom})`;
@@ -9462,8 +9841,10 @@
     updateSelectionButtons();
   }
 
-  function loadVideo(videoElem, file){
-    if(videoElem.src && videoElem.src.startsWith('blob:')){
+  function loadVideo(videoElem, file, { preserveCurrentSource = false } = {}){
+    if(videoElem.src && videoElem.src.startsWith('blob:')
+      && !(preserveCurrentSource && videoElem === frontVideo
+        && backswingOriginalVideo?.src === videoElem.src)){
       URL.revokeObjectURL(videoElem.src); // 기존 blob URL 메모리 해제
     }
     videoElem.src = URL.createObjectURL(file);
@@ -9475,16 +9856,30 @@
   }
 
   async function handleFrontVideoFile(file){
-    setFileName('frontFileName', file);
     if(!file) return;
     if(!file.type.startsWith('video/')){
       if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
       return;
     }
+    if (backswingActive && backswingOriginalVideo) {
+      poseSampleCache.delete(frontVideo);
+      frontFindPositionStatus.textContent = '';
+      resetBackswing();
+      setFileName('frontFileName', file);
+      loadVideo(frontVideo, file, { preserveCurrentSource: true });
+      pauseBothVideos();
+      firstDualPlay = true;
+      checkButtonsEnabled();
+      updateStatus();
+      const detectedStart = await detectMotionStart(frontVideo, frontCanvas, frontCtx);
+      if (detectedStart !== null) frontMotionStart = detectedStart;
+      return;
+    }
+    setFileName('frontFileName', file);
     videoFileIdentity.front = getVideoFileIdentity(file);
     poseSampleCache.delete(frontVideo);
     frontFindPositionStatus.textContent = '';
-    resetBackswing({ preserveClassification: true });
+    resetBackswing();
     clearAnalysisResults();
     resetSwingCompareData();
     baselineFrontResult = null;
@@ -9983,6 +10378,21 @@
   if (analysisHeightInput) {
     analysisHeightInput.addEventListener('change', () => performAnalysis());
   }
+  [analysisBodyMassInput, analysisLeanMassInput, analysisPlayerCodeInput, analysisKnownDistanceInput].forEach(input => {
+    if (input) input.addEventListener('input', refreshSwingClassificationViews);
+  });
+  const validateLeanMass = () => {
+    const mass = Number(analysisBodyMassInput.value);
+    const leanMass = Number(analysisLeanMassInput.value);
+    const invalid = analysisLeanMassInput.value !== '' && analysisBodyMassInput.value !== ''
+      && Number.isFinite(mass) && Number.isFinite(leanMass) && leanMass > mass;
+    analysisLeanMassInput.setCustomValidity(invalid
+      ? r10Text('골격근량은 체중보다 클 수 없습니다.', 'Lean mass cannot exceed body mass.')
+      : '');
+  };
+  [analysisBodyMassInput, analysisLeanMassInput].forEach(input => {
+    if (input) input.addEventListener('input', validateLeanMass);
+  });
   if (analysisSegmentSelect) {
     analysisSegmentSelect.addEventListener('change', (e) => {
       cancelPointer();
@@ -10086,12 +10496,81 @@
   const ANALYSIS_PROJECT_VERSION = 1;
   const ANALYSIS_PROJECT_MAX_BYTES = 25 * 1024 * 1024;
   const ANALYSIS_FRAME_IDS = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'];
+  const BACKSWING_CACHE_PREFIX = 'sy-gsap-backswing-v1-';
   const saveAnalysisProjectBtn = document.getElementById('saveAnalysisProjectBtn');
   const loadAnalysisProjectBtn = document.getElementById('loadAnalysisProjectBtn');
   const analysisProjectFileInput = document.getElementById('analysisProjectFileInput');
 
   function copyProjectValue(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function getBackswingCacheIdentity(media, history) {
+    const signature = JSON.stringify({ media, history });
+    let hash = 2166136261;
+    for (let index = 0; index < signature.length; index++) {
+      hash = Math.imul(hash ^ signature.charCodeAt(index), 16777619);
+    }
+    return { signature, key: `${BACKSWING_CACHE_PREFIX}${(hash >>> 0).toString(16)}` };
+  }
+
+  function reportBackswingCacheError(action, error) {
+    console.error(`백스윙 자동 저장 결과 ${action} 실패`, error);
+    if (statusSpan) {
+      const actionEnglish = { 저장: 'save', 불러오기: 'load', 읽기: 'read', 삭제: 'delete' }[action] || 'process';
+      statusSpan.textContent = getSwingUiText(
+        `백스윙 결과 자동 저장 처리에 실패했습니다(${action}). 분석 프로젝트 파일로 저장하세요.`,
+        `Could not ${actionEnglish} the autosaved backswing result. Save an analysis project file instead.`);
+    }
+  }
+
+  function saveBackswingClassificationCache() {
+    if (!videoFileIdentity.front || !backswingClassification) return;
+    const { signature, key } = getBackswingCacheIdentity(
+      videoFileIdentity, frameStateHistory);
+    try {
+      localStorage.setItem(key, JSON.stringify({
+        signature,
+        backswingFrames,
+      }));
+      backswingClassificationCacheKey = key;
+    } catch (error) {
+      reportBackswingCacheError('저장', error);
+    }
+  }
+
+  function loadBackswingClassificationCache(media, history) {
+    if (!media.front) return null;
+    const { signature, key } = getBackswingCacheIdentity(media, history);
+    let stored;
+    try {
+      stored = localStorage.getItem(key);
+    } catch (error) {
+      reportBackswingCacheError('불러오기', error);
+      return null;
+    }
+    if (!stored) return null;
+
+    try {
+      const cached = JSON.parse(stored);
+      const frames = cached && cached.signature === signature ? cached.backswingFrames : null;
+      const validFrames = frames && typeof frames === 'object' && !Array.isArray(frames)
+        && Object.keys(frames).length === BACKSWING_PHASES.length
+        && BACKSWING_PHASES.every(phase => {
+          const entry = frames[phase];
+          return entry && Array.isArray(entry.points)
+            && entry.points.length === getBackswingPointLabels(phase).length
+            && entry.points.every(isProjectCoordinate)
+            && Number.isFinite(entry.time) && entry.time >= 0;
+        });
+      if (!validFrames) return null;
+      const classification = classifyBackswing(frames);
+      if (classification.error) return null;
+      return { frames, classification, key };
+    } catch (error) {
+      reportBackswingCacheError('읽기', error);
+      return null;
+    }
   }
 
   function buildAnalysisProject() {
@@ -10116,6 +10595,12 @@
         distanceReferenceLinesByView,
         frame1ReferenceSnapshot,
         height: analysisHeightInput.value,
+        athleteData: {
+              bodyMassKg: analysisBodyMassInput.value === '' ? null : Number(analysisBodyMassInput.value),
+              leanMassKg: analysisLeanMassInput.value === '' ? null : Number(analysisLeanMassInput.value),
+          playerCode: analysisPlayerCodeInput.value.trim(),
+          knownTotalDistanceM: analysisKnownDistanceInput.value === '' ? null : Number(analysisKnownDistanceInput.value),
+        },
         frontZoom,
         sideZoom,
         frontSpeedFactor,
@@ -10239,6 +10724,23 @@
       || state.frontPoints.length > 12 || state.sidePoints.length > 12
       || state.frontLines.length > 100 || state.sideLines.length > 100
       || !Number.isInteger(Number(state.height)) || Number(state.height) < 160 || Number(state.height) > 190
+      || (state.athleteData != null && (!state.athleteData || typeof state.athleteData !== 'object'
+        || Array.isArray(state.athleteData)
+        || (state.athleteData.bodyMassKg != null
+          && (!Number.isFinite(state.athleteData.bodyMassKg) || state.athleteData.bodyMassKg < 30 || state.athleteData.bodyMassKg > 200))
+        || (state.athleteData.leanMassKg != null
+          && (!Number.isFinite(state.athleteData.leanMassKg) || state.athleteData.leanMassKg < 20
+            || state.athleteData.leanMassKg > 150
+            || (state.athleteData.bodyMassKg != null && state.athleteData.leanMassKg > state.athleteData.bodyMassKg)))
+        || (state.athleteData.leanMassKg != null
+          && (!Number.isFinite(state.athleteData.leanMassKg) || state.athleteData.leanMassKg < 20
+            || state.athleteData.leanMassKg > 150
+            || (state.athleteData.bodyMassKg != null && state.athleteData.leanMassKg > state.athleteData.bodyMassKg)))
+        || (state.athleteData.playerCode != null
+          && (typeof state.athleteData.playerCode !== 'string' || state.athleteData.playerCode.length > 64))
+        || (state.athleteData.knownTotalDistanceM != null
+          && (!Number.isFinite(state.athleteData.knownTotalDistanceM)
+            || state.athleteData.knownTotalDistanceM < 0 || state.athleteData.knownTotalDistanceM > 600))))
       || !['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].includes(state.lastDistanceSegment)
       || !['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].includes(state.lastConsistencySegment)
       || Object.keys(state.segmentScoreHistory).some(frame => !ANALYSIS_FRAME_IDS.includes(frame))
@@ -10281,6 +10783,13 @@
 
   function saveAnalysisProject() {
     try {
+      if (![analysisBodyMassInput, analysisLeanMassInput, analysisKnownDistanceInput].every(input => input.checkValidity())) {
+        alert(r10Text(
+          '체중(30–200kg), 골격근량(20–150kg), 알려진 총 비거리(0–600m)를 확인하세요.',
+          'Check body mass (30–200 kg), lean mass (20–150 kg), and known total distance (0–600 m).'
+        ));
+        return;
+      }
       const project = buildAnalysisProject();
       const json = JSON.stringify(project, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
@@ -10363,6 +10872,12 @@
     selectedSegment = state.selectedSegment;
     analysisSegmentSelect.value = selectedSegment;
     analysisHeightInput.value = state.height;
+    const athleteData = state.athleteData || {};
+    analysisBodyMassInput.value = athleteData.bodyMassKg ?? '';
+    analysisLeanMassInput.value = athleteData.leanMassKg ?? '';
+    analysisPlayerCodeInput.value = athleteData.playerCode || '';
+    analysisKnownDistanceInput.value = athleteData.knownTotalDistanceM ?? '';
+    validateLeanMass();
     frontZoom = clamp(Number(state.frontZoom) || 1, 0.2, 4);
     sideZoom = clamp(Number(state.sideZoom) || 1, 0.2, 4);
     frontZoomRange.value = frontZoom;
@@ -10396,6 +10911,7 @@
       sideLines = copyProjectValue(sideFrame.lines);
       if (Number.isFinite(sideFrame.videoTime) && sideVideo.src) sideVideo.currentTime = Math.min(sideFrame.videoTime, sideVideo.duration || sideFrame.videoTime);
     }
+    backswingClassificationCacheKey = null;
     backswingFrames = copyProjectValue(state.backswingFrames || {});
     backswingClassification = null;
     if (state.backswingClassified) {
@@ -10403,6 +10919,19 @@
       const recomputed = classifyBackswing(backswingFrames);
       backswingClassification = recomputed && !recomputed.error ? recomputed
         : sanitizeStoredBackswingClassification(state.backswingClassificationResult);
+      if (backswingClassification) {
+        backswingClassificationCacheKey = getBackswingCacheIdentity(
+          project.media, state.frameStateHistory).key;
+      }
+    }
+    if (!backswingClassification) {
+      const cachedBackswing = loadBackswingClassificationCache(
+        project.media, state.frameStateHistory);
+      if (cachedBackswing) {
+        backswingFrames = cachedBackswing.frames;
+        backswingClassification = cachedBackswing.classification;
+        backswingClassificationCacheKey = cachedBackswing.key;
+      }
     }
     backswingPhaseSelect.value = BACKSWING_PHASES.includes(state.backswingPhase) ? state.backswingPhase : 'address';
     backswingActive = false;
@@ -10475,7 +11004,7 @@
     }
     r10AnalysisPanel.hidden = !project.r10.panelVisible;
     r10EvaluationToggleBtn.setAttribute('aria-expanded', String(!r10AnalysisPanel.hidden));
-    updateSwingTypeCard();
+    refreshSwingClassificationViews();
     checkButtonsEnabled();
     updateStatus();
     return hasFrameInputs;
@@ -10616,9 +11145,7 @@
   const r10ReportSheet = document.getElementById('r10ReportSheet');
   const r10ReportPdfBtn = document.getElementById('r10ReportPdfBtn');
   let r10Shots = [];
-  let r10Analysis = null;
   let r10SourceName = '';
-  let r10Units = {};
   let r10DistanceKey = 'carry';
   let r10SideKey = 'carrySide';
   let r10SelectedShotNo = null;
