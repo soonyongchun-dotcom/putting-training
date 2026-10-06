@@ -4175,7 +4175,13 @@
         m.hipNormY = p1.y;
       }
       // C7 좌표 (Sway 및 수직상승 비교용)
-      if (p4) { m.c7NormX = p4.x; m.c7NormY = p4.y; }
+      if (p4) {
+        m.c7NormX = p4.x; m.c7NormY = p4.y;
+        if (p3) {
+          const bodyLength = Math.hypot((p3.x - p4.x) * ar, p3.y - p4.y);
+          m.bodyLength = bodyLength > 0.0005 ? bodyLength : null;
+        }
+      }
     }
 
     if (frameId === 'frame4') {
@@ -5002,6 +5008,10 @@
       const c7B = referenceRatio(fmB.c7NormY, 'side');
       // 화면 y는 아래로 증가하므로 B-A 양수 = 고관절 하강(로딩)
       fm.hipDropPercent = hasMetric(hipA) && hasMetric(hipB) ? (hipB - hipA) * 100 : null;
+      const bodyLengthA = fmA.bodyLength;
+      fm.leadHipRiseBodyPercent = hasMetric(fmA.hipNormY) && hasMetric(fmB.hipNormY)
+        && hasMetric(bodyLengthA) && bodyLengthA > 0.0005
+        ? ((fmA.hipNormY - fmB.hipNormY) / bodyLengthA) * 100 : null;
       fm.c7RisePercent = hasMetric(c7A) && hasMetric(c7B) ? (c7A - c7B) * 100 : null;
       fm.c7SwayPercent = computeHeightPercentDisplacement(
         fmA.c7NormX, fmA.c7NormY, fmB.c7NormX, fmB.c7NormY).xPercent;
@@ -6133,7 +6143,7 @@
       || (hasMetric(f3.enginePhaseDeltaSec) && f3.enginePhaseDeltaSec > 0);
     const comparable = areVideoSourcesSame() && f3?.distanceComparable !== false && phaseOrdered;
     const kneeChange = comparable && hasMetric(f3?.kneeExtDelta) ? f3.kneeExtDelta : null;
-    const hipChange = comparable && hasMetric(f3?.hipDropPercent) ? -f3.hipDropPercent : null;
+    const hipChange = comparable && hasMetric(f3?.leadHipRiseBodyPercent) ? f3.leadHipRiseBodyPercent : null;
     const kneeFit = hasMetric(kneeChange) ? rampScore(kneeChange, 0, 8) : null;
     const riseFit = hasMetric(hipChange) ? rampScore(hipChange, 0.5, 3) : null;
     const fit = weightedAvg01([
@@ -6155,8 +6165,8 @@
     const vertical = result.verticalEvidence;
     const value = (number, suffix = '') => hasMetric(number) ? number.toFixed(1) + suffix : '—';
     return getSwingUiText(
-      `VEE 구간 근거: F3 A→B 무릎 ${value(vertical.kneeAngleA, '°')}→${value(vertical.kneeAngleB, '°')} (신전 ${value(vertical.kneeChange, '°')}) · 왼고관절 상승 ${value(vertical.hipRisePercent, '%')} (골반 중심 이동 아님). 실험적 신전 변화 0→8° 50%+기준선 대비 상승 0.5→3% 50%. 신전 범위는 F3 변화 채점과 통일하고 타이거 아이언·여자 선수의 서로 다른 신전/상승 사례를 참고해 동등 반영합니다. 수직 기본 적합도 ${hasMetric(vertical.fit) ? vertical.fit.toFixed(3) : '—'} / 이전 ${hasMetric(vertical.previousFit) ? vertical.previousFit.toFixed(3) : '—'} (0→15°·70:30, 압축 보조 전). 절대각만으로 수직 구동을 판정하지 않습니다. F3 후기 구간만 관측하며 초기 스쿼트·임팩트 이후 신전·지면반력은 미측정. 단독 판정은 1·2위 차이 ≥14%p; 50% 초과만으로 단독 판정하지 않습니다.`,
-      `VEE interval evidence: F3 A→B knee ${value(vertical.kneeAngleA, '°')}→${value(vertical.kneeAngleB, '°')} (extension ${value(vertical.kneeChange, '°')}), lead-hip rise ${value(vertical.hipRisePercent, '%')} (not pelvis-center motion). Experimental extension change 0→8° 50% + rise relative to reference 0.5→3% 50%. Extension range matches F3 change scoring; equal weighting references the contrasting extension/rise examples in the Tiger iron and female-player reports. Vertical base fit ${hasMetric(vertical.fit) ? vertical.fit.toFixed(3) : '—'} / previous ${hasMetric(vertical.previousFit) ? vertical.previousFit.toFixed(3) : '—'} (0→15°, 70:30, before compression support). Absolute angle alone does not establish vertical drive. Only late F3 motion is observed; early squat, post-impact extension and ground forces are unmeasured. Single-engine assignment requires a lead ≥14 percentage points; exceeding 50% alone is insufficient.`)
+      `VEE 구간 근거: F3 A→B 무릎 ${value(vertical.kneeAngleA, '°')}→${value(vertical.kneeAngleB, '°')} (신전 ${value(vertical.kneeChange, '°')}) · 왼고관절 상승 ${value(vertical.hipRisePercent, '%')} (F3 A C7–발목 길이 대비, 골반 중심 이동 아님). 실험적 신전 변화 0→8° 50%+C7–발목 길이 대비 상승 0.5→3% 50%. 신전 범위는 F3 변화 채점과 통일하고 타이거 아이언·여자 선수의 서로 다른 신전/상승 사례를 참고해 동등 반영합니다. 수직 기본 적합도 ${hasMetric(vertical.fit) ? vertical.fit.toFixed(3) : '—'} / 이전 ${hasMetric(vertical.previousFit) ? vertical.previousFit.toFixed(3) : '—'} (0→15°·70:30, 압축 보조 전). 절대각만으로 수직 구동을 판정하지 않습니다. F3 후기 구간만 관측하며 초기 스쿼트·임팩트 이후 신전·지면반력은 미측정. 단독 판정은 1·2위 차이 ≥14%p; 50% 초과만으로 단독 판정하지 않습니다.`,
+      `VEE interval evidence: F3 A→B knee ${value(vertical.kneeAngleA, '°')}→${value(vertical.kneeAngleB, '°')} (extension ${value(vertical.kneeChange, '°')}), lead-hip rise ${value(vertical.hipRisePercent, '%')} (relative to C7-to-ankle length at F3 A; not pelvis-center motion). Experimental extension change 0→8° 50% + rise relative to C7-to-ankle length 0.5→3% 50%. Extension range matches F3 change scoring; equal weighting references the contrasting extension/rise examples in the Tiger iron and female-player reports. Vertical base fit ${hasMetric(vertical.fit) ? vertical.fit.toFixed(3) : '—'} / previous ${hasMetric(vertical.previousFit) ? vertical.previousFit.toFixed(3) : '—'} (0→15°, 70:30, before compression support). Absolute angle alone does not establish vertical drive. Only late F3 motion is observed; early squat, post-impact extension and ground forces are unmeasured. Single-engine assignment requires a lead ≥14 percentage points; exceeding 50% alone is insufficient.`)
       + getSwingUiText(
         `\n직전 수직형 상대 적합도 ${hasMetric(result.previousVerticalPct?.type3) ? result.previousVerticalPct.type3.toFixed(1) + '%' : '—'} → 현재 유형 3 결합 ${!result.missingEngineEvidence?.length && hasMetric(result.pct?.type3) ? result.pct.type3.toFixed(1) + '%' : '—'} (ATE·LSE는 현재 기준 고정). 사례 기반 실험적 보정이며 실제 파워·수행능력 검증 전입니다.`,
           `\nPrevious vertical-only relative fit ${hasMetric(result.previousVerticalPct?.type3) ? result.previousVerticalPct.type3.toFixed(1) + '%' : '—'} → current Type 3 composite ${!result.missingEngineEvidence?.length && hasMetric(result.pct?.type3) ? result.pct.type3.toFixed(1) + '%' : '—'} (ATE and LSE held at current settings). Experimental case-based calibration, not validated power or performance.`)
@@ -6408,8 +6418,8 @@
         + `<div>${getSwingUiText('3점 퍼짐 변화는 형태 참고값입니다. Type 3 결합 점수는 P6 래깅 유지·임팩트 팔–샤프트 전개·수직 근거를 사용합니다.',
           'Three-point spread changes are shape observations. The Type 3 composite uses P6 lag retention, impact arm–shaft extension and vertical evidence.')}</div></section>`);
       referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('EVS 프록시 산출 안내', 'EVS proxy calculation notes')}</div><div>${getSwingUiText(
-        '실험적 2D 모션 프록시입니다. 현재 상한은 ATE 상체회전 90° 및 축 안정성 밴드, LSE 골반 이동 13%, 수직 근거 무릎 신전 8°·리드고관절 상승 3%(상승 점수는 0.5%부터)입니다. 기본 가중치는 1:1:1이며 ENGINE_VECTOR_WEIGHTS 상수에서 조정합니다. 이는 선수 집단으로 검증된 상한이 아닙니다. 누락 축은 0점으로 간주하지 않고 3개 모두 있을 때만 종합점을 표시합니다. 실제 힘·토크·파워 측정값이 아니며, C7의 Y축 회전은 현재 직접 측정되지 않습니다.',
-        'Experimental 2D motion proxy. Current caps are 90° upper turn plus an axis-stability band for ATE, 13% pelvis shift for LSE, and 8° knee extension / 3% lead-hip rise for vertical evidence (rise scoring starts at 0.5%). Default weights are 1:1:1 and can be adjusted in the ENGINE_VECTOR_WEIGHTS constant. These caps are not validated against a player cohort. Missing axes are not treated as zero; the composite is shown only when all three are available. This is not measured force, torque, or power; C7 Y-axis rotation is not directly measured.')}</div></section>`);
+        '실험적 2D 모션 프록시입니다. 현재 상한은 ATE 상체회전 90° 및 축 안정성 밴드, LSE 골반 이동 13%, 수직 근거 무릎 신전 8°·F3 A시점 C7–발목 길이 대비 고관절 상승 3%(상승 점수는 0.5%부터)입니다. 화면상 인물 크기 영향을 줄이기 위해 EVS 수직 상승률은 F3 A의 C7–발목 길이로 정규화합니다. 기본 가중치는 1:1:1이며 ENGINE_VECTOR_WEIGHTS 상수에서 조정합니다. 이는 선수 집단으로 검증된 상한이 아닙니다. 누락 축은 0점으로 간주하지 않고 3개 모두 있을 때만 종합점을 표시합니다. 실제 힘·토크·파워 측정값이 아니며, C7의 Y축 회전은 현재 직접 측정되지 않습니다.',
+        'Experimental 2D motion proxy. Current caps are 90° upper turn plus an axis-stability band for ATE, 13% pelvis shift for LSE, and 8° knee extension / 3% lead-hip rise relative to C7-to-ankle length at F3 A for vertical evidence (rise scoring starts at 0.5%). EVS vertical rise is normalized to C7-to-ankle length at F3 A to reduce sensitivity to apparent on-screen player size. Default weights are 1:1:1 and can be adjusted in the ENGINE_VECTOR_WEIGHTS constant. These caps are not validated against a player cohort. Missing axes are not treated as zero; the composite is shown only when all three are available. This is not measured force, torque, or power; C7 Y-axis rotation is not directly measured.')}</div></section>`);
     }
     if (backswingClassification || result) {
       const backswingCode = getBackswingProfileCode(backswingClassification);
