@@ -31,6 +31,11 @@ function loadFunction(name) {
   vm.runInContext(source[0], context);
 }
 
+const engineWeightsStart = html.indexOf('  const ENGINE_VECTOR_WEIGHTS =');
+const engineWeightsEnd = html.indexOf(';', engineWeightsStart) + 1;
+assert.ok(engineWeightsStart >= 0 && engineWeightsEnd > engineWeightsStart);
+vm.runInContext(html.slice(engineWeightsStart, engineWeightsEnd), context);
+
 for (const name of [
   'clamp', 'hasMetric', 'smoothstep01', 'bandScore', 'rampScore', 'roundToStep',
   'getForwardDrift', 'getSwingTargetSign', 'scoreHeadPelvisCoupling', 'scoreImpactHeadPelvisGap',
@@ -58,6 +63,7 @@ for (const name of [
   'computePhaseTimeDelta', 'getMotionSearchRequest', 'advanceGuideStep', 'isPanelComplete',
   'getFrameMaxPoints',
   'getThreePointEngineEvidence', 'combineEngineCompressionEvidence', 'weightedAvg01',
+  'computeEngineVectorProxy',
   'getCompressionTransitionEvidence',
   'getThreePointProfilePenalty',
   'classifySwingType', 'getStoredArmShaftDelta',
@@ -94,6 +100,30 @@ test('R10 consistency uses the fixed 1.5-sigma center ratio and combines 50:50',
   assert.equal(context.combineConsistencyScores(80, 60), 70);
   assert.equal(context.getR10ConsistencyPercent([{ mahalanobis: 0 }], true), null);
   assert.equal(context.combineConsistencyScores(80, null), null);
+});
+
+test('EVS proxy combines independent engine fits without relative-share normalization', () => {
+  const complete = context.computeEngineVectorProxy({ type1: 0.8, type2: 0.5, type3: 0.3 });
+  close(complete.score100, 160 / 3);
+  assert.equal(complete.coverage, 3);
+  close(complete.components.type1.score100, 80);
+  close(complete.components.type2.score100, 50);
+  close(complete.components.type3.score100, 30);
+
+  const incomplete = context.computeEngineVectorProxy({ type1: 0.8, type2: null, type3: 0.3 });
+  assert.equal(incomplete.score100, null);
+  assert.equal(incomplete.coverage, 2);
+  assert.equal(incomplete.components.type2.score100, null);
+});
+
+test('Yu 261003 driver benchmark uses the uncalibrated weighted EVS and preserves 100 cap', () => {
+  const benchmark = context.computeEngineVectorProxy({
+    type1: 0.9836704214380555,
+    type2: 0.884697799834531,
+    type3: 0.8815657209005385,
+  });
+  close(benchmark.score100, 91.66446473910416, 1e-8);
+  assert.equal(context.computeEngineVectorProxy({ type1: 1, type2: 1, type3: 1 }).score100, 100);
 });
 
 test('all-frame interpretation includes six sections and distinguishes unanalyzed frames', () => {
@@ -1761,6 +1791,9 @@ test('three reference reports gain LSE balance without forced ATE/VEE ordering o
       const before = JSON.stringify(context.segmentDeltaHistory);
       const result = context.classifySwingType();
       assert.equal(context.getPowerEngineDecision(result).code, 'TKE', sample.id);
+      assert.ok(Number.isFinite(result.engineVectorProxy.score100), sample.id);
+      assert.equal(result.engineVectorProxy.coverage, 3, sample.id);
+      close(result.engineVectorProxy.components.type3.score100, result.verticalEvidence.fit * 100);
       assert.equal(result.linearEvidence.previousSource, 'F2', 'F5 is absent in transcribed reports');
       assert.ok(result.scores.type2 > result.previousScores.type2, sample.id);
       close(result.scores.type1, result.previousScores.type1);

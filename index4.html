@@ -5955,6 +5955,21 @@
     if (w <= 0) return null;
     return valid.reduce((sum, p) => sum + p.value * p.weight, 0) / w;
   }
+  const ENGINE_VECTOR_WEIGHTS = Object.freeze({ type1: 1, type2: 1, type3: 1 });
+
+  function computeEngineVectorProxy(scores) {
+    const components = Object.fromEntries(Object.entries(ENGINE_VECTOR_WEIGHTS).map(([key, weight]) => [
+      key,
+      { score100: hasMetric(scores[key]) ? clamp(scores[key], 0, 1) * 100 : null, weight },
+    ]));
+    const complete = Object.values(components).every(component => hasMetric(component.score100));
+    const weightTotal = Object.values(components).reduce((sum, component) => sum + component.weight, 0);
+    const score100 = complete && weightTotal > 0
+      ? Object.values(components).reduce((sum, component) => sum + component.score100 * component.weight, 0) / weightTotal
+      : null;
+    return { score100, components,
+      coverage: Object.values(components).filter(component => hasMetric(component.score100)).length };
+  }
 
   function getSwingUiText(korean, english) {
     return uiLanguage === 'en' ? english : korean;
@@ -6279,6 +6294,11 @@
 
     const scores = { type1, type2, type3 };
     if (Object.values(scores).some(score => !hasMetric(score))) return null;
+    const engineVectorProxy = computeEngineVectorProxy({
+      type1: hasMetric(axisStability) && hasMetric(upperTurn) ? type1 : null,
+      type2: linearEvidence.fit,
+      type3: verticalEvidence.available ? verticalEvidence.fit : null,
+    });
     const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
     if (total <= 0) return null;
     const previousScores = { ...scores, type2: linearEvidence.previousFit };
@@ -6310,6 +6330,7 @@
       + ' ' + type3CombinedEvidence.issues.join(' · '));
     return { pct, share, scores, analyzedCount, threePointEvidence, distanceCompressionCycle, compressionCycle,
       verticalEvidence, linearEvidence, type3CombinedEvidence, previousScores, previousPct, previousVerticalScore, previousVerticalPct,
+      engineVectorProxy,
       coactivation: getEngineCoactivation(axisStability, upperTurn, shiftRatio, verticalEvidence),
       missingEngineEvidence, provisional: true };
   }
@@ -6356,6 +6377,20 @@
       rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('스윙 유형 추정', 'Swing Type Estimate')}</div>`
         + `<div><strong>${getSwingUiText('주요 적합 조합:', 'Leading fit:')}</strong> ${headline}</div>`
         + `<div class="analysis-type-list">${fitRows}</div></section>`);
+      const evs = result.engineVectorProxy;
+      const evsLabels = uiLanguage === 'en'
+        ? { type1: 'ATE · axis stability / upper turn', type2: 'LSE · same-video pelvis shift', type3: 'VEE vertical · knee extension / lead-hip rise' }
+        : { type1: 'ATE · 축 안정 / 상체 회전', type2: 'LSE · 같은 영상 골반 이동', type3: 'VEE 수직 · 무릎 신전 / 리드고관절 상승' };
+      const evsRows = Object.entries(evs.components).map(([key, component]) =>
+        `<div class="analysis-type-row"><span class="analysis-type-row-label">${evsLabels[key]}</span>`
+        + `<span class="analysis-type-row-value">${hasMetric(component.score100) ? `${component.score100.toFixed(0)}/100 · w=${component.weight}` : '—'}</span></div>`
+      ).join('');
+      rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('EVS 프록시 · 비정규화 엔진 적합도', 'EVS proxy · unshared engine fits')}</div>`
+        + `<div>${getSwingUiText('종합 EVS 프록시:', 'Composite EVS proxy:')} ${hasMetric(evs.score100) ? `${evs.score100.toFixed(1)} / 100` : getSwingUiText('산출 보류', 'Unavailable')} · ${evs.coverage}/3 ${getSwingUiText('축 근거', 'axes available')}</div>`
+        + `<div class="analysis-type-list">${evsRows}</div>`
+        + `<span class="swing-type-note">${getSwingUiText(
+          '실험적 모션 프록시이며 실제 힘·토크·파워 측정값은 아닙니다. 산출 기준과 한계는 참고 안내를 확인하세요.',
+          'Experimental motion proxy, not measured force, torque, or power. See the reference guide for calculation criteria and limitations.')}</span></section>`);
       if (result.missingEngineEvidence?.length) rows.push(`<div class="swing-type-note">${getSwingUiText(
         '유형 판정 보류: 누락 지표·시점은 참고 안내에서 확인하세요.',
         'Classification held: check missing metrics and phases in the Reference Guide.')} ${result.type3CombinedEvidence.issues.join(' · ')}</div>`);
@@ -6372,6 +6407,9 @@
         + `<div>F1→F2 ${pctText(three.topToF2)} | F2→F3 ${pctText(three.f2ToF3)} | F3→F4 ${pctText(three.f3ToF4)} | F2→F4 ${pctText(three.f2ToF4)}</div>`
         + `<div>${getSwingUiText('3점 퍼짐 변화는 형태 참고값입니다. Type 3 결합 점수는 P6 래깅 유지·임팩트 팔–샤프트 전개·수직 근거를 사용합니다.',
           'Three-point spread changes are shape observations. The Type 3 composite uses P6 lag retention, impact arm–shaft extension and vertical evidence.')}</div></section>`);
+      referenceRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('EVS 프록시 산출 안내', 'EVS proxy calculation notes')}</div><div>${getSwingUiText(
+        '실험적 2D 모션 프록시입니다. 현재 상한은 ATE 상체회전 90° 및 축 안정성 밴드, LSE 골반 이동 13%, 수직 근거 무릎 신전 8°·리드고관절 상승 3%(상승 점수는 0.5%부터)입니다. 기본 가중치는 1:1:1이며 ENGINE_VECTOR_WEIGHTS 상수에서 조정합니다. 이는 선수 집단으로 검증된 상한이 아닙니다. 누락 축은 0점으로 간주하지 않고 3개 모두 있을 때만 종합점을 표시합니다. 실제 힘·토크·파워 측정값이 아니며, C7의 Y축 회전은 현재 직접 측정되지 않습니다.',
+        'Experimental 2D motion proxy. Current caps are 90° upper turn plus an axis-stability band for ATE, 13% pelvis shift for LSE, and 8° knee extension / 3% lead-hip rise for vertical evidence (rise scoring starts at 0.5%). Default weights are 1:1:1 and can be adjusted in the ENGINE_VECTOR_WEIGHTS constant. These caps are not validated against a player cohort. Missing axes are not treated as zero; the composite is shown only when all three are available. This is not measured force, torque, or power; C7 Y-axis rotation is not directly measured.')}</div></section>`);
     }
     if (backswingClassification || result) {
       const backswingCode = getBackswingProfileCode(backswingClassification);
