@@ -6324,13 +6324,7 @@
     return { ready: missing.length === 0, missing };
   }
 
-  function refreshScoresForBackswingEvidence({ rebuildStoredFrames = false } = {}) {
-    const hasStoredFrameInputs = ['front', 'side'].some(view =>
-      Object.values(frameStateHistory[view] || {}).some(frame => frame?.points?.length || frame?.lines?.length));
-    if (rebuildStoredFrames && hasStoredFrameInputs) {
-      refreshStoredFrameAnalyses();
-      return;
-    }
+  function refreshScoresForBackswingEvidence() {
     ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].forEach(segment => {
       const deltaResult = segmentDeltaHistory[segment];
       if (!deltaResult) return;
@@ -8160,7 +8154,7 @@
       title.setAttribute('aria-expanded', String(!detail.hidden));
     });
     backswingResult.replaceChildren(title, detail);
-    refreshScoresForBackswingEvidence({ rebuildStoredFrames: true });
+    refreshScoresForBackswingEvidence();
   });
   let sidePoints = [];
   let frontLines = [];
