@@ -10,6 +10,7 @@ assert.ok(start >= 0 && end > start);
 const context = vm.createContext({
   backswingActive: true, uiLanguage: 'en',
   backswingPhaseSelect: { value: 'address' }, selectedSegment: 'frame1',
+  getSwingUiText: (_ko, en) => en,
 });
 vm.runInContext(html.slice(start, end), context);
 const featureStart = html.indexOf('  function getPoseMotionFeatures(');
@@ -54,6 +55,21 @@ test('normal swing resolves top, backswing checkpoints and P5', () => {
     assert.ok(index >= previous && index < input.length, target);
     previous = index;
   }
+});
+
+test('shoulder-height search finds separate rising and falling wrist crossings', () => {
+  const input = samples([...address, ...rise, ...fall]);
+  input.forEach(sample => { sample.handShoulderHeight = sample.handHeight - 0.6; });
+  const top = context.findPoseTargetIndex(input, 'top');
+  assert.ok(context.findPoseTargetIndex(input, 'backswingShoulder') < top);
+  assert.ok(context.findPoseTargetIndex(input, 'downswingShoulder') > top);
+  context.backswingPhaseSelect.value = 'backShoulder';
+  assert.equal(context.getMotionSearchRequest('front').target, 'backswingShoulder');
+  context.backswingPhaseSelect.value = 'downShoulder';
+  assert.equal(context.getMotionSearchRequest('front').target, 'downswingShoulder');
+  context.backswingPhaseSelect.value = 'address';
+  input.forEach(sample => { sample.handShoulderHeight = -1; });
+  assert.throws(() => context.findPoseTargetIndex(input, 'backswingShoulder'), /select the frame manually/);
 });
 
 test('early waggle does not restrict the real swing to the first 3.5 seconds', () => {
@@ -145,11 +161,12 @@ test('P phases and F frame A/B requests stay on their intended side of the top',
   const top = context.findPoseTargetIndex(input, 'top');
   try {
     context.backswingActive = true;
-    for (const phase of ['p1', 'p2', 'p3', 'p4', 'transition', 'downP6']) {
+    for (const phase of ['p1', 'p2', 'p3', 'p4', 'transition', 'downP6', 'impact']) {
       context.backswingPhaseSelect.value = phase;
       const request = context.getMotionSearchRequest('front');
       const index = context.findPoseTargetIndex(input, request.target);
-      assert.ok(['transition', 'downP6'].includes(phase) ? index > top : index < top, phase);
+      assert.ok(['transition', 'downP6', 'impact'].includes(phase) ? index > top : index < top, phase);
+      if (phase === 'impact') assert.equal(request.target, 'impact');
       assert.equal(context.getMotionSearchRequest('side'), null);
     }
     context.backswingActive = false;
