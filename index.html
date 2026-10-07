@@ -459,12 +459,15 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
 .mission-card-body { display:none; padding:10px; border-top:1px dashed #d6e0f3; }
 .mission-card-body.open { display:block; }
 .mission-card-detail { white-space:pre-wrap; font-size:12px; color:#324a82; margin-bottom:6px; line-height:1.4; }
+.mission-card-due-date { margin:6px 0; color:#4a649e; font-size:12px; font-weight:600; }
+.mission-card-overdue-warning { margin:6px 0; padding:7px 9px; border:1px solid #f3b4a8; border-radius:7px; background:#fff1ee; color:#b42318; font-size:12px; font-weight:700; }
 .mission-card-actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
 .mission-reassign-list { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:4px; }
 .mission-result-form { margin-top:8px; border-top:1px dashed #d6e0f3; padding-top:8px; overflow-x:auto; }
 .mission-result-form input[type="date"] { margin:0 0 0 6px; }
 .mission-result-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:12px; }
 .mission-result-table th, .mission-result-table td { border:1px solid #d7e0f2; padding:4px 6px; text-align:center; }
+.mission-result-table th, .mission-result-table td { min-width:110px; }
 .mission-result-table th { background:#eef4ff; color:#1f4db8; }
 .mission-result-table td { background:#fff; }
 .mission-result-table .mission-source-cell { white-space:pre-wrap; }
@@ -488,9 +491,48 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
     white-space:nowrap;
     vertical-align:top;
 }
+.mission-result-table textarea.mission-preview-cell-edit,
+.mission-result-table textarea.mission-result-input {
+    display:block;
+    width:100%;
+    min-width:90px;
+    min-height:3em;
+    box-sizing:border-box;
+    field-sizing:content;
+    font:inherit;
+    text-align:inherit;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+}
+.mission-result-table .mission-overflow-cell-edit {
+    position:absolute;
+    top:0;
+    left:0;
+    z-index:2;
+    width:max-content;
+    min-width:100%;
+    margin:0;
+    padding:2px 4px;
+    border:1px solid transparent;
+    box-sizing:border-box;
+    field-sizing:content;
+    font:inherit;
+    text-align:inherit;
+    white-space:nowrap;
+    background:transparent;
+}
+.mission-result-table .mission-overflow-cell-edit:focus {
+    z-index:3;
+}
 .mission-upload-preview .distance-table td,
 .mission-upload-preview .distance-table th {
     min-width:110px;
+}
+.mission-result-table.mission-source-sized-table th,
+.mission-result-table.mission-source-sized-table td,
+.mission-upload-preview .distance-table.mission-source-sized-table th,
+.mission-upload-preview .distance-table.mission-source-sized-table td {
+    min-width:0;
 }
 .section-action-row { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 /* 선수 관리 섹션 */
@@ -919,6 +961,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
           <div class="field" style="grid-column: 1 / -1;" id="missionExcelUploadField">
               <label for="missionExcelInput">Mission Excel Upload (.xlsx, .xls, .csv)</label>
               <input type="file" id="missionExcelInput" accept=".xlsx,.xls,.csv" multiple>
+              <div class="small" id="missionFileOptionalNote">엑셀 파일 없이도 제목·기한·내용을 입력해 미션을 등록할 수 있습니다.</div>
               <div class="form-grid" style="margin-top:4px;">
                   <div class="field">
                       <label for="missionUploadTitle">미션 제목</label>
@@ -931,6 +974,9 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
                   <div class="field" style="grid-column: 1 / -1;">
                       <label for="missionUploadDetail">미션내용</label>
                       <textarea id="missionUploadDetail" class="mission-textarea" placeholder="예: 20구 중 16구 이상 성공 / 실패 시 루틴 체크"></textarea>
+                  </div>
+                  <div class="field" style="grid-column: 1 / -1;">
+                      <button id="registerMissionWithoutFileBtn" type="button" class="secondary-btn">파일 없이 미션 등록</button>
                   </div>
               </div>
               <div id="pendingMissionUploadPreview"></div>
@@ -972,7 +1018,7 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; backgroun
               <label for="missionItemSelect">Mission Item</label>
               <select id="missionItemSelect"></select>
           </div>
-          <div class="field">
+          <div class="field" id="missionMessageTypeField">
               <label for="missionMessageType">기록 유형</label>
               <select id="missionMessageType">
                   <option value="mission">미션 지시</option>
@@ -1448,6 +1494,8 @@ const UI_I18N = {
         missionDirectTitlePh: "예: 3yd 스트레이트 20구",
         missionDirectItemPh: "예: 20구 중 16구 이상 홀인",
         saveMissionDirect: "미션등록",
+        registerMissionWithoutFile: "파일 없이 미션 등록",
+        missionFileOptionalNote: "엑셀 파일 없이도 제목·기한·내용을 입력해 미션을 등록할 수 있습니다.",
         needMissionDirectTitle: "미션 제목을 입력하세요.",
         needMissionDirectItem: "미션 항목을 입력하세요.",
         missionDirectSaved: "미션 등록 완료: {{targetPlayer}} / {{title}}",
@@ -1499,6 +1547,8 @@ const UI_I18N = {
         missionDirectDueDateLabel: "미션 기한",
         missionDueDateLabel: "기한",
         missionDueDateEmpty: "미지정",
+        missionEndDateLabel: "미션 종료일",
+        missionOverdueNoResult: "기한이 지났는데 수행 결과가 없습니다: {{players}}",
         missionAssignedLabel: "배정일",
         missionResultFormTitle: "수행 결과 기록",
         missionResultDateLabel: "수행 일자",
@@ -1670,6 +1720,8 @@ const UI_I18N = {
         missionDirectTitlePh: "e.g., 3yd straight 20 putts",
         missionDirectItemPh: "e.g., Hole at least 16 out of 20",
         saveMissionDirect: "Register Mission",
+        registerMissionWithoutFile: "Register Mission Without a File",
+        missionFileOptionalNote: "You can register a mission by entering its title, due date, and content without an Excel file.",
         needMissionDirectTitle: "Please enter a mission title.",
         needMissionDirectItem: "Please enter a mission item.",
         missionDirectSaved: "Mission saved: {{targetPlayer}} / {{title}}",
@@ -1721,6 +1773,8 @@ const UI_I18N = {
         missionDirectDueDateLabel: "Due Date",
         missionDueDateLabel: "Due",
         missionDueDateEmpty: "Not set",
+        missionEndDateLabel: "Mission end date",
+        missionOverdueNoResult: "Past due with no submitted result: {{players}}",
         missionAssignedLabel: "Assigned",
         missionResultFormTitle: "Record Mission Result",
         missionResultDateLabel: "Date performed",
@@ -3642,6 +3696,8 @@ class PuttingTrainingApp {
             setPlaceholder("#missionTargetPlayer", this.language === "en" ? "e.g., Jeon Sunyong" : "예: 전순용");
             setText("#registerPlayerBtn", this.t("registerPlayerBtn"));
             setText("#saveMissionInputBtn", this.t("missionSendBtn"));
+            setText("#registerMissionWithoutFileBtn", this.t("registerMissionWithoutFile"));
+            setText("#missionFileOptionalNote", this.t("missionFileOptionalNote"));
             setText("#saveMissionDirectBtn", this.t("saveMissionDirect"));
             setText("#deleteMissionFileBtn", this.t("missionDeleteAllBtn"));
             setText("#uploadMissionResultBtn", this.t("uploadMissionResult"));
@@ -3857,6 +3913,7 @@ class PuttingTrainingApp {
         const playerManageGroup = document.getElementById("coachPlayerManageGroup");
         const missionManageGroup = document.getElementById("coachMissionManageGroup");
         const missionTaskTitle = document.getElementById("missionTaskTitle");
+        const missionMessageTypeField = document.getElementById("missionMessageTypeField");
         const missionResultInput = document.getElementById("missionResultCsvInput");
         const missionResultDownloadFile = document.getElementById("missionResultDownloadFile");
         const uploadMissionResultBtn = document.getElementById("uploadMissionResultBtn");
@@ -3901,6 +3958,9 @@ class PuttingTrainingApp {
         if (missionTaskTitle) {
             missionTaskTitle.textContent = isCoach ? this.t("missionTaskTitleCoach") : this.t("missionTaskTitlePlayer");
         }
+        if (missionMessageTypeField) {
+            missionMessageTypeField.style.display = isCoach ? "none" : "block";
+        }
         if (missionResultInput) {
             missionResultInput.disabled = isCoach;
             missionResultInput.title = isCoach ? this.t("coachRoleCoachNote") : "";
@@ -3934,7 +3994,7 @@ class PuttingTrainingApp {
             }
         }
         if (typeSelect) {
-            if (!isCoach) typeSelect.value = "feedback";
+            typeSelect.value = "feedback";
             const missionOption = typeSelect.querySelector('option[value="mission"]');
             if (missionOption) missionOption.disabled = !isCoach;
         }
@@ -3961,7 +4021,6 @@ class PuttingTrainingApp {
         const targetScopePlayer = this.isCoachMode() ? selectedCoachPlayer : me;
 
         return (this.coachMissionFiles || []).filter((file) => {
-            if (!this.isCoachMode() && file?.sourceType === "direct") return false;
             if (this.isCoachMode() && !selectedCoachPlayer) return true;
 
             if (!targetScopePlayer) return true;
@@ -4964,6 +5023,28 @@ class PuttingTrainingApp {
                 : missions.map((mission) => `
                     <div class="mission-card-detail"><b>${esc(mission.title || "-")}</b>${mission.detail ? `<br>${esc(mission.detail)}` : ""}</div>
                 `).join("");
+            const relatedMissionRecords = isCoach ? this.getMissionFileRelatedRecords(file) : [];
+            const assignedTargets = targets.length
+                ? targets
+                : Array.from(new Set(relatedMissionRecords
+                    .filter((record) => record.missionMessageType === "mission")
+                    .map((record) => String(record.missionTargetPlayer || "").trim())
+                    .filter(Boolean)));
+            const today = new Date();
+            const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+            const overduePlayers = isCoach && dueDate && dueDate < todayKey
+                ? assignedTargets.filter((playerName) => !relatedMissionRecords.some((record) => (
+                    record.missionMessageType === "result" &&
+                    (record.missionActorRole || "player") !== "coach" &&
+                    String(record.missionActorName || record.playerName || "").trim() === playerName
+                )))
+                : [];
+            const coachDeadlineHtml = isCoach
+                ? `<div class="mission-card-due-date">${esc(this.t("missionEndDateLabel"))}: ${esc(dueDate || this.t("missionDueDateEmpty"))}</div>
+                    ${overduePlayers.length
+                        ? `<div class="mission-card-overdue-warning" role="status">⚠️ ${esc(this.t("missionOverdueNoResult", { players: overduePlayers.join(", ") }))}</div>`
+                        : ""}`
+                : "";
             const playerResultHtml = !isCoach ? (() => {
                 const rows = sourceRows;
                 let tableHtml = "";
@@ -4978,21 +5059,32 @@ class PuttingTrainingApp {
                             const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                             const isEditable = this.isMissionCellEditable(file, rowIndex, columnIndex);
                             const sourceStyle = this.getMissionCellStyle(file, rowIndex, columnIndex);
-                            const cellAttrs = `${spanAttrs} class="mission-source-cell${formulasForFile[cellKey] ? " mission-formula-cell" : ""}" data-row-index="${rowIndex}" data-column-index="${columnIndex}"${sourceStyle ? ` style="${sourceStyle}"` : ""}`;
+                            const wrapsText = sourceStyle.includes("white-space:pre-wrap") || String(cell ?? "").includes("\n");
+                            const cellValue = esc(cell);
+                            const overflowStyle = !wrapsText && String(cell ?? "").trim()
+                                ? this.getMissionCellOverflowStyle(file, rowIndex, columnIndex, span?.colspan || 1)
+                                : "";
+                            const resultInput = wrapsText
+                                ? `<textarea class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" rows="2" placeholder="${esc(this.t("missionResultTextPh"))}">${cellValue}</textarea>`
+                                : overflowStyle
+                                    ? `<input type="text" class="mission-result-input mission-overflow-cell-edit" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${cellValue}" placeholder="${esc(this.t("missionResultTextPh"))}" style="${overflowStyle}">`
+                                    : `<input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${cellValue}" placeholder="${esc(this.t("missionResultTextPh"))}">`;
+                            const cellStyles = [sourceStyle, overflowStyle ? "position:relative; overflow:visible" : ""].filter(Boolean).join(";");
+                            const cellAttrs = `${spanAttrs} class="mission-source-cell${formulasForFile[cellKey] ? " mission-formula-cell" : ""}" data-row-index="${rowIndex}" data-column-index="${columnIndex}"${cellStyles ? ` style="${cellStyles}"` : ""}`;
                             if (rowIndex === inputHeaderRow) {
                                 if (isEditable) {
-                                    return `<th${cellAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></th>`;
+                                    return `<th${cellAttrs}>${resultInput}</th>`;
                                 }
                                 return `<th${cellAttrs}>${esc(String(cell || "").trim() || "-")}</th>`;
                             }
                             if (isEditable) {
-                                return `<td${cellAttrs}><input type="text" class="mission-result-input" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${esc(cell)}" placeholder="${esc(this.t("missionResultTextPh"))}"></td>`;
+                                return `<td${cellAttrs}>${resultInput}</td>`;
                             }
                             return `<td${cellAttrs} data-row-index="${rowIndex}" data-column-index="${columnIndex}">${esc(cell)}</td>`;
                         }).join("");
                         return `<tr${this.getMissionRowStyle(file, rowIndex)}>${cellsHtml}</tr>`;
                     }).join("");
-                    tableHtml = `<table class="mission-result-table"${this.getMissionTableStyle(file)}><tbody>${fullTableHtml}</tbody></table>`;
+                    tableHtml = `<table class="mission-result-table${this.getMissionTableClass(file)}"${this.getMissionTableStyle(file)}>${this.getMissionColumnGroup(file, normRows[0]?.length || 0)}<tbody>${fullTableHtml}</tbody></table>`;
                 }
                 return `
                 <div class="mission-result-form">
@@ -5048,6 +5140,7 @@ class PuttingTrainingApp {
                     </button>
                     <div class="mission-card-body ${isOpen ? "open" : ""}">
                         ${bodyMissions}
+                        ${coachDeadlineHtml}
                         <div class="small" style="color:#6b7ea8;">${esc(file.uploadedAt || "")}</div>
                         ${playerResultHtml}
                         ${reassignHtml}
@@ -5316,7 +5409,7 @@ class PuttingTrainingApp {
 
     toMissionCellStyle(cell) {
         const style = cell?.s;
-        if (!style || typeof style !== "object") return "";
+        if (!style || typeof style !== "object") return "white-space:nowrap";
 
         const toColor = (color) => {
             const rgb = String(color?.rgb || color || "").replace(/^#/, "");
@@ -5336,7 +5429,7 @@ class PuttingTrainingApp {
         if (Number.isFinite(Number(font.sz)) && Number(font.sz) > 0) css.push(`font-size:${Number(font.sz)}pt`);
         if (["left", "center", "right"].includes(alignment.horizontal)) css.push(`text-align:${alignment.horizontal}`);
         if (["top", "center", "bottom"].includes(alignment.vertical)) css.push(`vertical-align:${alignment.vertical}`);
-        if (alignment.wrapText || alignment.wrap) css.push("white-space:pre-wrap");
+        css.push(alignment.wrapText || alignment.wrap ? "white-space:pre-wrap" : "white-space:nowrap");
 
         return css.join(";");
     }
@@ -5353,7 +5446,47 @@ class PuttingTrainingApp {
     getMissionTableStyle(file) {
         const widths = Array.isArray(file?.sourceColumnWidths) ? file.sourceColumnWidths : [];
         const total = widths.reduce((sum, width) => sum + (Number(width) || 0), 0);
-        return total > 0 ? ` style="min-width:${Math.max(100, total * 7)}px"` : "";
+        const tableWidth = Math.max(100, total * 7);
+        return total > 0 ? ` style="width:${tableWidth}px; min-width:${tableWidth}px; table-layout:fixed"` : "";
+    }
+
+    getMissionTableClass(file) {
+        const widths = Array.isArray(file?.sourceColumnWidths) ? file.sourceColumnWidths : [];
+        return widths.some((width) => Number(width) > 0) ? " mission-source-sized-table" : "";
+    }
+
+    getMissionColumnGroup(file, columnCount) {
+        const widths = Array.isArray(file?.sourceColumnWidths) ? file.sourceColumnWidths : [];
+        if (!widths.some((width) => Number(width) > 0)) return "";
+        const columns = Array.from({ length: columnCount }, (_, index) => {
+            const width = Number(widths[index]);
+            return Number.isFinite(width) && width > 0
+                ? `<col style="width:${Math.max(40, width * 7)}px">`
+                : "<col>";
+        }).join("");
+        return `<colgroup>${columns}</colgroup>`;
+    }
+
+    getMissionCellOverflowStyle(file, rowIndex, columnIndex, columnSpan = 1, leftOffset = 0) {
+        const rows = Array.isArray(file?.sourceRows) ? file.sourceRows : [];
+        const row = Array.isArray(rows[rowIndex]) ? rows[rowIndex] : [];
+        const columnCount = rows.reduce((max, sourceRow) => Math.max(max, Array.isArray(sourceRow) ? sourceRow.length : 0), 0);
+        let lastColumn = Math.min(columnCount - 1, columnIndex + Math.max(1, columnSpan) - 1);
+
+        while (lastColumn + 1 < columnCount && !String(row[lastColumn + 1] ?? "").trim()) {
+            lastColumn += 1;
+        }
+
+        const widths = Array.isArray(file?.sourceColumnWidths) ? file.sourceColumnWidths : [];
+        let availableWidth = 0;
+        for (let index = columnIndex; index <= lastColumn; index += 1) {
+            const width = Number(widths[index]);
+            availableWidth += Number.isFinite(width) && width > 0 ? Math.max(40, width * 7) : 110;
+        }
+        const maxWidth = lastColumn < columnCount - 1
+            ? `max-width:${Math.max(40, availableWidth - leftOffset)}px;`
+            : "max-width:none;";
+        return `position:absolute; top:0; left:${leftOffset}px; z-index:2; width:max-content; min-width:calc(100% - ${leftOffset}px); ${maxWidth}`;
     }
 
     getMissionMergeRenderMaps(file) {
@@ -5757,34 +5890,41 @@ class PuttingTrainingApp {
             if (mergeMaps.skip.has(cellKey)) return "";
             const span = mergeMaps.spans.get(cellKey);
             const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
+            const sourceStyle = this.getMissionCellStyle(file, 0, idx);
+            const styleAttr = sourceStyle ? ` style="${sourceStyle}"` : "";
             const text = String(cell || "").trim() || `Column ${idx + 1}`;
-            return `<th${spanAttrs}>${escapeHtml(text)}</th>`;
+            return `<th${spanAttrs}${styleAttr}>${escapeHtml(text)}</th>`;
         }).join("");
 
         const bodyHtml = bodyRows.length
-            ? bodyRows.map((row, bodyIndex) => `<tr>${row.map((cell, idx) => {
+            ? bodyRows.map((row, bodyIndex) => `<tr${this.getMissionRowStyle(file, bodyIndex + 1)}>${row.map((cell, idx) => {
                 const rowIndex = bodyIndex + 1;
                 const cellKey = `${rowIndex},${idx}`;
                 if (mergeMaps.skip.has(cellKey)) return "";
                 const span = mergeMaps.spans.get(cellKey);
                 const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                 const className = idx === missionItemColIndex ? " class=\"mission-item-cell\"" : "";
-                return `<td${spanAttrs}${className}>${escapeHtml(cell)}</td>`;
+                const sourceStyle = this.getMissionCellStyle(file, rowIndex, idx);
+                const styleAttr = sourceStyle ? ` style="${sourceStyle}"` : "";
+                return `<td${spanAttrs}${className}${styleAttr}>${escapeHtml(cell)}</td>`;
             }).join("")}</tr>`).join("")
-            : `<tr>${headerCells.map((cell, idx) => {
+            : `<tr${this.getMissionRowStyle(file, 0)}>${headerCells.map((cell, idx) => {
                 const cellKey = `0,${idx}`;
                 if (mergeMaps.skip.has(cellKey)) return "";
                 const span = mergeMaps.spans.get(cellKey);
                 const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                 const className = idx === missionItemColIndex ? " class=\"mission-item-cell\"" : "";
-                return `<td${spanAttrs}${className}>${escapeHtml(cell)}</td>`;
+                const sourceStyle = this.getMissionCellStyle(file, 0, idx);
+                const styleAttr = sourceStyle ? ` style="${sourceStyle}"` : "";
+                return `<td${spanAttrs}${className}${styleAttr}>${escapeHtml(cell)}</td>`;
             }).join("")}</tr>`;
 
         target.innerHTML = `
             <div class="mission-source-preview-title">${this.t("missionSourcePreviewTitle")}</div>
             <div class="mission-source-preview-wrap">
-                <table class="distance-table">
-                    <thead><tr>${headerHtml}</tr></thead>
+                <table class="distance-table${this.getMissionTableClass(file)}"${this.getMissionTableStyle(file)}>
+                    ${this.getMissionColumnGroup(file, maxCols)}
+                    <thead><tr${this.getMissionRowStyle(file, 0)}>${headerHtml}</tr></thead>
                     <tbody>${bodyHtml}</tbody>
                 </table>
             </div>
@@ -5971,22 +6111,34 @@ class PuttingTrainingApp {
                 const span = mergeMaps.spans.get(cellKey);
                 const spanAttrs = span ? ` rowspan="${span.rowspan}" colspan="${span.colspan}"` : "";
                 const hasFormula = !!formulas[`${rowIndex},${columnIndex}`];
-                const cellText = esc(cells[columnIndex] || "");
+                const cellText = esc(cells[columnIndex] ?? "");
                 const cellTag = rowIndex === layout.headerRow ? "th" : "td";
+                const sourceStyle = this.getMissionCellStyle(file, rowIndex, columnIndex);
+                const wrapsText = sourceStyle.includes("white-space:pre-wrap") || String(cells[columnIndex] ?? "").includes("\n");
+                const overflowStyle = !wrapsText && String(cells[columnIndex] ?? "").trim()
+                    ? this.getMissionCellOverflowStyle(file, rowIndex, columnIndex, span?.colspan || 1, file.inputMode === "cell" ? 22 : 0)
+                    : "";
                 // 수식 셀은 업로드 원본 값을 그대로 보여주되(자동계산), 그 외 셀은 코치가 바로 수정 가능
-                const editInput = `<input type="text" class="mission-preview-cell-edit" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${cellText}" style="width:100%; min-width:90px; border:1px solid transparent; background:transparent; font:inherit; color:inherit; text-align:inherit; padding:2px 4px; box-sizing:border-box;">`;
+                const editInput = wrapsText
+                    ? `<textarea class="mission-preview-cell-edit" data-row-index="${rowIndex}" data-column-index="${columnIndex}" rows="2" style="width:100%; min-width:90px; border:1px solid transparent; background:transparent; color:inherit; padding:2px 4px;">${cellText}</textarea>`
+                    : overflowStyle
+                        ? `<input type="text" class="mission-preview-cell-edit mission-overflow-cell-edit" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${cellText}" style="${overflowStyle} border:1px solid transparent; background:transparent; color:inherit; padding:2px 4px;">`
+                        : `<input type="text" class="mission-preview-cell-edit" data-row-index="${rowIndex}" data-column-index="${columnIndex}" value="${cellText}" style="width:100%; min-width:90px; border:1px solid transparent; background:transparent; font:inherit; color:inherit; text-align:inherit; padding:2px 4px; box-sizing:border-box;">`;
                 if (hasFormula && isDataRow) {
-                    return `<${cellTag}${spanAttrs} style="background:#eef2ff; color:#5b6f9f;" title="수식 셀(자동계산, 선택 불가)">${cellText || "(수식)"}</${cellTag}>`;
+                    return `<${cellTag}${spanAttrs} style="${sourceStyle ? `${sourceStyle};` : ""}background:#eef2ff; color:#5b6f9f;" title="수식 셀(자동계산, 선택 불가)">${cellText || "(수식)"}</${cellTag}>`;
                 }
                 if (file.inputMode === "cell" && isDataRow) {
                     const key = `${rowIndex},${columnIndex}`;
                     const checked = file.inputCells.includes(key) ? "checked" : "";
-                    return `<${cellTag}${spanAttrs} style="background:#fff8dc;"><label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${editInput}</label></${cellTag}>`;
+                    return `<${cellTag}${spanAttrs} style="${sourceStyle ? `${sourceStyle};` : ""}background:#fff8dc;"><label style="position:relative; display:flex; align-items:center; gap:4px; font-size:11px; overflow:visible;"><input type="checkbox" class="mission-input-cell-check" data-row-index="${rowIndex}" data-column-index="${columnIndex}" ${checked}>${editInput}</label></${cellTag}>`;
                 }
                 const highlight = file.inputMode === "column" && isDataRow && file.inputColumns.includes(columnIndex);
-                return `<${cellTag}${spanAttrs}${highlight ? " style=\"background:#fff8dc;\"" : ""}>${editInput}</${cellTag}>`;
+                const highlightStyle = highlight ? "background:#fff8dc;" : "";
+                const cellStyles = [sourceStyle, overflowStyle ? "position:relative; overflow:visible" : "", highlightStyle].filter(Boolean).join(";");
+                const cellStyleAttr = cellStyles ? ` style="${cellStyles}"` : "";
+                return `<${cellTag}${spanAttrs}${cellStyleAttr}>${editInput}</${cellTag}>`;
             }).join("");
-            return `<tr>${tds}</tr>`;
+            return `<tr${this.getMissionRowStyle(file, rowIndex)}>${tds}</tr>`;
         }).join("");
 
         target.innerHTML = `
@@ -5995,7 +6147,7 @@ class PuttingTrainingApp {
             <div class="mission-field-picker" style="${file.inputMode === "column" ? "" : "display:none;"}"><div class="mission-field-picker-list">${columnFieldOptions || "표 헤더가 없습니다."}</div></div>
             <div class="small" style="${file.inputMode === "cell" ? "" : "display:none;"} margin:4px 0; color:#5b6f9f;">표에서 선수가 입력할 셀을 개별적으로 체크하세요. (파란 배경: 수식 셀 - 자동계산, 선택 불가)</div>
             <div class="small" style="margin:4px 0; color:#5b6f9f;">표 안의 값(헤더 포함)을 클릭해 직접 수정할 수 있습니다. 수식 셀(파란 배경)은 자동계산이라 수정 불가합니다.</div>
-            <div class="mission-upload-preview"><table class="mission-result-table"><tbody>${previewRows}</tbody></table></div>
+            <div class="mission-upload-preview"><table class="mission-result-table${this.getMissionTableClass(file)}"${this.getMissionTableStyle(file)}>${this.getMissionColumnGroup(file, maxColumns)}<tbody>${previewRows}</tbody></table></div>
         `;
 
         target.querySelectorAll(".mission-preview-cell-edit").forEach((input) => {
@@ -6234,7 +6386,10 @@ class PuttingTrainingApp {
                     });
                     sourceColumnWidths = Array.from({ length: range.e.c + 1 }, (_, index) => {
                         const col = sheet["!cols"]?.[index];
-                        return Number(col?.wch || 0);
+                        const characterWidth = Number(col?.wch);
+                        if (Number.isFinite(characterWidth) && characterWidth > 0) return characterWidth;
+                        const pixelWidth = Number(col?.wpx);
+                        return Number.isFinite(pixelWidth) && pixelWidth > 0 ? pixelWidth / 7 : 0;
                     });
                 }
             }
@@ -6321,12 +6476,13 @@ class PuttingTrainingApp {
         };
     }
 
-    saveDirectCoachMission() {
+    saveDirectCoachMission(formValues = null) {
         if (!this.isCoachMode()) return;
 
-        const title = String(document.getElementById("missionDirectTitle")?.value || "").trim();
-        const item = String(document.getElementById("missionDirectItem")?.value || "").trim();
-        const dueDate = String(document.getElementById("missionDirectDueDate")?.value || "").trim();
+        const isUploadForm = formValues?.source === "upload-form";
+        const title = String(formValues?.title ?? document.getElementById("missionDirectTitle")?.value ?? "").trim();
+        const item = String(formValues?.item ?? document.getElementById("missionDirectItem")?.value ?? "").trim();
+        const dueDate = String(formValues?.dueDate ?? document.getElementById("missionDirectDueDate")?.value ?? "").trim();
         const targetPlayers = this.getSelectedMissionTargetPlayers();
         const resultTarget = document.getElementById("missionSaveResult");
 
@@ -6389,10 +6545,16 @@ class PuttingTrainingApp {
         this.activeMissionFileId = missionFile.id;
         this.renderCoachMissionFiles();
         this.renderMissionWorkArea();
-        document.getElementById("missionDirectTitle").value = "";
-        document.getElementById("missionDirectItem").value = "";
-        const dueDateInput = document.getElementById("missionDirectDueDate");
-        if (dueDateInput) dueDateInput.value = "";
+        if (isUploadForm) {
+            document.getElementById("missionUploadTitle").value = "";
+            document.getElementById("missionUploadDetail").value = "";
+            document.getElementById("missionUploadDueDate").value = "";
+        } else {
+            document.getElementById("missionDirectTitle").value = "";
+            document.getElementById("missionDirectItem").value = "";
+            const dueDateInput = document.getElementById("missionDirectDueDate");
+            if (dueDateInput) dueDateInput.value = "";
+        }
         if (targetPlayers.length > 1) {
             resultTarget.textContent = this.t("missionDirectSavedMulti", { count: targetPlayers.length, players: targetPlayers.join(", "), title });
         } else {
@@ -7452,6 +7614,20 @@ class PuttingTrainingApp {
                 this.loadPlayerDataForAnalysis(fileName, uploadedBy);
             });
             document.getElementById("saveMissionDirectBtn").addEventListener("click", () => this.saveDirectCoachMission());
+            const registerMissionWithoutFileBtn = document.getElementById("registerMissionWithoutFileBtn");
+            if (registerMissionWithoutFileBtn) {
+                registerMissionWithoutFileBtn.addEventListener("click", () => {
+                    this.saveDirectCoachMission({
+                        title: document.getElementById("missionUploadTitle")?.value,
+                        item: document.getElementById("missionUploadDetail")?.value,
+                        dueDate: document.getElementById("missionUploadDueDate")?.value,
+                        source: "upload-form"
+                    });
+                    const uploadResult = document.getElementById("pendingMissionUploadResult");
+                    const saveResult = document.getElementById("missionSaveResult");
+                    if (uploadResult && saveResult) uploadResult.textContent = saveResult.textContent;
+                });
+            }
             document.getElementById("saveMissionInputBtn").addEventListener("click", () => this.saveCoachMissionInput());
             const uploadResultBtn = document.getElementById("uploadMissionResultBtn");
             if (uploadResultBtn) uploadResultBtn.addEventListener("click", () => this.uploadMissionResultData());
