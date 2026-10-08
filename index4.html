@@ -6764,8 +6764,8 @@
       `관측 총 비거리(캐리+런): ${knownDistanceLabel}. ${r10SpeedDetail} 실측거리는 동력지수를 거리 예측식에 맞추는 정답이 아니라 모션 보완 필요성을 검토할 결과 자료입니다. 같은 선수·클럽·촬영 시간 배율·타구 조건에서 반복 비교하세요. A/B는 현재 스윙 동작을 포함하므로 독립적인 기본 파워 실측값이 아닙니다. 기본 능력이 같으면 같은 모션 점수에서 같은 거리가 나온다는 관계도 아직 검증되지 않았습니다. 보완 후보 기준은 기존 F1–F4 8/10이며 평균이 높아도 개별 낮은 프레임을 먼저 확인합니다. 점수만으로 거리 증가나 기술 문제 부재를 확정하지 않습니다. Force plate 자료가 없어 Fz/BW(%BW)는 산출하지 않습니다.`,
       `Observed total distance (carry plus roll): ${knownDistanceLabel}. ${r10SpeedDetail} Measured distance is an outcome for reviewing motion intervention, not a target for fitting the indices to predicted distance. Compare repeated swings with the same player, club, video time scaling and shot conditions. A/B include current swing motion and are not independent measurements of baseline power. Equal capacity and motion scores implying equal distance is also unvalidated. Review uses the existing F1–F4 threshold of 8/10; inspect individual low frames even when the average is high. Scores do not establish a distance gain or absence of technical issues. Fz/BW (%BW) is withheld without force-plate data.`)}</div></section>`);
     calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('비거리 추정 산식과 한계', 'Distance Estimate Formula and Limitations')}</div><div>${getSwingUiText(
-      '실험적 참고값이며 검증된 비거리 예측·신뢰구간이 아닙니다. D_bio는 제시된 선수 4개 예시만으로 보간하며 α=0.25는 임시 가정입니다. 역거리 가중치는 신장 10cm·유효질량 8kg 단위 정규화와 성별 불일치 가중치 2.5를 사용합니다. 현재 활용추정효율은 실측 총거리와 모션 평균을 포함하므로 독립적인 생체 잠재력 측정값이 아닙니다. 엔진 계수는 지수 합계를 0.95–1.05 범위에 선형 정규화한 임시값입니다. 백스윙 유형은 표시·자격 확인에 사용하고 샬로잉은 실측 P4→P5·P5→P6 지표로 반영해 중복 가산하지 않습니다. 샬로잉은 제시된 한 선수 예시를 상한 기준으로 삼고, 래깅은 168–172°에서만 +4%를 적용합니다. 얼리 릴리즈 감쇠와 엔진-체격 시너지는 앱 지표 기준이 검증되지 않아 적용하지 않았습니다. 최적 볼 탄도(스매시 1.48–1.50·발사각 11–14°·스핀 2000–2400rpm)를 가정합니다. 총거리(캐리+런)가 아닌 캐리 기준이며 실제 탄도·타구 자료로 교정하세요.',
-      'Experimental reference only, not a validated distance prediction or confidence interval. D_bio is interpolated from only the four supplied examples and α=0.25 is provisional. Inverse-distance weights normalize height by 10cm and active mass by 8kg, with a 2.5 sex-mismatch penalty. Current utilization includes measured total distance and motion average, so it is not an independent biological-potential measurement. The engine factor provisionally normalizes the index total linearly to 0.95–1.05. The backswing code is shown and checked for eligibility; measured P4→P5 and P5→P6 shallowing is used to avoid a duplicate profile bonus. Shallowing uses one supplied player example as its cap; lag adds 4% only at 168–172°. Early-release penalties and engine–biometric synergy are withheld because app-specific thresholds are unvalidated. Ideal ball flight (smash 1.48–1.50, launch 11–14°, spin 2000–2400rpm) is assumed. This is carry, not total carry-plus-roll; calibrate against measured launch and shot data.')}</div></section>`);
+      '실험적 참고값이며 검증된 거리 예측·신뢰구간이 아닙니다. D_bio는 제시된 선수 4개 예시만으로 보간하며 α=0.25는 임시 가정입니다. 역거리 가중치는 신장 10cm·유효질량 8kg 단위 정규화와 성별 불일치 가중치 2.5를 사용합니다. 현재 활용추정효율은 실측 총거리와 모션 평균을 포함하므로 독립적인 생체 잠재력 측정값이 아닙니다. 엔진 계수는 지수 합계를 0.95–1.05 범위에 선형 정규화한 임시값입니다. 백스윙 유형은 표시·자격 확인에 사용하고 샬로잉은 실측 P4→P5·P5→P6 지표로 반영해 중복 가산하지 않습니다. 샬로잉은 제시된 한 선수 예시를 상한 기준으로 삼고, 래깅은 168–172°에서만 +4%를 적용합니다. 얼리 릴리즈 감쇠와 엔진-체격 시너지는 앱 지표 기준이 검증되지 않아 적용하지 않았습니다. 최적 볼 탄도(스매시 1.48–1.50·발사각 11–14°·스핀 2000–2400rpm)를 가정합니다. 결과 표시명은 총거리로 바뀌었지만 기존 산식과 숫자는 그대로이며, 런을 별도로 더하지 않습니다. 총거리 예측으로 사용하기 전에 실제 탄도·타구 자료로 교정하세요.',
+      'Experimental reference only, not a validated distance prediction or confidence interval. D_bio is interpolated from only the four supplied examples and α=0.25 is provisional. Inverse-distance weights normalize height by 10cm and active mass by 8kg, with a 2.5 sex-mismatch penalty. Current utilization includes measured total distance and motion average, so it is not an independent biological-potential measurement. The engine factor provisionally normalizes the index total linearly to 0.95–1.05. The backswing code is shown and checked for eligibility; measured P4→P5 and P5→P6 shallowing is used to avoid a duplicate profile bonus. Shallowing uses one supplied player example as its cap; lag adds 4% only at 168–172°. Early-release penalties and engine–biometric synergy are withheld because app-specific thresholds are unvalidated. Ideal ball flight (smash 1.48–1.50, launch 11–14°, spin 2000–2400rpm) is assumed. The display label is now total distance, but the formula and value are unchanged and no run is added. Calibrate against measured launch and shot data before treating it as a total-distance estimate.')}</div></section>`);
     const engineDecision = result ? getPowerEngineDecision(result) : null;
     if (result) {
       const fitRows = Object.entries(result.pct).map(([key, pct]) =>
@@ -7293,11 +7293,27 @@
     }
     const physicalReference = getPhysicalDistanceReference();
     if (physicalReference.status !== 'ready') {
-      missing.push(getSwingUiText('기존 활용추정효율 산출에 필요한 성별·체격·실측 총거리', 'sex, body measurements and measured total distance required for utilization efficiency'));
+      const inputLabels = {
+        sex: getSwingUiText('성별', 'sex'),
+        height: getSwingUiText('신장 150~200cm', 'height 150–200cm'),
+        weight: getSwingUiText('체중 30~200kg', 'body mass 30–200kg'),
+        muscle: getSwingUiText('골격근량 20~150kg, 체중 이하', 'lean mass 20–150kg and no greater than body mass'),
+        distance: getSwingUiText('실측 총거리 0 초과~600m', 'measured total distance above 0 and up to 600m'),
+        sensitivity: getSwingUiText('키·체중 민감도 1~3', 'height/weight sensitivity 1–3'),
+      };
+      physicalReference.missing.forEach(key => {
+        missing.push(`${getSwingUiText('활용추정효율 입력', 'utilization input')}: ${inputLabels[key] || key}`);
+      });
     }
     const motionScore = getDistanceMotionSummary().score;
+    if (!hasMetric(motionScore) || motionScore < 0 || motionScore > 10) {
+      missing.push(getSwingUiText('F1~F4 비거리 모션 점수 분석', 'F1–F4 distance-motion score analysis'));
+    }
     const potentialEfficiency = computeCombinedPowerEfficiency(physicalReference, motionScore);
-    if (!hasMetric(potentialEfficiency)) missing.push(getSwingUiText('잠재파워활용추정효율', 'estimated potential-power utilization efficiency'));
+    if (!hasMetric(potentialEfficiency) && physicalReference.status === 'ready'
+      && hasMetric(motionScore) && motionScore >= 0 && motionScore <= 10) {
+      missing.push(getSwingUiText('잠재파워활용추정효율 계산 확인', 'estimated potential-power utilization calculation'));
+    }
     const backswing = backswingClassification;
     if (!backswing || !getBackswingProfileCode(backswing)
       || !hasMetric(backswing.p4ToP5ShallowDelta) || !hasMetric(backswing.p5ToP6ShallowDelta)) {
@@ -7353,13 +7369,13 @@
       return;
     }
     const result = document.createElement('strong');
-    result.textContent = getSwingUiText('잠재 최대 캐리 비거리 추정', 'Estimated potential maximum carry distance')
+    result.textContent = getSwingUiText('잠재 최대 총거리 추정', 'Estimated potential maximum total distance')
       + `: ${estimate.estimateMeters.toFixed(1)} m (${(estimate.estimateMeters / 0.9144).toFixed(1)} yd)`;
     const details = document.createElement('div');
     details.textContent = getSwingUiText(
-      `체성분 기준거리 ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · 일치' : ' · 4개 예시 역거리 가중 보간'}) · 유효 구동질량 ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [체중−SMM−체지방량]) · 백스윙 유형 ${estimate.backswingCode}\n`
+      `총거리 표시 · 기존 산식 결과(캐리 기준값, 런 별도 미포함)\n체성분 거리 기준값 ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · 일치' : ' · 4개 예시 역거리 가중 보간'}) · 유효 구동질량 ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [체중−SMM−체지방량]) · 백스윙 유형 ${estimate.backswingCode}\n`
       + `활용추정효율 ${estimate.potentialEfficiency.toFixed(1)}% (비거리 모션 평균 ${estimate.motionScore.toFixed(1)}/10 포함) × 샬로잉 계수 ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × 엔진지수 계수 ${estimate.engineMultiplier.toFixed(3)} (합계 ${estimate.engineTotal.toFixed(3)}) × 래깅 계수 ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 래깅 ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° 근거 미측정)'} × 최적 탄도 가정 ${estimate.aeroMultiplier.toFixed(2)}`,
-      `Body-composition reference ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · exact anchor' : ' · inverse-distance interpolation from four examples'}) · active mass ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [body mass−SMM−fat mass])\n`
+      `Displayed as total distance · existing formula result (carry-based value; no run added)\nBody-composition distance reference ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · exact anchor' : ' · inverse-distance interpolation from four examples'}) · active mass ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [body mass−SMM−fat mass])\n`
       + `Backswing profile ${estimate.backswingCode}\n`
       + `Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% (includes distance-motion average ${estimate.motionScore.toFixed(1)}/10) × shallowing factor ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × engine-index factor ${estimate.engineMultiplier.toFixed(3)} (total ${estimate.engineTotal.toFixed(3)}) × lag factor ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 lag ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° evidence not measured)'} × ideal-flight assumption ${estimate.aeroMultiplier.toFixed(2)}`);
     target.append(result, details);
@@ -11676,6 +11692,7 @@
     analysisGuideNextBtn.addEventListener('click', advanceGuideStep);
   }
   if (analysisHeightInput) {
+    analysisHeightInput.addEventListener('input', refreshSwingClassificationViews);
     analysisHeightInput.addEventListener('change', () => performAnalysis());
   }
   [analysisBodyMassInput, analysisLeanMassInput, analysisBodyFatInput, analysisPlayerCodeInput, analysisKnownDistanceInput].forEach(input => {
@@ -11700,9 +11717,10 @@
   analysisBodyMassInput.addEventListener('input', validateBodyComposition);
   analysisLeanMassInput.addEventListener('input', validateBodyComposition);
   analysisBodyFatInput.addEventListener('input', validateBodyComposition);
-  Object.values(referenceFieldIds).forEach(id => {
+  Object.entries(referenceFieldIds).filter(([key]) => key !== 'sex').forEach(([, id]) => {
     document.getElementById(id).addEventListener('input', refreshSwingClassificationViews);
   });
+  document.getElementById(referenceFieldIds.sex).addEventListener('change', refreshSwingClassificationViews);
   ['physicalHeightGain', 'physicalWeightGain'].forEach(id => {
     document.getElementById(id).addEventListener('input', refreshSwingClassificationViews);
   });
