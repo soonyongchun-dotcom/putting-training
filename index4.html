@@ -643,6 +643,10 @@
   .backswing-type-code { color: #f5d58a; font-variant-numeric: tabular-nums; }
   .backswing-type-ko { color: rgba(210, 235, 229, 0.68); font-size: 0.86em; font-weight: 500; }
   .backswing-result-title:hover { background: rgba(113, 230, 138, 0.16); }
+  .backswing-result-disclosure > .backswing-result-title { position: relative; padding-right: 30px; list-style: none; }
+  .backswing-result-disclosure > .backswing-result-title::-webkit-details-marker { display: none; }
+  .backswing-result-disclosure > .backswing-result-title::after { position: absolute; right: 10px; content: '+'; }
+  .backswing-result-disclosure[open] > .backswing-result-title::after { content: '−'; }
   .backswing-result-detail { font-size: 0.88rem; line-height: 1.6; }
   .backswing-delivery-card { margin: 10px 0; padding: 12px; border: 1px solid rgba(83, 173, 155, 0.5); border-radius: 6px; background: rgba(83, 173, 155, 0.07); text-align: left; }
   .backswing-delivery-card h3 { margin: 0 0 10px; color: #a6e7d5; font-size: 1rem; }
@@ -668,6 +672,9 @@
   .backswing-types summary { cursor: pointer; color: #c5e5d9; font-weight: 700; }
   .backswing-types ul { margin: 8px 0 0; padding-left: 20px; }
   .backswing-types li { margin-bottom: 6px; }
+  .backswing-phase-reference { margin: 4px 0 10px; padding: 0; border: 0; }
+  .backswing-phase-reference ol { margin: 8px 0 0; padding-left: 24px; }
+  .backswing-phase-reference li { margin-bottom: 4px; }
   .backswing-panel .backswing-reference { display: block; margin-top: 12px; color: #a9bdba; font-family: Georgia, 'Batang', serif; font-size: 0.74rem; line-height: 1.5; }
   .swing-compare-header,
   .swing-compare-controls,
@@ -1280,9 +1287,13 @@
   .analysis-power-summary {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: 8px 24px;
   }
+  .analysis-power-summary-values { display: grid; gap: 4px; }
+  .analysis-power-summary > button { margin-left: auto; white-space: nowrap; }
+  .analysis-distance-estimate { flex-basis: 100%; margin-top: 6px; padding: 10px; border: 1px solid rgba(111, 211, 188, 0.38); border-radius: 6px; background: rgba(0, 0, 0, 0.16); white-space: pre-wrap; }
+  .analysis-distance-estimate strong { display: block; margin-bottom: 5px; color: #8ee0c9; font-size: 1.05rem; }
   .analysis-profile-match .analysis-type-heading { color: #8ee0c9; }
   .analysis-classification-grid {
     display: grid;
@@ -1658,9 +1669,6 @@
 
 <section class="backswing-panel" id="backswingPanel" aria-label="백스윙 유형 결정">
   <strong>측면 스윙 궤적 분류 · A 영상</strong>
-  <p>동일한 스윙의 측면 영상을 A에 불러와 포인트를 입력하세요. 먼저 판정해도 이후 A/B 영상 분석에 결과가 유지됩니다. 측면 P5→P6 경로는 프레임 점수에 보조 반영되며, 백스윙 유형과 엔진 유형을 조합해 프로필을 결정합니다. 다른 스윙을 분석할 때는 전체 초기화하세요.</p>
-  <p>임팩트(P7)까지 손·헤드 포인트를 선택하면 손 이동 경로를 함께 표시합니다. 점은 선택 위치, 곡선은 점 사이의 추정 경로입니다.</p>
-  <p>손 어깨 높이는 손/그립 중심이 해당 시점의 어깨선 높이에 도달한 자세입니다. 백스윙은 P3와 P4 사이, 다운스윙은 탑과 P5 사이에서 각각 손·헤드를 선택하세요. 위치 찾기는 두 손목과 양어깨의 중앙 높이를 비교한 후보이므로 영상에서 확인하세요. 새 두 시점은 경로 표시용이며 기존 유형·점수에는 추가 반영하지 않습니다.</p>
   <label for="backswingPhase">선택 자세</label>
   <select id="backswingPhase">
     <option value="address">어드레스</option><option value="p1">P1 · 테이크어웨이 시작</option>
@@ -1672,6 +1680,18 @@
     <option value="downP6">P6 · 다운스윙 샤프트 지면 평행</option>
     <option value="impact">P7 · 임팩트</option>
   </select>
+  <details class="backswing-types backswing-phase-reference">
+    <summary>P1–P7 자세 참조</summary>
+    <ol>
+      <li>P1 — 테이크어웨이 시작</li>
+      <li>P2 — 백스윙 샤프트 지면 평행</li>
+      <li>P3 — 백스윙 리드팔 지면 평행</li>
+      <li>P4 — 백스윙 탑 직전</li>
+      <li>P5 — 다운스윙 리드팔 지면 평행</li>
+      <li>P6 — 다운스윙 샤프트 지면 평행</li>
+      <li>P7 — 임팩트</li>
+    </ol>
+  </details>
   <button type="button" id="backswingUndoBtn">현재 자세 마지막 점 취소</button>
   <button type="button" id="backswingResetBtn">백스윙 입력 초기화</button>
   <button type="button" id="backswingDecideBtn">유형 판정</button>
@@ -1807,6 +1827,10 @@
         <div class="analysis-height-field">
           <input id="analysisLeanMassInput" type="number" min="20" max="150" step="0.1" placeholder="골격근량" aria-label="골격근량(kg)" title="체성분 측정값이 있을 때만 입력하세요. 체중이나 BMI에서 추정하지 않습니다." style="width:92px;">
           <span class="height-unit">kg</span>
+        </div>
+        <div class="analysis-height-field">
+          <input id="analysisBodyFatInput" type="number" min="3" max="50" step="0.1" placeholder="체지방률" aria-label="체지방률(%)" title="체성분 검사로 측정한 체지방률을 입력하세요. 앱에서 추정하지 않습니다." style="width:86px;">
+          <span class="height-unit">%</span>
         </div>
         <div class="analysis-height-field">
           <input id="analysisKnownDistanceInput" type="number" min="0" max="600" step="0.1" placeholder="알려진 총 비거리" aria-label="알려진 총 비거리(미터)" title="캐리+런 총 비거리입니다. data1 체격 기준 대비 활용추정효율 계산에 사용합니다." style="width:120px;">
@@ -2105,6 +2129,9 @@
     '체중': 'Body mass',
     '골격근량': 'Lean mass',
     '골격근량(kg)': 'Lean mass (kg)',
+    '체지방률': 'Body-fat percentage',
+    '체지방률(%)': 'Body-fat percentage (%)',
+    '체성분 검사로 측정한 체지방률을 입력하세요. 앱에서 추정하지 않습니다.': 'Enter body-fat percentage from a body-composition test. The app does not estimate it.',
     '선수 체중(kg)': 'Player body mass (kg)',
     '익명 선수코드': 'Anonymous player code',
     '알려진 총 비거리': 'Known total distance',
@@ -2327,6 +2354,14 @@
     '판정 기준: 종합 편차 5% 이내 = 같은 스윙 · 10% 이내 = 유사 스윙 · 10% 초과~20% 이내 = 약간 다른 스윙 · 20% 초과 = 다른 스윙': 'Classification: ≤5% overall deviation = same swing · ≤10% = similar · >10–20% = somewhat different · >20% = different',
     '시점': 'Phase', 'A 입력': 'A Input', 'B 입력': 'B Input', '집중도 일치(%)': 'Compactness Match (%)',
     '손목 궤적(%)': 'Wrist Path (%)', '코어 궤적(%)': 'Core Path (%)', '래깅각 A/B(일치율)': 'Lag Angle A/B (Match)', '템포 일치(%)': 'Tempo Match (%)',
+    'P1–P7 자세 참조': 'P1–P7 Phase Reference',
+    'P1 — 테이크어웨이 시작': 'P1 — Takeaway begins',
+    'P2 — 백스윙 샤프트 지면 평행': 'P2 — Backswing shaft parallel to the ground',
+    'P3 — 백스윙 리드팔 지면 평행': 'P3 — Backswing lead arm parallel to the ground',
+    'P4 — 백스윙 탑 직전': 'P4 — Just before the backswing top',
+    'P5 — 다운스윙 리드팔 지면 평행': 'P5 — Downswing lead arm parallel to the ground',
+    'P6 — 다운스윙 샤프트 지면 평행': 'P6 — Downswing shaft parallel to the ground',
+    'P7 — 임팩트': 'P7 — Impact',
     'P1 · 테이크어웨이 시작': 'P1 · Takeaway Start', 'P2 · 샤프트 지면 평행': 'P2 · Shaft Parallel to Ground',
     'P3 · 팔 지면 평행': 'P3 · Lead Arm Parallel to Ground', 'P4 · 탑 직전': 'P4 · Before the Top',
     'P5 · 다운스윙 리드팔 지면 평행': 'P5 · Downswing Lead Arm Parallel to Ground',
@@ -3220,6 +3255,7 @@
   const analysisHeightInput = document.getElementById('analysisHeightInput');
   const analysisBodyMassInput = document.getElementById('analysisBodyMassInput');
   const analysisLeanMassInput = document.getElementById('analysisLeanMassInput');
+  const analysisBodyFatInput = document.getElementById('analysisBodyFatInput');
   const analysisPlayerCodeInput = document.getElementById('analysisPlayerCodeInput');
   const analysisKnownDistanceInput = document.getElementById('analysisKnownDistanceInput');
   const analysisSegmentSelect = document.getElementById('analysisSegmentSelect');
@@ -6727,6 +6763,9 @@
     calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('동력 추정용 관측 자료 · 보정과 한계', 'Power Calibration Observations · Calibration and Limits')}</div><div>${powerDetail}</div><div>${utilizationDetail}</div><div>${getSwingUiText(
       `관측 총 비거리(캐리+런): ${knownDistanceLabel}. ${r10SpeedDetail} 실측거리는 동력지수를 거리 예측식에 맞추는 정답이 아니라 모션 보완 필요성을 검토할 결과 자료입니다. 같은 선수·클럽·촬영 시간 배율·타구 조건에서 반복 비교하세요. A/B는 현재 스윙 동작을 포함하므로 독립적인 기본 파워 실측값이 아닙니다. 기본 능력이 같으면 같은 모션 점수에서 같은 거리가 나온다는 관계도 아직 검증되지 않았습니다. 보완 후보 기준은 기존 F1–F4 8/10이며 평균이 높아도 개별 낮은 프레임을 먼저 확인합니다. 점수만으로 거리 증가나 기술 문제 부재를 확정하지 않습니다. Force plate 자료가 없어 Fz/BW(%BW)는 산출하지 않습니다.`,
       `Observed total distance (carry plus roll): ${knownDistanceLabel}. ${r10SpeedDetail} Measured distance is an outcome for reviewing motion intervention, not a target for fitting the indices to predicted distance. Compare repeated swings with the same player, club, video time scaling and shot conditions. A/B include current swing motion and are not independent measurements of baseline power. Equal capacity and motion scores implying equal distance is also unvalidated. Review uses the existing F1–F4 threshold of 8/10; inspect individual low frames even when the average is high. Scores do not establish a distance gain or absence of technical issues. Fz/BW (%BW) is withheld without force-plate data.`)}</div></section>`);
+    calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('비거리 추정 산식과 한계', 'Distance Estimate Formula and Limitations')}</div><div>${getSwingUiText(
+      '실험적 참고값이며 검증된 비거리 예측·신뢰구간이 아닙니다. D_bio는 제시된 선수 4개 예시만으로 보간하며 α=0.25는 임시 가정입니다. 역거리 가중치는 신장 10cm·유효질량 8kg 단위 정규화와 성별 불일치 가중치 2.5를 사용합니다. 현재 활용추정효율은 실측 총거리와 모션 평균을 포함하므로 독립적인 생체 잠재력 측정값이 아닙니다. 엔진 계수는 지수 합계를 0.95–1.05 범위에 선형 정규화한 임시값입니다. 백스윙 유형은 표시·자격 확인에 사용하고 샬로잉은 실측 P4→P5·P5→P6 지표로 반영해 중복 가산하지 않습니다. 샬로잉은 제시된 한 선수 예시를 상한 기준으로 삼고, 래깅은 168–172°에서만 +4%를 적용합니다. 얼리 릴리즈 감쇠와 엔진-체격 시너지는 앱 지표 기준이 검증되지 않아 적용하지 않았습니다. 최적 볼 탄도(스매시 1.48–1.50·발사각 11–14°·스핀 2000–2400rpm)를 가정합니다. 총거리(캐리+런)가 아닌 캐리 기준이며 실제 탄도·타구 자료로 교정하세요.',
+      'Experimental reference only, not a validated distance prediction or confidence interval. D_bio is interpolated from only the four supplied examples and α=0.25 is provisional. Inverse-distance weights normalize height by 10cm and active mass by 8kg, with a 2.5 sex-mismatch penalty. Current utilization includes measured total distance and motion average, so it is not an independent biological-potential measurement. The engine factor provisionally normalizes the index total linearly to 0.95–1.05. The backswing code is shown and checked for eligibility; measured P4→P5 and P5→P6 shallowing is used to avoid a duplicate profile bonus. Shallowing uses one supplied player example as its cap; lag adds 4% only at 168–172°. Early-release penalties and engine–biometric synergy are withheld because app-specific thresholds are unvalidated. Ideal ball flight (smash 1.48–1.50, launch 11–14°, spin 2000–2400rpm) is assumed. This is carry, not total carry-plus-roll; calibrate against measured launch and shot data.')}</div></section>`);
     const engineDecision = result ? getPowerEngineDecision(result) : null;
     if (result) {
       const fitRows = Object.entries(result.pct).map(([key, pct]) =>
@@ -7198,6 +7237,134 @@
     });
   }
 
+  const PROVISIONAL_CARRY_ANCHORS = [
+    { name: 'Rory McIlroy', sex: 'male', heightCm: 175, bodyMassKg: 73, leanMassKg: 35.5, bodyFatPercent: 11, bioCarryMeters: 262 },
+    { name: 'Bryson DeChambeau', sex: 'male', heightCm: 185, bodyMassKg: 104, leanMassKg: 46, bodyFatPercent: 16, bioCarryMeters: 305 },
+    { name: 'Nelly Korda', sex: 'female', heightCm: 178, bodyMassKg: 66, leanMassKg: 28.5, bodyFatPercent: 17, bioCarryMeters: 232 },
+    { name: 'Amateur A', sex: 'male', heightCm: 175, bodyMassKg: 78, leanMassKg: 31, bodyFatPercent: 24, bioCarryMeters: 238 },
+  ];
+  const ACTIVE_MASS_ALPHA = 0.25;
+
+  function getProvisionalBiologicalCarryEstimate(heightCm, bodyMassKg, leanMassKg, bodyFatPercent, sex) {
+    const fatMassKg = bodyMassKg * bodyFatPercent / 100;
+    const nonActiveMassKg = bodyMassKg - leanMassKg - fatMassKg;
+    if (nonActiveMassKg < 0) return null;
+    const activeMassKg = leanMassKg + ACTIVE_MASS_ALPHA * nonActiveMassKg;
+    const anchors = PROVISIONAL_CARRY_ANCHORS.map(anchor => {
+      const anchorFatMassKg = anchor.bodyMassKg * anchor.bodyFatPercent / 100;
+      const anchorActiveMassKg = anchor.leanMassKg + ACTIVE_MASS_ALPHA
+        * (anchor.bodyMassKg - anchor.leanMassKg - anchorFatMassKg);
+      const distance = Math.hypot(
+        (heightCm - anchor.heightCm) / 10,
+        (activeMassKg - anchorActiveMassKg) / 8,
+        sex === anchor.sex ? 0 : 2.5,
+      );
+      return { ...anchor, distance, activeMassKg: anchorActiveMassKg };
+    });
+    const exactMatch = anchors.find(anchor => anchor.distance < 0.000001);
+    const nearest = exactMatch || anchors.reduce((best, anchor) => anchor.distance < best.distance ? anchor : best);
+    if (exactMatch) return { distanceMeters: exactMatch.bioCarryMeters, activeMassKg, nearest, exactMatch: true };
+    const weighted = anchors.map(anchor => ({ anchor, weight: 1 / (anchor.distance * anchor.distance) }));
+    const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+    return {
+      distanceMeters: weighted.reduce((sum, item) => sum + item.anchor.bioCarryMeters * item.weight, 0) / totalWeight,
+      activeMassKg,
+      nearest,
+      exactMatch: false,
+    };
+  }
+
+  function computeEstimatedCarryDistance() {
+    const numberFrom = input => input.value.trim() ? Number(input.value) : null;
+    const heightCm = numberFrom(analysisHeightInput);
+    const bodyMassKg = numberFrom(analysisBodyMassInput);
+    const leanMassKg = numberFrom(analysisLeanMassInput);
+    const bodyFatPercent = numberFrom(analysisBodyFatInput);
+    const sex = document.getElementById('referenceSex').value;
+    const missing = [];
+    if (!['male', 'female'].includes(sex)) missing.push(getSwingUiText('성별', 'sex'));
+    if (!hasMetric(heightCm) || heightCm < 150 || heightCm > 200) missing.push(getSwingUiText('신장', 'height'));
+    if (!hasMetric(bodyMassKg) || bodyMassKg < 30 || bodyMassKg > 200) missing.push(getSwingUiText('체중', 'body mass'));
+    if (!hasMetric(leanMassKg) || leanMassKg < 20 || leanMassKg > 150 || leanMassKg > bodyMassKg) missing.push(getSwingUiText('측정 골격근량', 'measured lean mass'));
+    if (!hasMetric(bodyFatPercent) || bodyFatPercent < 3 || bodyFatPercent > 50) missing.push(getSwingUiText('측정 체지방률', 'measured body-fat percentage'));
+    const fatMassKg = hasMetric(bodyMassKg) && hasMetric(bodyFatPercent) ? bodyMassKg * bodyFatPercent / 100 : null;
+    if (hasMetric(fatMassKg) && hasMetric(leanMassKg) && leanMassKg + fatMassKg > bodyMassKg) {
+      missing.push(getSwingUiText('체중·골격근량·체지방률 조합 확인', 'consistent body-mass, lean-mass and body-fat inputs'));
+    }
+    const physicalReference = getPhysicalDistanceReference();
+    if (physicalReference.status !== 'ready') {
+      missing.push(getSwingUiText('기존 활용추정효율 산출에 필요한 성별·체격·실측 총거리', 'sex, body measurements and measured total distance required for utilization efficiency'));
+    }
+    const motionScore = getDistanceMotionSummary().score;
+    const potentialEfficiency = computeCombinedPowerEfficiency(physicalReference, motionScore);
+    if (!hasMetric(potentialEfficiency)) missing.push(getSwingUiText('잠재파워활용추정효율', 'estimated potential-power utilization efficiency'));
+    const backswing = backswingClassification;
+    if (!backswing || !getBackswingProfileCode(backswing)
+      || !hasMetric(backswing.p4ToP5ShallowDelta) || !hasMetric(backswing.p5ToP6ShallowDelta)) {
+      missing.push(getSwingUiText('측면 P4→P5·P5→P6 백스윙 분류 결과', 'side-view P4→P5 and P5→P6 backswing classification'));
+    }
+    const engine = classifySwingType();
+    const engineScores = engine?.scores;
+    const engineComplete = engine && !engine.missingEngineEvidence?.length
+      && ['type1', 'type2', 'type3'].every(key => hasMetric(engineScores?.[key]));
+    if (!engineComplete) missing.push(getSwingUiText('근거가 모두 확인된 스윙 엔진 지수 합계', 'complete swing-engine index evidence'));
+    if (missing.length) return { missing: [...new Set(missing)] };
+
+    const biological = getProvisionalBiologicalCarryEstimate(
+      heightCm, bodyMassKg, leanMassKg, bodyFatPercent, sex);
+    if (!biological) return { missing: [getSwingUiText('체성분 입력 조합', 'body-composition inputs')] };
+    const engineTotal = engineScores.type1 + engineScores.type2 + engineScores.type3;
+    const shallowProgress = Math.min(
+      clamp(backswing.p4ToP5ShallowDelta / 13.43, 0, 1),
+      clamp(backswing.p5ToP6ShallowDelta / 44.01, 0, 1),
+    );
+    const shallowingMultiplier = 1 + 0.08 * shallowProgress;
+    const engineMultiplier = clamp(0.95 + 0.10 * engineTotal / 3, 0.95, 1.05);
+    const frame6Metrics = segmentDeltaHistory.frame6?.fm || {};
+    const lagAngle = areVideoSourcesSame() && hasMetric(frame6Metrics.lagAngleA6)
+      ? frame6Metrics.lagAngleA6 : null;
+    const releaseMultiplier = hasMetric(lagAngle) && lagAngle >= 168 && lagAngle <= 172 ? 1.04 : 1;
+    const aeroMultiplier = 1;
+    const estimateMeters = biological.distanceMeters * (potentialEfficiency / 100)
+      * shallowingMultiplier * engineMultiplier * releaseMultiplier * aeroMultiplier;
+    return {
+      estimateMeters,
+      biological,
+      potentialEfficiency,
+      motionScore,
+      engineTotal,
+      backswingCode: getBackswingProfileCode(backswing),
+      p4ToP5ShallowDelta: backswing.p4ToP5ShallowDelta,
+      p5ToP6ShallowDelta: backswing.p5ToP6ShallowDelta,
+      shallowingMultiplier,
+      engineMultiplier,
+      lagAngle,
+      releaseMultiplier,
+      aeroMultiplier,
+    };
+  }
+
+  function renderEstimatedCarryDistance(target) {
+    const estimate = computeEstimatedCarryDistance();
+    target.replaceChildren();
+    if (estimate.missing) {
+      target.textContent = getSwingUiText('추정 보류 · 입력·분석 필요: ', 'Estimate held · required inputs or analysis: ')
+        + estimate.missing.join(' · ');
+      return;
+    }
+    const result = document.createElement('strong');
+    result.textContent = getSwingUiText('잠재 최대 캐리 비거리 추정', 'Estimated potential maximum carry distance')
+      + `: ${estimate.estimateMeters.toFixed(1)} m (${(estimate.estimateMeters / 0.9144).toFixed(1)} yd)`;
+    const details = document.createElement('div');
+    details.textContent = getSwingUiText(
+      `체성분 기준거리 ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · 일치' : ' · 4개 예시 역거리 가중 보간'}) · 유효 구동질량 ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [체중−SMM−체지방량]) · 백스윙 유형 ${estimate.backswingCode}\n`
+      + `활용추정효율 ${estimate.potentialEfficiency.toFixed(1)}% (비거리 모션 평균 ${estimate.motionScore.toFixed(1)}/10 포함) × 샬로잉 계수 ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × 엔진지수 계수 ${estimate.engineMultiplier.toFixed(3)} (합계 ${estimate.engineTotal.toFixed(3)}) × 래깅 계수 ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 래깅 ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° 근거 미측정)'} × 최적 탄도 가정 ${estimate.aeroMultiplier.toFixed(2)}`,
+      `Body-composition reference ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · exact anchor' : ' · inverse-distance interpolation from four examples'}) · active mass ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [body mass−SMM−fat mass])\n`
+      + `Backswing profile ${estimate.backswingCode}\n`
+      + `Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% (includes distance-motion average ${estimate.motionScore.toFixed(1)}/10) × shallowing factor ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × engine-index factor ${estimate.engineMultiplier.toFixed(3)} (total ${estimate.engineTotal.toFixed(3)}) × lag factor ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 lag ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° evidence not measured)'} × ideal-flight assumption ${estimate.aeroMultiplier.toFixed(2)}`);
+    target.append(result, details);
+  }
+
   function computeCombinedPowerEfficiency(physicalReference, motionScore) {
     if (physicalReference?.status !== 'ready' || !hasMetric(physicalReference.efficiency)
       || !hasMetric(motionScore) || motionScore < 0 || motionScore > 10) return null;
@@ -7249,8 +7416,10 @@
     const total = available ? (scores.type1 + scores.type2 + scores.type3).toFixed(3)
       : getSwingUiText('미측정', 'not measured');
     return `<section class="analysis-type-section analysis-power-summary">`
-      + `<strong>${getSwingUiText('잠재파워활용추정효율', 'Estimated Potential-Power Utilization Efficiency')}: ${hasMetric(combined) ? combined.toFixed(1) + '%' : getSwingUiText('산출 보류', 'calculation held')}</strong>`
-      + `<strong>${getSwingUiText('스윙엔진지수 합계', 'Swing Engine Index Total')}: ${total}</strong></section>`;
+      + `<div class="analysis-power-summary-values"><strong>${getSwingUiText('잠재파워활용추정효율', 'Estimated Potential-Power Utilization Efficiency')}: ${hasMetric(combined) ? combined.toFixed(1) + '%' : getSwingUiText('산출 보류', 'calculation held')}</strong>`
+      + `<strong>${getSwingUiText('스윙엔진지수 합계', 'Swing Engine Index Total')}: ${total}</strong></div>`
+      + `<button type="button" id="distanceEstimateBtn" aria-expanded="false">${getSwingUiText('비거리 추정', 'Estimate Distance')}</button>`
+      + `<div class="analysis-distance-estimate" id="distanceEstimateResult" aria-live="polite" hidden></div></section>`;
   }
 
   function formatPowerMotionComparison(observedDistance) {
@@ -7631,6 +7800,8 @@
     heading.textContent = uiLanguage === 'en' ? 'Backswing Analysis Result' : '백스윙 분석 결과';
     report.append(heading);
     const result = backswingResult.cloneNode(true);
+    const resultDisclosure = result.querySelector('.backswing-result-disclosure');
+    if (resultDisclosure) resultDisclosure.open = true;
     const resultTitle = result.querySelector('.backswing-result-title');
     if (resultTitle) {
       const staticTitle = document.createElement('div');
@@ -7783,6 +7954,7 @@
     analysisSegmentSelect.value = 'frame1';
     analysisBodyMassInput.value = '';
     analysisLeanMassInput.value = '';
+    analysisBodyFatInput.value = '';
     analysisPlayerCodeInput.value = '';
     analysisKnownDistanceInput.value = '';
     playerReferenceLoadVersion++;
@@ -7793,7 +7965,7 @@
     Object.entries(referenceFieldIds).forEach(([key, id]) => {
       document.getElementById(id).value = ['heightTolerance', 'weightTolerance', 'minimumPlayers'].includes(key) ? 5 : '';
     });
-    validateLeanMass();
+    validateBodyComposition();
     distanceMeasureActive = false;
     distanceReferenceActive = false;
     distanceReferencePendingPoints = { front: [], side: [] };
@@ -8294,8 +8466,28 @@
     note.textContent = getSwingUiText(
       '관측 전용 · 신규 점수 반영 없음. 각 지표에 마우스를 올리면 기준점·계산식을 확인할 수 있습니다. 손·헤드만으로 래깅 유지나 실제 3D 샬로잉·파워를 판정할 수 없습니다.',
       'Observation only · no new score contribution. Hover over each metric for reference points and formulas. Hands/head alone cannot establish lag retention, actual 3D shallowing or power.');
+    const phaseReference = document.createElement('details');
+    phaseReference.className = 'backswing-types backswing-phase-reference';
+    const phaseReferenceTitle = document.createElement('summary');
+    phaseReferenceTitle.textContent = getSwingUiText('P1–P7 자세 참조', 'P1–P7 Phase Reference');
+    const phases = document.createElement('ol');
+    [
+      ['P1 — 테이크어웨이 시작', 'P1 — Takeaway begins'],
+      ['P2 — 백스윙 샤프트 지면 평행', 'P2 — Backswing shaft parallel to the ground'],
+      ['P3 — 백스윙 리드팔 지면 평행', 'P3 — Backswing lead arm parallel to the ground'],
+      ['P4 — 백스윙 탑 직전', 'P4 — Just before the backswing top'],
+      ['P5 — 다운스윙 리드팔 지면 평행', 'P5 — Downswing lead arm parallel to the ground'],
+      ['P6 — 다운스윙 샤프트 지면 평행', 'P6 — Downswing shaft parallel to the ground'],
+      ['P7 — 임팩트', 'P7 — Impact'],
+    ].forEach(([korean, english]) => {
+      const phase = document.createElement('li');
+      phase.textContent = getSwingUiText(korean, english);
+      phases.append(phase);
+    });
+    phaseReference.append(phaseReferenceTitle, phases);
     card.append(heading, metrics, interpretation, note,
-      createCollapsibleGraph(createBackswingHandPath(backswingFrames), 'backswing-hand'));
+      createCollapsibleGraph(createBackswingHandPath(backswingFrames), 'backswing-hand'),
+      phaseReference);
     return card;
   }
 
@@ -8863,8 +9055,9 @@
   function renderBackswingClassification() {
     const result = backswingClassification;
     if (!result) return;
-    const title = document.createElement('button');
-    title.type = 'button';
+    const disclosure = document.createElement('details');
+    disclosure.className = 'backswing-result-disclosure';
+    const title = document.createElement('summary');
     title.className = 'backswing-result-title';
     const resultCodeItem = result.profileCode
       ? SWING_BACKSWING_CODES.find(item => item.code === result.profileCode)
@@ -8887,7 +9080,6 @@
     } else {
       title.textContent = uiLanguage === 'en' ? 'Backswing Type Undetermined' : '백스윙 유형 판정 보류';
     }
-    title.setAttribute('aria-expanded', 'false');
     const detail = document.createElement('div');
     detail.className = 'backswing-result-detail';
     const phaseLabels = uiLanguage === 'en'
@@ -8910,12 +9102,8 @@
     detail.textContent = uiLanguage === 'en'
       ? `${classificationNote}On-Plane Corridor ${result.plane ? 'passed all phases' : 'has deviations'} (${translatedCorridor}) · P1 clubhead path relative to ball: ${p1TakeawayText} (${(result.p1HeadOffsetRatio * 100).toFixed(1)}% torso; straight tolerance ±${(BACKSWING_P1_PATH_THRESHOLD * 100).toFixed(0)}%)${p1ForwardNote} · Clubhead forward of the hands at P2: ${result.outside ? 'yes' : 'no'} (${(result.outsideRatio * 100).toFixed(1)}% torso; threshold ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · Shaft angles P4/P5/P6: ${result.p4Angle.toFixed(1)}° / ${result.p5Angle.toFixed(1)}° / ${result.p6Angle.toFixed(1)}°; P5→P6 shallowing: ${result.p5ToP6ShallowDelta.toFixed(1)}° · P5→P6 hand/clubhead path angles: ${result.p5ToP6HandPathAngle.toFixed(1)}° / ${result.p5ToP6ClubPathAngle.toFixed(1)}° · Address reference-line lower angle ${result.lowerAngle.toFixed(1)}° / elbow ${result.elbowAngle.toFixed(1)}° / upper angle ${result.upperAngle.toFixed(1)}° · Top hand height: ${result.upright ? 'high' : 'typical'} · P3 hand return consistency: ${(result.p3ReturnScore * 100).toFixed(1)}% (${result.p3ReturnDistance.toFixed(3)} torso lengths).`
       : `${classificationNote}On-Plane Corridor ${result.plane ? '전 구간 통과' : '구간 이탈'} (${translatedCorridor}) · P1 공 기준 클럽헤드 경로: ${p1TakeawayText} (몸통 길이 대비 ${(result.p1HeadOffsetRatio * 100).toFixed(1)}%, 일직선 허용폭 ±${(BACKSWING_P1_PATH_THRESHOLD * 100).toFixed(0)}%)${p1ForwardNote} · P2 클럽헤드 전방 위치 ${result.outside ? '해당' : '미해당'} (손 대비 ${(result.outsideRatio * 100).toFixed(1)}% 몸통 길이, 판정 기준 ${(BACKSWING_OUTSIDE_THRESHOLD * 100).toFixed(0)}%) · P4/P5/P6 샤프트 각 ${result.p4Angle.toFixed(1)}° / ${result.p5Angle.toFixed(1)}° / ${result.p6Angle.toFixed(1)}°, P5→P6 샬로잉 변화 ${result.p5ToP6ShallowDelta.toFixed(1)}° · P5→P6 손/클럽헤드 이동 경로각 ${result.p5ToP6HandPathAngle.toFixed(1)}° / ${result.p5ToP6ClubPathAngle.toFixed(1)}° · 어드레스 기준선 각도 하한 ${result.lowerAngle.toFixed(1)}° / 엘보 ${result.elbowAngle.toFixed(1)}° / 상한 ${result.upperAngle.toFixed(1)}° · 탑 손 높이 ${result.upright ? '높음' : '일반'} · P3 손 복귀 일치도 ${(result.p3ReturnScore * 100).toFixed(1)}% (몸통 길이 대비 편차 ${result.p3ReturnDistance.toFixed(3)}).`;
-    detail.hidden = true;
-    title.addEventListener('click', () => {
-      detail.hidden = !detail.hidden;
-      title.setAttribute('aria-expanded', String(!detail.hidden));
-    });
-    backswingResult.replaceChildren(title, createBackswingDeliveryCard(result), detail);
+    disclosure.append(title, detail);
+    backswingResult.replaceChildren(disclosure, createBackswingDeliveryCard(result));
   }
   let sidePoints = [];
   let frontLines = [];
@@ -11490,18 +11678,28 @@
   if (analysisHeightInput) {
     analysisHeightInput.addEventListener('change', () => performAnalysis());
   }
-  [analysisBodyMassInput, analysisLeanMassInput, analysisPlayerCodeInput, analysisKnownDistanceInput].forEach(input => {
+  [analysisBodyMassInput, analysisLeanMassInput, analysisBodyFatInput, analysisPlayerCodeInput, analysisKnownDistanceInput].forEach(input => {
     if (input) input.addEventListener('input', refreshSwingClassificationViews);
   });
-  const validateLeanMass = () => {
+  const validateBodyComposition = () => {
     const mass = Number(analysisBodyMassInput.value);
     const leanMass = Number(analysisLeanMassInput.value);
-    const invalid = analysisLeanMassInput.value !== '' && analysisBodyMassInput.value !== ''
+    const bodyFat = Number(analysisBodyFatInput.value);
+    const invalidLeanMass = analysisLeanMassInput.value !== '' && analysisBodyMassInput.value !== ''
       && Number.isFinite(mass) && Number.isFinite(leanMass) && leanMass > mass;
-    analysisLeanMassInput.setCustomValidity(invalid
+    const invalidComposition = analysisBodyFatInput.value !== '' && analysisLeanMassInput.value !== ''
+      && analysisBodyMassInput.value !== '' && Number.isFinite(mass) && Number.isFinite(leanMass)
+      && Number.isFinite(bodyFat) && leanMass + mass * bodyFat / 100 > mass;
+    analysisLeanMassInput.setCustomValidity(invalidLeanMass
       ? r10Text('골격근량은 체중보다 클 수 없습니다.', 'Lean mass cannot exceed body mass.')
       : '');
+    analysisBodyFatInput.setCustomValidity(invalidComposition
+      ? r10Text('골격근량과 체지방량의 합은 체중보다 클 수 없습니다.', 'Lean mass plus fat mass cannot exceed body mass.')
+      : '');
   };
+  analysisBodyMassInput.addEventListener('input', validateBodyComposition);
+  analysisLeanMassInput.addEventListener('input', validateBodyComposition);
+  analysisBodyFatInput.addEventListener('input', validateBodyComposition);
   Object.values(referenceFieldIds).forEach(id => {
     document.getElementById(id).addEventListener('input', refreshSwingClassificationViews);
   });
@@ -11509,6 +11707,16 @@
     document.getElementById(id).addEventListener('input', refreshSwingClassificationViews);
   });
   if (languageSelect) languageSelect.addEventListener('change', refreshSwingClassificationViews);
+  analysisSwingType.addEventListener('click', event => {
+    const button = event.target.closest('#distanceEstimateBtn');
+    if (!button) return;
+    const output = analysisSwingType.querySelector('#distanceEstimateResult');
+    if (!output) return;
+    const open = output.hidden;
+    output.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+    if (open) renderEstimatedCarryDistance(output);
+  });
   document.getElementById('playerReferenceClear').addEventListener('click', () => {
     playerReferenceLoadVersion++;
     playerReferenceRows = [];
@@ -11536,9 +11744,6 @@
     } finally {
       if (loadVersion === playerReferenceLoadVersion) event.target.value = '';
     }
-  });
-  [analysisBodyMassInput, analysisLeanMassInput].forEach(input => {
-    if (input) input.addEventListener('input', validateLeanMass);
   });
   if (analysisSegmentSelect) {
     analysisSegmentSelect.addEventListener('change', (e) => {
@@ -11750,6 +11955,7 @@
         athleteData: {
               bodyMassKg: analysisBodyMassInput.value === '' ? null : Number(analysisBodyMassInput.value),
               leanMassKg: analysisLeanMassInput.value === '' ? null : Number(analysisLeanMassInput.value),
+          bodyFatPercent: analysisBodyFatInput.value === '' ? null : Number(analysisBodyFatInput.value),
           playerCode: analysisPlayerCodeInput.value.trim(),
           knownTotalDistanceM: analysisKnownDistanceInput.value === '' ? null : Number(analysisKnownDistanceInput.value),
         },
@@ -11894,6 +12100,13 @@
           && (!Number.isFinite(state.athleteData.leanMassKg) || state.athleteData.leanMassKg < 20
             || state.athleteData.leanMassKg > 150
             || (state.athleteData.bodyMassKg != null && state.athleteData.leanMassKg > state.athleteData.bodyMassKg)))
+        || (state.athleteData.bodyFatPercent != null
+          && (!Number.isFinite(state.athleteData.bodyFatPercent)
+            || state.athleteData.bodyFatPercent < 3 || state.athleteData.bodyFatPercent > 50))
+        || (state.athleteData.bodyFatPercent != null && state.athleteData.leanMassKg != null
+          && state.athleteData.bodyMassKg != null
+          && state.athleteData.leanMassKg + state.athleteData.bodyMassKg * state.athleteData.bodyFatPercent / 100
+            > state.athleteData.bodyMassKg)
         || (state.athleteData.leanMassKg != null
           && (!Number.isFinite(state.athleteData.leanMassKg) || state.athleteData.leanMassKg < 20
             || state.athleteData.leanMassKg > 150
@@ -11946,10 +12159,10 @@
 
   function saveAnalysisProject() {
     try {
-      if (![analysisBodyMassInput, analysisLeanMassInput, analysisKnownDistanceInput].every(input => input.checkValidity())) {
+      if (![analysisBodyMassInput, analysisLeanMassInput, analysisBodyFatInput, analysisKnownDistanceInput].every(input => input.checkValidity())) {
         alert(r10Text(
-          '체중(30–200kg), 골격근량(20–150kg), 알려진 총 비거리(0–600m)를 확인하세요.',
-          'Check body mass (30–200 kg), lean mass (20–150 kg), and known total distance (0–600 m).'
+          '체중(30–200kg), 골격근량(20–150kg), 체지방률(3–50%), 알려진 총 비거리(0–600m)를 확인하세요.',
+          'Check body mass (30–200 kg), lean mass (20–150 kg), body-fat percentage (3–50%), and known total distance (0–600 m).'
         ));
         return;
       }
@@ -12038,6 +12251,7 @@
     const athleteData = state.athleteData || {};
     analysisBodyMassInput.value = athleteData.bodyMassKg ?? '';
     analysisLeanMassInput.value = athleteData.leanMassKg ?? '';
+    analysisBodyFatInput.value = athleteData.bodyFatPercent ?? '';
     analysisPlayerCodeInput.value = athleteData.playerCode || '';
     analysisKnownDistanceInput.value = athleteData.knownTotalDistanceM ?? '';
     const sensitivity = state.physicalSensitivity || { heightGain: 1, weightGain: 1 };
@@ -12052,7 +12266,7 @@
     };
     Object.entries(referenceFieldIds).forEach(([key, id]) => { document.getElementById(id).value = referenceSettings[key]; });
     document.getElementById('playerReferenceStatus').textContent = '';
-    validateLeanMass();
+    validateBodyComposition();
     frontZoom = clamp(Number(state.frontZoom) || 1, 0.2, 4);
     sideZoom = clamp(Number(state.sideZoom) || 1, 0.2, 4);
     frontZoomRange.value = frontZoom;
