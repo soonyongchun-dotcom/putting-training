@@ -7540,6 +7540,10 @@
       alert('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.');
       return;
     }
+    if (backswingActive) {
+      await downloadBackswingAnalysisPDF();
+      return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -7604,6 +7608,81 @@
     let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : 'MotionAnalysis';
     baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || 'MotionAnalysis';
     doc.save(`${baseFileName}_${new Date().toISOString().slice(0,10)}.pdf`);
+  }
+
+  async function downloadBackswingAnalysisPDF() {
+    if (!backswingClassification) {
+      alert('백스윙 유형 판정이 완료된 후 PDF를 다운로드하세요.');
+      return;
+    }
+    const report = document.createElement('section');
+    report.className = 'backswing-panel visible';
+    report.style.display = 'block';
+    report.style.position = 'fixed';
+    report.style.top = '-9999px';
+    report.style.left = '-9999px';
+    report.style.width = '800px';
+    report.style.boxSizing = 'border-box';
+    report.style.padding = '24px';
+    report.style.background = '#ffffff';
+    report.style.color = '#000000';
+    report.style.fontFamily = 'Arial, sans-serif';
+    const heading = document.createElement('h1');
+    heading.textContent = uiLanguage === 'en' ? 'Backswing Analysis Result' : '백스윙 분석 결과';
+    report.append(heading);
+    const result = backswingResult.cloneNode(true);
+    const resultTitle = result.querySelector('.backswing-result-title');
+    if (resultTitle) {
+      const staticTitle = document.createElement('div');
+      staticTitle.className = resultTitle.className;
+      staticTitle.replaceChildren(...Array.from(resultTitle.childNodes));
+      resultTitle.replaceWith(staticTitle);
+    }
+    result.querySelectorAll('button').forEach(button => button.remove());
+    const detail = result.querySelector('.backswing-result-detail');
+    if (detail) detail.hidden = false;
+    result.querySelectorAll('*').forEach(element => {
+      element.style.color = '#000000';
+      element.style.background = '#ffffff';
+      element.style.borderColor = '#cccccc';
+      element.style.boxShadow = 'none';
+    });
+    report.append(result);
+    document.body.appendChild(report);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    try {
+      const canvas = await html2canvas(report, { scale: 1, backgroundColor: '#ffffff' });
+      const pageWidth = doc.internal.pageSize.getWidth() - 80;
+      const pageHeight = doc.internal.pageSize.getHeight() - 80;
+      const sourcePageHeight = Math.floor((pageHeight * canvas.width) / pageWidth);
+      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
+        const sourceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        pageCanvas.getContext('2d').drawImage(
+          canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight
+        );
+        if (sourceY > 0) doc.addPage();
+        doc.addImage(
+          pageCanvas.toDataURL('image/jpeg', 0.85),
+          'JPEG', 40, 40, pageWidth, (sourceHeight * pageWidth) / canvas.width
+        );
+      }
+    } catch (error) {
+      console.warn('백스윙 분석 PDF 생성 중 오류가 발생했습니다.', error);
+      alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
+      return;
+    } finally {
+      report.remove();
+    }
+    const frontFileNameText = frontFileInput && frontFileInput.files && frontFileInput.files[0]
+      ? frontFileInput.files[0].name
+      : document.getElementById('frontFileName') ? document.getElementById('frontFileName').textContent : '';
+    let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : 'BackswingAnalysis';
+    baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || 'BackswingAnalysis';
+    doc.save(`${baseFileName}_backswing_${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
   function clearAnalysisResults() {
@@ -7832,8 +7911,12 @@
         : `${completedLabel} 입력 완료. 다음 자세 ${nextLabel}(으)로 이동했습니다. `;
     } else if (backswingProgressNotice?.allComplete) {
       progress = uiLanguage === 'en'
-        ? 'All eleven checkpoints through impact are complete. Type classification has been run. '
-        : '임팩트까지 11개 시점 선택이 모두 완료되어 유형 판정을 실행했습니다. ';
+        ? 'All checkpoints through impact are selected and backswing analysis is complete. '
+        : '임팩트까지 모든 선택이 완료되어 백스윙 분석이 완료되었습니다. ';
+    } else if (backswingProgressNotice?.analysisError) {
+      progress = uiLanguage === 'en'
+        ? 'All checkpoints are selected, but backswing analysis could not be completed. See the result message. '
+        : '모든 선택이 완료되었지만 백스윙 분석을 완료하지 못했습니다. 결과 메시지를 확인하세요. ';
     }
     backswingGuide.textContent = `${progress}${label} · ${count}/${labels.length} ${next}`;
     frontGuideBubble.textContent = backswingGuide.textContent;
@@ -8766,6 +8849,7 @@
   document.getElementById('backswingDecideBtn').addEventListener('click', () => {
     const result = classifyBackswing(backswingFrames);
     if (result.error) {
+      if (backswingProgressNotice?.allComplete) backswingProgressNotice = { analysisError: true };
       invalidateBackswingClassification();
       backswingResult.textContent = result.error;
       return;
