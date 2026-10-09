@@ -555,7 +555,7 @@
   <p>📊 버튼을 열고 연습 세션 CSV를 선택합니다. 거리와 좌우 편차 열이 포함된 20MB 이하 파일에서 유효 샷 2개 이상을 읽습니다. 중심 분산 타원은 서로 일직선에 놓이지 않은 샷 3개 이상일 때 계산할 수 있습니다. 같은 클럽·비슷한 목표와 연습 조건을 한 세션으로 묶는 것이 해석에 유리하며, 혼합 클럽 결과는 방향성 임계 패턴 판정에 제한이 있습니다.</p>
   <p>대시보드에서 샷 분산 그래프, 중심 일관성, 선택한 1.5σ/2.0σ 기준의 이탈 샷을 확인합니다. “영상 보완 종합보고서 생성”을 누르고 분석 기준 프로필 번호 01~35를 입력하면 R10 결과를 중심으로 영상에서 측정된 백스윙 유형·엔진 유형·F1~F6 지표를 연결한 통합 문제·근거·해법·재측정 계획을 볼 수 있습니다. 보고서의 PDF 버튼은 이 종합보고서를 저장하며, 기본 “PDF 다운로드”는 Motion Analysis 결과를 저장합니다. R10만으로 특정 스윙 원인을 확정하지 않습니다.</p>
   <h3>잠재 최대 총거리 표시</h3>
-  <p>엔진 결과의 <strong>“잠재파워활용추정효율”</strong>은 체격·실측거리 기준과 비거리 모션 평균을 섞은 참고지표입니다. 그 아래 <strong>“비거리 추정”</strong>을 열면 별도 실험식 결과와 계수별 근거가 표시됩니다. 결과 명칭은 총거리로 변경되지만 요청에 따라 기존 숫자와 산식은 그대로 사용하며, 런을 별도로 더하지 않습니다. 동력 실험지수 A/B는 효율이나 거리 산식에 합쳐지지 않습니다.</p>
+  <p>엔진 결과의 <strong>“잠재파워활용추정효율”</strong>은 체격·실측거리 기준과 비거리 모션 평균을 섞은 참고지표입니다. 그 아래 <strong>“비거리 추정”</strong>을 열면 실측 총거리에 스윙 보정계수를 적용한 값을 확인할 수 있습니다. 골격근량 변경분도 반영하되, 최종값은 실측 총거리 이상, 실측값의 최대 110%로 제한합니다. 활용추정효율은 표시용 참고값이며 잠재거리를 역산하는 데 쓰지 않습니다. 런은 별도로 더하지 않으며 동력 실험지수 A/B도 거리 산식에 합쳐지지 않습니다.</p>
   <figure class="feature-screenshot">
     <figcaption>설명용 화면 도해 4 · 체격 기준거리·잠재파워활용추정효율 (실제 로그인 사용자 화면 캡처 아님)</figcaption>
     <div class="feature-screen-top"><span>체격 기준거리와 활용추정효율</span><small>Motion Analysis · 엔진 결과 보조 정보</small></div>
@@ -566,7 +566,7 @@
         <div class="feature-screen-panel"><h4>결과 구성</h4><div class="feature-screen-stat">체격 기준거리 기준선<strong>실측 총거리 ÷ 조정 기준거리 × 100</strong></div><div class="feature-screen-stat" style="margin-top:7px">잠재파워활용추정효율<strong>(거리 효율 + 모션 평균×10) ÷ 2</strong></div></div>
         <div class="feature-screen-panel"><h4>상세 보기</h4><div class="feature-screen-stat">보간 기준 · 교차 보정 · 민감도<strong>중앙값 대비 민감도 적용 과정</strong></div><div class="feature-screen-stat" style="margin-top:7px">판독 메모<strong>실험 비교지표 · 실제 파워가 아님</strong></div></div>
       </div>
-      <p class="feature-screen-screen-note">도해의 입력칸과 결과 텍스트는 설명용입니다. 실제 값을 임의로 만들어 표시하지 않았습니다. 골격근량을 입력하지 않으면 체격 기준은 신장 60%·체중 40% 가중으로 계산되고 교차 보정은 하지 않습니다. 거리 추정 결과는 총거리로 표시하지만 기존 캐리 기준 산식을 유지하며 런을 더하지 않습니다.</p>
+      <p class="feature-screen-screen-note">도해의 입력칸과 결과 텍스트는 설명용입니다. 실제 값을 임의로 만들어 표시하지 않았습니다. 골격근량을 입력하지 않으면 체격 기준은 신장 60%·체중 40% 가중으로 계산되고 교차 보정은 하지 않습니다. 잠재 총거리 계산은 실측거리와 스윙 계수를 사용하고 실측값의 110%를 상한으로 둡니다. 런은 더하지 않습니다.</p>
     </div>
     <div class="feature-screen-caption">결과가 없으면 성별, 신장, 체중, 실측 총거리 또는 민감도 범위를 확인합니다. CSV/R10은 이 효율 계산에 필요하지 않습니다. F1~F4의 유효 점수가 하나 이상이면 모션 평균을 낼 수 있지만, 가능한 프레임을 모두 입력하면 평균의 근거를 더 넓게 볼 수 있습니다.</div>
   </figure>
@@ -596,11 +596,11 @@
       <div class="feature-screen-panel"><h4>잠재 최대 총거리 표시</h4><div class="feature-screen-grid"><div class="feature-screen-stat">표시값<strong>— m (— yd)</strong></div><div class="feature-screen-stat">체성분 기준거리<strong>4개 예시를 이용한 보간 근거</strong></div><div class="feature-screen-stat">잠재파워활용추정효율<strong>실측 총거리 + 모션 점수 포함</strong></div><div class="feature-screen-stat">백스윙·엔진·릴리즈 계수<strong>P4→P5 / P5→P6 · 엔진 3지수 · P6 래깅</strong></div></div></div>
       <p class="feature-screen-screen-note">화면은 결과 형태 설명용으로 숫자 결과를 생성하지 않습니다. 실제 분석에서는 m와 yd 거리, 현재 입력 기준 체성분 기준거리, 유효질량, 백스윙 유형, 효율과 승수를 확인할 수 있습니다. 앱 표기는 총거리지만 런은 더하지 않습니다.</p>
     </div>
-    <div class="feature-screen-caption">내부 산식: D<sub>total</sub> = D<sub>bio,anchor</sub> × (활용추정효율/100) × 샬로잉 계수 × 엔진 계수 × 릴리즈 계수 × 탄도 계수 + (현재 골격근량 − 기준 골격근량) × β × 0.9144. 현재 입력 기준 체성분 거리와 골격근량 보정 기준거리는 별도로 표시합니다. 런은 추가하지 않으며 검증된 총거리 예측이 아닙니다.</div>
+    <div class="feature-screen-caption">내부 산식: D<sub>total</sub> = min(1.10×D<sub>실측</sub>, max(D<sub>실측</sub>, D<sub>실측</sub>×샬로잉 계수×엔진 계수×릴리즈 계수×탄도 계수 + (현재 골격근량 − 기준 골격근량)×β×0.9144)). 활용추정효율은 표시용 참고값이며 거리 계산에는 사용하지 않습니다. 최종값은 실측 총거리 이상, 실측값의 110% 이하이며 체성분 기준거리는 별도로 표시합니다. 런은 더하지 않으며 검증된 총거리 예측이 아닙니다.</div>
   </figure>
   <ul>
     <li><strong>현재 입력 기준 체성분 거리 D<sub>bio,current</sub>:</strong> 체지방량=체중×체지방률, 유효질량=골격근량+0.25×(체중−골격근량−체지방량)으로 계산합니다. α=0.25는 임시 가정입니다. 신장 10cm·유효질량 8kg 단위와 성별 불일치 벌점 2.5를 이용해 네 개 예시와의 거리를 만들고, 역거리 제곱 가중 평균으로 기준 거리를 보간합니다. 정확히 예시와 일치하는 입력이면 해당 예시를 그대로 씁니다. 분석 결과를 연 상태에서 체중·체지방률·골격근량을 바꾸면 이 표시값과 유효질량이 현재 입력 기준으로 다시 계산됩니다.</li>
-    <li><strong>잠재 최대거리의 체성분 기준 D<sub>bio,anchor</sub>:</strong> 전체 거리 산식은 최초 계산 시점의 기준거리를 유지하고, 골격근량을 바꿀 때는 기준 골격근량과 현재 골격근량의 차이를 별도 보정합니다. 체중·체지방률 등 기준 입력을 바꿔 새 기준으로 재산출되면 기준점도 갱신됩니다. 따라서 상세에는 현재 입력 기준 거리와 보정 산식에 사용되는 기준점 거리가 함께 표시될 수 있습니다.</li>
+    <li><strong>체성분 기준 D<sub>bio,anchor</sub>:</strong> 최초 산출 시점의 체성분 참고거리로 별도 표시하며 잠재 총거리 산식에는 직접 곱하거나 나누지 않습니다. 골격근량 변경분은 최초 산출 시점의 기준 골격근량을 기준으로 잠재값에 별도 보정하고, 다른 기준 입력을 바꿔 새로 산출하면 기준점을 갱신합니다.</li>
     <li><strong>샬로잉 계수:</strong> 1 + 0.08 × min(clamp(P4→P5/13.43°, 0~1), clamp(P5→P6/44.01°, 0~1)). 값은 최대 1.08로 제한됩니다.</li>
     <li><strong>엔진 계수:</strong> clamp(0.95 + 0.10 × (ATE+LSE+VEE 합계)/3, 0.95~1.05). 엔진 실험 A/B가 아니라 엔진 분류의 세 기본 적합도 합계를 사용합니다.</li>
     <li><strong>릴리즈 계수:</strong> F6 P6 래깅각이 같은 영상에서 168~172°로 확인되면 1.04, 아니면 1.00입니다. <strong>탄도 계수:</strong> 현재 1.00 상수입니다. 공의 실제 탄도나 비행을 시뮬레이션하지 않습니다.</li>
@@ -612,7 +612,7 @@
     <img class="feature-real-capture" src="manual-screenshots/actual-carry.png" alt="실제 SY-GSAP 잠재 최대 캐리 추정 결과 및 체성분 기준거리와 곱셈 계수">
     <p class="feature-real-capture-note">이전 결과 화면의 실제 캡처입니다. 현재 화면·산식과 일부 표시가 업데이트되어 캡처와 다를 수 있으며, 런은 별도로 합산하지 않습니다. 이미지 속 숫자는 특정 샘플 결과이지 검증된 예측이나 일반 기준이 아닙니다.</p>
   </figure>
-  <div class="callout warning"><strong>중요한 한계:</strong> 결과는 잠재 최대 총거리로 표시하지만 런은 추가 계산하지 않으므로 검증된 총거리 예측이나 신뢰구간이 아닙니다. D<sub>bio</sub>는 단 네 개의 예시 앵커를 보간하며 신체구성 가중치·계수와 체격 기준자료도 검증되지 않았습니다. 투어 골격근량 구간 평균과 별도 회귀 기울기도 표본·측정 조건을 독립 검증하지 않은 잠정 참고값이며, 구간 간 연관성을 개인의 인과 효과로 해석할 수 없습니다. 두 자료는 서로 다른 역할(체성분 예시 보간 및 골격근량 변경분 보정)로 사용하고, 구간 평균을 기준거리에 중복 가산하지 않습니다. 활용추정효율은 실측 총거리와 모션 점수를 포함해 100%를 넘을 수 있으며 독립적인 생물학적 잠재력 측정값이 아닙니다. 훈련 처방이나 실제 달성 거리로 단정하지 말고 동일 선수·클럽·촬영 배율·타구 조건에서 측정한 실제 샷과 함께 참고하세요.</div>
+  <div class="callout warning"><strong>중요한 한계:</strong> 런은 추가 계산하지 않으므로 검증된 총거리 예측이나 신뢰구간이 아닙니다. D<sub>bio</sub>는 단 네 개의 예시 앵커를 보간하며 신체구성 가중치·계수와 체격 기준자료도 검증되지 않았습니다. 투어 골격근량 구간 평균과 별도 회귀 기울기도 표본·측정 조건을 독립 검증하지 않은 잠정 참고값이며, 구간 간 연관성을 개인의 인과 효과로 해석할 수 없습니다. 체성분 기준거리와 활용추정효율은 참고용이며 잠재거리 계산에서 역산하지 않습니다. 잠재 총거리는 실측 총거리의 110%를 상한으로 하지만, 이 제한은 실측 검증이나 달성 보장이 아닙니다. 활용추정효율은 실측 총거리와 모션 점수를 포함해 100%를 넘을 수 있으며 독립적인 생물학적 잠재력 측정값이 아닙니다. 훈련 처방이나 실제 달성 거리로 단정하지 말고 동일 선수·클럽·촬영 배율·타구 조건에서 측정한 실제 샷과 함께 참고하세요.</div>
   <h3>AI 설명과 결과 저장</h3>
   <p>AI 분석은 Gemini API 키를 입력한 뒤 실행합니다. 키는 화면에 안내된 대로 현재 세션에서만 사용됩니다. 분석 결과는 “PDF 다운로드”로 저장할 수 있습니다.</p>
   </section>
@@ -1263,14 +1263,14 @@
       <div class="feature-screen-body">
         <div class="feature-screen-controls"><span class="feature-screen-chip active">Estimate held · required inputs/analysis</span><span class="feature-screen-chip gold">Missing measurements or checkpoints</span></div>
         <div class="feature-screen-panel"><h4>Estimated Potential Maximum Total Distance Display</h4><div class="feature-screen-grid"><div class="feature-screen-stat">Displayed value<strong>— m (— yd)</strong></div><div class="feature-screen-stat">Body-composition reference<strong>Interpolation from four examples</strong></div><div class="feature-screen-stat">Estimated utilization<strong>Includes measured total distance + motion score</strong></div><div class="feature-screen-stat">Backswing / engine / release factors<strong>P4→P5 / P5→P6 · three engine fits · P6 lag</strong></div></div></div>
-        <p class="feature-screen-screen-note">This is a result-layout illustration, not a computed sample. The app now labels the result total distance but retains the existing value and carry-based formula; no run is added. It also shows body-composition reference, active mass, backswing type, utilization, and each multiplier.</p>
+        <p class="feature-screen-screen-note">This is a result-layout illustration, not a computed sample. Potential total distance uses measured total distance and swing factors, includes any skeletal-muscle adjustment, and is capped at 110% of the measured distance. Estimated utilization is display-only context; no extra run is added. The display also shows body-composition reference, active mass, backswing type, utilization, and each multiplier.</p>
       </div>
-      <div class="feature-screen-caption">Existing internal formula: D<sub>carry</sub> = D<sub>bio</sub> × (estimated utilization/100) × shallowing factor × engine factor × release factor × flight factor. The UI label changes to total distance, but the value and formula remain unchanged and no run is added. This is not a validated total-distance prediction.</div>
+      <div class="feature-screen-caption">Internal formula: D<sub>total</sub> = min(1.10×D<sub>measured</sub>, max(D<sub>measured</sub>, D<sub>measured</sub>×shallowing factor×engine factor×release factor×flight factor + muscle-mass adjustment)). Estimated utilization is display-only context and is not inverted to calculate potential distance. The body-composition reference remains a separate metric. No extra run is added; this is not a validated total-distance prediction.</div>
     </figure>
     <figure class="feature-screenshot">
       <figcaption>Earlier actual app capture · Estimated potential maximum carry label (before total-distance relabeling)</figcaption>
       <img class="feature-real-capture" src="manual-screenshots/actual-carry-en.png" alt="Actual SY-GSAP English UI showing estimated potential maximum carry and calculation factors">
-      <p class="feature-real-capture-note">This image predates the label change. The updated app keeps the same number and formula but displays the result as total distance; no run is added.</p>
+      <p class="feature-real-capture-note">This image predates the formula update and shows an earlier sample output. The current estimate uses measured total distance and swing factors, not estimated utilization; no extra run is added.</p>
     </figure>
     <ul>
       <li><strong>Body-composition reference D<sub>bio</sub>:</strong> fat mass = body mass × body-fat percentage; active mass = lean mass + 0.25 × (body mass − lean mass − fat mass). Alpha 0.25 is provisional. Distances to four example anchors use height scaled by 10 cm, active mass scaled by 8 kg, and a sex-mismatch penalty of 2.5. The inverse-square weighted mean estimates the reference distance; an exact anchor match returns that example directly.</li>
@@ -1278,7 +1278,7 @@
       <li><strong>Engine factor:</strong> clamp(0.95 + 0.10 × (ATE + LSE + VEE total)/3, 0.95–1.05). This uses the three base engine classification scores, not experimental A/B.</li>
       <li><strong>Release factor:</strong> 1.04 only when same-video F6 P6 lag is measured between 168–172°; otherwise 1.00. <strong>Flight factor:</strong> currently a constant 1.00. No actual ball-flight simulation is performed.</li>
     </ul>
-    <div class="callout warning"><strong>Important limitations:</strong> The app labels the result estimated total distance but retains the previous number and formula as requested; no run is added. It is therefore the previous carry-based value under a total-distance label, not a validated total-distance prediction or confidence interval. D<sub>bio</sub> interpolates only four examples; body-composition weights, factors, and body-reference source/distribution are unvalidated. Utilization already contains measured total distance and motion scores, may exceed 100%, and is not an independent measure of biological potential. Do not treat it as a training prescription or achievable-distance claim. Review it only alongside actual shots measured for the same player, club, video time scale, and launch conditions.</div>
+    <div class="callout warning"><strong>Important limitations:</strong> No extra run is added, so this is not a validated total-distance prediction or confidence interval. D<sub>bio</sub> interpolates only four examples; body-composition weights, factors, and body-reference source/distribution are unvalidated. Utilization already contains measured total distance and motion scores, may exceed 100%, and is not an independent measure of biological potential; it is not inverted in the distance estimate. The estimate is bounded between the measured distance and 110% of it, but that cap is not validation or a guarantee of achievable distance. Review it only alongside actual shots measured for the same player, club, video time scale, and launch conditions.</div>
     <h3>AI Explanation and Export</h3><p>Enter a Gemini API key to request an AI explanation. The key is used for the current session only, as indicated in the app. Save analysis results with “Download PDF.”</p>
   </section>
 

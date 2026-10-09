@@ -6765,22 +6765,22 @@
     const estimateHeightWeight = (1 - estimateMuscleWeight) * 0.70;
     const estimateBodyMassWeight = (1 - estimateMuscleWeight) * 0.30;
     const estimateReferenceFormula = getSwingUiText(
-      `최대 비거리 추정 산식(기존 체성분 기준거리 산식을 유지하고 골격근량 변경분만 추가 보정):\n`
+      `잠재 총거리 추정 산식(체성분 기준거리와 활용추정효율은 참고값으로 표시하고, 실측 총거리 기준으로 보수적 상한을 적용):\n`
       + `1) 체지방량 = 체중 × 체지방률 ÷ 100; 유효 구동질량 = 골격근량 + 0.25 × (체중 − 골격근량 − 체지방량).\n`
       + `2) D_bio = 신장·유효 구동질량·성별을 기준으로 한 4개 예시 역거리 가중 평균 기준거리.\n`
       + `3) 체격 백분위 합성값 C = ${(estimateHeightWeight * 100).toFixed(0)}%×P_신장 + ${(estimateBodyMassWeight * 100).toFixed(0)}%×P_체중 + ${(estimateMuscleWeight * 100).toFixed(0)}%×P_골격근량. 골격근량 비중은 기존 50%에서 ${(estimateMuscleWeight * 100).toFixed(0)}%로 올린 잠정값이며, 나머지는 신장:체중 기존 70:30 비율로 배분합니다. P값은 투어 기준표 사이 선형 보간하고 기준 범위 밖은 끝값으로 제한합니다.\n`
       + `4) D_ref0 = 보간(C, 성별 총거리 기준표) × 0.9144 × C_inter, λ=P_신장÷P_골격근량. λ가 0.85~1.15이면 C_inter=1, 그보다 작으면 min(1.05, 1+0.020×(0.85−λ)), 크면 max(0.96, 1−0.015×(λ−1.15)). D_ref = D_ref0 × F_sens; F_sens=(D_ref0/D_ref(50,P_체중))^(신장민감도−1) × (D_ref0/D_ref(P_신장,50))^(체중민감도−1). D_ref(h,w)는 합성 백분위에서 교차보정을 적용한 기준거리입니다.\n`
       + `5) 활용추정효율 E = (실측 총거리 ÷ D_ref × 100 + 비거리 모션점수 × 10) ÷ 2.\n`
-      + `6) 기존 산식 결과 D_base = D_bio × (E÷100) × C_샬로잉 × C_엔진 × C_래깅 × C_탄도.\n`
-      + `7) 추정 결과를 연 상태에서 골격근량 변경 시 D_current(m) = D_base(m) + (SMM_current − SMM_anchor)×β×0.9144. 남성 β 중앙값 2.65yd/kg(범위 2.5~2.8), 여성 3.15yd/kg(범위 3.0~3.3). SMM_anchor는 추정 결과를 처음 계산했을 때의 입력값이며, 변경량을 기존 결과에 누적하지 않고 기준값 대비 계산합니다. 0.9144는 m/yd 변환입니다.`,
-      `Maximum-distance estimate (retain the original body-composition reference formula and adjust only skeletal-muscle changes):\n`
+      + `6) 잠재 총거리 D_potential = min(1.10×D_실측, max(D_실측, D_실측×C_샬로잉×C_엔진×C_래깅×C_탄도)). 활용추정효율은 참고 표시만 하며 잠재거리 역산에는 사용하지 않습니다. 최종값은 실측 총거리보다 낮지 않고 10%를 초과하지 않습니다.\n`
+      + `7) 결과를 연 상태에서 골격근량 변경 시 D_current = min(1.10×D_실측, max(D_실측, D_potential + (SMM_current − SMM_anchor)×β×0.9144)). 남성 β 중앙값 2.65yd/kg(범위 2.5~2.8), 여성 3.15yd/kg(범위 3.0~3.3). SMM_anchor는 추정 결과를 처음 계산했을 때의 입력값이며, 변경량을 기존 결과에 누적하지 않고 기준값 대비 계산합니다. 0.9144는 m/yd 변환입니다.`,
+      `Potential total-distance estimate (body-composition distance and estimated utilization remain reference values; calculate conservatively from measured distance):\n`
       + `1) Fat mass = body mass × body-fat % ÷ 100; active mass = SMM + 0.25 × (body mass − SMM − fat mass).\n`
       + `2) D_bio = inverse-distance-weighted reference distance from four examples using height, active mass and sex.\n`
       + `3) Body composite C = ${(estimateHeightWeight * 100).toFixed(0)}%×P_height + ${(estimateBodyMassWeight * 100).toFixed(0)}%×P_body mass + ${(estimateMuscleWeight * 100).toFixed(0)}%×P_SMM. Muscle weight is provisionally increased from 50% to ${(estimateMuscleWeight * 100).toFixed(0)}%; remaining height/body-mass weights preserve their previous 70:30 ratio. P values are linearly interpolated tour-table percentiles and clamped to the table endpoints.\n`
       + `4) D_ref0 = interpolate(C, sex-specific total-distance tiers) × 0.9144 × C_inter, λ=P_height÷P_SMM. C_inter=1 for λ 0.85–1.15; below that, min(1.05, 1+0.020×(0.85−λ)); above, max(0.96, 1−0.015×(λ−1.15)). D_ref = D_ref0 × F_sens; F_sens=(D_ref0/D_ref(50,P_body mass))^(heightSensitivity−1) × (D_ref0/D_ref(P_height,50))^(bodyMassSensitivity−1). D_ref(h,w) is the percentile-tier reference with cross-correction.\n`
       + `5) Estimated utilization E = (measured total distance ÷ D_ref × 100 + distance-motion score × 10) ÷ 2.\n`
-      + `6) Original result D_base = D_bio × (E÷100) × C_shallowing × C_engine × C_lag × C_flight.\n`
-      + `7) While the estimate is open, changing muscle mass updates D_current(m) = D_base(m) + (SMM_current − SMM_anchor)×β×0.9144. Male β midpoint 2.65 yd/kg (range 2.5–2.8); female 3.15 yd/kg (range 3.0–3.3). SMM_anchor is the input when the estimate was first calculated; every update is relative to that anchor, not cumulatively added to the previous display. 0.9144 converts yd to m.`);
+      + `6) Potential total distance D_potential = min(1.10×D_measured, max(D_measured, D_measured×C_shallowing×C_engine×C_lag×C_flight)). Estimated utilization is display-only context and is not inverted to calculate potential distance. The result is floored at the measured distance and capped at 110% of it.\n`
+      + `7) While the estimate is open, changing muscle mass updates D_current = min(1.10×D_measured, max(D_measured, D_potential + (SMM_current − SMM_anchor)×β×0.9144)). Male β midpoint 2.65 yd/kg (range 2.5–2.8); female 3.15 yd/kg (range 3.0–3.3). SMM_anchor is the input when the estimate was first calculated; every update is relative to that anchor, not cumulatively added to the previous display. 0.9144 converts yd to m.`);
     distanceEstimateRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('산출식과 골격근량 즉시 보정', 'Formula and Live Muscle Adjustment')}</div><div style="white-space:pre-wrap">${estimateReferenceFormula}</div></section>`);
     const r10SpeedDetail = !r10SpeedEvidence ? getSwingUiText(
       'R10 클럽·볼 속도: CSV 미입력. 2D 영상만으로 속도나 %BW를 추정하지 않습니다.',
@@ -6799,8 +6799,8 @@
       `관측 총 비거리(캐리+런): ${knownDistanceLabel}. ${r10SpeedDetail} 실측거리는 동력지수를 거리 예측식에 맞추는 정답이 아니라 모션 보완 필요성을 검토할 결과 자료입니다. 같은 선수·클럽·촬영 시간 배율·타구 조건에서 반복 비교하세요. A/B는 현재 스윙 동작을 포함하므로 독립적인 기본 파워 실측값이 아닙니다. 기본 능력이 같으면 같은 모션 점수에서 같은 거리가 나온다는 관계도 아직 검증되지 않았습니다. 보완 후보 기준은 기존 F1–F4 8/10이며 평균이 높아도 개별 낮은 프레임을 먼저 확인합니다. 점수만으로 거리 증가나 기술 문제 부재를 확정하지 않습니다. Force plate 자료가 없어 Fz/BW(%BW)는 산출하지 않습니다.`,
       `Observed total distance (carry plus roll): ${knownDistanceLabel}. ${r10SpeedDetail} Measured distance is an outcome for reviewing motion intervention, not a target for fitting the indices to predicted distance. Compare repeated swings with the same player, club, video time scaling and shot conditions. A/B include current swing motion and are not independent measurements of baseline power. Equal capacity and motion scores implying equal distance is also unvalidated. Review uses the existing F1–F4 threshold of 8/10; inspect individual low frames even when the average is high. Scores do not establish a distance gain or absence of technical issues. Fz/BW (%BW) is withheld without force-plate data.`)}</div></section>`);
     calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('비거리 추정 산식과 한계', 'Distance Estimate Formula and Limitations')}</div><div>${getSwingUiText(
-      '실험적 참고값이며 검증된 거리 예측·신뢰구간이 아닙니다. D_bio는 제시된 선수 4개 예시만으로 보간하며 α=0.25는 임시 가정입니다. 역거리 가중치는 신장 10cm·유효질량 8kg 단위 정규화와 성별 불일치 가중치 2.5를 사용합니다. 현재 활용추정효율은 실측 총거리와 모션 평균을 포함하므로 독립적인 생체 잠재력 측정값이 아닙니다. 엔진 계수는 지수 합계를 0.95–1.05 범위에 선형 정규화한 임시값입니다. 백스윙 유형은 표시·자격 확인에 사용하고 샬로잉은 실측 P4→P5·P5→P6 지표로 반영해 중복 가산하지 않습니다. 샬로잉은 제시된 한 선수 예시를 상한 기준으로 삼고, 래깅은 168–172°에서만 +4%를 적용합니다. 얼리 릴리즈 감쇠와 엔진-체격 시너지는 앱 지표 기준이 검증되지 않아 적용하지 않았습니다. 최적 볼 탄도(스매시 1.48–1.50·발사각 11–14°·스핀 2000–2400rpm)를 가정합니다. 결과 표시명은 총거리로 바뀌었지만 기존 산식과 숫자는 그대로이며, 런을 별도로 더하지 않습니다. 총거리 예측으로 사용하기 전에 실제 탄도·타구 자료로 교정하세요.',
-      'Experimental reference only, not a validated distance prediction or confidence interval. D_bio is interpolated from only the four supplied examples and α=0.25 is provisional. Inverse-distance weights normalize height by 10cm and active mass by 8kg, with a 2.5 sex-mismatch penalty. Current utilization includes measured total distance and motion average, so it is not an independent biological-potential measurement. The engine factor provisionally normalizes the index total linearly to 0.95–1.05. The backswing code is shown and checked for eligibility; measured P4→P5 and P5→P6 shallowing is used to avoid a duplicate profile bonus. Shallowing uses one supplied player example as its cap; lag adds 4% only at 168–172°. Early-release penalties and engine–biometric synergy are withheld because app-specific thresholds are unvalidated. Ideal ball flight (smash 1.48–1.50, launch 11–14°, spin 2000–2400rpm) is assumed. The display label is now total distance, but the formula and value are unchanged and no run is added. Calibrate against measured launch and shot data before treating it as a total-distance estimate.')}</div></section>`);
+      '실험적 참고값이며 검증된 거리 예측·신뢰구간이 아닙니다. D_bio는 제시된 선수 4개 예시만으로 보간하며 α=0.25는 임시 가정입니다. 역거리 가중치는 신장 10cm·유효질량 8kg 단위 정규화와 성별 불일치 가중치 2.5를 사용합니다. 잠재값은 실측 총거리에 스윙 보정계수를 적용하고 골격근량 변경분을 반영하며, 실측값의 110%를 상한으로 합니다. 체성분 기준거리와 활용추정효율은 참고 표시이며 잠재거리 계산에 사용하지 않습니다. 활용추정효율은 실측 총거리와 모션 평균을 포함하므로 독립적인 생체 잠재력 측정값이 아닙니다. 엔진 계수는 지수 합계를 0.95–1.05 범위에 선형 정규화한 임시값입니다. 백스윙 유형은 표시·자격 확인에 사용하고 샬로잉은 실측 P4→P5·P5→P6 지표로 반영해 중복 가산하지 않습니다. 샬로잉은 제시된 한 선수 예시를 상한 기준으로 삼고, 래깅은 168–172°에서만 +4%를 적용합니다. 얼리 릴리즈 감쇠와 엔진-체격 시너지는 앱 지표 기준이 검증되지 않아 적용하지 않았습니다. 최적 볼 탄도(스매시 1.48–1.50·발사각 11–14°·스핀 2000–2400rpm)를 가정합니다. 런을 별도로 더하지 않으며 실제 탄도·타구 자료로 교정하기 전까지 총거리 예측으로 단정하지 마세요.',
+      'Experimental reference only, not a validated distance prediction or confidence interval. D_bio is interpolated from only the four supplied examples and α=0.25 is provisional. Inverse-distance weights normalize height by 10cm and active mass by 8kg, with a 2.5 sex-mismatch penalty. Potential distance applies swing factors to measured total distance and includes skeletal-muscle adjustment, capped at 110% of measured distance. Body-composition distance and estimated utilization remain display-only references and are not used to calculate potential distance. Utilization includes measured total distance and motion average, so it is not an independent biological-potential measurement. The engine factor provisionally normalizes the index total linearly to 0.95–1.05. The backswing code is shown and checked for eligibility; measured P4→P5 and P5→P6 shallowing is used to avoid a duplicate profile bonus. Shallowing uses one supplied player example as its cap; lag adds 4% only at 168–172°. Early-release penalties and engine–biometric synergy are withheld because app-specific thresholds are unvalidated. Ideal ball flight (smash 1.48–1.50, launch 11–14°, spin 2000–2400rpm) is assumed. No extra run is added. Calibrate against measured launch and shot data before treating it as a total-distance estimate.')}</div></section>`);
     const engineDecision = result ? getPowerEngineDecision(result) : null;
     if (result) {
       const fitRows = Object.entries(result.pct).map(([key, pct]) =>
@@ -7405,7 +7405,8 @@
       ? frame6Metrics.lagAngleA6 : null;
     const releaseMultiplier = hasMetric(lagAngle) && lagAngle >= 168 && lagAngle <= 172 ? 1.04 : 1;
     const aeroMultiplier = 1;
-    const estimateMeters = biological.distanceMeters * (potentialEfficiency / 100)
+    const measuredDistance = numberFrom(analysisKnownDistanceInput);
+    const estimateMeters = measuredDistance
       * shallowingMultiplier * engineMultiplier * releaseMultiplier * aeroMultiplier;
     const backswingCode = getBackswingProfileCode(backswing);
     const muscleAdjustmentKey = JSON.stringify({
@@ -7419,6 +7420,7 @@
     });
     return {
       estimateMeters,
+      measuredDistanceMeters: measuredDistance,
       biological,
       leanMassKg,
       bodyMassKg,
@@ -7466,7 +7468,8 @@
       leanMassKg: computedEstimate.leanMassKg,
       biological: computedEstimate.biological,
       anchorBiological: muscleAnchor.baseEstimate.biological,
-      estimateMeters: muscleAdjustment.estimateMeters,
+      estimateMeters: Math.min(computedEstimate.measuredDistanceMeters * 1.10,
+        Math.max(computedEstimate.measuredDistanceMeters, muscleAdjustment.estimateMeters)),
       muscleAdjustment,
     };
     const resultRow = document.createElement('div');
@@ -7486,17 +7489,17 @@
     const regressionRange = muscleStats.regressionYardsPerKg.map(value => value.toFixed(1)).join('–');
     const weights = estimate.physicalReferenceWeights;
     details.textContent = getSwingUiText(
-      `총거리 표시 · 기존 산식 결과(체성분 기준 캐리값, 런 별도 미포함)\n`
+      `잠재 총거리 = 실측 총거리 × 스윙 보정계수 + 골격근량 변경분. 활용추정효율은 참고 표시만 하며 잠재거리 역산에 쓰지 않습니다. 최종값은 실측 총거리 이상, 실측 대비 최대 110%로 제한합니다. 런은 별도로 더하지 않습니다.\n`
       + `재산출 기준 골격근량 ${estimate.muscleAdjustment.baselineKg.toFixed(1)}kg · 변경 ${estimate.muscleAdjustment.deltaKg >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaKg.toFixed(1)}kg → 비거리 ${estimate.muscleAdjustment.deltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaYards.toFixed(1)}yd (${(estimate.muscleAdjustment.deltaYards * 0.9144) >= 0 ? '+' : ''}${(estimate.muscleAdjustment.deltaYards * 0.9144).toFixed(1)}m; 회귀 범위 ${estimate.muscleAdjustment.lowDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.lowDeltaYards.toFixed(1)}~${estimate.muscleAdjustment.highDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.highDeltaYards.toFixed(1)}yd · 기울기 +${estimate.muscleAdjustment.lowSlope.toFixed(1)}~+${estimate.muscleAdjustment.highSlope.toFixed(1)}yd/kg)\n`
-      + `골격근량 가중치 보정(실험): 신장 ${(weights.height * 100).toFixed(0)}% · 체중 ${(weights.weight * 100).toFixed(0)}% · 골격근량 ${(weights.muscle * 100).toFixed(0)}% (기존 35/15/50에서 28/12/60으로 조정). 제공 통계: r=+${correlationRange}, 회귀 +${regressionRange}yd/kg. 통계만으로 가중치 비율을 수학적으로 도출할 수 없어 60%는 잠정값이며, 절대거리 회귀식으로 대체하거나 별도 더하지 않음.\n`
+      + `골격근량 가중치 보정(실험): 신장 ${(weights.height * 100).toFixed(0)}% · 체중 ${(weights.weight * 100).toFixed(0)}% · 골격근량 ${(weights.muscle * 100).toFixed(0)}% (기존 35/15/50에서 28/12/60으로 조정). 제공 통계: r=+${correlationRange}, 회귀 +${regressionRange}yd/kg. 통계만으로 가중치 비율을 수학적으로 도출할 수 없어 60%는 잠정값이며, 절대거리 회귀식으로 대체하지 않음.\n`
       + `구간 평균 참고: ${muscleStats.tierSummary}\n`
       + `부위별 기여 통계(${muscleStats.regionalContribution})는 부위별 골격근 입력이 없어 별도 가중하지 않음.\n`
-      + `활용추정효율 ${estimate.potentialEfficiency.toFixed(1)}% (체격·실측거리 기반 효율과 비거리 모션 평균 ${estimate.motionScore.toFixed(1)}/10 환산값의 50:50 평균) × 샬로잉 계수 ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × 엔진지수 계수 ${estimate.engineMultiplier.toFixed(3)} (합계 ${estimate.engineTotal.toFixed(3)}) × 래깅 계수 ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 래깅 ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° 근거 미측정)'} × 최적 탄도 가정 ${estimate.aeroMultiplier.toFixed(2)}`,
-      `Displayed as total distance · original formula result (body-composition carry reference; no run added)\n`
-      + `Experimental muscle-weight adjustment: height ${(weights.height * 100).toFixed(0)}%, body mass ${(weights.weight * 100).toFixed(0)}%, muscle ${(weights.muscle * 100).toFixed(0)}% (adjusted from 35/15/50 to 28/12/60). Supplied context: r=+${correlationRange}, regression +${regressionRange} yd/kg. The statistics do not mathematically determine a weight split, so 60% is provisional; this does not replace or add to the original absolute-distance model.\n`
+      + `실측 총거리 ${estimate.measuredDistanceMeters.toFixed(1)}m × 샬로잉 계수 ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × 엔진지수 계수 ${estimate.engineMultiplier.toFixed(3)} (합계 ${estimate.engineTotal.toFixed(3)}) × 래깅 계수 ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 래깅 ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° 근거 미측정)'} × 탄도 가정 ${estimate.aeroMultiplier.toFixed(2)} + 골격근량 변경분. 활용추정효율 ${estimate.potentialEfficiency.toFixed(1)}% (체격·실측거리 기준과 모션점수의 50:50 평균)은 표시용 참고값이며 거리 계산에 사용하지 않습니다.`,
+      `Potential total distance = measured total distance × swing factors + skeletal-muscle adjustment. Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% is shown for context only and is not used to calculate potential distance. The final result is floored at the measured distance and capped at 110% of it. No additional run is added.\n`
+      + `Experimental muscle-weight adjustment: height ${(weights.height * 100).toFixed(0)}%, body mass ${(weights.weight * 100).toFixed(0)}%, muscle ${(weights.muscle * 100).toFixed(0)}% (adjusted from 35/15/50 to 28/12/60). Supplied context: r=+${correlationRange}, regression +${regressionRange} yd/kg. The statistics do not mathematically determine a weight split, so 60% is provisional and does not replace the separate absolute-distance regression.\n`
       + `Tier-average context: ${muscleStats.tierSummary}\n`
       + `Regional contribution statistics (${muscleStats.regionalContribution}) are not weighted separately because regional muscle inputs are unavailable.\n`
-      + `Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% (50:50 average of body/measured-distance efficiency and distance-motion average ${estimate.motionScore.toFixed(1)}/10) × shallowing factor ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × engine-index factor ${estimate.engineMultiplier.toFixed(3)} (total ${estimate.engineTotal.toFixed(3)}) × lag factor ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 lag ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° evidence not measured)'} × ideal-flight assumption ${estimate.aeroMultiplier.toFixed(2)}\n`
+      + `Measured total distance ${estimate.measuredDistanceMeters.toFixed(1)}m × shallowing factor ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × engine-index factor ${estimate.engineMultiplier.toFixed(3)} (total ${estimate.engineTotal.toFixed(3)}) × lag factor ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 lag ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° evidence not measured)'} × flight assumption ${estimate.aeroMultiplier.toFixed(2)} + skeletal-muscle adjustment. Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% is display-only context.\n`
       + 'The provided statistics and sample sizes have not been independently verified; the muscle-weight increase is a provisional weighting adjustment, not a validated causal coefficient.');
     target.append(resultRow, formula);
     renderBiologicalDistanceReference(estimate, details);
@@ -7506,7 +7509,7 @@
     const formula = document.createElement('div');
     formula.className = 'analysis-distance-formula';
     const equation = document.createElement('div');
-    equation.textContent = `D_total = D_bio,anchor × (E / 100) × C_shallow × C_engine × C_lag × C_flight + (SMM_now − SMM_anchor) × β × 0.9144 = ${estimate.estimateMeters.toFixed(1)} m`;
+    equation.textContent = `D_total = min(1.10 × D_measured, max(D_measured, D_measured × C_shallow × C_engine × C_lag × C_flight + (SMM_now − SMM_anchor) × β × 0.9144)) = ${estimate.estimateMeters.toFixed(1)} m`;
     const referenceDistance = document.createElement('div');
     referenceDistance.textContent = `D_bio,current = [Σᵢ₌₁⁴(Dᵢ / dᵢ²)] / [Σᵢ₌₁⁴(1 / dᵢ²)] = ${estimate.biological.distanceMeters.toFixed(1)} m · D_bio,anchor = ${estimate.anchorBiological.distanceMeters.toFixed(1)} m`;
     const activeMass = document.createElement('div');
@@ -7515,8 +7518,8 @@
     backswingType.textContent = `T_back = ${estimate.backswingCode}`;
     const variables = document.createElement('small');
     variables.textContent = getSwingUiText(
-      'D_total: 추정 총거리 · D_bio,current: 현재 입력 기준 체성분 거리 · D_bio,anchor: 골격근량 보정 기준 체성분 거리 · Dᵢ/dᵢ: i번째 예시 거리/정규화 거리 · E: 활용추정효율 · C_shallow/C_engine/C_lag/C_flight: 샬로잉·엔진·래깅·탄도 계수 · SMM_now/SMM_anchor: 현재/기준 골격근량 · β: 골격근량 회귀 기울기 · m_eff: 유효 구동질량 · SMM/m_body/m_fat: 골격근량/체중/체지방량 · T_back: 백스윙 유형',
-      'D_total: estimated total distance · D_bio,current: body-composition distance for current inputs · D_bio,anchor: body-composition distance used as the muscle-adjustment baseline · Dᵢ/dᵢ: distance/normalized distance for example i · E: estimated utilization · C_shallow/C_engine/C_lag/C_flight: shallowing, engine, lag and flight factors · SMM_now/SMM_anchor: current/anchor skeletal muscle mass · β: muscle regression slope · m_eff: effective driving mass · SMM/m_body/m_fat: skeletal muscle mass/body mass/fat mass · T_back: backswing type');
+      'D_total: 추정 총거리 · D_measured: 입력 실측 총거리 · D_bio,current/anchor: 현재/최초 산출 시점 체성분 참고거리(별도 표시) · Dᵢ/dᵢ: i번째 예시 거리/정규화 거리 · E: 활용추정효율 · C_shallow/C_engine/C_lag/C_flight: 샬로잉·엔진·래깅·탄도 계수 · SMM_now/SMM_anchor: 현재/기준 골격근량 · β: 골격근량 회귀 기울기 · m_eff: 유효 구동질량 · SMM/m_body/m_fat: 골격근량/체중/체지방량 · T_back: 백스윙 유형',
+      'D_total: estimated total distance · D_measured: entered measured total distance · D_bio,current/anchor: current/initial body-composition reference distances (displayed separately) · Dᵢ/dᵢ: distance/normalized distance for example i · E: estimated utilization · C_shallow/C_engine/C_lag/C_flight: shallowing, engine, lag and flight factors · SMM_now/SMM_anchor: current/anchor skeletal muscle mass · β: muscle regression slope · m_eff: effective driving mass · SMM/m_body/m_fat: skeletal muscle mass/body mass/fat mass · T_back: backswing type');
     formula.append(equation, referenceDistance, activeMass, backswingType, variables);
     return formula;
   }
