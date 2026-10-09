@@ -7464,6 +7464,8 @@
     const estimate = {
       ...muscleAnchor.baseEstimate,
       leanMassKg: computedEstimate.leanMassKg,
+      biological: computedEstimate.biological,
+      anchorBiological: muscleAnchor.baseEstimate.biological,
       estimateMeters: muscleAdjustment.estimateMeters,
       muscleAdjustment,
     };
@@ -7504,17 +7506,17 @@
     const formula = document.createElement('div');
     formula.className = 'analysis-distance-formula';
     const equation = document.createElement('div');
-    equation.textContent = `D_total = D_bio × (E / 100) × C_shallow × C_engine × C_lag × C_flight + (SMM_now − SMM_anchor) × β × 0.9144 = ${estimate.estimateMeters.toFixed(1)} m`;
+    equation.textContent = `D_total = D_bio,anchor × (E / 100) × C_shallow × C_engine × C_lag × C_flight + (SMM_now − SMM_anchor) × β × 0.9144 = ${estimate.estimateMeters.toFixed(1)} m`;
     const referenceDistance = document.createElement('div');
-    referenceDistance.textContent = `D_bio = [Σᵢ₌₁⁴(Dᵢ / dᵢ²)] / [Σᵢ₌₁⁴(1 / dᵢ²)] = ${estimate.biological.distanceMeters.toFixed(1)} m`;
+    referenceDistance.textContent = `D_bio,current = [Σᵢ₌₁⁴(Dᵢ / dᵢ²)] / [Σᵢ₌₁⁴(1 / dᵢ²)] = ${estimate.biological.distanceMeters.toFixed(1)} m · D_bio,anchor = ${estimate.anchorBiological.distanceMeters.toFixed(1)} m`;
     const activeMass = document.createElement('div');
     activeMass.textContent = `m_eff = SMM + 0.25 × (m_body − SMM − m_fat) = ${estimate.biological.activeMassKg.toFixed(1)} kg`;
     const backswingType = document.createElement('div');
     backswingType.textContent = `T_back = ${estimate.backswingCode}`;
     const variables = document.createElement('small');
     variables.textContent = getSwingUiText(
-      'D_total: 추정 총거리 · D_bio: 체성분 기준거리 · Dᵢ/dᵢ: i번째 예시 거리/정규화 거리 · E: 활용추정효율 · C_shallow/C_engine/C_lag/C_flight: 샬로잉·엔진·래깅·탄도 계수 · SMM_now/SMM_anchor: 현재/기준 골격근량 · β: 골격근량 회귀 기울기 · m_eff: 유효 구동질량 · SMM/m_body/m_fat: 골격근량/체중/체지방량 · T_back: 백스윙 유형',
-      'D_total: estimated total distance · D_bio: body-composition reference distance · Dᵢ/dᵢ: distance/normalized distance for example i · E: estimated utilization · C_shallow/C_engine/C_lag/C_flight: shallowing, engine, lag and flight factors · SMM_now/SMM_anchor: current/anchor skeletal muscle mass · β: muscle regression slope · m_eff: effective driving mass · SMM/m_body/m_fat: skeletal muscle mass/body mass/fat mass · T_back: backswing type');
+      'D_total: 추정 총거리 · D_bio,current: 현재 입력 기준 체성분 거리 · D_bio,anchor: 골격근량 보정 기준 체성분 거리 · Dᵢ/dᵢ: i번째 예시 거리/정규화 거리 · E: 활용추정효율 · C_shallow/C_engine/C_lag/C_flight: 샬로잉·엔진·래깅·탄도 계수 · SMM_now/SMM_anchor: 현재/기준 골격근량 · β: 골격근량 회귀 기울기 · m_eff: 유효 구동질량 · SMM/m_body/m_fat: 골격근량/체중/체지방량 · T_back: 백스윙 유형',
+      'D_total: estimated total distance · D_bio,current: body-composition distance for current inputs · D_bio,anchor: body-composition distance used as the muscle-adjustment baseline · Dᵢ/dᵢ: distance/normalized distance for example i · E: estimated utilization · C_shallow/C_engine/C_lag/C_flight: shallowing, engine, lag and flight factors · SMM_now/SMM_anchor: current/anchor skeletal muscle mass · β: muscle regression slope · m_eff: effective driving mass · SMM/m_body/m_fat: skeletal muscle mass/body mass/fat mass · T_back: backswing type');
     formula.append(equation, referenceDistance, activeMass, backswingType, variables);
     return formula;
   }
