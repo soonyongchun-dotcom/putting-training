@@ -1291,7 +1291,8 @@
     gap: 8px 24px;
   }
   .analysis-power-summary-values { display: grid; gap: 4px; }
-  .analysis-power-summary > button { margin-left: auto; white-space: nowrap; }
+  .analysis-power-summary-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+  .analysis-power-summary-actions > button { white-space: nowrap; }
   .analysis-distance-estimate { flex-basis: 100%; margin-top: 6px; padding: 10px; border: 1px solid rgba(111, 211, 188, 0.38); border-radius: 6px; background: rgba(0, 0, 0, 0.16); white-space: pre-wrap; }
   .analysis-distance-estimate strong { display: block; margin-bottom: 5px; color: #8ee0c9; font-size: 1.05rem; }
   .analysis-distance-result-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
@@ -7644,7 +7645,8 @@
     return `<section class="analysis-type-section analysis-power-summary">`
       + `<div class="analysis-power-summary-values"><strong>${getSwingUiText('잠재파워활용추정효율', 'Estimated Potential-Power Utilization Efficiency')}: ${hasMetric(combined) ? combined.toFixed(1) + '%' : getSwingUiText('산출 보류', 'calculation held')}</strong>`
       + `<strong>${getSwingUiText('스윙엔진지수 합계', 'Swing Engine Index Total')}: ${total}</strong></div>`
-      + `<button type="button" id="distanceEstimateBtn" aria-expanded="false">${getSwingUiText('비거리 추정', 'Estimate Distance')}</button>`
+      + `<div class="analysis-power-summary-actions"><button type="button" id="physicalDistanceStandardBtn">${getSwingUiText('신체조건 표준비거리', 'Standard Distance by Body Profile')}</button>`
+      + `<button type="button" id="distanceEstimateBtn" aria-expanded="false">${getSwingUiText('비거리 추정', 'Estimate Distance')}</button></div>`
       + `<div class="analysis-distance-estimate" id="distanceEstimateResult" aria-live="polite" hidden></div></section>`;
   }
 
@@ -11936,6 +11938,14 @@
   });
   if (languageSelect) languageSelect.addEventListener('change', refreshSwingClassificationViews);
   analysisSwingType.addEventListener('click', event => {
+    const standardDistanceButton = event.target.closest('#physicalDistanceStandardBtn');
+    if (standardDistanceButton) {
+      const standardDistanceWindow = window.open('index_diriver_standard%20distance.html', '_blank');
+      if (!standardDistanceWindow) {
+        alert(getSwingUiText('새 창이 차단되었습니다. 팝업을 허용한 뒤 다시 시도하세요.', 'The new tab was blocked. Allow pop-ups and try again.'));
+      }
+      return;
+    }
     const button = event.target.closest('#distanceEstimateBtn');
     if (!button) return;
     const output = analysisSwingType.querySelector('#distanceEstimateResult');

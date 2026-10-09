@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SY Golf - 신체조건 기반 드라이버 잠재 비거리 산출기</title>
+    <style>
+        :root {
+            --primary-color: #0f2b48;
+            --accent-color: #2e7d32;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        p.subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid #dcdfe6;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(15, 43, 72, 0.1);
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #1a3e66;
+        }
+
+        .exit-button {
+            display: block;
+            margin: 0 0 8px auto;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .result-card {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .main-score {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .main-score .number {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--accent-color);
+        }
+
+        .main-score .unit {
+            font-size: 18px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .metric-item {
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #edf2f7;
+        }
+
+        .metric-item .val {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .metric-item .lbl {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .guide-box {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #e8f5e9;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1b5e20;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button type="button" class="exit-button" id="exitStandardDistanceBtn">나가기</button>
+    <h1>SY Golf 드라이버 잠재 비거리 산출기</h1>
+    <p class="subtitle">선수 체성분(InBody) 및 바이오메카닉스 회귀 모델 기반 데이터</p>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="gender">성별 구분</label>
+            <select id="gender" onchange="autoAdjustDefaults()">
+                <option value="female">여성 (LPGA / KLPGA 기준)</option>
+                <option value="male" selected>남성 (PGA / KPGA 기준)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="height">신장 (cm)</label>
+            <input type="number" id="height" value="175" placeholder="예: 175">
+        </div>
+
+        <div class="form-group">
+            <label for="weight">체중 (kg)</label>
+            <input type="number" id="weight" value="75" placeholder="예: 75">
+        </div>
+
+        <div class="form-group">
+            <label for="skeletalMuscle">골격근량 (kg)</label>
+            <input type="number" id="skeletalMuscle" step="0.1" value="36.0" placeholder="예: 36.0">
+        </div>
+
+        <div class="form-group full-width">
+            <label for="bodyFat">체지방률 (%)</label>
+            <input type="number" id="bodyFat" step="0.1" value="15.0" placeholder="예: 15.0">
+        </div>
+    </div>
+
+    <button type="button" onclick="calculateDistance()">잠재 비거리 산출하기</button>
+
+    <div class="result-card" id="resultCard">
+        <div class="result-title">📊 체성분 기반 드라이버 수행력 산출 결과</div>
+        
+        <div class="main-score">
+            <span class="number" id="predictedDistance">0</span>
+            <span class="unit">yd (<span id="predictedDistanceMeters">0</span> m)</span>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-item">
+                <div class="val" id="headSpeed">0 mph</div>
+                <div class="lbl">추정 헤드스피드</div>
+            </div>
+            <div class="metric-item">
+                <div class="val" id="ballSpeed">0 m/s</div>
+                <div class="lbl">추정 볼스피드</div>
+            </div>
+            <div class="metric-item">
+                <div class="val" id="muscleRatio">0%</div>
+                <div class="lbl">골격근 비율</div>
+            </div>
+        </div>
+
+        <div class="guide-box" id="guideText">
+            체성분 대비 최적의 수직 지면반발력(GRF) 전달 시 달성 가능한 스윙 정타 기준 비거리입니다.
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('exitStandardDistanceBtn').addEventListener('click', () => {
+        window.close();
+    });
+
+    function autoAdjustDefaults() {
+        const gender = document.getElementById('gender').value;
+        if (gender === 'female') {
+            document.getElementById('height').value = 167;
+            document.getElementById('weight').value = 60;
+            document.getElementById('skeletalMuscle').value = 26.0;
+            document.getElementById('bodyFat').value = 20.0;
+        } else {
+            document.getElementById('height').value = 178;
+            document.getElementById('weight').value = 78;
+            document.getElementById('skeletalMuscle').value = 38.0;
+            document.getElementById('bodyFat').value = 14.0;
+        }
+    }
+
+    function calculateDistance() {
+        const gender = document.getElementById('gender').value;
+        const height = parseFloat(document.getElementById('height').value) || 0;
+        const weight = parseFloat(document.getElementById('weight').value) || 0;
+        const muscle = parseFloat(document.getElementById('skeletalMuscle').value) || 0;
+        const bodyFat = parseFloat(document.getElementById('bodyFat').value) || 0;
+
+        if (height <= 0 || weight <= 0 || muscle <= 0) {
+            alert("올바른 신체조건 수치를 입력해주세요.");
+            return;
+        }
+
+        let distanceYd = 0;
+        let headSpeedMph = 0;
+
+        // 투어 데이터 기반 생체역학 회귀 연산 모델
+        if (gender === 'female') {
+            // LPGA / KLPGA 여성 모델
+            // D = 120 + 0.25*Height + 3.0*SkeletalMuscle - 0.4*BodyFat
+            distanceYd = 120 + (0.25 * height) + (3.0 * muscle) - (0.4 * bodyFat);
+            headSpeedMph = distanceYd / 2.55; 
+        } else {
+            // PGA / KPGA 남성 모델
+            // D = 140 + 0.30*Height + 2.5*SkeletalMuscle - 0.5*BodyFat
+            distanceYd = 140 + (0.30 * height) + (2.5 * muscle) - (0.5 * bodyFat);
+            headSpeedMph = distanceYd / 2.62;
+        }
+
+        const distanceMeters = distanceYd * 0.9144;
+        const ballSpeedMs = (headSpeedMph * 1.48) * 0.44704; // Smash Factor 1.48 적용
+        const muscleRatioVal = (muscle / weight) * 100;
+
+        // UI 업데이트
+        document.getElementById('predictedDistance').innerText = distanceYd.toFixed(1);
+        document.getElementById('predictedDistanceMeters').innerText = distanceMeters.toFixed(1);
+        document.getElementById('headSpeed').innerText = headSpeedMph.toFixed(1) + " mph";
+        document.getElementById('ballSpeed').innerText = ballSpeedMs.toFixed(1) + " m/s";
+        document.getElementById('muscleRatio').innerText = muscleRatioVal.toFixed(1) + "%";
+
+        // 피드백 가이드 문구
+        let advice = "";
+        if (muscleRatioVal >= 44 && bodyFat <= 18) {
+            advice = "💡 <b>상위 5% 최상위 피지컬 레벨:</b> 지면반발력(GRF) 전달 효율이 매우 높은 슬림-마슬 체형입니다. 스윙 템포와 C7 축 유지에 집중하면 최대 잠재 거리를 100% 실현할 수 있습니다.";
+        } else if (muscleRatioVal < 40) {
+            advice = "💡 <b>피지컬 보완 권장:</b> 골격근 비율을 올리고 체지방률을 제어하면, 스윙 메커니즘 변경 없이도 비거리를 추가로 약 +10~15yd 이상 확장할 수 있습니다.";
+        } else {
+            advice = "💡 <b>표준 피지컬 레벨:</b> 균형 잡힌 신체 조건입니다. 하체 수직 지면반발력(Vertical Launch) 활용도를 높이면 더 높은 클럽헤드 가속을 얻을 수 있습니다.";
+        }
+        document.getElementById('guideText').innerHTML = advice;
+
+        document.getElementById('resultCard').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
