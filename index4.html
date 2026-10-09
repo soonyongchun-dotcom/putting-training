@@ -1294,6 +1294,14 @@
   .analysis-power-summary > button { margin-left: auto; white-space: nowrap; }
   .analysis-distance-estimate { flex-basis: 100%; margin-top: 6px; padding: 10px; border: 1px solid rgba(111, 211, 188, 0.38); border-radius: 6px; background: rgba(0, 0, 0, 0.16); white-space: pre-wrap; }
   .analysis-distance-estimate strong { display: block; margin-bottom: 5px; color: #8ee0c9; font-size: 1.05rem; }
+  .analysis-distance-result-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+  .analysis-distance-estimate .analysis-distance-result-row strong { margin-bottom: 0; }
+  .analysis-distance-reference-result { color: #d5e8e2; font-size: 0.9rem; }
+  .analysis-distance-reference { margin: 8px 0; }
+  .analysis-distance-reference > div { margin-top: 5px; }
+  .analysis-distance-reference small { display: block; margin-top: 2px; opacity: 0.78; }
+  .analysis-distance-formula { margin-top: 6px; white-space: normal; }
+  .analysis-distance-formula small { display: block; margin-top: 4px; font-size: 0.78em; opacity: 0.78; }
   .analysis-profile-match .analysis-type-heading { color: #8ee0c9; }
   .analysis-classification-grid {
     display: grid;
@@ -1965,6 +1973,7 @@
     <details class="analysis-reference" id="analysisReferenceGuide">
     <summary>참고 안내 — 결과 해석·선수 비교·상세 근거</summary>
     <div class="analysis-summary" style="text-align:left;" id="physicalReferenceNote"></div>
+    <div id="distanceEstimateReference"></div>
     <div id="physicalReferenceDetails"></div>
     <details class="analysis-reference-detail">
       <summary>키·체중 민감도 조정 (실험)</summary>
@@ -7435,6 +7444,8 @@
     const computedEstimate = computeEstimatedCarryDistance();
     target.replaceChildren();
     if (computedEstimate.missing) {
+      const reference = document.getElementById('distanceEstimateReference');
+      if (reference) reference.replaceChildren();
       target.textContent = getSwingUiText('추정 보류 · 입력·분석 필요: ', 'Estimate held · required inputs or analysis: ')
         + computedEstimate.missing.join(' · ');
       return;
@@ -7456,28 +7467,104 @@
       estimateMeters: muscleAdjustment.estimateMeters,
       muscleAdjustment,
     };
+    const resultRow = document.createElement('div');
+    resultRow.className = 'analysis-distance-result-row';
     const result = document.createElement('strong');
     result.textContent = getSwingUiText('잠재 최대 총거리 추정', 'Estimated potential maximum total distance')
       + `: ${estimate.estimateMeters.toFixed(1)} m (${(estimate.estimateMeters / 0.9144).toFixed(1)} yd)`;
+    const referenceDistance = document.createElement('span');
+    referenceDistance.className = 'analysis-distance-reference-result';
+    referenceDistance.textContent = getSwingUiText('체성분 기준거리', 'Body-composition reference distance')
+      + `: ${estimate.biological.distanceMeters.toFixed(1)} m`;
+    resultRow.append(result, referenceDistance);
+    const formula = renderEstimatedDistanceFormula(estimate);
     const details = document.createElement('div');
     const muscleStats = TOUR_MUSCLE_DISTANCE_REFERENCE[estimate.sex];
     const correlationRange = muscleStats.correlation.map(value => value.toFixed(2)).join('–');
     const regressionRange = muscleStats.regressionYardsPerKg.map(value => value.toFixed(1)).join('–');
     const weights = estimate.physicalReferenceWeights;
     details.textContent = getSwingUiText(
-      `총거리 표시 · 기존 산식 결과(체성분 기준 캐리값, 런 별도 미포함)\n체성분 거리 기준값 ${estimate.biological.distanceMeters.toFixed(1)}m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · 일치' : ' · 4개 예시 역거리 가중 보간'}) · 유효 구동질량 ${estimate.biological.activeMassKg.toFixed(1)}kg (SMM + 0.25 × [체중−SMM−체지방량]) · 백스윙 유형 ${estimate.backswingCode}\n`
+      `총거리 표시 · 기존 산식 결과(체성분 기준 캐리값, 런 별도 미포함)\n`
       + `재산출 기준 골격근량 ${estimate.muscleAdjustment.baselineKg.toFixed(1)}kg · 변경 ${estimate.muscleAdjustment.deltaKg >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaKg.toFixed(1)}kg → 비거리 ${estimate.muscleAdjustment.deltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaYards.toFixed(1)}yd (${(estimate.muscleAdjustment.deltaYards * 0.9144) >= 0 ? '+' : ''}${(estimate.muscleAdjustment.deltaYards * 0.9144).toFixed(1)}m; 회귀 범위 ${estimate.muscleAdjustment.lowDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.lowDeltaYards.toFixed(1)}~${estimate.muscleAdjustment.highDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.highDeltaYards.toFixed(1)}yd · 기울기 +${estimate.muscleAdjustment.lowSlope.toFixed(1)}~+${estimate.muscleAdjustment.highSlope.toFixed(1)}yd/kg)\n`
       + `골격근량 가중치 보정(실험): 신장 ${(weights.height * 100).toFixed(0)}% · 체중 ${(weights.weight * 100).toFixed(0)}% · 골격근량 ${(weights.muscle * 100).toFixed(0)}% (기존 35/15/50에서 28/12/60으로 조정). 제공 통계: r=+${correlationRange}, 회귀 +${regressionRange}yd/kg. 통계만으로 가중치 비율을 수학적으로 도출할 수 없어 60%는 잠정값이며, 절대거리 회귀식으로 대체하거나 별도 더하지 않음.\n`
       + `구간 평균 참고: ${muscleStats.tierSummary}\n`
       + `부위별 기여 통계(${muscleStats.regionalContribution})는 부위별 골격근 입력이 없어 별도 가중하지 않음.\n`
       + `활용추정효율 ${estimate.potentialEfficiency.toFixed(1)}% (체격·실측거리 기반 효율과 비거리 모션 평균 ${estimate.motionScore.toFixed(1)}/10 환산값의 50:50 평균) × 샬로잉 계수 ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × 엔진지수 계수 ${estimate.engineMultiplier.toFixed(3)} (합계 ${estimate.engineTotal.toFixed(3)}) × 래깅 계수 ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 래깅 ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° 근거 미측정)'} × 최적 탄도 가정 ${estimate.aeroMultiplier.toFixed(2)}`,
-      `Displayed as total distance · original formula result (body-composition carry reference; no run added)\nBody-composition distance reference ${estimate.biological.distanceMeters.toFixed(1)} m (${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · exact anchor' : ' · inverse-distance interpolation from four examples'}) · active mass ${estimate.biological.activeMassKg.toFixed(1)} kg (SMM + 0.25 × [body mass−SMM−fat mass]) · backswing profile ${estimate.backswingCode}\n`
+      `Displayed as total distance · original formula result (body-composition carry reference; no run added)\n`
       + `Experimental muscle-weight adjustment: height ${(weights.height * 100).toFixed(0)}%, body mass ${(weights.weight * 100).toFixed(0)}%, muscle ${(weights.muscle * 100).toFixed(0)}% (adjusted from 35/15/50 to 28/12/60). Supplied context: r=+${correlationRange}, regression +${regressionRange} yd/kg. The statistics do not mathematically determine a weight split, so 60% is provisional; this does not replace or add to the original absolute-distance model.\n`
       + `Tier-average context: ${muscleStats.tierSummary}\n`
       + `Regional contribution statistics (${muscleStats.regionalContribution}) are not weighted separately because regional muscle inputs are unavailable.\n`
       + `Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% (50:50 average of body/measured-distance efficiency and distance-motion average ${estimate.motionScore.toFixed(1)}/10) × shallowing factor ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × engine-index factor ${estimate.engineMultiplier.toFixed(3)} (total ${estimate.engineTotal.toFixed(3)}) × lag factor ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 lag ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° evidence not measured)'} × ideal-flight assumption ${estimate.aeroMultiplier.toFixed(2)}\n`
       + 'The provided statistics and sample sizes have not been independently verified; the muscle-weight increase is a provisional weighting adjustment, not a validated causal coefficient.');
-    target.append(result, details);
+    target.append(resultRow, formula);
+    renderBiologicalDistanceReference(estimate, details);
+  }
+
+  function renderEstimatedDistanceFormula(estimate) {
+    const formula = document.createElement('div');
+    formula.className = 'analysis-distance-formula';
+    const equation = document.createElement('div');
+    equation.textContent = `D_total = D_bio × (E / 100) × C_shallow × C_engine × C_lag × C_flight + (SMM_now − SMM_anchor) × β × 0.9144 = ${estimate.estimateMeters.toFixed(1)} m`;
+    const referenceDistance = document.createElement('div');
+    referenceDistance.textContent = `D_bio = [Σᵢ₌₁⁴(Dᵢ / dᵢ²)] / [Σᵢ₌₁⁴(1 / dᵢ²)] = ${estimate.biological.distanceMeters.toFixed(1)} m`;
+    const activeMass = document.createElement('div');
+    activeMass.textContent = `m_eff = SMM + 0.25 × (m_body − SMM − m_fat) = ${estimate.biological.activeMassKg.toFixed(1)} kg`;
+    const backswingType = document.createElement('div');
+    backswingType.textContent = `T_back = ${estimate.backswingCode}`;
+    const variables = document.createElement('small');
+    variables.textContent = getSwingUiText(
+      'D_total: 추정 총거리 · D_bio: 체성분 기준거리 · Dᵢ/dᵢ: i번째 예시 거리/정규화 거리 · E: 활용추정효율 · C_shallow/C_engine/C_lag/C_flight: 샬로잉·엔진·래깅·탄도 계수 · SMM_now/SMM_anchor: 현재/기준 골격근량 · β: 골격근량 회귀 기울기 · m_eff: 유효 구동질량 · SMM/m_body/m_fat: 골격근량/체중/체지방량 · T_back: 백스윙 유형',
+      'D_total: estimated total distance · D_bio: body-composition reference distance · Dᵢ/dᵢ: distance/normalized distance for example i · E: estimated utilization · C_shallow/C_engine/C_lag/C_flight: shallowing, engine, lag and flight factors · SMM_now/SMM_anchor: current/anchor skeletal muscle mass · β: muscle regression slope · m_eff: effective driving mass · SMM/m_body/m_fat: skeletal muscle mass/body mass/fat mass · T_back: backswing type');
+    formula.append(equation, referenceDistance, activeMass, backswingType, variables);
+    return formula;
+  }
+
+  function renderBiologicalDistanceReference(estimate, details) {
+    const reference = document.getElementById('distanceEstimateReference');
+    if (!reference) return;
+    const section = document.createElement('section');
+    section.className = 'analysis-distance-reference';
+    const heading = document.createElement('strong');
+    heading.textContent = getSwingUiText('체성분 기준거리·유효 구동질량 산식', 'Body-Composition Reference Distance and Active Mass Formulas');
+    const distanceFormula = document.createElement('div');
+    distanceFormula.textContent = getSwingUiText(
+      `D_bio = [Σᵢ₌₁⁴(Dᵢ / dᵢ²)] ÷ [Σᵢ₌₁⁴(1 / dᵢ²)] = ${estimate.biological.distanceMeters.toFixed(1)} m · ${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · 기준점 일치' : ' · 4개 예시 역거리 가중 보간'}`,
+      `D_bio = [Σᵢ₌₁⁴(Dᵢ / dᵢ²)] ÷ [Σᵢ₌₁⁴(1 / dᵢ²)] = ${estimate.biological.distanceMeters.toFixed(1)} m · ${estimate.biological.nearest.name}${estimate.biological.exactMatch ? ' · exact anchor' : ' · inverse-distance weighting from four examples'}`);
+    const distanceVariables = document.createElement('small');
+    distanceVariables.textContent = getSwingUiText(
+      'D_bio: 체성분 거리 기준값(m) · Dᵢ: i번째 예시 기준거리(m) · dᵢ: 입력 신장·유효 구동질량·성별과 i번째 예시 사이의 정규화 거리',
+      'D_bio: body-composition reference distance (m) · Dᵢ: reference distance for example i (m) · dᵢ: normalized distance between the inputs and example i');
+    const distanceMetric = document.createElement('div');
+    distanceMetric.textContent = 'dᵢ = √[((h − hᵢ) / 10)² + ((m_eff − m_eff,ᵢ) / 8)² + (2.5 × I_sex)²]';
+    const distanceMetricVariables = document.createElement('small');
+    distanceMetricVariables.textContent = getSwingUiText(
+      'h: 입력 신장(cm) · hᵢ: i번째 예시 신장(cm) · m_eff,ᵢ: i번째 예시 유효 구동질량(kg) · I_sex: 성별 일치 시 0, 불일치 시 1',
+      'h: input height (cm) · hᵢ: height for example i (cm) · m_eff,ᵢ: effective driving mass for example i (kg) · I_sex: 0 if sex matches, otherwise 1');
+    const massFormula = document.createElement('div');
+    massFormula.textContent = getSwingUiText(
+      `m_eff = SMM + 0.25 × (m_body − SMM − m_fat) = ${estimate.biological.activeMassKg.toFixed(1)} kg`,
+      `m_eff = SMM + 0.25 × (m_body − SMM − m_fat) = ${estimate.biological.activeMassKg.toFixed(1)} kg`);
+    const massVariables = document.createElement('small');
+    massVariables.textContent = getSwingUiText(
+      'm_eff: 유효 구동질량(kg) · SMM: 골격근량(kg) · m_body: 체중(kg) · m_fat = m_body × 체지방률 ÷ 100',
+      'm_eff: effective driving mass (kg) · SMM: skeletal muscle mass (kg) · m_body: body mass (kg) · m_fat = m_body × body-fat percentage ÷ 100');
+    const backswingFormula = document.createElement('div');
+    backswingFormula.textContent = getSwingUiText(
+      `T_back = ${estimate.backswingCode}`,
+      `T_back = ${estimate.backswingCode}`);
+    const backswingVariables = document.createElement('small');
+    backswingVariables.textContent = getSwingUiText(
+      'T_back: 분석된 백스윙 유형 코드',
+      'T_back: analyzed backswing-type code');
+    const detailsHeading = document.createElement('strong');
+    detailsHeading.textContent = getSwingUiText('추정 상세 및 보정 참고', 'Estimate Details and Adjustment Notes');
+    section.append(heading, distanceFormula, distanceVariables, distanceMetric, distanceMetricVariables,
+      massFormula, massVariables, backswingFormula, backswingVariables);
+    const detailSection = document.createElement('div');
+    detailSection.className = 'analysis-distance-reference';
+    detailSection.append(detailsHeading, details);
+    section.append(detailSection);
+    reference.replaceChildren(section);
   }
 
   function adjustEstimatedDistanceForMuscleMass(baseEstimateMeters, baselineLeanMassKg, currentLeanMassKg, sex) {
@@ -8015,7 +8102,7 @@
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 평균: -';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
     if (analysisSwingType) analysisSwingType.innerHTML = '';
-    for (const id of ['analysisTypeReference', 'analysisBonusReference', 'analysisPowerComparisonReference', 'analysisProfileWarningsReference', 'physicalReferenceNote', 'physicalReferenceDetails']) {
+    for (const id of ['analysisTypeReference', 'analysisBonusReference', 'analysisPowerComparisonReference', 'analysisProfileWarningsReference', 'physicalReferenceNote', 'distanceEstimateReference', 'physicalReferenceDetails']) {
       const reference = document.getElementById(id);
       if (reference) reference.textContent = '';
     }
