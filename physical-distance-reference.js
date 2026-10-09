@@ -50,8 +50,14 @@
     const heightPercentile = interpolate(input.height, table.height, percentiles);
     const weightPercentile = interpolate(input.weight, table.weight, percentiles);
     const musclePercentile = muscleIncluded ? interpolate(input.muscle, table.muscle, percentiles) : null;
+    const muscleWeight = input.muscleWeight ?? 0.50;
+    if (!Number.isFinite(muscleWeight) || muscleWeight < 0 || muscleWeight > 1) {
+      throw new Error('Muscle weight must be between 0 and 1.');
+    }
+    const heightWeight = muscleIncluded ? (1 - muscleWeight) * 0.70 : 0.60;
+    const weightWeight = muscleIncluded ? (1 - muscleWeight) * 0.30 : 0.40;
     const composite = muscleIncluded
-      ? heightPercentile * 0.35 + weightPercentile * 0.15 + musclePercentile * 0.50
+      ? heightPercentile * heightWeight + weightPercentile * weightWeight + musclePercentile * muscleWeight
       : heightPercentile * 0.60 + weightPercentile * 0.40;
     const lambda = muscleIncluded ? heightPercentile / musclePercentile : null;
     const correction = crossCorrection(lambda);
@@ -59,7 +65,8 @@
     const originalBaselineMeters = totalYards * 0.9144 * correction;
     const centralBaseline = (height, weight) => {
       const composite = muscleIncluded
-        ? height * 0.35 + weight * 0.15 + musclePercentile * 0.50 : height * 0.60 + weight * 0.40;
+        ? height * heightWeight + weight * weightWeight + musclePercentile * muscleWeight
+        : height * 0.60 + weight * 0.40;
       const lambda = muscleIncluded ? height / musclePercentile : null;
       const correction = crossCorrection(lambda);
       return interpolate(composite, percentiles, table.totalYards) * 0.9144 * correction;
@@ -77,6 +84,7 @@
     return {
       status: 'ready', heightPercentile, weightPercentile, musclePercentile, composite,
       lambda, correction, totalYards, baselineMeters, outside, muscleIncluded,
+      weights: { height: heightWeight, weight: weightWeight, muscle: muscleIncluded ? muscleWeight : 0 },
       originalBaselineMeters, originalEfficiency: input.distance / originalBaselineMeters * 100,
       sensitivityFactor, sensitivity: { ...sensitivity },
       efficiency: input.distance / baselineMeters * 100,
