@@ -102,6 +102,13 @@
     }
     .screen-tabs button:hover{background:#f1f5f9;border-color:#94a3b8}
     .screen-tabs button.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 0 0 2px rgba(22,163,74,0.2)}
+    .schedule-link{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:34px;height:34px;border:1px solid #a7f3d0;border-radius:8px;
+      background:#ecfdf5;color:#047857;text-decoration:none;flex-shrink:0;
+    }
+    .schedule-link:hover{background:#d1fae5;border-color:#6ee7b7}
+    .schedule-link:focus-visible{outline:3px solid #10b981;outline-offset:2px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
     .kpi{flex:1;min-width:180px}
     .kpi .label{color:var(--sub);font-size:12px}
@@ -411,7 +418,15 @@
 
       <div class="card player-block tone-mint" style="margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <h3 style="margin:0">시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</h3>
+          <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0">
+            <span>시합준비 (<span id="matchNameDisplay" class="inline-edit-trigger" role="button" tabindex="0">경기명</span>, <span id="matchDateRangeDisplay" class="inline-edit-trigger" role="button" tabindex="0">시작일~종료일</span>)</span>
+            <a class="schedule-link" href="./schedule.html" target="_blank" rel="noopener noreferrer" aria-label="훈련 스케줄 열기" title="훈련 스케줄">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="5" width="17" height="16" rx="2"></rect>
+                <path d="M7.5 3v4M16.5 3v4M3.5 9.5h17M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"></path>
+              </svg>
+            </a>
+          </h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">오늘경기데이터 입력</button>
             <button class="btn" type="button" id="openPastMatchBtn">지난경기</button>

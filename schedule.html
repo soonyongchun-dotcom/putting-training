@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 시드전 대비 훈련 스케줄 관리 시스템</title>
+
+  <!-- Tailwind CSS, FontAwesome & SheetJS (완벽 엑셀 바이너리 파서) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+    .table-container { overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    td[contenteditable="true"]:focus, input:focus {
+      outline: 2px solid #2563eb;
+      background-color: #eff6ff;
+    }
+    .access-notice{padding:10px 14px;border:1px solid #fbbf24;border-radius:10px;background:#fffbeb;color:#92400e;font-size:14px}
+    .coach-only[hidden],.view-only[hidden]{display:none!important}
+  </style>
+</head>
+<body class="p-4 md:p-8 text-slate-800">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Header Controls -->
+    <header class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+          <i class="fa-solid fa-flag-checkered text-blue-600"></i>
+          2026 시드전 대비 훈련 스케줄 관리 시스템
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">엑셀(.xlsx/.xls) 직접 로드, 바이너리 깨짐 방지 파싱 및 실시간 일정표 능동 생성 웹앱</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-2 w-full lg:w-auto">
+        <!-- Excel File Upload Input -->
+        <label class="coach-only px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 cursor-pointer shadow-sm transition" hidden>
+          <i class="fa-solid fa-file-excel"></i> 엑셀 파일 불러오기 (.xlsx/.xls)
+          <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
+        </label>
+        
+        <button class="coach-only px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="addNewRow()" hidden>
+          <i class="fa-solid fa-clock-plus"></i> 시간대 추가
+        </button>
+        <button class="coach-only px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="saveData()" hidden>
+          <i class="fa-solid fa-floppy-disk"></i> 저장하기
+        </button>
+        <button onclick="exportToCSV()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition">
+          <i class="fa-solid fa-download"></i> CSV/엑셀 내보내기
+        </button>
+        <button class="coach-only px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium rounded-lg text-sm flex items-center gap-2 transition" onclick="resetData()" hidden>
+          <i class="fa-solid fa-rotate-left"></i> 초기화
+        </button>
+      </div>
+    </header>
+
+    <div id="edit-access-notice" class="access-notice view-only" role="status" hidden></div>
+
+    <!-- Tab Navigation (시트별 탭 자동 생성) -->
+    <div id="tab-container" class="flex border-b border-slate-200 bg-white rounded-t-xl px-4 pt-3 gap-2 shadow-sm overflow-x-auto">
+      <!-- Dynamic Tabs -->
+    </div>
+
+    <!-- Editable Header Card -->
+    <div class="bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 text-white p-6 rounded-xl shadow-md space-y-4">
+      <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div class="flex-1 w-full">
+          <label class="block text-xs font-semibold text-blue-200 mb-1"><i class="fa-solid fa-heading mr-1"></i> 메인 훈련 제목</label>
+          <input type="text" id="meta-title" oninput="updateMeta('title', this.value)" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white font-bold text-lg md:text-xl placeholder-white/50" placeholder="훈련 제목을 입력하세요">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+        <div>
+          <label class="block text-xs font-semibold text-blue-200 mb-1"><i class="fa-regular fa-calendar-days mr-1"></i> 훈련 기간</label>
+          <input type="text" id="meta-period" oninput="updateMeta('period', this.value)" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium" placeholder="예: 2026.10.19 ~ 2026.10.23">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-blue-200 mb-1"><i class="fa-solid fa-location-dot mr-1"></i> 주요 훈련 장소</label>
+          <input type="text" id="meta-location" oninput="updateMeta('location', this.value)" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium" placeholder="예: 경북 칠곡/구미 파3 및 드라이빙 레인지">
+        </div>
+      </div>
+    </div>
+
+    <!-- Editable Schedule Table -->
+    <div class="table-container bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <table class="w-full text-left border-collapse min-w-[950px]" id="schedule-table">
+        <thead>
+          <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider font-semibold">
+            <th class="py-3.5 px-4 w-28 text-center border-r border-slate-700">날짜</th>
+            <th class="py-3.5 px-3 w-16 text-center border-r border-slate-700">요일</th>
+            <th class="py-3.5 px-4 w-36 text-center border-r border-slate-700">시간대 (편집)</th>
+            <th class="py-3.5 px-4 w-48 border-r border-slate-700">소제목 / 구분</th>
+            <th class="py-3.5 px-6 border-r border-slate-700">세부 훈련 내용 및 평가 미션</th>
+            <th class="py-3.5 px-4 w-36 border-r border-slate-700">장소</th>
+            <th class="py-3.5 px-4 w-36 border-r border-slate-700">비고</th>
+            <th class="coach-only py-3.5 px-3 w-20 text-center" hidden>관리</th>
+          </tr>
+        </thead>
+        <tbody id="table-body" class="divide-y divide-slate-200 text-sm">
+          <!-- Dynamic Rows -->
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-2 z-50">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toast-message">수정사항이 저장되었습니다.</span>
+  </div>
+
+  <script>
+    // Embedded Perfect Default Seed Schedule Data extracted directly from openpyxl
+    const defaultData = {
+      "1차_경북_숏게임캠프": {
+        title: "2026 시드전 대비 1차 경북 숏게임·샷 보완 훈련 일정 (10.19 ~ 10.23)",
+        period: "2026.10.19 ~ 2026.10.23 (5일간)",
+        location: "경북 파3 코스 및 드라이빙 레인지",
+        rows: [
+          { date: "10/19", day: "월", time: "06:00-08:30", category: "스트레칭/아침조깅/조식", detail: "조식과 함께 하루 훈련일정 브리핑", location: "하천변", note: "4km 조깅" },
+          { date: "10/19", day: "월", time: "09:00-11:30", category: "레인지 샷 점검 및 보완", detail: "40m~80m 캐리 거리 모션 및 임팩트 점검", location: "드라이빙 레인지", note: "웨지 세분화 거리 점검" },
+          { date: "10/19", day: "월", time: "11:30-13:00", category: "중식 및 휴식", detail: "식사 및 컨디셔닝", location: "주변식당", note: "-" },
+          { date: "10/19", day: "월", time: "13:00-15:30", category: "기초 칩샷 & 랜딩 컨트롤", detail: "10m~40m 어프로치, 30cm 랜딩 티 체크(적중률 80% 미션)", location: "숏게임장", note: "랜딩 존 정밀 측정" },
+          { date: "10/19", day: "월", time: "15:30-17:30", category: "파3 실전 라운드 (Round 1)", detail: "9홀 파3 라운드, 프리샷 루틴 및 그린 스캔 평가", location: "파3 코스", note: "그린 타겟 스캔 평가" },
+          { date: "10/19", day: "월", time: "17:30-20:30", category: "석식/데이터 피드백 미팅", detail: "석식후 훈련 데이터 정리 및 1:1 디브리핑", location: "미팅룸", note: "피드백 일지 작성" },
+          { date: "10/20", day: "화", time: "06:00-08:30", category: "동적 스트레칭/조깅/조식", detail: "수평/수직 균형감 정렬", location: "하천변", note: "4km 조깅" },
+          { date: "10/20", day: "화", time: "09:00-11:30", category: "레인지 아이언 샷 점검 및 보완", detail: "아이언 임팩트 일관성 확보 및 드로우/페이드 구질 교정", location: "드라이빙 레인지", note: "구질 타구율 점검" },
+          { date: "10/20", day: "화", time: "11:30-13:00", category: "중식 및 휴식", detail: "식사 및 휴식", location: "주변식당", note: "-" },
+          { date: "10/20", day: "화", time: "13:00-15:30", category: "벙커샷 & 특수 라이 어프로치", detail: "디보트, 에그프라이, 딥러프 탈출 후 핀 2.5m 이내 정지", location: "숏게임장", note: "스핀량 제어 점검" },
+          { date: "10/20", day: "화", time: "15:30-17:30", category: "파3 실전 라운드 (Round 2)", detail: "첫 타 핀 2m 이내 정지 미션 라운드", location: "파3 코스", note: "핀 2m 이내 적중률" },
+          { date: "10/20", day: "화", time: "17:30-20:30", category: "석식/디브리핑 미팅", detail: "라이벌 매치 분석 및 피드백", location: "미팅룸", note: "-" },
+          { date: "10/21", day: "수", time: "06:00-08:30", category: "스트레칭/아침조깅/조식", detail: "어깨/골반 회전 축 점검", location: "하천변", note: "4km 조깅" },
+          { date: "10/21", day: "수", time: "09:00-11:30", category: "드라이버 & 롱클럽 샷 점검", detail: "티샷 구질 고정 및 Target Zone 착지 정밀도 강화", location: "드라이빙 레인지", note: "Landing Zone 타겟" },
+          { date: "10/21", day: "수", time: "11:30-13:00", category: "중식 및 휴식", detail: "식사", location: "주변식당", note: "-" },
+          { date: "10/21", day: "수", time: "13:00-15:30", category: "15-Lie 칩앤풋 평가 미션", detail: "15개 지형/거리별 라이 설정, 20분 내 80점 이상 합격 미션", location: "숏게임장", note: "80점 합격 기준 적용" },
+          { date: "10/21", day: "수", time: "15:30-17:30", category: "파3 스트로크 매치 (Round 3)", detail: "3명 선수 간 실전 타점 경쟁 매치", location: "파3 코스", note: "매치 기록 작성" },
+          { date: "10/21", day: "수", time: "17:30-20:30", category: "석식/평가 분석 미팅", detail: "15-Lie 평가 점수 산출 및 개선점 수립", location: "미팅룸", note: "-" },
+          { date: "10/22", day: "목", time: "06:00-08:30", category: "시각 정렬 스트레칭/조깅/조식", detail: "정밀 타겟 정렬", location: "하천변", note: "4km 조깅" },
+          { date: "10/22", day: "목", time: "09:00-11:30", category: "파3 코스 숏게임 콤보", detail: "20m~50m 다양한 라이 핀 붙이기 훈련", location: "파3 코스", note: "핀 1.5m 이내 정지" },
+          { date: "10/22", day: "목", time: "11:30-13:00", category: "중식 및 휴식", detail: "식사", location: "주변식당", note: "-" },
+          { date: "10/22", day: "목", time: "13:00-15:30", category: "위기 관리 시나리오", detail: "그린 오버/숏사이드 리커버리, 파 세이브율 90% 목표", location: "숏게임장", note: "파세이브율 계산" },
+          { date: "10/22", day: "목", time: "15:30-17:30", category: "노-브레이크 라운드 (Round 4)", detail: "노 가시성 핀 위치 시뮬레이션 및 그린 중앙 안전 공략", location: "파3 코스", note: "그린 중앙 공략 일관성" },
+          { date: "10/22", day: "목", time: "17:30-20:30", category: "석식/영상 코칭 미팅", detail: "선수별 어프로치/아이언 스윙 영상 1:1 분석", location: "미팅룸", note: "영상 데이터 저장" },
+          { date: "10/23", day: "금", time: "06:00-08:30", category: "실전 루틴 체계/조깅/조식", detail: "시드전 당일 루틴 적용", location: "하천변", note: "시합 당일 모드" },
+          { date: "10/23", day: "금", time: "09:00-11:30", category: "프리매치 레인지 샷 & 숏게임 루틴", detail: "드라이빙 레인지 30분 + 파3 어프로치/벙커 80분 집중 점검", location: "종합 연습장", note: "프리매치 루틴" },
+          { date: "10/23", day: "금", time: "11:30-12:30", category: "중식", detail: "식사", location: "주변식당", note: "-" },
+          { date: "10/23", day: "금", time: "12:30-15:00", category: "최종 파3 18홀 토너먼트", detail: "시드전 본선 규정 적용 실전 라운드", location: "파3 코스", note: "최종 스코어 산출" },
+          { date: "10/23", day: "금", time: "15:00-16:00", category: "종합 평가 및 마감", detail: "5일간 숏게임 성과 분석 및 1차 캠프 디브리핑", location: "미팅룸", note: "1차 캠프 총평" }
+        ]
+      },
+      "2차_무안_실전코스캠프": {
+        title: "2026 시드전 대비 2차 무안CC 실전 코스 적응 훈련 일정 (10.27 ~ 10.30)",
+        period: "2026.10.27 ~ 2026.10.30 (4일간)",
+        location: "전남 무안컨트리클럽 본선 코스 및 연습그린",
+        rows: [
+          { date: "10/27", day: "화", time: "06:00-08:30", category: "무안CC 이동 및 워밍업", detail: "대회장 도착 및 컨디션 세팅", location: "무안CC", note: "컨디션 체크" },
+          { date: "10/27", day: "화", time: "08:30-09:30", category: "레인지 샷 & 해풍 구질 점검", detail: "바닷바람 탄도 제어 및 웨지 거리 정렬", location: "드라이빙 레인지", note: "탄도 컨트롤" },
+          { date: "10/27", day: "화", time: "09:30-14:30", category: "18홀 코스 매핑 라운드", detail: "전 홀 티샷 Landing Zone, 디보트 분포, 그린 경사 스캔 및 야디지북 작성", location: "무안CC 본선 코스", note: "야디지북 고려사항" },
+          { date: "10/27", day: "화", time: "14:30-15:30", category: "중식", detail: "코스 매핑 노트 정리", location: "클럽하우스", note: "-" },
+          { date: "10/27", day: "화", time: "15:30-17:30", category: "라운드 후 집중 퍼팅 미션", detail: "연습그린 스피드(3.0m+) 측정, 게이트/삼각/경마 미션 및 터치감 고도화", location: "무안CC 연습그린", note: "라운드 후 퍼팅 집중" },
+          { date: "10/27", day: "화", time: "17:30-18:30", category: "야디지북 피드백", detail: "선수별 코스 야디지북 작성 상태 1:1 검토 및 미팅", location: "세미나실", note: "야디지북 최종 검토" },
+          { date: "10/28", day: "수", time: "06:00-08:30", category: "워밍업 및 식사", detail: "C7 척추축 고정 체크", location: "숙소/연습장", note: "-" },
+          { date: "10/28", day: "수", time: "08:30-09:30", category: "프리매치 레인지 샷", detail: "샷 정밀도 점검 및 웨지 세분화 거리 점검", location: "드라이빙 레인지", note: "프리매치 샷 세팅" },
+          { date: "10/28", day: "수", time: "09:30-14:30", category: "본선 핀위치 시뮬레이션 (Round 1)", detail: "구석/마운드 너머 난이도 높은 핀 공략, 바닷바람(Crosswind) 계산 적용", location: "무안CC 본선 코스", note: "크로스윈드 계산" },
+          { date: "10/28", day: "수", time: "14:30-15:30", category: "중식", detail: "식사 및 휴식", location: "클럽하우스", note: "-" },
+          { date: "10/28", day: "수", time: "15:30-17:30", category: "라운드 후 퍼팅 & 벙커 세이브", detail: "지그재그 사다리/클러치 퍼팅 미션 + 무안 모래 벙커 세이브 훈련", location: "연습그린/숏게임장", note: "퍼팅 미션 및 벙커 세이브" },
+          { date: "10/28", day: "수", time: "17:30-18:30", category: "디브리핑", detail: "핀 위치별 클럽 선택 데이터 산출 및 평가", location: "세미나실", note: "데이터 정리" },
+          { date: "10/29", day: "목", time: "06:00-08:30", category: "정밀 시각 정렬 워밍업", detail: "시각 축 고정 훈련", location: "연습장", note: "-" },
+          { date: "10/29", day: "목", time: "08:30-09:30", category: "프리매치 숏게임/레인지", detail: "10m~30m 숏게임 센스 및 레인지 샷 가공", location: "숏게임장/레인지", note: "숏게임 감각 극대화" },
+          { date: "10/29", day: "목", time: "09:30-14:30", category: "3인 실전 타점 경쟁 매치 (Round 2)", detail: "시드전 본선 규정 및 Pace of Play 엄격 적용 (파세이브율 95% 목표)", location: "무안CC 본선 코스", note: "Pace of Play 체크" },
+          { date: "10/29", day: "목", time: "14:30-15:30", category: "중식", detail: "식사", location: "클럽하우스", note: "-" },
+          { date: "10/29", day: "목", time: "15:30-17:30", category: "라운드 후 클러치 퍼팅 미션", detail: "1.5~2.5m 클러치 파세이브 퍼트 20개 성공 연속 미션", location: "연습그린", note: "숏퍼트 연속 성공 미션" },
+          { date: "10/29", day: "목", time: "17:30-18:30", category: "마인드셋 점검", detail: "매치 결과 분석 및 시드전 본선 멘탈 세팅", location: "세미나실", note: "멘탈 코칭" },
+          { date: "10/30", day: "금", time: "06:00-08:30", category: "시드전 1R 맞춤 루틴 체계", detail: "티오프 타임 맞춤 영양 및 워밍업 점검", location: "연습장", note: "영양 및 바이오리듬" },
+          { date: "10/30", day: "금", time: "08:30-13:30", category: "최종 18홀 스트로크 시뮬레이션", detail: "야디지북 명시 라인 100% 수행 일관성 테스트, 무감정 루틴 유지", location: "무안CC 본선 코스", note: "야디지북 수용률 100%" },
+          { date: "10/30", day: "금", time: "13:30-14:30", category: "중식", detail: "식사", location: "클럽하우스", note: "-" },
+          { date: "10/30", day: "금", time: "14:30-16:00", category: "라운드 후 최종 퍼팅 터치 점검", detail: "1m/2m 직선 퍼트 최종 점검 및 릴랙스 터치감 세팅", location: "연습그린", note: "최종 퍼팅 터치감" },
+          { date: "10/30", day: "금", time: "16:00-17:00", category: "무안 캠프 최종 마감", detail: "무안 캠프 종합 평가 및 선수별 시드전 최종 가이드 전달", location: "세미나실", note: "최종 가이드 수여" }
+        ]
+      }
+    };
+
+    let activeTabKey = '';
+    let appData = JSON.parse(localStorage.getItem('golfSeedAppConfigV5')) || defaultData;
+    const SESSION_STORAGE_KEY = 'sytpt_session';
+
+    function hasCoachEditAccess() {
+      try {
+        const session = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || 'null');
+        return Boolean(session && session.role === 'coach' && session.id);
+      } catch (error) {
+        console.error('Unable to read portal session; schedule editing is disabled.', error);
+        return false;
+      }
+    }
+
+    function requireCoachEditAccess() {
+      if (hasCoachEditAccess()) return true;
+      showToast('코치 계정으로 로그인해야 스케줄을 수정할 수 있습니다.');
+      return false;
+    }
+
+    function updateEditAccess() {
+      const canEdit = hasCoachEditAccess();
+      document.querySelectorAll('.coach-only').forEach((element) => {
+        element.hidden = !canEdit;
+      });
+      const notice = document.getElementById('edit-access-notice');
+      notice.hidden = canEdit;
+      notice.textContent = localStorage.getItem(SESSION_STORAGE_KEY)
+        ? '선수 계정은 훈련 스케줄을 볼 수만 있습니다. 추가·수정·삭제는 코치 계정으로 로그인해 주세요.'
+        : '훈련 스케줄을 수정하려면 선수 포탈에서 코치 계정으로 로그인해 주세요.';
+    }
+
+    function renderTabs() {
+      const tabContainer = document.getElementById('tab-container');
+      tabContainer.innerHTML = '';
+
+      const keys = Object.keys(appData);
+      if (keys.length === 0) return;
+
+      if (!activeTabKey || !appData[activeTabKey]) {
+        activeTabKey = keys[0];
+      }
+
+      keys.forEach((key) => {
+        const camp = appData[key];
+        const btn = document.createElement('button');
+        const isActive = (key === activeTabKey);
+
+        btn.className = isActive
+          ? "px-5 py-3 font-semibold text-sm rounded-t-lg transition border-b-2 border-blue-600 text-blue-600 bg-blue-50/50 whitespace-nowrap"
+          : "px-5 py-3 font-semibold text-sm rounded-t-lg transition text-slate-500 hover:text-slate-800 whitespace-nowrap";
+
+        btn.innerHTML = `<i class="fa-solid fa-list-check mr-2"></i>${key}`;
+        btn.onclick = () => switchTab(key);
+        tabContainer.appendChild(btn);
+      });
+    }
+
+    function renderApp() {
+      renderTabs();
+
+      const camp = appData[activeTabKey];
+      if (!camp) return;
+      
+      document.getElementById('meta-title').value = camp.title || '';
+      document.getElementById('meta-period').value = camp.period || '';
+      document.getElementById('meta-location').value = camp.location || '';
+      const canEdit = hasCoachEditAccess();
+      ['meta-title', 'meta-period', 'meta-location'].forEach((id) => {
+        document.getElementById(id).readOnly = !canEdit;
+      });
+
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      camp.rows.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.className = index % 2 === 0 ? 'bg-white hover:bg-slate-50 transition' : 'bg-slate-50/60 hover:bg-slate-100 transition';
+
+        const editable = canEdit ? 'true' : 'false';
+        const managementCell = canEdit
+          ? `<td class="py-3 px-2 text-center whitespace-nowrap">
+              <button onclick="insertRow(${index})" class="text-blue-500 hover:text-blue-700 p-1 transition" title="아래에 시간대 추가">
+                <i class="fa-solid fa-square-plus"></i>
+              </button>
+              <button onclick="deleteRow(${index})" class="text-slate-400 hover:text-rose-600 p-1 transition ml-1" title="시간대 삭제">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>`
+          : '';
+        tr.innerHTML = `
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'date', this.innerText)" class="py-3 px-4 font-medium text-slate-900 border-r border-slate-200 text-center whitespace-nowrap">${row.date || ''}</td>
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'day', this.innerText)" class="py-3 px-3 font-semibold text-blue-700 border-r border-slate-200 text-center">${row.day || ''}</td>
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'time', this.innerText)" class="py-3 px-4 font-mono text-xs text-blue-900 bg-blue-50/30 font-semibold border-r border-slate-200 text-center">${row.time || ''}</td>
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'category', this.innerText)" class="py-3 px-4 font-bold text-slate-800 bg-amber-50/20 border-r border-slate-200">${row.category || ''}</td>
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'detail', this.innerText)" class="py-3 px-6 text-slate-700 border-r border-slate-200 leading-relaxed">${row.detail || ''}</td>
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'location', this.innerText)" class="py-3 px-4 text-slate-600 border-r border-slate-200">${row.location || ''}</td>
+          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'note', this.innerText)" class="py-3 px-4 text-slate-500 border-r border-slate-200 text-xs">${row.note || ''}</td>
+          
+          ${managementCell}
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function switchTab(tabKey) {
+      activeTabKey = tabKey;
+      renderApp();
+    }
+
+    function updateMeta(field, value) {
+      if (!requireCoachEditAccess()) return;
+      if (appData[activeTabKey]) {
+        appData[activeTabKey][field] = value;
+      }
+    }
+
+    function updateRowData(index, field, value) {
+      if (!requireCoachEditAccess()) return;
+      if (appData[activeTabKey] && appData[activeTabKey].rows[index]) {
+        appData[activeTabKey].rows[index][field] = value.trim();
+      }
+    }
+
+    function addNewRow() {
+      if (!requireCoachEditAccess()) return;
+      const newRow = { date: "", day: "", time: "09:00-10:00", category: "새 소제목/주제", detail: "세부 훈련 내용 입력", location: "연습장", note: "-" };
+      appData[activeTabKey].rows.push(newRow);
+      renderApp();
+      showToast("새 시간대 항목이 추가되었습니다.");
+    }
+
+    function insertRow(index) {
+      if (!requireCoachEditAccess()) return;
+      const currentRow = appData[activeTabKey].rows[index];
+      if (!currentRow) return;
+      const newRow = {
+        date: currentRow.date || "",
+        day: currentRow.day || "",
+        time: "10:00-11:00",
+        category: "새 소제목/주제",
+        detail: "세부 훈련 내용 입력",
+        location: currentRow.location || "연습장",
+        note: "-"
+      };
+      appData[activeTabKey].rows.splice(index + 1, 0, newRow);
+      renderApp();
+      showToast("선택한 항목 아래에 새 시간대가 추가되었습니다.");
+    }
+
+    function deleteRow(index) {
+      if (!requireCoachEditAccess()) return;
+      if (confirm("해당 시간대 훈련 항목을 삭제하시겠습니까?")) {
+        appData[activeTabKey].rows.splice(index, 1);
+        renderApp();
+        showToast("시간대 항목이 삭제되었습니다.");
+      }
+    }
+
+    // Binary Excel Upload Handler with Native SheetJS Parser
+    function handleExcelUpload(event) {
+      if (!requireCoachEditAccess()) {
+        event.target.value = '';
+        return;
+      }
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true, cellText: false });
+
+        const newAppData = {};
+
+        workbook.SheetNames.forEach((sheetName) => {
+          const sheet = workbook.Sheets[sheetName];
+          // Get raw matrix array from SheetJS
+          const jsonSheet = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'YYYY-MM-DD' });
+          
+          if (jsonSheet && jsonSheet.length > 0) {
+            const parsedCamp = parseMatrixData(jsonSheet, sheetName);
+            if (parsedCamp.rows.length > 0) {
+              newAppData[sheetName] = parsedCamp;
+            }
+          }
+        });
+
+        if (Object.keys(newAppData).length > 0) {
+          appData = newAppData;
+          activeTabKey = Object.keys(newAppData)[0];
+          renderApp();
+          showToast("엑셀 파일의 모든 시트가 깨짐 없이 완벽하게 변환되었습니다!");
+        } else {
+          alert("엑셀 파일 내 유효한 데이터가 없습니다.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Matrix Data Parser with Date Clean-up & Forward Fill
+    function parseMatrixData(matrix, sheetName) {
+      let title = sheetName;
+      let period = "";
+      let location = "";
+      let startRow = 0;
+
+      // Extract Title if present in first row
+      if (matrix[0] && matrix[0][0]) {
+        const firstCell = String(matrix[0][0]).trim();
+        if (firstCell.includes('시드전') || firstCell.includes('일정') || firstCell.includes('캠프')) {
+          title = firstCell;
+          startRow = 1;
+        }
+      }
+
+      // Skip Header Row if present
+      if (matrix[startRow] && (String(matrix[startRow][0]).includes('날짜') || String(matrix[startRow][1]).includes('요일'))) {
+        startRow += 1;
+      }
+
+      const rows = [];
+      let lastDate = "";
+      let lastDay = "";
+
+      for (let i = startRow; i < matrix.length; i++) {
+        const r = matrix[i];
+        if (!r || r.length < 3) continue;
+
+        let rawDate = (r[0] !== undefined && r[0] !== null) ? String(r[0]).trim() : "";
+        let rawDay = (r[1] !== undefined && r[1] !== null) ? String(r[1]).trim() : "";
+
+        // Clean ISO Date Time String
+        if (rawDate.includes("00:00:00")) {
+          rawDate = rawDate.split(" ")[0];
+        } else if (rawDate.length > 10 && rawDate.includes("-")) {
+          rawDate = rawDate.substring(0, 10);
+        }
+
+        // Forward fill for merged cells
+        if (rawDate !== "") { lastDate = rawDate; } else { rawDate = lastDate; }
+        if (rawDay !== "") { lastDay = rawDay; } else { rawDay = lastDay; }
+
+        const timeVal = (r[2] !== undefined && r[2] !== null) ? String(r[2]).trim() : "";
+        const categoryVal = (r[3] !== undefined && r[3] !== null) ? String(r[3]).trim() : "";
+        const detailVal = (r[4] !== undefined && r[4] !== null) ? String(r[4]).trim() : "";
+        const locationVal = (r[5] !== undefined && r[5] !== null) ? String(r[5]).trim() : "";
+        const noteVal = (r[6] !== undefined && r[6] !== null) ? String(r[6]).trim() : "-";
+
+        if (timeVal || categoryVal || detailVal) {
+          rows.push({
+            date: rawDate,
+            day: rawDay,
+            time: timeVal,
+            category: categoryVal,
+            detail: detailVal,
+            location: locationVal,
+            note: noteVal
+          });
+        }
+      }
+
+      return {
+        title: title,
+        period: period || "자동 해석된 훈련 일정",
+        location: location || "지정 장소",
+        rows: rows
+      };
+    }
+
+    function saveData() {
+      if (!requireCoachEditAccess()) return;
+      localStorage.setItem('golfSeedAppConfigV5', JSON.stringify(appData));
+      showToast("모든 수정사항이 웹 브라우저에 안전하게 저장되었습니다.");
+    }
+
+    function resetData() {
+      if (!requireCoachEditAccess()) return;
+      if (confirm("초기 스케줄 데이터로 리셋하시겠습니까?")) {
+        appData = JSON.parse(JSON.stringify(defaultData));
+        localStorage.removeItem('golfSeedAppConfigV5');
+        activeTabKey = Object.keys(appData)[0];
+        renderApp();
+        showToast("기본 스케줄로 초기화되었습니다.");
+      }
+    }
+
+    function exportToCSV() {
+      const camp = appData[activeTabKey];
+      if (!camp) return;
+
+      let csvContent = "\uFEFF날짜,요일,시간,구분/주제,세부 훈련 내용 및 평가 미션,장소,비고\n";
+
+      camp.rows.forEach(row => {
+        const line = [
+          `"${row.date || ''}"`,
+          `"${row.day || ''}"`,
+          `"${row.time || ''}"`,
+          `"${row.category || ''}"`,
+          `"${row.detail || ''}"`,
+          `"${row.location || ''}"`,
+          `"${row.note || ''}"`
+        ].join(",");
+        csvContent += line + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${camp.title || '훈련일정'}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("CSV/엑셀 내보내기가 완료되었습니다.");
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').innerText = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+
+    window.onload = function() {
+      updateEditAccess();
+      renderApp();
+    };
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === SESSION_STORAGE_KEY || event.key === null) {
+        updateEditAccess();
+        renderApp();
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        updateEditAccess();
+        renderApp();
+      }
+    });
+  </script>
+</body>
+</html>
