@@ -1973,47 +1973,55 @@
     <div class="analysis-summary" id="analysisSummary"></div>
     <details class="analysis-reference" id="analysisReferenceGuide">
     <summary>참고 안내 — 결과 해석·선수 비교·상세 근거</summary>
-    <div class="analysis-summary" style="text-align:left;" id="physicalReferenceNote"></div>
-    <div id="distanceEstimateReference"></div>
-    <div id="physicalReferenceDetails"></div>
     <details class="analysis-reference-detail">
-      <summary>키·체중 민감도 조정 (실험)</summary>
-      <label>키 민감도 <input id="physicalHeightGain" type="number" min="1" max="3" step="0.1" value="1.5" style="width:65px;"></label>
-      <label>체중 민감도 <input id="physicalWeightGain" type="number" min="1" max="3" step="0.1" value="1.5" style="width:65px;"></label>
-      <small>1.0은 원래 산식, 1.5는 완만한 증폭입니다. Tier 3 기준거리 대비 변화비를 증폭하며 통계적으로 검증된 계수는 아닙니다. 자료 범위 밖의 끝점 제한은 유지합니다.</small>
-    </details>
-    <div id="analysisPowerComparisonReference"></div>
-    <div id="analysisProfileWarningsReference"></div>
-    <section class="analysis-type-section" id="playerReferencePanel">
-      <div class="analysis-type-heading">선수 비교 · 거리 실현율</div>
-      <div id="playerReferenceResult"></div>
+      <summary>체격 기준·활용추정효율·잠재 거리</summary>
+      <div class="analysis-summary" style="text-align:left;" id="physicalReferenceNote"></div>
+      <div id="physicalReferenceDetails"></div>
+      <div id="distanceEstimateReference"></div>
+      <div id="distanceEstimateFormulaReference"></div>
       <details class="analysis-reference-detail">
-      <summary>비교자료 불러오기·조건 설정</summary>
-      <label>선수 CSV <input id="playerReferenceFile" type="file" accept=".csv,text/csv"></label>
-      <button id="playerReferenceClear" type="button">비교자료 삭제</button>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-        <div class="analysis-height-field">
-          <input id="analysisPlayerCodeInput" type="text" maxlength="64" placeholder="익명 선수코드" aria-label="익명 선수코드" title="선수 단위 보정·검증 분리를 위한 익명 코드입니다." style="width:120px;">
-        </div>
-        <label>연령대 <input id="referenceAge" placeholder="CSV의 age_band" size="12" maxlength="200"></label>
-        <label>선수 수준 <input id="referenceLevel" placeholder="CSV의 level" size="12" maxlength="200"></label>
-        <label>클럽 <input id="referenceClub" placeholder="CSV의 club" size="12" maxlength="200"></label>
-        <label>측정 조건 <input id="referenceConditions" placeholder="CSV의 conditions" size="14" maxlength="200"></label>
-        <label>신장 허용 ±cm <input id="referenceHeightTolerance" type="number" min="0" max="50" step="1" value="5" style="width:55px;"></label>
-        <label>체중 허용 ±kg <input id="referenceWeightTolerance" type="number" min="0" max="100" step="1" value="5" style="width:55px;"></label>
-        <label>최소 선수 수 <input id="referenceMinimum" type="number" min="2" max="1000" step="1" value="5" style="width:55px;"></label>
-      </div>
-      <div id="playerReferenceStatus" role="status"></div>
-      <small>총거리(total) 자료만 비교합니다. 선수별 평균 후 동일 가중치로 집계하며 본인 익명 코드는 제외합니다. 참고 범위는 선수 평균의 사분위 범위이며 파워 활용률·거리 예측·신뢰구간이 아닙니다. 범위와 최소 인원은 운영용 설정입니다.</small>
+        <summary>키·체중 민감도 조정 (실험)</summary>
+        <label>키 민감도 <input id="physicalHeightGain" type="number" min="1" max="3" step="0.1" value="1.5" style="width:65px;"></label>
+        <label>체중 민감도 <input id="physicalWeightGain" type="number" min="1" max="3" step="0.1" value="1.5" style="width:65px;"></label>
+        <small>1.0은 원래 산식, 1.5는 완만한 증폭입니다. Tier 3 기준거리 대비 변화비를 증폭하며 통계적으로 검증된 계수는 아닙니다. 자료 범위 밖의 끝점 제한은 유지합니다.</small>
       </details>
-    </section>
-    <div id="analysisTypeReference"></div>
+    </details>
     <details class="analysis-reference-detail">
-    <summary>프레임 채점·보완점수 상세</summary>
-    <div id="analysisBonusReference" class="analysis-summary"></div>
-    <div id="analysisThreePointSpread" class="analysis-summary" style="white-space:pre-wrap;text-align:left;"></div>
-    <div class="analysis-summary" style="text-align:left;">F4 임팩트 분리 추가감점: 같은 영상에서 주소→임팩트 각 X 이동의 절댓값을 비교하며 좌우 방향은 무시합니다. C7과 골반의 이동 크기 차이가 작고 다운스윙 중 함께 움직일수록 감점이 커집니다. 두 근거를 50:50으로 반영해 최대 3점 감점합니다.</div>
-    <div class="analysis-summary" style="text-align:left;">잠정 채점 v4: F2 래깅 40%·압축 20%·골반/C7 이동 40%. 래깅은 30~66°·압축은 35~50% 범위 밖에서 각각 단위당 0.10/0.18 지수 감쇠를 적용합니다. F3 신전 35%·축 안정 25%·자세 전환 40%; F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐 곡선을 선수 4개 프로젝트 관측 범위와 비교합니다: F1→F2 −23.3~−12.9%, F2→F3 −10.6~−2.4%, F3→F4 −2.5~+4.2%. 이는 좌우 이동 방향이 아니라 반경의 압축/팽창 부호를 뜻합니다. 곡선 이탈에 따라 F3와 F4에서 각각 최대 1.5점 지수 감점하며, 선수 범위 안의 경우에만 기존 최대 0.5점 보완을 허용합니다. 동일 영상·순서 근거가 없으면 이 감점과 보완을 모두 보류합니다. 단일 F3→F4 코어-손 반경 변화는 선수·아마추어 범위가 겹쳐 감점에 사용하지 않습니다. F4 주소→임팩트 분리 및 다운스윙 동반비율은 크기 기준 최대 3점 감점(좌우 방향 무시). 모든 범위는 소표본 잠정 기준이며, 2D 형상 지표로 힘·지면반력·속도를 측정하지 않습니다. F3/F4 측면 경로 보완 10%. F6 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외. 누락 항목은 기존처럼 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 기준은 선수 성능 검증 전입니다.</div>
+      <summary>선수 비교·거리 실현율</summary>
+      <section class="analysis-type-section" id="playerReferencePanel">
+        <div id="playerReferenceResult"></div>
+        <details class="analysis-reference-detail">
+          <summary>비교자료 불러오기·조건 설정</summary>
+          <label>선수 CSV <input id="playerReferenceFile" type="file" accept=".csv,text/csv"></label>
+          <button id="playerReferenceClear" type="button">비교자료 삭제</button>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+            <div class="analysis-height-field">
+              <input id="analysisPlayerCodeInput" type="text" maxlength="64" placeholder="익명 선수코드" aria-label="익명 선수코드" title="선수 단위 보정·검증 분리를 위한 익명 코드입니다." style="width:120px;">
+            </div>
+            <label>연령대 <input id="referenceAge" placeholder="CSV의 age_band" size="12" maxlength="200"></label>
+            <label>선수 수준 <input id="referenceLevel" placeholder="CSV의 level" size="12" maxlength="200"></label>
+            <label>클럽 <input id="referenceClub" placeholder="CSV의 club" size="12" maxlength="200"></label>
+            <label>측정 조건 <input id="referenceConditions" placeholder="CSV의 conditions" size="14" maxlength="200"></label>
+            <label>신장 허용 ±cm <input id="referenceHeightTolerance" type="number" min="0" max="50" step="1" value="5" style="width:55px;"></label>
+            <label>체중 허용 ±kg <input id="referenceWeightTolerance" type="number" min="0" max="100" step="1" value="5" style="width:55px;"></label>
+            <label>최소 선수 수 <input id="referenceMinimum" type="number" min="2" max="1000" step="1" value="5" style="width:55px;"></label>
+          </div>
+          <div id="playerReferenceStatus" role="status"></div>
+          <small>총거리(total) 자료만 비교합니다. 선수별 평균 후 동일 가중치로 집계하며 본인 익명 코드는 제외합니다. 참고 범위는 선수 평균의 사분위 범위이며 파워 활용률·거리 예측·신뢰구간이 아닙니다. 범위와 최소 인원은 운영용 설정입니다.</small>
+        </details>
+      </section>
+    </details>
+    <details class="analysis-reference-detail">
+      <summary>모션 채점·동력지수·스윙엔진</summary>
+      <div id="analysisPowerComparisonReference"></div>
+      <div id="analysisProfileWarningsReference"></div>
+      <div id="analysisTypeReference"></div>
+      <details class="analysis-reference-detail">
+        <summary>프레임 채점·보완점수 상세</summary>
+        <div id="analysisBonusReference" class="analysis-summary"></div>
+        <div id="analysisThreePointSpread" class="analysis-summary" style="white-space:pre-wrap;text-align:left;"></div>
+        <div class="analysis-summary" style="text-align:left;">잠정 점수 구성 (세부 지표는 각 항목의 도움말 참고): F2 래깅 40%·압축 20%·골반/C7 이동 40%, F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐이 참고 범위를 벗어날 때만 F3/F4에서 감점하고, 범위 안의 보완도 동일 영상·순서 근거가 있을 때만 적용합니다. F4 어드레스→임팩트 분리 감점은 최대 3점, F3/F4 측면 경로 보완은 10%입니다. F6는 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. 시간차와 Release Index는 미검증 관측값으로 점수에서 제외하며, 누락 항목은 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 범위는 소표본 잠정 기준이며 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.</div>
+      </details>
     </details>
     </details>
     <div class="analysis-swing-type" id="analysisSwingType"></div>
@@ -2225,8 +2233,11 @@
     'Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)': 'Frame 2 data missing (mark hand center and pelvis center)',
     'Frame 2 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요': 'Analyze Frame 1 top (six B-panel grip/clubhead landmarks) first',
     '참고 안내 — 결과 해석·선수 비교·상세 근거': 'Reference Guide — Interpretation, Player Comparison and Details',
-    '핵심 해석: 활용추정효율은 모션점수 환산값, 거리 실현율은 비교집단 대비 실측 결과입니다. 둘 다 실제 파워 활용률이 아닙니다. 동력지수 A/B에는 입력한 골격근량을 반영하지만, 선수 비교집단에는 아직 반영하지 않습니다.': 'Key interpretation: estimated utilization is a motion-score conversion; distance realization compares measured outcomes with a reference group. Neither measures actual power utilization. Entered muscle mass is included in A/B indices, but not yet in the reference cohort.',
-    '선수 비교 · 거리 실현율': 'Player Comparison · Distance Realization',
+    '체격 기준·활용추정효율·잠재 거리': 'Body Reference, Estimated Utilization and Potential Distance',
+    '선수 비교·거리 실현율': 'Player Comparison and Distance Realization',
+    '모션 채점·동력지수·스윙엔진': 'Motion Scoring, Power Indices and Swing Engine',
+    '잠재 최대 총거리 추정 산식': 'Potential Maximum Total-Distance Formula',
+    '잠정 점수 구성 (세부 지표는 각 항목의 도움말 참고): F2 래깅 40%·압축 20%·골반/C7 이동 40%, F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐이 참고 범위를 벗어날 때만 F3/F4에서 감점하고, 범위 안의 보완도 동일 영상·순서 근거가 있을 때만 적용합니다. F4 어드레스→임팩트 분리 감점은 최대 3점, F3/F4 측면 경로 보완은 10%입니다. F6는 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. 시간차와 Release Index는 미검증 관측값으로 점수에서 제외하며, 누락 항목은 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 범위는 소표본 잠정 기준이며 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.': 'Provisional weights (see each metric tooltip for details): F2 lag 40%, compression 20%, pelvis/C7 shift 40%; F3 extension 35%, axis stability 25%, posture transition 40%; F4 alignment 70%, C7 X/Y 15% each. F3/F4 deductions for the ordered F1–F4 B-point spread apply only when same-video timing evidence is available; in-range adjustments require the same evidence. F4 address-to-impact separation deduction is capped at 3 points; F3/F4 side-path adjustment is 10%. F6 uses relative displacement alone, or 90% displacement and 10% path when available. Unvalidated time and Release Index observations are excluded from scoring, and missing components are renormalized. The distance-motion average is the mean of F1–F4 scores. Ranges are provisional and based on small samples; 2D geometry does not measure force, ground reaction force, or speed.',
     '비교자료 불러오기·조건 설정': 'Load Reference Data and Set Conditions',
     '프레임 채점·보완점수 상세': 'Frame Scoring and Adjustments',
     '키·체중 민감도 조정 (실험)': 'Height and Weight Sensitivity (Experimental)',
@@ -6757,9 +6768,6 @@
     const powerDetail = getSwingUiText(
       '실험 산식 v1: 비거리 모션 점수·엔진 적합도·알려진 비거리·R10 속도는 입력하지 않습니다. 기준비 H=신장/170cm, M=체중/75kg, L=골격근량 입력값/60kg, R=|어깨선 변화|/45°, C=max(압축률,0)/35%, E=max(재전개율,0)/20%, T=50ms/P6→P7 시간차. A=가중평균(H .08, M .12, L .12, R .10, C .10, E .10, T .08). 미측정 L은 항목과 가중치에서 제외합니다. B=체격 가중평균(H .08, M .12, L .12) × 동작 평균(R,C,E) × T. 두 값은 합치지 않으며 0~1 상한을 적용하지 않습니다. 골격근량의 60kg 기준은 기존 임시 기준을 유지한 것으로 일반 선수 표준이 아닙니다. 모든 기준·가중치는 보정 전 임시값이며 실제 파워(W)·예상 비거리가 아닙니다. 반경은 2D 비율, 어깨선은 투영각이며 실제 3D 회전량이 아닙니다. P6→P7 자세와 슬로모션 배율은 자동 검증되지 않습니다.',
       'Experimental formulas v1: distance-motion scores, engine fits, known distance and R10 speed are excluded. Reference ratios: H=height/170cm, M=body mass/75kg, L=lean-mass input/60kg, R=|shoulder-line change|/45°, C=max(compression,0)/35%, E=max(re-expansion,0)/20%, T=50ms/P6→P7 interval. A=weighted mean(H .08, M .12, L .12, R .10, C .10, E .10, T .08). Missing L and its weight are omitted. B=body weighted mean(H .08, M .12, L .12) × motion mean(R,C,E) × T. The two results are not blended or capped at 1. The 60kg lean-mass reference retains the previous provisional setting; it is not a general player standard. All references and weights are uncalibrated; these are not power in watts or predicted distance. Radius is a 2D ratio and shoulder-line change is a projected angle, not actual 3D rotation. P6→P7 pose correctness and slow-motion scaling are not automatically verified.');
-    const utilizationDetail = getSwingUiText(
-      '잠재파워활용추정효율 = (체격·실측거리 기반 효율 + 비거리 모션 평균×10)÷2. 두 항목을 50:50으로 평균하며 어느 한쪽이 없으면 산출 보류합니다. 스윙엔진지수 합계와 A/B는 효율 계산에 사용하지 않습니다. 실제 파워 활용률로 검증된 값이 아닌 실험적 종합지표입니다.',
-      'Estimated Potential-Power Utilization Efficiency = (body/measured-distance efficiency + distance-motion average × 10) / 2. Both components have equal weight; missing either holds calculation. The engine-index total and A/B are not efficiency inputs. This is an experimental combined index, not validated physical power utilization.');
     const estimateSex = document.getElementById('referenceSex').value;
     const estimateStats = TOUR_MUSCLE_DISTANCE_REFERENCE[estimateSex];
     const estimateMuscleWeight = estimateStats?.muscleWeight ?? 0.60;
@@ -6796,7 +6804,7 @@
           ? ` · ${speed.normalized.toFixed(2)} s⁻¹ (${getSwingUiText('속도/신장', 'speed/height')})` : '';
         return `${label}: ${measured}${normalized}`;
       }).join(' · ');
-    calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('동력 추정용 관측 자료 · 보정과 한계', 'Power Calibration Observations · Calibration and Limits')}</div><div>${powerDetail}</div><div>${utilizationDetail}</div><div>${getSwingUiText(
+    calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('동력 추정용 관측 자료 · 보정과 한계', 'Power Calibration Observations · Calibration and Limits')}</div><div>${powerDetail}</div><div>${getSwingUiText(
       `관측 총 비거리(캐리+런): ${knownDistanceLabel}. ${r10SpeedDetail} 실측거리는 동력지수를 거리 예측식에 맞추는 정답이 아니라 모션 보완 필요성을 검토할 결과 자료입니다. 같은 선수·클럽·촬영 시간 배율·타구 조건에서 반복 비교하세요. A/B는 현재 스윙 동작을 포함하므로 독립적인 기본 파워 실측값이 아닙니다. 기본 능력이 같으면 같은 모션 점수에서 같은 거리가 나온다는 관계도 아직 검증되지 않았습니다. 보완 후보 기준은 기존 F1–F4 8/10이며 평균이 높아도 개별 낮은 프레임을 먼저 확인합니다. 점수만으로 거리 증가나 기술 문제 부재를 확정하지 않습니다. Force plate 자료가 없어 Fz/BW(%BW)는 산출하지 않습니다.`,
       `Observed total distance (carry plus roll): ${knownDistanceLabel}. ${r10SpeedDetail} Measured distance is an outcome for reviewing motion intervention, not a target for fitting the indices to predicted distance. Compare repeated swings with the same player, club, video time scaling and shot conditions. A/B include current swing motion and are not independent measurements of baseline power. Equal capacity and motion scores implying equal distance is also unvalidated. Review uses the existing F1–F4 threshold of 8/10; inspect individual low frames even when the average is high. Scores do not establish a distance gain or absence of technical issues. Fz/BW (%BW) is withheld without force-plate data.`)}</div></section>`);
     calibrationRows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('비거리 추정 산식과 한계', 'Distance Estimate Formula and Limitations')}</div><div>${getSwingUiText(
@@ -6911,10 +6919,16 @@
       reference.innerHTML =
         `<details class="analysis-reference-detail" data-reference-section="indices"><summary>${getSwingUiText('동력지수·스윙엔진지수·입력 관측값', 'Power Indices, Engine Indices and Observations')}</summary>${referenceRows.join('')}</details>`
         + `<details class="analysis-reference-detail" data-reference-section="formulas"><summary>${getSwingUiText('동력 산식·활용효율 해석과 한계', 'Power Formulas, Utilization Interpretation and Limits')}</summary>${calibrationRows.join('')}</details>`
-        + `<details class="analysis-reference-detail" data-reference-section="distance-estimate"><summary>${getSwingUiText('잠재 최대총거리추정산식', 'Potential Maximum Total-Distance Estimate Formula')}</summary>${distanceEstimateRows.join('')}</details>`
         + `<details class="analysis-reference-detail" data-reference-section="engine"><summary>${getSwingUiText('엔진 판정 기준·상세 근거', 'Engine Classification Rules and Evidence')}</summary>`
         + `<section class="analysis-type-section" style="white-space:pre-wrap">${formatPowerEngineRules()}</section>${engineEvidenceRows.join('')}</details>`;
       reference.querySelectorAll('details').forEach(detail => { detail.open = openSections.has(detail.dataset.referenceSection); });
+    }
+    const distanceEstimateReference = document.getElementById('distanceEstimateFormulaReference');
+    if (distanceEstimateReference) {
+      const wasOpen = Boolean(distanceEstimateReference.querySelector('details')?.open);
+      distanceEstimateReference.innerHTML =
+        `<details class="analysis-reference-detail" data-reference-section="distance-estimate"><summary>${getSwingUiText('잠재 최대 총거리 추정 산식', 'Potential Maximum Total-Distance Formula')}</summary>${distanceEstimateRows.join('')}</details>`;
+      distanceEstimateReference.querySelector('details').open = wasOpen;
     }
     const distanceEstimate = analysisSwingType.querySelector('#distanceEstimateResult');
     const distanceEstimateButton = analysisSwingType.querySelector('#distanceEstimateBtn');
@@ -7490,18 +7504,10 @@
     const regressionRange = muscleStats.regressionYardsPerKg.map(value => value.toFixed(1)).join('–');
     const weights = estimate.physicalReferenceWeights;
     details.textContent = getSwingUiText(
-      `잠재 총거리 = 실측 총거리 × 스윙 보정계수 + 골격근량 변경분. 활용추정효율은 참고 표시만 하며 잠재거리 역산에 쓰지 않습니다. 최종값은 실측 총거리 이상, 실측 대비 최대 110%로 제한합니다. 런은 별도로 더하지 않습니다.\n`
-      + `재산출 기준 골격근량 ${estimate.muscleAdjustment.baselineKg.toFixed(1)}kg · 변경 ${estimate.muscleAdjustment.deltaKg >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaKg.toFixed(1)}kg → 비거리 ${estimate.muscleAdjustment.deltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaYards.toFixed(1)}yd (${(estimate.muscleAdjustment.deltaYards * 0.9144) >= 0 ? '+' : ''}${(estimate.muscleAdjustment.deltaYards * 0.9144).toFixed(1)}m; 회귀 범위 ${estimate.muscleAdjustment.lowDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.lowDeltaYards.toFixed(1)}~${estimate.muscleAdjustment.highDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.highDeltaYards.toFixed(1)}yd · 기울기 +${estimate.muscleAdjustment.lowSlope.toFixed(1)}~+${estimate.muscleAdjustment.highSlope.toFixed(1)}yd/kg)\n`
-      + `골격근량 가중치 보정(실험): 신장 ${(weights.height * 100).toFixed(0)}% · 체중 ${(weights.weight * 100).toFixed(0)}% · 골격근량 ${(weights.muscle * 100).toFixed(0)}% (기존 35/15/50에서 28/12/60으로 조정). 제공 통계: r=+${correlationRange}, 회귀 +${regressionRange}yd/kg. 통계만으로 가중치 비율을 수학적으로 도출할 수 없어 60%는 잠정값이며, 절대거리 회귀식으로 대체하지 않음.\n`
-      + `구간 평균 참고: ${muscleStats.tierSummary}\n`
-      + `부위별 기여 통계(${muscleStats.regionalContribution})는 부위별 골격근 입력이 없어 별도 가중하지 않음.\n`
-      + `실측 총거리 ${estimate.measuredDistanceMeters.toFixed(1)}m × 샬로잉 계수 ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × 엔진지수 계수 ${estimate.engineMultiplier.toFixed(3)} (합계 ${estimate.engineTotal.toFixed(3)}) × 래깅 계수 ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 래깅 ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° 근거 미측정)'} × 탄도 가정 ${estimate.aeroMultiplier.toFixed(2)} + 골격근량 변경분. 활용추정효율 ${estimate.potentialEfficiency.toFixed(1)}% (체격·실측거리 기준과 모션점수의 50:50 평균)은 표시용 참고값이며 거리 계산에 사용하지 않습니다.`,
-      `Potential total distance = measured total distance × swing factors + skeletal-muscle adjustment. Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% is shown for context only and is not used to calculate potential distance. The final result is floored at the measured distance and capped at 110% of it. No additional run is added.\n`
-      + `Experimental muscle-weight adjustment: height ${(weights.height * 100).toFixed(0)}%, body mass ${(weights.weight * 100).toFixed(0)}%, muscle ${(weights.muscle * 100).toFixed(0)}% (adjusted from 35/15/50 to 28/12/60). Supplied context: r=+${correlationRange}, regression +${regressionRange} yd/kg. The statistics do not mathematically determine a weight split, so 60% is provisional and does not replace the separate absolute-distance regression.\n`
-      + `Tier-average context: ${muscleStats.tierSummary}\n`
-      + `Regional contribution statistics (${muscleStats.regionalContribution}) are not weighted separately because regional muscle inputs are unavailable.\n`
-      + `Measured total distance ${estimate.measuredDistanceMeters.toFixed(1)}m × shallowing factor ${estimate.shallowingMultiplier.toFixed(3)} (P4→P5 ${estimate.p4ToP5ShallowDelta.toFixed(1)}°, P5→P6 ${estimate.p5ToP6ShallowDelta.toFixed(1)}°) × engine-index factor ${estimate.engineMultiplier.toFixed(3)} (total ${estimate.engineTotal.toFixed(3)}) × lag factor ${estimate.releaseMultiplier.toFixed(3)}${hasMetric(estimate.lagAngle) ? ` (P6 lag ${estimate.lagAngle.toFixed(1)}°)` : ' (168–172° evidence not measured)'} × flight assumption ${estimate.aeroMultiplier.toFixed(2)} + skeletal-muscle adjustment. Estimated utilization ${estimate.potentialEfficiency.toFixed(1)}% is display-only context.\n`
-      + 'The provided statistics and sample sizes have not been independently verified; the muscle-weight increase is a provisional weighting adjustment, not a validated causal coefficient.');
+      `골격근량 기준 ${estimate.muscleAdjustment.baselineKg.toFixed(1)}kg · 변경 ${estimate.muscleAdjustment.deltaKg >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaKg.toFixed(1)}kg → ${estimate.muscleAdjustment.deltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaYards.toFixed(1)}yd (${(estimate.muscleAdjustment.deltaYards * 0.9144) >= 0 ? '+' : ''}${(estimate.muscleAdjustment.deltaYards * 0.9144).toFixed(1)}m; 범위 ${estimate.muscleAdjustment.lowDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.lowDeltaYards.toFixed(1)}~${estimate.muscleAdjustment.highDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.highDeltaYards.toFixed(1)}yd · 기울기 ${estimate.muscleAdjustment.lowSlope.toFixed(1)}~${estimate.muscleAdjustment.highSlope.toFixed(1)}yd/kg).\n`
+      + `실측거리 ${estimate.measuredDistanceMeters.toFixed(1)}m × 샬로잉 ${estimate.shallowingMultiplier.toFixed(3)} × 엔진 ${estimate.engineMultiplier.toFixed(3)} × 래깅 ${estimate.releaseMultiplier.toFixed(3)} × 탄도 ${estimate.aeroMultiplier.toFixed(2)} + 골격근량 변경분. 실험 가중치: 신장 ${(weights.height * 100).toFixed(0)}% · 체중 ${(weights.weight * 100).toFixed(0)}% · 골격근량 ${(weights.muscle * 100).toFixed(0)}%; 참고 통계 r=+${correlationRange}, 회귀 +${regressionRange}yd/kg. 통계와 표본수는 독립 검증되지 않았습니다.`,
+      `Skeletal-muscle reference ${estimate.muscleAdjustment.baselineKg.toFixed(1)}kg · change ${estimate.muscleAdjustment.deltaKg >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaKg.toFixed(1)}kg → ${estimate.muscleAdjustment.deltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.deltaYards.toFixed(1)}yd (${(estimate.muscleAdjustment.deltaYards * 0.9144) >= 0 ? '+' : ''}${(estimate.muscleAdjustment.deltaYards * 0.9144).toFixed(1)}m; range ${estimate.muscleAdjustment.lowDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.lowDeltaYards.toFixed(1)}–${estimate.muscleAdjustment.highDeltaYards >= 0 ? '+' : ''}${estimate.muscleAdjustment.highDeltaYards.toFixed(1)}yd · slope ${estimate.muscleAdjustment.lowSlope.toFixed(1)}–${estimate.muscleAdjustment.highSlope.toFixed(1)}yd/kg).\n`
+      + `Measured distance ${estimate.measuredDistanceMeters.toFixed(1)}m × shallowing ${estimate.shallowingMultiplier.toFixed(3)} × engine ${estimate.engineMultiplier.toFixed(3)} × lag ${estimate.releaseMultiplier.toFixed(3)} × flight ${estimate.aeroMultiplier.toFixed(2)} + muscle-mass adjustment. Experimental weights: height ${(weights.height * 100).toFixed(0)}%, body mass ${(weights.weight * 100).toFixed(0)}%, muscle ${(weights.muscle * 100).toFixed(0)}%; reference statistics r=+${correlationRange}, regression +${regressionRange} yd/kg. Statistics and sample sizes have not been independently verified.`);
     target.append(resultRow, formula);
     renderBiologicalDistanceReference(estimate, details);
   }
@@ -7602,8 +7608,8 @@
     const note = document.getElementById('physicalReferenceNote');
     const details = document.getElementById('physicalReferenceDetails');
     note.textContent = getSwingUiText(
-      '활용추정효율은 체격·실측거리 기반 효율과 모션점수 100% 환산값의 50:50 평균입니다. 체격·실측거리 기반 효율만 100% 기준 대비 거리 초과·미달을 뜻하며, 종합값은 실험적 비교지표입니다. 실제 파워 활용률이 아닙니다. CSV 없이도 산출합니다.',
-      'Estimated utilization averages body/measured-distance efficiency and the motion score converted to percent, equally weighted. Only the distance component indicates distance above/below its 100% reference; the combined result is an experimental comparison index, not measured power utilization. No CSV is required.');
+      '활용추정효율은 체격·실측거리 기반 효율과 비거리 모션점수(10점 만점)의 50:50 평균입니다. 선수 비교의 거리 실현율은 조건에 맞는 비교집단 대비 실측 총거리입니다. 둘 다 실제 파워 활용률이나 거리 예측값이 아닙니다. 동력지수 산식에는 입력 골격근량을 반영하지만 선수 비교에서는 골격근량을 보정하지 않습니다.',
+      'Estimated utilization is the equal-weight average of body/measured-distance efficiency and the distance-motion score (out of 10). Player-comparison distance realization is measured total distance relative to the matched comparison group. Neither is measured power utilization or a distance prediction. Skeletal muscle mass is included in the power-index formula but is not adjusted in player comparisons.');
     if (result.status !== 'ready') {
       const labels = { sex: getSwingUiText('성별', 'sex'), height: getSwingUiText('신장', 'height'),
         weight: getSwingUiText('체중', 'weight'), muscle: getSwingUiText('골격근량(체중 이하)', 'muscle mass (not above body mass)'),
@@ -8109,7 +8115,7 @@
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 평균: -';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
     if (analysisSwingType) analysisSwingType.innerHTML = '';
-    for (const id of ['analysisTypeReference', 'analysisBonusReference', 'analysisPowerComparisonReference', 'analysisProfileWarningsReference', 'physicalReferenceNote', 'distanceEstimateReference', 'physicalReferenceDetails']) {
+    for (const id of ['analysisTypeReference', 'analysisBonusReference', 'analysisPowerComparisonReference', 'analysisProfileWarningsReference', 'physicalReferenceNote', 'distanceEstimateReference', 'distanceEstimateFormulaReference', 'physicalReferenceDetails']) {
       const reference = document.getElementById(id);
       if (reference) reference.textContent = '';
     }
