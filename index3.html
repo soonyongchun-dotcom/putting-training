@@ -840,7 +840,17 @@
     let lastDirectiveReadAtProbeAt = 0;
     let realtimeChannel = null;
     let realtimePollingTimer = null;
+    let realtimeReconnectTimer = null;
+    let realtimeReconnectAttempts = 0;
     let realtimeSubscriptionEnabled = false;
+    let lastUserActivityAt = Date.now();
+    let lastLifecycleTickAt = Date.now();
+    const REALTIME_POLL_INTERVAL_MS = 30000;
+    const REALTIME_RECONNECT_BASE_MS = 5000;
+    const REALTIME_RECONNECT_MAX_MS = 60000;
+    const LIFECYCLE_HEARTBEAT_MS = 30000;
+    const SLEEP_DETECTION_THRESHOLD_MS = 90000;
+    const APP_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
     let dashboardCoachRenderSeq = 0;
     let commCountsRenderSeq = 0;
     let coachDirectiveRenderSeq = 0;
@@ -3084,31 +3094,145 @@
       syncCoachDirectiveTargetOptions();
     }
 
-    function startRealtimePolling(){
-      if(!realtimeSubscriptionEnabled || realtimePollingTimer) return;
-      console.warn('Realtime 연결이 불안정해 폴링 모드로 전환합니다.');
-      realtimePollingTimer = setInterval(function(){
-        refreshAllViewsForRealtime();
-      }, 30000);
-    }
-
-    function stopRealtimeSubscriptions(){
-      realtimeSubscriptionEnabled = false;
+    function stopRealtimePolling(){
       if(realtimePollingTimer){
         clearInterval(realtimePollingTimer);
         realtimePollingTimer = null;
       }
-      if(realtimeChannel){
-        var channelToRemove = realtimeChannel;
-        realtimeChannel = null;
-        sb.removeChannel(channelToRemove);
+    }
+
+    function clearRealtimeReconnect(){
+      if(realtimeReconnectTimer){
+        clearTimeout(realtimeReconnectTimer);
+        realtimeReconnectTimer = null;
       }
     }
 
+    function hasRecentUserActivity(){
+      return Date.now() - lastUserActivityAt < APP_IDLE_TIMEOUT_MS;
+    }
+
+    function canRunRealtimeActivity(){
+      return !!getSession() && !document.hidden && navigator.onLine !== false && hasRecentUserActivity();
+    }
+
+    function startRealtimePolling(){
+      if(!realtimeSubscriptionEnabled || realtimePollingTimer || !canRunRealtimeActivity()) return;
+      console.warn('Realtime 연결이 불안정해 폴링 모드로 전환합니다.');
+      realtimePollingTimer = setInterval(function(){
+        if(!canRunRealtimeActivity()){
+          pauseRealtimeForBackground();
+          return;
+        }
+        refreshAllViewsForRealtime();
+      }, REALTIME_POLL_INTERVAL_MS);
+    }
+
+    function scheduleRealtimeReconnect(){
+      if(realtimeReconnectTimer || !realtimeSubscriptionEnabled || !canRunRealtimeActivity()) return;
+      var delay=Math.min(
+        REALTIME_RECONNECT_BASE_MS * Math.pow(2,realtimeReconnectAttempts),
+        REALTIME_RECONNECT_MAX_MS
+      );
+      realtimeReconnectAttempts++;
+      realtimeReconnectTimer=setTimeout(function(){
+        realtimeReconnectTimer=null;
+        if(!realtimeSubscriptionEnabled || !canRunRealtimeActivity()) return;
+        setupRealtimeSubscriptions();
+      },delay);
+    }
+
+    function stopPeriodicUiRefresh(){
+      if(timestampRefreshInterval){
+        clearInterval(timestampRefreshInterval);
+        timestampRefreshInterval = null;
+      }
+    }
+
+    function startPeriodicUiRefresh(){
+      if(timestampRefreshInterval || !canRunRealtimeActivity()) return;
+      timestampRefreshInterval = setInterval(function(){
+        if(!canRunRealtimeActivity()){
+          pauseRealtimeForBackground();
+          return;
+        }
+        renderDashboardCoachMessages();
+        renderCoachDirectiveList();
+        renderPlayerMessageThread();
+        renderCoachInboxDynamic();
+      }, 60 * 1000);
+    }
+
+    function removeRealtimeChannel(){
+      if(!realtimeChannel) return;
+      var channelToRemove = realtimeChannel;
+      realtimeChannel = null;
+      var removal = sb.removeChannel(channelToRemove);
+      if(removal && typeof removal.catch === 'function'){
+        removal.catch(function(error){
+          console.warn('Realtime 채널 정리에 실패했습니다.', error);
+        });
+      }
+    }
+
+    function pauseRealtimeForBackground(){
+      realtimeSubscriptionEnabled = false;
+      stopRealtimePolling();
+      stopPeriodicUiRefresh();
+      clearRealtimeReconnect();
+      realtimeReconnectAttempts = 0;
+      removeRealtimeChannel();
+    }
+
+    function resumeRealtimeAfterForeground(){
+      if(!canRunRealtimeActivity()) return;
+      realtimeSubscriptionEnabled = true;
+      setupRealtimeSubscriptions();
+      startPeriodicUiRefresh();
+    }
+
+    function handleVisibilityChange(){
+      if(document.hidden){
+        pauseRealtimeForBackground();
+        return;
+      }
+      lastUserActivityAt = Date.now();
+      lastLifecycleTickAt = lastUserActivityAt;
+      resumeRealtimeAfterForeground();
+    }
+
+    function handleUserActivity(){
+      if(document.hidden) return;
+      var wasInactive = !hasRecentUserActivity();
+      lastUserActivityAt = Date.now();
+      if(wasInactive || !realtimeSubscriptionEnabled){
+        resumeRealtimeAfterForeground();
+      }
+    }
+
+    function handleLifecycleHeartbeat(){
+      var now=Date.now();
+      var elapsed=now-lastLifecycleTickAt;
+      lastLifecycleTickAt=now;
+      if(elapsed>=SLEEP_DETECTION_THRESHOLD_MS){
+        pauseRealtimeForBackground();
+        if(canRunRealtimeActivity()) resumeRealtimeAfterForeground();
+        return;
+      }
+      if(!hasRecentUserActivity()){
+        pauseRealtimeForBackground();
+      }
+    }
+
+    function stopRealtimeSubscriptions(){
+      pauseRealtimeForBackground();
+    }
+
     function setupRealtimeSubscriptions(){
+      if(!canRunRealtimeActivity()) return;
       realtimeSubscriptionEnabled = true;
       if(realtimeChannel) return;
-      realtimeChannel = sb.channel('sytpt-realtime')
+      var channel = sb.channel('sytpt-realtime')
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_messages'},function(){
           // Clear cache to ensure new messages show up immediately
           messagesCache = [];
@@ -3148,32 +3272,50 @@
         })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_mission_progress'},function(){
           renderMissionCardsForActivePlayer();renderCoachCompletedMissionList();renderPlayerViewContext();renderCoachKPIs();
-        })
-        .subscribe(function(status){
+        });
+      realtimeChannel = channel;
+      channel.subscribe(function(status){
           if(!realtimeSubscriptionEnabled) return;
-          if(status==='CHANNEL_ERROR' || status==='TIMED_OUT'){
-            if(realtimeChannel){
-              var channelToRemove = realtimeChannel;
-              realtimeChannel = null;
-              sb.removeChannel(channelToRemove);
-            }
-            startRealtimePolling();
+          if(status==='SUBSCRIBED'){
+            if(realtimeChannel!==channel) return;
+            realtimeReconnectAttempts=0;
+            clearRealtimeReconnect();
+            stopRealtimePolling();
             return;
           }
-          if(status==='CLOSED'){
-            realtimeChannel = null;
+          if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED'){
+            if(realtimeChannel!==channel) return;
+            removeRealtimeChannel();
             startRealtimePolling();
+            scheduleRealtimeReconnect();
+            return;
           }
         });
+      startPeriodicUiRefresh();
     }
 
-    // 상대 타임스탬프를 매 1분마다 갱신
-    timestampRefreshInterval = setInterval(function(){
-      renderDashboardCoachMessages();
-      renderCoachDirectiveList();
-      renderPlayerMessageThread();
-      renderCoachInboxDynamic();
-    }, 60 * 1000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    ['pointerdown','keydown','touchstart','scroll'].forEach(function(eventName){
+      document.addEventListener(eventName,handleUserActivity,{passive:true});
+    });
+    document.addEventListener('freeze',pauseRealtimeForBackground);
+    document.addEventListener('resume',handleVisibilityChange);
+    window.addEventListener('offline',pauseRealtimeForBackground);
+    window.addEventListener('online',function(){
+      lastLifecycleTickAt=Date.now();
+      resumeRealtimeAfterForeground();
+    });
+    window.addEventListener('pagehide', function(){
+      pauseRealtimeForBackground();
+    });
+    window.addEventListener('pageshow', function(){
+      if(!document.hidden){
+        lastUserActivityAt=Date.now();
+        lastLifecycleTickAt=lastUserActivityAt;
+        resumeRealtimeAfterForeground();
+      }
+    });
+    setInterval(handleLifecycleHeartbeat,LIFECYCLE_HEARTBEAT_MS);
 
     // ====== 이벤트 핸들러 ======
     document.getElementById('sendPlayerQuestion').addEventListener('click', async function(){
