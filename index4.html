@@ -856,6 +856,59 @@
     border-color: rgba(255,123,128,0.68);
     color: #ffdfe0;
   }
+  .analysis-2d-diagnostics {
+    margin-top: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #1f2937;
+  }
+  .analysis-2d-diagnostics > summary {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .analysis-2d-diagnostics-body {
+    display: grid;
+    gap: 10px;
+    padding: 0 12px 12px;
+  }
+  .analysis-2d-diagnostics-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .analysis-2d-diagnostics-controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.82rem;
+  }
+  .analysis-2d-diagnostics-controls select,
+  .analysis-2d-diagnostics-controls button {
+    min-height: 32px;
+    padding: 4px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #1f2937;
+  }
+  .analysis-2d-diagnostics-body ol {
+    margin: 0;
+    padding-left: 22px;
+  }
+  .analysis-2d-diagnostics-body li {
+    margin: 5px 0;
+    line-height: 1.45;
+    font-size: 0.84rem;
+  }
+  .analysis-2d-diagnostics-note {
+    margin: 0;
+    color: #475569;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
   .analysis-toolbar .analysis-display-toggle {
     margin-left: auto;
     background: rgba(255,255,255,0.1);
@@ -1971,6 +2024,40 @@
       </div>
     </div>
     <div class="analysis-summary" id="analysisSummary"></div>
+    <details class="analysis-2d-diagnostics" id="analysis2dDiagnostics">
+      <summary>2D 왜곡 최소화 진단 (참고 전용 · 기존 지표/점수 미변경)</summary>
+      <div class="analysis-2d-diagnostics-body">
+        <div class="analysis-2d-diagnostics-controls">
+          <label>정면 타깃 방향
+            <select id="analysis2dFrontTarget">
+              <option value="left">화면 왼쪽 타깃</option>
+              <option value="right">화면 오른쪽 타깃</option>
+            </select>
+          </label>
+          <label>측면 타깃 방향
+            <select id="analysis2dSideTarget">
+              <option value="left">화면 왼쪽 타깃</option>
+              <option value="right">화면 오른쪽 타깃</option>
+            </select>
+          </label>
+          <label>플레이어 손잡이 방향
+            <select id="analysis2dHandedness">
+              <option value="right">오른손잡이 선수</option>
+              <option value="left">왼손잡이 선수</option>
+            </select>
+          </label>
+          <button type="button" id="stanceReferenceBtn" aria-pressed="false">정면 P1 양발 기준선 지정</button>
+          <button type="button" id="refresh2dDiagnostics">2D 진단 갱신</button>
+        </div>
+        <ol id="analysis2dDiagnosticsResults" aria-live="polite">
+          <li>프레임 포인트가 입력되면 참고 진단을 표시합니다.</li>
+        </ol>
+        <p class="analysis-2d-diagnostics-note">
+          이 패널은 저장된 수동 포인트를 사용해 정렬 가능성·부호 있는 상대 변위·투영 세그먼트 변화만 참고 표시합니다.
+          발목 지면선이 수집되지 않으면 카메라 회전을 추정하지 않으며, 3D 복원·점수 감점·기존 지표 변경은 수행하지 않습니다.
+        </p>
+      </div>
+    </details>
     <details class="analysis-reference" id="analysisReferenceGuide">
     <summary>참고 안내 — 결과 해석·선수 비교·상세 근거</summary>
     <details class="analysis-reference-detail">
@@ -2136,6 +2223,19 @@
 <script>
   const UI_LANGUAGE_STORAGE_KEY = 'gsap_ui_language';
   const UI_TRANSLATIONS_EN = {
+    '2D 왜곡 최소화 진단': '2D Distortion-Minimization Diagnostics',
+    '참고 전용 · 기존 지표/점수 미변경': 'Reference only · existing metrics/scores unchanged',
+    '정면 타깃 방향': 'Front target direction',
+    '측면 타깃 방향': 'Side target direction',
+    '화면 왼쪽 타깃': 'Target toward screen left',
+    '화면 오른쪽 타깃': 'Target toward screen right',
+    '플레이어 손잡이 방향': 'Player handedness',
+    '오른손잡이 선수': 'Right-handed player',
+    '왼손잡이 선수': 'Left-handed player',
+    '2D 진단 갱신': 'Refresh 2D diagnostics',
+    '프레임 포인트가 입력되면 참고 진단을 표시합니다.': 'Reference diagnostics appear after frame points are entered.',
+    '이 패널은 저장된 수동 포인트를 사용해 정렬 가능성·부호 있는 상대 변위·투영 세그먼트 변화만 참고 표시합니다.': 'This panel uses saved manual points to show alignment availability, signed relative displacement, and projected segment changes for reference only.',
+    '발목 지면선이 수집되지 않으면 카메라 회전을 추정하지 않으며, 3D 복원·점수 감점·기존 지표 변경은 수행하지 않습니다.': 'Without ankle ground-line points, camera rotation is not estimated; no 3D reconstruction, score deduction, or existing-metric change is performed.',
     '선수 비교자료 · 체격별 거리 실현율': 'Player References · Body-Size Distance Realization',
     '선수 CSV': 'Player CSV',
     '비교자료 삭제': 'Clear reference data',
@@ -3623,6 +3723,174 @@
     if (view === 'side' && ['frame4', 'frame6'].includes(frameId)) return ['frame4', 'frame6'];
     return [];
   }
+  function getDiagnosticSemanticPoint(view, frameId, semantic) {
+    const saved = frameStateHistory[view]?.[frameId];
+    const semantics = FRAME_POINT_SEMANTICS[view]?.[frameId];
+    const types = getFramePointTypesForView(frameId, view);
+    if (!saved || !semantics || !Array.isArray(saved.points)) return null;
+    const index = semantics.indexOf(semantic);
+    if (index < 0 || !types[index]) return null;
+    return saved.points.find(point => point.type === types[index]
+      || (frameId === 'frame2' && index === 0 && point.type === 'wrist')) || null;
+  }
+  function update2dCorrectionDiagnostics() {
+    const resultList = document.getElementById('analysis2dDiagnosticsResults');
+    if (!resultList) return;
+    const targetDirection = {
+      front: document.getElementById('analysis2dFrontTarget')?.value === 'right' ? 1 : -1,
+      side: document.getElementById('analysis2dSideTarget')?.value === 'right' ? 1 : -1,
+    };
+    const handedness = document.getElementById('analysis2dHandedness')?.value || 'right';
+    const output = [];
+    const add = (ko, en) => output.push(getSwingUiText(ko, en));
+    const format = (value, digits = 1) => Number.isFinite(value) ? value.toFixed(digits) : '—';
+    const frameIds = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'];
+    const frameLabels = { frame1: 'F1', frame2: 'F2', frame3: 'F3', frame4: 'F4', frame5: 'F5', frame6: 'F6' };
+
+    const frontP1 = frameStateHistory.front.frame1;
+    const ankleAliases = {
+      left: ['leftAnkle', 'lAnkle', 'ankleLeft'],
+      right: ['rightAnkle', 'rAnkle', 'ankleRight'],
+    };
+    const frontPointsAtP1 = frontP1?.points || [];
+    const leftAnkle = frontPointsAtP1.find(point => ankleAliases.left.includes(point.type));
+    const rightAnkle = frontPointsAtP1.find(point => ankleAliases.right.includes(point.type));
+    if (stanceReferenceLineFront) {
+      const aspect = frontP1?.aspectRatio || getAnalysisAspect(frontVideo);
+      const dx = (stanceReferenceLineFront.end.x - stanceReferenceLineFront.start.x) * aspect;
+      const dy = stanceReferenceLineFront.end.y - stanceReferenceLineFront.start.y;
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      add(
+        `정면 P1 수동 양발 기준선: ${format(angle)}°. 참고 각도 기준이며 기존 지표·점수는 변경하지 않습니다.`,
+        `Manual front P1 stance line: ${format(angle)}°. This is a reference axis only; existing metrics and scores are unchanged.`
+      );
+    } else if (leftAnkle && rightAnkle) {
+      const aspect = frontP1.aspectRatio || getAnalysisAspect(frontVideo);
+      const dx = (rightAnkle.x - leftAnkle.x) * aspect;
+      const dy = rightAnkle.y - leftAnkle.y;
+      const widthPx = frontVideo.videoWidth || 0;
+      const separationPx = widthPx * Math.hypot(rightAnkle.x - leftAnkle.x,
+        (rightAnkle.y - leftAnkle.y) / aspect);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      add(
+        `정면 스탠스 기준선: ${separationPx > 0.15 * widthPx ? `${format(angle)}° (발 간격 조건 통과)` : `${format(angle)}° (발 간격 부족, 정렬 가이드로만 사용)`}. 카메라 roll로 간주하거나 자동 회전 보정하지 않습니다.`,
+        `Front stance reference: ${separationPx > 0.15 * widthPx ? `${format(angle)}° (stance-width condition passed)` : `${format(angle)}° (stance width too small; guide only)`}. It is not treated as camera roll and does not rotate existing metrics.`
+      );
+    } else {
+      add(
+        '정면 스탠스/수평 보정: P1 양발 발목 포인트가 저장되지 않아 산출하지 않았습니다. 기존 포인트/점수는 변경하지 않습니다.',
+        'Front stance/horizon alignment: not calculated because P1 left/right ankle landmarks are not stored. Existing points and scores are unchanged.'
+      );
+    }
+
+    ['front', 'side'].forEach(view => {
+      const refLength = getPanelReferenceLength(view);
+      const heightCm = Number(analysisHeightInput?.value);
+      const scaleText = hasMetric(refLength) && refLength > 0
+        ? `${format(refLength, 3)} normalized image-height units${Number.isFinite(heightCm) && heightCm > 0 ? `; about ${format(heightCm / refLength)} cm per normalized image-height unit` : ''}`
+        : 'reference line unavailable';
+      add(
+        `${view === 'front' ? '정면' : '측면'} 상대 스케일: ${scaleText}. 신장 기반 환산은 참고치이며 거리 비율·기존 산식에는 적용하지 않습니다.`,
+        `${view === 'front' ? 'Front' : 'Side'} relative scale: ${scaleText}. Height-based conversion is informational and is not applied to distance ratios or existing formulas.`
+      );
+    });
+
+    const frontReference = getPanelReferenceLength('front');
+    const frontBaselineC7 = getDiagnosticSemanticPoint('front', 'frame1', 'c7');
+    const frontBaselinePelvis = getDiagnosticSemanticPoint('front', 'frame1', 'pelvis');
+    const frontAspect = frontP1?.aspectRatio || getAnalysisAspect(frontVideo);
+    const signedMotion = [];
+    const sideMotion = [];
+    const projectedLengths = [];
+    const c7Candidates = [];
+    if (frontBaselineC7 && frontBaselinePelvis && hasMetric(frontReference) && frontReference > 0) {
+      const baselineSpine = Math.hypot(
+        (frontBaselinePelvis.x - frontBaselineC7.x) * frontAspect,
+        frontBaselinePelvis.y - frontBaselineC7.y
+      );
+      frameIds.slice(1).forEach(frameId => {
+        const c7 = getDiagnosticSemanticPoint('front', frameId, 'c7');
+        const pelvis = getDiagnosticSemanticPoint('front', frameId, 'pelvis');
+        const saved = frameStateHistory.front[frameId];
+        if (!c7 || !pelvis || !saved) return;
+        const aspect = saved.aspectRatio || frontAspect;
+        const c7TargetPct = ((c7.x - frontBaselineC7.x) * aspect * targetDirection.front / frontReference) * 100;
+        const pelvisTargetPct = ((pelvis.x - frontBaselinePelvis.x) * aspect * targetDirection.front / frontReference) * 100;
+        const spineAngle = Math.atan2(
+          (pelvis.x - c7.x) * aspect,
+          Math.abs(pelvis.y - c7.y)
+        ) * 180 / Math.PI;
+        const baselineAngle = Math.atan2(
+          (frontBaselinePelvis.x - frontBaselineC7.x) * frontAspect,
+          Math.abs(frontBaselinePelvis.y - frontBaselineC7.y)
+        ) * 180 / Math.PI;
+        signedMotion.push(`${frameLabels[frameId]} C7 ${format(c7TargetPct)}%, pelvis ${format(pelvisTargetPct)}%, local-axis angle change ${format(spineAngle - baselineAngle)}°`);
+        const spineLength = Math.hypot((pelvis.x - c7.x) * aspect, pelvis.y - c7.y);
+        if (baselineSpine > 0) {
+          const changePct = Math.abs(spineLength - baselineSpine) / baselineSpine * 100;
+          projectedLengths.push(`${frameLabels[frameId]} ${format(changePct)}%`);
+          if (changePct > 25) c7Candidates.push(`${frameLabels[frameId]} projected C7–pelvis length changed ${format(changePct)}%`);
+        }
+        if (c7TargetPct > 1.5) c7Candidates.push(`${frameLabels[frameId]} C7 target-side shift ${format(c7TargetPct)}%`);
+      });
+    }
+    const sideF5C7 = getDiagnosticSemanticPoint('side', 'frame5', 'c7');
+    const sideF5Pelvis = getDiagnosticSemanticPoint('side', 'frame5', 'pelvis');
+    const sideF6C7 = getDiagnosticSemanticPoint('side', 'frame6', 'c7');
+    const sideF6Pelvis = getDiagnosticSemanticPoint('side', 'frame6', 'pelvis');
+    const sideF5 = frameStateHistory.side.frame5;
+    const sideF6 = frameStateHistory.side.frame6;
+    const sideReference = getPanelReferenceLength('side');
+    if (sideF5C7 && sideF5Pelvis && sideF6C7 && sideF6Pelvis
+      && sideF5 && sideF6 && hasMetric(sideReference) && sideReference > 0) {
+      const aspect5 = sideF5.aspectRatio || getAnalysisAspect(sideVideo);
+      const aspect6 = sideF6.aspectRatio || aspect5;
+      const c7Shift = (sideF6C7.x * aspect6 - sideF5C7.x * aspect5) * targetDirection.side / sideReference * 100;
+      const pelvisShift = (sideF6Pelvis.x * aspect6 - sideF5Pelvis.x * aspect5) * targetDirection.side / sideReference * 100;
+      const angle5 = Math.atan2((sideF5Pelvis.x - sideF5C7.x) * aspect5, Math.abs(sideF5Pelvis.y - sideF5C7.y)) * 180 / Math.PI;
+      const angle6 = Math.atan2((sideF6Pelvis.x - sideF6C7.x) * aspect6, Math.abs(sideF6Pelvis.y - sideF6C7.y)) * 180 / Math.PI;
+      sideMotion.push(`F5→F6 C7 ${format(c7Shift)}%, pelvis ${format(pelvisShift)}%, local-axis angle change ${format(angle6 - angle5)}°`);
+    }
+    add(
+      signedMotion.length || sideMotion.length
+        ? `부호 있는 공통 포인트 변위 (${handedness === 'right' ? '우타' : '좌타'}): ${signedMotion.length ? `정면 타깃 ${targetDirection.front > 0 ? '화면 오른쪽' : '화면 왼쪽'} — ${signedMotion.join(' · ')}` : ''}${signedMotion.length && sideMotion.length ? ' · ' : ''}${sideMotion.length ? `측면 타깃 ${targetDirection.side > 0 ? '화면 오른쪽' : '화면 왼쪽'} — ${sideMotion.join(' · ')}` : ''}. 로컬 축 각도는 화면상 C7–골반 2D 각도 변화입니다.`
+        : '부호 있는 공통 포인트 변위: 정면 P1 기준 C7·골반 포인트/기준선 또는 측면 F5·F6 공통 포인트/기준선이 부족합니다.',
+      signedMotion.length || sideMotion.length
+        ? `Signed common-point displacement (${handedness === 'right' ? 'right-handed' : 'left-handed'}): ${signedMotion.length ? `front target ${targetDirection.front > 0 ? 'screen right' : 'screen left'} — ${signedMotion.join(' · ')}` : ''}${signedMotion.length && sideMotion.length ? ' · ' : ''}${sideMotion.length ? `side target ${targetDirection.side > 0 ? 'screen right' : 'screen left'} — ${sideMotion.join(' · ')}` : ''}. Local-axis angle is the observed 2D C7–pelvis angle change.`
+        : 'Signed common-point displacement requires front address C7/pelvis points and reference, or side F5/F6 common points and reference.'
+    );
+    add(
+      projectedLengths.length
+        ? `2D C7–골반 투영 길이 변화(왜곡/포인트 오차 가능성 지표, 3D 복원 아님): ${projectedLengths.join(' · ')}.`
+        : '2D 세그먼트 신뢰도 지표: 비교 가능한 정면 C7–골반 포인트 쌍이 부족합니다.',
+      projectedLengths.length
+        ? `2D projected C7–pelvis length change (possible distortion/point-placement indicator, not 3D reconstruction): ${projectedLengths.join(' · ')}.`
+        : '2D segment reliability indicator: not enough comparable front-view C7–pelvis pairs.'
+    );
+
+    add(
+      c7Candidates.length
+        ? `2D 관측 변화 후보(점수 미반영): ${c7Candidates.join(' · ')}. 이 값만으로 리버스 스파인이나 실제 3D 회전을 진단하지 않습니다. 수동 선택 단계 간 변화이므로 연속 3프레임 지속성은 판정하지 않습니다.`
+        : '현재 포인트에서 큰 2D 관측 변화 후보는 확인되지 않았습니다. 포인트가 부족하거나 연속 원본 프레임 추적이 없으면 지속성은 판정하지 않습니다.',
+      c7Candidates.length
+        ? `2D observation-change candidates (not scored): ${c7Candidates.join(' · ')}. These values alone do not diagnose reverse spine or actual 3D rotation. They compare manually selected phases, so persistence across three consecutive source frames is not assessed.`
+        : 'No large 2D observation-change candidate was identified from the available points. Persistence is not assessed when points are missing or continuous source-frame tracking is unavailable.'
+    );
+    add(
+      '점수 반영: 없음. 기존 P1–P7 분석·점수 산식은 이 진단 결과를 읽거나 적용하지 않습니다.',
+      'Scoring: none. Existing P1–P7 analysis and score formulas do not read or apply these diagnostics.'
+    );
+    add(
+      `키 환산: ${Number.isFinite(Number(analysisHeightInput?.value)) && Number(analysisHeightInput.value) > 0 ? `${analysisHeightInput.value} cm 입력됨` : '키 미입력'}. cm 참고치는 머리–발 기준선이 수직 신장과 같다고 보장되지 않으며 깊이 원근을 보정하지 않습니다.`,
+      `Height conversion: ${Number.isFinite(Number(analysisHeightInput?.value)) && Number(analysisHeightInput.value) > 0 ? `${analysisHeightInput.value} cm entered` : 'height not entered'}. The head-to-foot reference is not guaranteed to equal vertical stature and does not correct depth perspective.`
+    );
+
+    resultList.replaceChildren(...output.map(text => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      return item;
+    }));
+  }
   function reuseSharedFramePoints(frameId, view) {
     if (frameEditMode || frameStateHistory[view][frameId]) return { count: 0, sources: [] };
     const group = getReusableFrameGroup(frameId, view);
@@ -4225,6 +4493,7 @@
       refreshStoredFrameAnalyses();
       if (!backswingActive) saveBackswingClassificationCache();
     }
+    update2dCorrectionDiagnostics();
   }
 
   function refreshStoredFrameAnalyses() {
@@ -6308,7 +6577,7 @@
     const frames = [
       { id: 'frame1', label: getSwingUiText('Frame 1 — 백스윙 탑·축 고정/꼬임', 'Frame 1 — Top of backswing, axis stability and coil') },
       { id: 'frame2', label: getSwingUiText('Frame 2 — 래깅·코어 이동', 'Frame 2 — Lag and core shift') },
-      { id: 'frame3', label: getSwingUiText('Frame 3 — 다운스윙 후기·지면반력 참고', 'Frame 3 — Late downswing and ground-force proxies') },
+      { id: 'frame3', label: getSwingUiText('Frame 3 — 다운스윙 후기·지면반력', 'Frame 3 — Late downswing and ground-force proxies') },
       { id: 'frame4', label: getSwingUiText('Frame 4 — 임팩트 정렬·반경', 'Frame 4 — Impact alignment and radius') },
       { id: 'frame5', label: getSwingUiText('Frame 5 — 일관성', 'Frame 5 — Consistency') },
       { id: 'frame6', label: getSwingUiText('Frame 6 — 리듬·템포·시퀀스', 'Frame 6 — Rhythm, tempo and sequence') },
@@ -8202,9 +8471,16 @@
     validateBodyComposition();
     distanceMeasureActive = false;
     distanceReferenceActive = false;
+    stanceReferenceActive = false;
+    stanceReferencePendingPoints = [];
+    stanceReferenceLineFront = null;
     distanceReferencePendingPoints = { front: [], side: [] };
     distanceMeasureBtn.textContent = translateUiText('거리 산출');
     distanceReferenceBtn.textContent = translateUiText('기준선 지정');
+    if (stanceReferenceBtn) {
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+    }
     distanceMeasureBtn.style.background = distanceMeasureBtn.style.borderColor = '';
     distanceReferenceBtn.style.background = distanceReferenceBtn.style.borderColor = '';
     activePointer = null;
@@ -8226,6 +8502,7 @@
     distanceLinesByView = { front: [], side: [] };
     distancePendingPoints = { front: [], side: [] };
     distanceReferenceLinesByView = { front: null, side: null };
+    stanceReferenceLineFront = null;
     frame1ReferenceSnapshot = { front: null, side: null };
     // 히스토리 초기화
     baselineFrontResult = null;
@@ -9348,6 +9625,9 @@
   let distanceLinesByView = { front: [], side: [] };
   let distanceReferencePendingPoints = { front: [], side: [] };
   let distanceReferenceLinesByView = { front: null, side: null };
+  let stanceReferenceLineFront = null;
+  let stanceReferencePendingPoints = [];
+  let stanceReferenceActive = false;
   let distanceReferenceFlashTimer = null;
   let frontZoom = 1;
   let sideZoom = 1;
@@ -10674,6 +10954,27 @@
       ctx.fillText(translateUiText('기준선'), (startX + endX) / 2, (startY + endY) / 2 + 6 * scale);
       ctx.restore();
     }
+    if (view === 'front' && selectedSegment === 'frame1' && stanceReferenceLineFront) {
+      const startX = metrics.offsetX + stanceReferenceLineFront.start.x * metrics.drawWidth;
+      const startY = metrics.offsetY + stanceReferenceLineFront.start.y * metrics.drawHeight;
+      const endX = metrics.offsetX + stanceReferenceLineFront.end.x * metrics.drawWidth;
+      const endY = metrics.offsetY + stanceReferenceLineFront.end.y * metrics.drawHeight;
+      ctx.save();
+      ctx.strokeStyle = '#7ce7ff';
+      ctx.fillStyle = '#7ce7ff';
+      ctx.lineWidth = lineWidth * 1.5;
+      ctx.setLineDash([7 * scale, 5 * scale]);
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = `bold ${Math.max(11 * scale, 11)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(translateUiText('P1 양발 기준축'), (startX + endX) / 2, (startY + endY) / 2 + 6 * scale);
+      ctx.restore();
+    }
     const pending = distancePendingPoints[view];
     if (pending.length > 0) {
       const x = metrics.offsetX + pending[0].x * metrics.drawWidth;
@@ -10694,6 +10995,20 @@
       const y = metrics.offsetY + referencePending[0].y * metrics.drawHeight;
       ctx.save();
       ctx.fillStyle = '#ffd54a';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (view === 'front' && selectedSegment === 'frame1' && stanceReferencePendingPoints.length > 0) {
+      const point = stanceReferencePendingPoints[0];
+      const x = metrics.offsetX + point.x * metrics.drawWidth;
+      const y = metrics.offsetY + point.y * metrics.drawHeight;
+      ctx.save();
+      ctx.fillStyle = '#7ce7ff';
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = lineWidth;
       ctx.beginPath();
@@ -10924,6 +11239,7 @@
     if (!type) return;
     points.push({ x: pos.x, y: pos.y, type });
     saveFrameInputState(view);
+    update2dCorrectionDiagnostics();
     drawOverlay(ctx, points, lines, canvas, video, zoom);
     // 실제 클릭한 점 수에 안내 STEP을 맞춰 "다음" 버튼을 안 눌러도 안내 문구가 밀리지 않도록 동기화
     if (view && guideView === view) {
@@ -11018,7 +11334,31 @@
     // 기준선을 방금 확정했으므로 C7 변위(%) 계산이 추가 클릭 없이 즉시 반영되도록 재평가
     if (selectedSegment === 'frame1') captureFrame1ReferenceSnapshot();
     if (baselineFrontResult && frontVideo.src && sideVideo.src) performAnalysis();
+    update2dCorrectionDiagnostics();
     finishDistanceReferenceSelection();
+  }
+
+  function finishStanceReferenceSelection(start, end, ctx, canvas, video, zoom) {
+    stanceReferenceLineFront = { start: { ...start }, end: { ...end } };
+    stanceReferencePendingPoints = [];
+    stanceReferenceActive = false;
+    if (stanceReferenceBtn) {
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+    }
+    drawOverlay(ctx, frontPoints, frontLines, canvas, video, zoom);
+    update2dCorrectionDiagnostics();
+  }
+
+  function addStanceReferencePoint(pos, ctx, canvas, video, zoom) {
+    stanceReferencePendingPoints.push(pos);
+    if (stanceReferencePendingPoints.length < 2) {
+      drawOverlay(ctx, frontPoints, frontLines, canvas, video, zoom);
+      return;
+    }
+    finishStanceReferenceSelection(
+      stanceReferencePendingPoints[0], stanceReferencePendingPoints[1], ctx, canvas, video, zoom
+    );
   }
 
   function deleteDistanceSelection(view, pos, ctx, canvas, video, zoom){
@@ -11089,6 +11429,22 @@
         if (!activePointer || !activePointer.compareMode || pointerIsDragging) return;
         longPressTriggered = deleteSwingComparePoint(view, pos);
       }, LONG_PRESS_MS);
+      if (!captureActivePointer(event, canvas)) return;
+      return;
+    }
+    if (stanceReferenceActive) {
+      if (view !== 'front' || selectedSegment !== 'frame1') {
+        if (statusSpan) statusSpan.textContent = getSwingUiText(
+          '양발 기준선은 정면 영상의 P1 어드레스에서 지정하세요.',
+          'Set the stance line in the front-view P1 address frame.'
+        );
+        return;
+      }
+      activePointer = {
+        stanceMode: true, points, lines, ctx, canvas, video, zoomGetter, view,
+        startPos: pos, currentPos: pos, pointerId: event.pointerId
+      };
+      pointerIsDragging = false;
       if (!captureActivePointer(event, canvas)) return;
       return;
     }
@@ -11183,6 +11539,11 @@
         drawOverlay(ctx, points, lines, canvas, video, zoom, { start: startPos, end: pos });
         return;
       }
+      if (activePointer.stanceMode) {
+        activePointer.currentPos = pos;
+        drawOverlay(ctx, points, lines, canvas, video, zoom, { start: startPos, end: pos });
+        return;
+      }
       activePointer.currentPos = pos;
       drawOverlay(ctx, points, lines, canvas, video, zoom, { start: startPos, end: pos });
     }
@@ -11205,6 +11566,20 @@
       const pos = getNormalizedCoords(event, canvas, video, zoomGetter());
       if (!longPressTriggered && pos && !pointerIsDragging) addSwingComparePoint(view, pos);
       longPressTriggered = false;
+      activePointer = null;
+      pointerIsDragging = false;
+      releasePointerCaptureSafely(canvas, event.pointerId);
+      return;
+    }
+    if (activePointer.stanceMode) {
+      const { ctx, canvas, video, zoomGetter, startPos, currentPos } = activePointer;
+      const pos = getNormalizedCoords(event, canvas, video, zoomGetter());
+      const endPos = pos && pointerIsDragging ? pos : currentPos;
+      if (pointerIsDragging && Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y) > 0.01) {
+        finishStanceReferenceSelection(startPos, endPos, ctx, canvas, video, zoomGetter());
+      } else {
+        addStanceReferencePoint(startPos, ctx, canvas, video, zoomGetter());
+      }
       activePointer = null;
       pointerIsDragging = false;
       releasePointerCaptureSafely(canvas, event.pointerId);
@@ -11424,6 +11799,7 @@
     distancePendingPoints.front = [];
     distanceReferencePendingPoints.front = [];
     distanceReferenceLinesByView.front = null;
+    stanceReferenceLineFront = null;
     frame1ReferenceSnapshot.front = null;
     frontZoom = 1;
     frontZoomRange.value = frontZoom;
@@ -11911,8 +12287,44 @@
   }
   if (analysisHeightInput) {
     analysisHeightInput.addEventListener('input', refreshSwingClassificationViews);
-    analysisHeightInput.addEventListener('change', () => performAnalysis());
+    analysisHeightInput.addEventListener('input', update2dCorrectionDiagnostics);
+    analysisHeightInput.addEventListener('change', () => {
+      performAnalysis();
+      update2dCorrectionDiagnostics();
+    });
   }
+  const refresh2dDiagnosticsButton = document.getElementById('refresh2dDiagnostics');
+  if (refresh2dDiagnosticsButton) refresh2dDiagnosticsButton.addEventListener('click', update2dCorrectionDiagnostics);
+  const stanceReferenceBtn = document.getElementById('stanceReferenceBtn');
+  if (stanceReferenceBtn) stanceReferenceBtn.addEventListener('click', () => {
+    if (selectedSegment !== 'frame1') {
+      alert(getSwingUiText('정면 P1 어드레스 프레임에서 지정하세요.', 'Set the line at front-view P1 address.'));
+      return;
+    }
+    stanceReferenceActive = !stanceReferenceActive;
+    stanceReferencePendingPoints = [];
+    if (distanceReferenceActive) {
+      distanceReferenceActive = false;
+      distanceReferenceBtn.textContent = translateUiText('기준선 지정');
+      distanceReferenceBtn.style.background = distanceReferenceBtn.style.borderColor = '';
+    }
+    distanceMeasureActive = false;
+    distanceMeasureBtn.textContent = translateUiText('거리 산출');
+    distanceMeasureBtn.style.background = distanceMeasureBtn.style.borderColor = '';
+    stanceReferenceBtn.textContent = translateUiText(
+      stanceReferenceActive ? '양발선의 양 끝을 클릭하거나 드래그하세요.' : '정면 P1 양발 기준선 지정'
+    );
+    stanceReferenceBtn.setAttribute('aria-pressed', String(stanceReferenceActive));
+    drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+    if (statusSpan) statusSpan.textContent = stanceReferenceActive
+      ? getSwingUiText('정면 영상 P1에서 양발 연결선을 두 번 클릭하거나 드래그하세요.',
+        'Click both ends or drag along the stance line in the front-view P1 frame.')
+      : '';
+  });
+  ['analysis2dFrontTarget', 'analysis2dSideTarget', 'analysis2dHandedness'].forEach(id => {
+    const control = document.getElementById(id);
+    if (control) control.addEventListener('change', update2dCorrectionDiagnostics);
+  });
   [analysisBodyMassInput, analysisLeanMassInput, analysisBodyFatInput, analysisPlayerCodeInput, analysisKnownDistanceInput].forEach(input => {
     if (input) input.addEventListener('input', refreshSwingClassificationViews);
   });
@@ -11992,6 +12404,12 @@
   if (analysisSegmentSelect) {
     analysisSegmentSelect.addEventListener('change', (e) => {
       cancelPointer();
+      stanceReferenceActive = false;
+      stanceReferencePendingPoints = [];
+      if (stanceReferenceBtn) {
+        stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+        stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+      }
       if (backswingActive) setBackswingMode(false);
       if (swingCompareActive) toggleSwingCompareMode();
       if (motionAnalysisFrame !== null) {
@@ -12194,6 +12612,7 @@
         sideLines,
         distanceLinesByView,
         distanceReferenceLinesByView,
+        stanceReferenceLineFront,
         frame1ReferenceSnapshot,
         height: analysisHeightInput.value,
         athleteData: {
@@ -12325,6 +12744,9 @@
       || !state.segmentScoreHistory || typeof state.segmentScoreHistory !== 'object' || Array.isArray(state.segmentScoreHistory)
       || !state.distanceReferenceLinesByView
       || !isProjectReferenceLines(state.distanceReferenceLinesByView)
+      || (state.stanceReferenceLineFront != null
+        && (!isProjectCoordinate(state.stanceReferenceLineFront.start)
+          || !isProjectCoordinate(state.stanceReferenceLineFront.end)))
       || !state.distanceLinesByView || typeof state.distanceLinesByView !== 'object' || Array.isArray(state.distanceLinesByView)
       || !['front', 'side'].every(view =>
         Array.isArray(state.distanceLinesByView[view]) && state.distanceLinesByView[view].length <= 100
@@ -12478,6 +12900,10 @@
     distanceReferenceBtn.textContent = translateUiText('기준선 지정');
     distanceMeasureBtn.style.background = distanceMeasureBtn.style.borderColor = '';
     distanceReferenceBtn.style.background = distanceReferenceBtn.style.borderColor = '';
+    if (stanceReferenceBtn) {
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+    }
     activePointer = null;
     pointerIsDragging = false;
     lastTapTime = 0;
@@ -12488,6 +12914,14 @@
     clearDerivedAnalysisState();
     distanceLinesByView = copyProjectValue(state.distanceLinesByView);
     distanceReferenceLinesByView = copyProjectValue(state.distanceReferenceLinesByView);
+    stanceReferenceLineFront = state.stanceReferenceLineFront
+      ? copyProjectValue(state.stanceReferenceLineFront) : null;
+    stanceReferencePendingPoints = [];
+    stanceReferenceActive = false;
+    if (stanceReferenceBtn) {
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+    }
     frame1ReferenceSnapshot = copyProjectValue(state.frame1ReferenceSnapshot);
     selectedSegment = state.selectedSegment;
     analysisSegmentSelect.value = selectedSegment;
@@ -12609,6 +13043,7 @@
     updateSwingCompareResults();
     drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
     drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+    update2dCorrectionDiagnostics();
     if (hasFrameInputs) refreshStoredFrameAnalyses();
 
     r10Shots = copyProjectValue(project.r10.shots);
