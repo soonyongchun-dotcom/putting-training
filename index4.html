@@ -2025,7 +2025,7 @@
     </div>
     <div class="analysis-summary" id="analysisSummary"></div>
     <details class="analysis-2d-diagnostics" id="analysis2dDiagnostics">
-      <summary>2D 왜곡 최소화 진단 (참고 전용 · 기존 지표/점수 미변경)</summary>
+      <summary>2D 왜곡 최소화 진단 (가상 roll 보정 결과 · 공식 점수 미변경)</summary>
       <div class="analysis-2d-diagnostics-body">
         <div class="analysis-2d-diagnostics-controls">
           <label>정면 타깃 방향
@@ -2053,8 +2053,8 @@
           <li>프레임 포인트가 입력되면 참고 진단을 표시합니다.</li>
         </ol>
         <p class="analysis-2d-diagnostics-note">
-          이 패널은 저장된 수동 포인트를 사용해 정렬 가능성·부호 있는 상대 변위·투영 세그먼트 변화만 참고 표시합니다.
-          발목 지면선이 수집되지 않으면 카메라 회전을 추정하지 않으며, 3D 복원·점수 감점·기존 지표 변경은 수행하지 않습니다.
+          가상 점수는 지정한 정면 P1 양발선을 카메라 roll로 간주해 정면 좌표만 수평 회전한 뒤 기존 분석 산식으로 재계산합니다.
+          실제 카메라 roll이라는 보장은 없고 측면 좌표는 회전하지 않습니다. 따라서 이 결과는 가정 기반 비교이며 공식 점수·저장 포인트는 변경하지 않습니다.
         </p>
       </div>
     </details>
@@ -3674,6 +3674,9 @@
     frame5: null,
     frame6: null,
   };
+  let computing2dCorrectionScenario = false;
+  let cached2dCorrectionScenarioKey = null;
+  let cached2dCorrectionScenario = null;
 
   // Frame-specific landmark type assignment
   // Frame 1: p1=C7, p2=정수리(Head), p3=골반중심(MidHip)
@@ -3734,6 +3737,7 @@
       || (frameId === 'frame2' && index === 0 && point.type === 'wrist')) || null;
   }
   function update2dCorrectionDiagnostics() {
+    if (computing2dCorrectionScenario) return;
     const resultList = document.getElementById('analysis2dDiagnosticsResults');
     if (!resultList) return;
     const targetDirection = {
@@ -3877,9 +3881,73 @@
         : 'No large 2D observation-change candidate was identified from the available points. Persistence is not assessed when points are missing or continuous source-frame tracking is unavailable.'
     );
     add(
-      '점수 반영: 없음. 기존 P1–P7 분석·점수 산식은 이 진단 결과를 읽거나 적용하지 않습니다.',
-      'Scoring: none. Existing P1–P7 analysis and score formulas do not read or apply these diagnostics.'
+      '공식 점수는 기존 결과를 유지합니다. 아래 정면 roll 보정 점수와 엔진 유형은 정면 P1 양발선을 수평으로 가정한 별도 가상 재계산이며, 측면 영상은 회전 보정하지 않습니다.',
+      'Official scores remain unchanged. The front-roll-adjusted scores and engine type below are a separate simulation that assumes the P1 stance line is level; side-view footage is not rotation-corrected.'
     );
+    const diagnosticsPanel = document.getElementById('analysis2dDiagnostics');
+    const correctionScenario = stanceReferenceLineFront && diagnosticsPanel?.open
+      ? get2dVirtualCorrectionScenario() : null;
+    const originalEngineResult = classifySwingType();
+    const originalEngineDecision = originalEngineResult ? getPowerEngineDecision(originalEngineResult) : null;
+    const engineText = (decision, result) => {
+      const code = decision?.code || getSwingUiText('판정 보류', 'Undetermined');
+      if (!result?.pct) return code;
+      return `${code} (ATE ${format(result.pct.type1)}% · LSE ${format(result.pct.type2)}% · VEE ${format(result.pct.type3)}%)`;
+    };
+    const phaseLabels = {
+      frame1: getSwingUiText('P1 주소→백스윙 탑(P4)', 'P1 address → backswing top (P4)'),
+      frame2: getSwingUiText('P1 주소→다운스윙 중기(P6)', 'P1 address → mid-downswing (P6)'),
+      frame3: getSwingUiText('다운스윙 후기→임팩트 직전(P7)', 'late downswing → just before impact (P7)'),
+      frame4: getSwingUiText('P1 주소 기준→임팩트(P7)', 'P1 address reference → impact (P7)'),
+      frame5: getSwingUiText('P1 주소→다운스윙 중기(P6)', 'P1 address → mid-downswing (P6)'),
+      frame6: getSwingUiText('다운스윙 중기(P6)→임팩트(P7)', 'mid-downswing (P6) → impact (P7)'),
+    };
+    const scoreRows = frameIds.map(frameId => {
+      const originalScore = segmentScoreHistory[frameId];
+      const correctedScore = correctionScenario?.scores?.[frameId];
+      const scale = ['frame5', 'frame6'].includes(frameId) ? 10 : 1;
+      const suffix = scale === 10 ? '/100' : '/10';
+      const originalValue = hasMetric(originalScore)
+        ? `${format(originalScore * scale)} ${suffix}` : getSwingUiText('미측정', 'not measured');
+      const correctedValue = hasMetric(correctedScore)
+        ? `${format(correctedScore * scale)} ${suffix}` : getSwingUiText('산출 불가', 'not available');
+      return {
+        current: `${frameLabels[frameId]} (${phaseLabels[frameId]}): ${originalValue}`,
+        comparison: `${frameLabels[frameId]} (${phaseLabels[frameId]}): ${originalValue} → ${correctedValue}`,
+      };
+    });
+    add(
+      correctionScenario?.unavailable
+        ? `${correctionScenario.unavailable} F1–F6 현재 점수: ${scoreRows.map(row => row.current).join(' · ')}.`
+        : correctionScenario
+          ? `F1–F6 점수 (기존 → 정면 roll 가상 보정): ${scoreRows.map(row => row.comparison).join(' · ')}. P2/P3는 독립 점수 항목이 아닙니다.`
+          : `F1–F6 점수 (기존): ${scoreRows.map(row => row.current).join(' · ')}. 가상 보정 결과는 정면 P1 양발선을 지정하고 이 패널을 연 상태에서 계산됩니다.`,
+      correctionScenario?.unavailable
+        ? `${correctionScenario.unavailable} Current F1–F6 scores: ${scoreRows.map(row => row.current).join(' · ')}.`
+        : correctionScenario
+          ? `F1–F6 scores (original → virtual front-roll correction): ${scoreRows.map(row => row.comparison).join(' · ')}. P2/P3 do not have standalone score items.`
+          : `F1–F6 scores (original): ${scoreRows.map(row => row.current).join(' · ')}. To calculate the virtual result, mark the front P1 stance line and open this panel.`
+    );
+    if (correctionScenario && !correctionScenario.unavailable) {
+      const virtualEngineResult = correctionScenario.engineShares
+        ? { pct: correctionScenario.engineShares } : null;
+      const virtualEngineDecision = correctionScenario.engineCode
+        ? { code: correctionScenario.engineCode, mode: correctionScenario.engineMode } : null;
+      add(
+        `스윙 파워 엔진 유형 (현재 → 정면 roll 가상 보정): ${engineText(originalEngineDecision, originalEngineResult)} → ${engineText(virtualEngineDecision, virtualEngineResult)}. 측면 원본 지표는 회전 보정하지 않았습니다.`,
+        `Swing power engine (current → virtual front-roll correction): ${engineText(originalEngineDecision, originalEngineResult)} → ${engineText(virtualEngineDecision, virtualEngineResult)}. Side-view metrics remain uncorrected.`
+      );
+    } else if (correctionScenario?.unavailable) {
+      add(
+        `스윙 파워 엔진 유형 (현재): ${engineText(originalEngineDecision, originalEngineResult)}. 가상 재판정은 수행하지 못했습니다.`,
+        `Swing power engine (current): ${engineText(originalEngineDecision, originalEngineResult)}. Virtual reclassification was not available.`
+      );
+    } else {
+      add(
+        `스윙 파워 엔진 유형 (현재): ${engineText(originalEngineDecision, originalEngineResult)}. 가상 보정 엔진 유형은 정면 P1 양발선 지정 후 표시됩니다.`,
+        `Swing power engine (current): ${engineText(originalEngineDecision, originalEngineResult)}. The virtual corrected engine type will appear after marking the front P1 stance line.`
+      );
+    }
     add(
       `키 환산: ${Number.isFinite(Number(analysisHeightInput?.value)) && Number(analysisHeightInput.value) > 0 ? `${analysisHeightInput.value} cm 입력됨` : '키 미입력'}. cm 참고치는 머리–발 기준선이 수직 신장과 같다고 보장되지 않으며 깊이 원근을 보정하지 않습니다.`,
       `Height conversion: ${Number.isFinite(Number(analysisHeightInput?.value)) && Number(analysisHeightInput.value) > 0 ? `${analysisHeightInput.value} cm entered` : 'height not entered'}. The head-to-foot reference is not guaranteed to equal vertical stature and does not correct depth perspective.`
@@ -4526,6 +4594,167 @@
     const b = frameStateHistory.side[selectedSegment];
     performAnalysis(false, { a: a?.videoTime ?? null, b: b?.videoTime ?? null });
     showGuide();
+  }
+
+  function get2dVirtualCorrectionScenario() {
+    if (!stanceReferenceLineFront || !frameStateHistory.front.frame1) {
+      return { unavailable: getSwingUiText(
+        '가상 보정 점수: 정면 P1 양발 기준선을 지정한 뒤 계산할 수 있습니다.',
+        'Virtual corrected scores require a manually marked front P1 stance line.'
+      ) };
+    }
+
+    const cacheKey = JSON.stringify({
+      stanceReferenceLineFront,
+      frameStateHistory,
+      frame1ReferenceSnapshot,
+      distanceReferenceLinesByView,
+      videoFileIdentity,
+      backswingClassification,
+    });
+    if (cacheKey === cached2dCorrectionScenarioKey && cached2dCorrectionScenario) {
+      return cached2dCorrectionScenario;
+    }
+
+    const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
+    const savedState = {
+      frameStateHistory: clone(frameStateHistory),
+      frameMetricsHistory: clone(frameMetricsHistory),
+      frameSideMetricsHistory: clone(frameSideMetricsHistory),
+      segmentScoreHistory: clone(segmentScoreHistory),
+      segmentDeltaHistory: clone(segmentDeltaHistory),
+      baselineFrontResult: clone(baselineFrontResult),
+      frame1ReferenceSnapshot: clone(frame1ReferenceSnapshot),
+      selectedSegment,
+      frontPoints: clone(frontPoints),
+      frontLines: clone(frontLines),
+      sidePoints: clone(sidePoints),
+      sideLines: clone(sideLines),
+      frameEditMode,
+      guideView,
+      guideStep,
+    };
+    const aspect = savedState.frameStateHistory.front.frame1.aspectRatio
+      || getAnalysisAspect(frontVideo);
+    const dx = (stanceReferenceLineFront.end.x - stanceReferenceLineFront.start.x) * aspect;
+    const dy = stanceReferenceLineFront.end.y - stanceReferenceLineFront.start.y;
+    const angle = Math.atan2(dy, dx);
+    const cosine = Math.cos(angle);
+    const sine = Math.sin(angle);
+    const rotatePoint = (point, frameAspect) => {
+      const x = (point.x - 0.5) * frameAspect;
+      const y = point.y - 0.5;
+      return {
+        ...point,
+        x: (cosine * x + sine * y) / frameAspect + 0.5,
+        y: -sine * x + cosine * y + 0.5,
+      };
+    };
+    let result = null;
+    let calculationError = null;
+    let restoreError = null;
+    computing2dCorrectionScenario = true;
+    try {
+      frameStateHistory = clone(savedState.frameStateHistory);
+      Object.values(frameStateHistory.front).forEach(entry => {
+        if (!entry) return;
+        const frameAspect = entry.aspectRatio || aspect;
+        entry.points = entry.points.map(point => rotatePoint(point, frameAspect));
+        entry.lines = entry.lines.map(line => ({
+          ...line,
+          start: rotatePoint(line.start, frameAspect),
+          end: rotatePoint(line.end, frameAspect),
+        }));
+      });
+      selectedSegment = savedState.selectedSegment;
+      const activeFrontFrame = frameStateHistory.front[selectedSegment];
+      const activeSideFrame = frameStateHistory.side[selectedSegment];
+      frontPoints = activeFrontFrame?.points || [];
+      frontLines = activeFrontFrame?.lines || [];
+      sidePoints = activeSideFrame?.points || [];
+      sideLines = activeSideFrame?.lines || [];
+      baselineFrontResult = null;
+      frameMetricsHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
+      frameSideMetricsHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
+      segmentScoreHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
+      segmentDeltaHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
+      refreshStoredFrameAnalyses();
+      const engineResult = classifySwingType();
+      const engineDecision = engineResult ? getPowerEngineDecision(engineResult) : null;
+      result = {
+        scores: clone(segmentScoreHistory),
+        engineCode: engineDecision?.code || null,
+        engineMode: engineDecision?.mode || 'undetermined',
+        engineShares: engineResult?.pct || null,
+        engineMissing: engineResult?.missingEngineEvidence || [],
+        rotationDeg: angle * 180 / Math.PI,
+      };
+    } catch (error) {
+      calculationError = error;
+    } finally {
+      try {
+        frameStateHistory = clone(savedState.frameStateHistory);
+        frameMetricsHistory = clone(savedState.frameMetricsHistory);
+        frameSideMetricsHistory = clone(savedState.frameSideMetricsHistory);
+        segmentScoreHistory = clone(savedState.segmentScoreHistory);
+        segmentDeltaHistory = clone(savedState.segmentDeltaHistory);
+        baselineFrontResult = clone(savedState.baselineFrontResult);
+        frame1ReferenceSnapshot = clone(savedState.frame1ReferenceSnapshot);
+        selectedSegment = savedState.selectedSegment;
+        frontPoints = clone(savedState.frontPoints);
+        frontLines = clone(savedState.frontLines);
+        sidePoints = clone(savedState.sidePoints);
+        sideLines = clone(savedState.sideLines);
+        frameEditMode = savedState.frameEditMode;
+        guideView = savedState.guideView;
+        guideStep = savedState.guideStep;
+        refreshStoredFrameAnalyses();
+      } catch (error) {
+        restoreError = error;
+      } finally {
+        frameStateHistory = clone(savedState.frameStateHistory);
+        frameMetricsHistory = clone(savedState.frameMetricsHistory);
+        frameSideMetricsHistory = clone(savedState.frameSideMetricsHistory);
+        segmentScoreHistory = clone(savedState.segmentScoreHistory);
+        segmentDeltaHistory = clone(savedState.segmentDeltaHistory);
+        baselineFrontResult = clone(savedState.baselineFrontResult);
+        frame1ReferenceSnapshot = clone(savedState.frame1ReferenceSnapshot);
+        selectedSegment = savedState.selectedSegment;
+        frontPoints = clone(savedState.frontPoints);
+        frontLines = clone(savedState.frontLines);
+        sidePoints = clone(savedState.sidePoints);
+        sideLines = clone(savedState.sideLines);
+        frameEditMode = savedState.frameEditMode;
+        guideView = savedState.guideView;
+        guideStep = savedState.guideStep;
+        if (restoreError) {
+          try {
+            const front = frameStateHistory.front[selectedSegment];
+            const side = frameStateHistory.side[selectedSegment];
+            performAnalysis(false, { a: front?.videoTime ?? null, b: side?.videoTime ?? null });
+          } catch (error) {
+            restoreError = error;
+          }
+        }
+        computing2dCorrectionScenario = false;
+        updateSegmentScoresDisplay();
+        updateAllFramesMetricBar();
+      }
+    }
+
+    if (calculationError || restoreError) {
+      const error = restoreError || calculationError;
+      console.error('2D 가상 보정 결과 계산 실패', error);
+      return {
+        unavailable: getSwingUiText(
+          '가상 보정 점수를 다시 계산하지 못했습니다. 원본 점수는 유지했습니다.',
+          'Could not calculate the virtual corrected scores. Original scores were preserved.'
+        ),
+      };
+    }
+    cached2dCorrectionScenarioKey = cacheKey;
+    cached2dCorrectionScenario = result;
+    return result;
   }
 
   function hasProjectFrameInputs(state) {
@@ -12294,7 +12523,30 @@
     });
   }
   const refresh2dDiagnosticsButton = document.getElementById('refresh2dDiagnostics');
-  if (refresh2dDiagnosticsButton) refresh2dDiagnosticsButton.addEventListener('click', update2dCorrectionDiagnostics);
+  if (refresh2dDiagnosticsButton) refresh2dDiagnosticsButton.addEventListener('click', () => {
+    if (computing2dCorrectionScenario) return;
+    refresh2dDiagnosticsButton.disabled = true;
+    refresh2dDiagnosticsButton.setAttribute('aria-busy', 'true');
+    window.setTimeout(() => {
+      try {
+        cached2dCorrectionScenarioKey = null;
+        cached2dCorrectionScenario = null;
+        update2dCorrectionDiagnostics();
+        refresh2dDiagnosticsButton.textContent = translateUiText('갱신 완료', 'Updated');
+      } catch (error) {
+        console.error('2D 진단 갱신 실패', error);
+        refresh2dDiagnosticsButton.textContent = translateUiText('갱신 실패', 'Update failed');
+      } finally {
+        refresh2dDiagnosticsButton.disabled = false;
+        refresh2dDiagnosticsButton.removeAttribute('aria-busy');
+        window.setTimeout(() => {
+          refresh2dDiagnosticsButton.textContent = translateUiText('2D 진단 갱신', 'Refresh 2D diagnostics');
+        }, 1500);
+      }
+    }, 0);
+  });
+  const analysis2dDiagnostics = document.getElementById('analysis2dDiagnostics');
+  if (analysis2dDiagnostics) analysis2dDiagnostics.addEventListener('toggle', update2dCorrectionDiagnostics);
   const stanceReferenceBtn = document.getElementById('stanceReferenceBtn');
   if (stanceReferenceBtn) stanceReferenceBtn.addEventListener('click', () => {
     if (selectedSegment !== 'frame1') {
