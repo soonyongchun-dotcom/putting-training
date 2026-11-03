@@ -8,6 +8,11 @@ const start = html.indexOf('  const ANALYSIS_WORKFLOW_STEPS =');
 const end = html.indexOf('\n</script>', start);
 assert.ok(start > 0 && end > start);
 
+test('workflow does not forcibly hide the title-triggered swing profile introduction', () => {
+  assert.doesNotMatch(html, /body\[data-workflow-stage\] #appIntroPanel/);
+  assert.match(html, /appIntroToggleBtn\.addEventListener\('click', \(\) => setAppIntroOpen\(appIntroPanel.hidden\)\)/);
+});
+
 test('A/B comparison remains accessible outside the stage-specific analysis toolbar', () => {
   assert.match(html, /workflowFiles\.append\(swingCompareToggleBtn\)/);
   assert.doesNotMatch(html, /body\[data-workflow-stage\] #swingCompare(?:Panel|ToggleBtn)/);
