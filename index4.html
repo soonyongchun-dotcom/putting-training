@@ -1940,6 +1940,7 @@
 </nav>
 <section class="analysis-workflow" id="analysisWorkflow" aria-label="분석 안내">
   <div id="analysisWorkflowFiles" class="analysis-toolbar" aria-label="분석 파일"></div>
+  <button type="button" id="analysisWorkflowReset">초기화·재분석</button>
   <div id="analysisWorkflowBody" hidden>
     <p id="analysisWorkflowEngineNotice" hidden></p>
     <div id="analysisWorkflowStatus" role="status" aria-live="polite" hidden></div>
@@ -2410,6 +2411,7 @@
     '분석 안내로 돌아가기': 'Return to analysis guide',
     '📁 R10 데이터 업로드': '📁 Upload R10 data',
     '분석 진행 단계': 'Analysis stages',
+    '초기화·재분석': 'Reset and reanalyze',
     '유형 결정 후 같은 A 영상을 다시 불러오면 백스윙 입력을 종료하고 포인트·판정을 유지합니다. 다른 백스윙 영상을 입력하거나 백스윙을 초기화하면 기존 판정은 지워집니다.': 'After classification, reloading the same A video ends backswing input while preserving checkpoints and the decision. Selecting a different backswing video or resetting backswing clears the previous decision.',
     '2D 왜곡 최소화 진단': '2D Distortion-Minimization Diagnostics',
     '참고 전용 · 기존 지표/점수 미변경': 'Reference only · existing metrics/scores unchanged',
@@ -7417,6 +7419,7 @@
   }
 
   function refreshSwingClassificationViews() {
+    invalidateLinkedAnalysisReports();
     refreshAnalysisWorkflow();
     renderPlayerReferenceComparison();
     if (!analysisSwingType) return;
@@ -14136,6 +14139,7 @@
     if (!analysis.shots.some(shot => shot.shotNo === r10SelectedShotNo)) r10SelectedShotNo = analysis.shots.find(shot => shot.isOutlier)?.shotNo || analysis.shots[0].shotNo;
     renderR10SelectedShot(analysis);
     drawR10Dispersion(analysis);
+    refreshSwingClassificationViews();
   }
 
   function renderR10OutlierTable(analysis) {
@@ -14751,6 +14755,7 @@
     r10Dashboard.hidden = true; r10ClearBtn.disabled = true; r10ReportOpenBtn.disabled = true;
     r10ReportPreview.hidden = true; r10GeneratedReport = null;
     setR10Status(r10Text('CSV를 불러오면 영상 모션 분석의 보조 자료로 표시합니다.', 'Load a CSV to use it as supporting evidence for the motion analysis.'));
+    refreshSwingClassificationViews();
   });
   r10OutlierK.addEventListener('change', () => {
     if (!r10Shots.length) return;
@@ -14783,6 +14788,86 @@
   }
   const workflowFiles = document.getElementById('analysisWorkflowFiles');
   workflowFiles.append(document.querySelector('.analysis-project-actions'), document.getElementById('downloadPdfBtn'));
+  workflowFiles.append(document.getElementById('analysisWorkflowReset'));
+
+  function invalidateLinkedAnalysisReports() {
+    if (computing2dCorrectionScenario || !linkedAnalysisReportsReady) return;
+    r10GeneratedReport = null;
+    r10ReportPreview.hidden = true;
+    geminiReportLanguage = null;
+    if (geminiReportBlock) {
+      geminiReportBlock.textContent = '';
+      geminiReportBlock.style.display = 'none';
+    }
+  }
+  var linkedAnalysisReportsReady = true;
+
+  function resetCurrentAnalysisStage() {
+    const index = analysisWorkflowState.index;
+    const id = ANALYSIS_WORKFLOW_STEPS[index].id;
+    if (!confirm(getSwingUiText(
+      '현재 분석의 입력·결과를 초기화할까요? 원본 영상과 신체정보는 유지하며 연결된 결과는 갱신됩니다.',
+      'Reset this analysis inputs and results? Source videos and body information are retained; linked results will be updated.'))) return;
+    analysisGeneration += 1;
+    geminiAnalysisBtn.disabled = false;
+    if (languageSelect) languageSelect.disabled = false;
+    pauseBothVideos();
+    cancelPointer();
+    invalidateLinkedAnalysisReports();
+    distanceEstimateMuscleAnchor = null;
+    if (id === 'backswing') {
+      resetBackswing();
+    } else if (id === 'engine') {
+      if (motionAnalysisFrame !== null) cancelAnimationFrame(motionAnalysisFrame);
+      motionAnalysisFrame = null;
+      autoFrameAdvanceTarget = null;
+      frameProgressNotice = null;
+      frameEditMode = false;
+      selectedSegment = 'frame1';
+      analysisSegmentSelect.value = selectedSegment;
+      frontPoints = []; frontLines = [];
+      sidePoints = []; sideLines = [];
+      frameStateHistory = { front: {}, side: {} };
+      clearDerivedAnalysisState();
+      distanceLinesByView = { front: [], side: [] };
+      distancePendingPoints = { front: [], side: [] };
+      distanceReferenceLinesByView = { front: null, side: null };
+      frame1ReferenceSnapshot = { front: null, side: null };
+      stanceReferenceLineFront = null;
+      stanceReferenceActive = false;
+      stanceReferencePendingPoints = [];
+      distanceReferenceActive = false;
+      distanceReferencePendingPoints = { front: [], side: [] };
+      distanceMeasureActive = false;
+      distanceReferenceBtn.textContent = translateUiText('기준선 지정');
+      distanceMeasureBtn.textContent = translateUiText('거리 산출');
+      distanceReferenceBtn.style.background = distanceReferenceBtn.style.borderColor = '';
+      distanceMeasureBtn.style.background = distanceMeasureBtn.style.borderColor = '';
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+      guideView = null;
+      guideStep = 0;
+      clearAnalysisResults();
+      resetViewAnalysis('front');
+      resetViewAnalysis('side');
+      updateAllFramesMetricBar();
+      showGuide();
+      drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
+      drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
+    } else if (id === 'distance') {
+      analysisKnownDistanceInput.value = '';
+      document.getElementById('distanceEstimateReference').replaceChildren();
+    } else {
+      r10ClearBtn.click();
+    }
+    refreshScoresForBackswingEvidence();
+    refreshSwingClassificationViews();
+    update2dCorrectionDiagnostics();
+    checkButtonsEnabled();
+    refreshAnalysisWorkflow();
+    openAnalysisWorkflowStage(index);
+  }
+  document.getElementById('analysisWorkflowReset').addEventListener('click', resetCurrentAnalysisStage);
 
   const ANALYSIS_WORKFLOW_STEPS = [
     { id: 'backswing', ko: '백스윙 유형 결정', en: 'Backswing classification' },
