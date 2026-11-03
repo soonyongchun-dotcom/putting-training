@@ -24,6 +24,7 @@ function setup() {
   };
   const c = vm.createContext({
     console, analysisWorkflowState: null, computing2dCorrectionScenario: false,
+    renderCrossViewDiagnostics() {},
     document: { getElementById: get, createElement: element, body: element() },
     getSwingUiText: (ko, en) => en, languageSelect: null,
     backswingActive: false, backswingClassification: null, swingCompareActive: false,
