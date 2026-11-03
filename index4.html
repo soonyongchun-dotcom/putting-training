@@ -1632,6 +1632,15 @@
   body[data-swing-compare="active"] .video-header .analysis-btn { display: none !important; }
   body[data-swing-compare-view="free"] :is(#swingComparePhaseSelect, #swingCompareSummary, .swing-compare-opinion, #swingCompareTableWrap, #swingCompareTableToggleBtn, #swingCompareClearPhaseBtn) { display: none !important; }
   #swingCompareFreeTools { display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .cross-correction-videos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cross-correction-stage { position: relative; }
+  .cross-correction-stage video { position: static; width: 100%; height: auto; display: block; transform: none; }
+  .cross-correction-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  .cross-correction-videos input[type="number"] { width: 7em; max-width: 100%; }
+  #crossCorrectionStatus { white-space: pre-line; font-size: 0.875rem; }
+  #crossCorrectionSetup { margin-top: 12px; text-align: left; }
+  #crossCorrectionSetup small { display: block; line-height: 1.6; }
+  @media (max-width: 600px) { .cross-correction-videos { grid-template-columns: 1fr; } }
   body[data-swing-compare="active"][data-swing-compare-view="free"] #swingCompareFreeTools { display: flex; }
   #analysisWorkflowStatus { white-space: pre-line; line-height: 1.65; }
   .analysis-workflow [hidden] { display: none !important; }
@@ -2258,7 +2267,7 @@
     </div>
     <div class="analysis-summary" id="analysisSummary" data-workflow-for="engine"></div>
     <details class="analysis-2d-diagnostics" id="analysis2dDiagnostics" data-workflow-for="engine">
-      <summary>2D 기울기 보정 · 전후 비교</summary>
+      <summary>2D 왜곡 보정 · 전후 비교</summary>
       <div class="analysis-2d-diagnostics-body">
         <div class="analysis-2d-diagnostics-controls">
           <label>플레이어 손잡이 방향
@@ -2270,7 +2279,7 @@
           <button type="button" id="stanceReferenceBtn" aria-pressed="false">정면 P1 양발 기준선 지정</button>
           <button type="button" id="refresh2dDiagnostics">2D 진단 갱신</button>
         </div>
-        <section class="analysis-cross-view" aria-labelledby="crossViewTitle">
+        <section class="analysis-cross-view" aria-labelledby="crossViewTitle" hidden>
           <h3 id="crossViewTitle">측면·정면 입력 확인</h3>
           <div class="analysis-2d-diagnostics-controls">
             <label>비교 모션
@@ -2286,7 +2295,33 @@
           <div id="crossViewResults" role="status" aria-live="polite"></div>
         </section>
         <div id="analysis2dDiagnosticsResults" aria-live="polite"></div>
-        <p class="analysis-2d-diagnostics-note">양발선 기울기만 보정한 비교값입니다. 측면·정면 입력은 확인용이며 공식 결과는 유지됩니다.</p>
+        <details id="crossCorrectionSetup">
+          <summary>측면·정면 교차 보정 입력 (실험)</summary>
+          <p>이 화면을 열면 1번 측면·2번 정면 영상을 자동으로 가져옵니다. 원본이 남아 있지 않거나 교체할 때만 파일을 선택하세요. 두 영상은 같은 스윙을 동시에 촬영한 것이어야 합니다. A/B 비교창에 다시 올릴 필요는 없습니다.</p>
+          <p>① P1에서 양 영상의 머리끝→턱끝 기준 지정 ② P1·P4·P6·P7 순서로 같은 동작을 맞추고 안내된 점 선택 ③ 각 모션 저장 후 계산. 기존 분석은 비교 기준으로 유지합니다.</p>
+          <div class="analysis-2d-diagnostics-controls">
+            <label>정면 원본 영상 <input id="crossCorrectionFrontFile" type="file" accept="video/*"></label>
+            <span id="crossCorrectionFrontSource" role="status"></span>
+            <label>측면 원본 영상 <input id="crossCorrectionSideFile" type="file" accept="video/*"></label>
+            <span id="crossCorrectionSideSource" role="status"></span>
+            <label>모션 순서 <select id="crossCorrectionFrame"></select></label>
+            <button type="button" id="crossCorrectionReference">P1 머리끝→턱끝 기준 지정</button>
+            <button type="button" id="crossCorrectionPoints">공통 포인트 다시 지정</button>
+            <button type="button" id="crossCorrectionCapture">현재 두 시점 대응 확인·저장</button>
+          </div>
+          <div class="cross-correction-videos">
+            <div><strong>정면</strong><div class="cross-correction-stage"><video id="crossCorrectionFrontVideo" playsinline></video><canvas id="crossCorrectionFrontCanvas"></canvas></div><button type="button" id="crossCorrectionFrontPlay">재생/정지</button><button type="button" id="crossCorrectionFrontPrev">−0.033초</button><button type="button" id="crossCorrectionFrontNext">+0.033초</button><label>시점(초) <input id="crossCorrectionFrontTime" type="number" min="0" step="0.001" value="0"></label></div>
+            <div><strong>측면 (같은 동작에 맞추세요)</strong><div class="cross-correction-stage"><video id="crossCorrectionSideVideo" playsinline></video><canvas id="crossCorrectionSideCanvas"></canvas></div><button type="button" id="crossCorrectionSidePlay">재생/정지</button><button type="button" id="crossCorrectionSidePrev">−0.033초</button><button type="button" id="crossCorrectionSideNext">+0.033초</button><label>시점(초) <input id="crossCorrectionSideTime" type="number" min="0" step="0.001" value="0"></label></div>
+          </div>
+          <p id="crossCorrectionStatus" role="status" aria-live="polite"></p>
+          <div class="analysis-2d-diagnostics-controls">
+            <button type="button" id="crossCorrectionCalculate">교차 보정 계산·비교</button>
+            <button type="button" id="crossCorrectionRollOnly">양발선 보정만 보기</button>
+            <button type="button" id="crossCorrectionClear">교차 입력 초기화</button>
+          </div>
+          <small>고정·직교에 가까운 카메라와 약한 원근을 가정합니다. P1 머리–턱 길이는 척도로만 고정하며 수직선으로 간주하지 않습니다. 얼굴 방향·숙임, 측면 카메라 기울기는 오차로 남습니다. 가려진 점은 다른 관절로 대체하지 마세요. F3와 시점이 맞지 않는 항목은 기존 계산을 유지하는 실험적 비교입니다.</small>
+        </details>
+        <p class="analysis-2d-diagnostics-note">선택한 보정 방식으로 재계산한 비교값이며 공식 결과는 유지됩니다.</p>
       </div>
     </details>
     <details class="analysis-reference" id="analysisReferenceGuide">
@@ -2471,6 +2506,32 @@
     '유형 결정 후 같은 A 영상을 다시 불러오면 백스윙 입력을 종료하고 포인트·판정을 유지합니다. 다른 백스윙 영상을 입력하거나 백스윙을 초기화하면 기존 판정은 지워집니다.': 'After classification, reloading the same A video ends backswing input while preserving checkpoints and the decision. Selecting a different backswing video or resetting backswing clears the previous decision.',
     '2D 왜곡 최소화 진단': '2D Distortion-Minimization Diagnostics',
     '2D 기울기 보정 · 전후 비교': '2D Tilt Correction · Before / After',
+    '2D 왜곡 보정 · 전후 비교': '2D Distortion Correction · Before / After',
+    '이 화면을 열면 1번 측면·2번 정면 영상을 자동으로 가져옵니다. 원본이 남아 있지 않거나 교체할 때만 파일을 선택하세요. 두 영상은 같은 스윙을 동시에 촬영한 것이어야 합니다. A/B 비교창에 다시 올릴 필요는 없습니다.': 'Opening this panel automatically reuses the step 1 side and step 2 front videos. Select files only when the originals are unavailable or need replacing. Both views must show the same simultaneously recorded swing. No need to reload the A/B comparison windows.',
+    '이 화면에서 정면·측면 영상을 각각 불러오세요. A/B 비교창에 다시 올릴 필요는 없습니다. 정면은 2번 분석에 사용한 원본을 선택하고, 측면은 같은 스윙을 동시에 촬영한 영상을 선택하세요.': 'Load front and side videos here, not in the A/B comparison windows. Use the original front video from step 2 and a simultaneously recorded side view of the same swing.',
+    '① P1에서 양 영상의 머리끝→턱끝 기준 지정 ② P1·P4·P6·P7 순서로 같은 동작을 맞추고 안내된 점 선택 ③ 각 모션 저장 후 계산. 기존 분석은 비교 기준으로 유지합니다.': '1. Mark head top to chin in both P1 views. 2. Match P1, P4, P6 and P7 in order and mark the prompted landmarks. 3. Save each motion, then calculate. Existing analysis remains the comparison baseline.',
+    '정면 원본 영상': 'Original Front Video',
+    '모션 순서': 'Motion Order',
+    'P1 머리끝→턱끝 기준 지정': 'Mark P1 Head Top to Chin',
+    '−0.033초': '−0.033 s',
+    '+0.033초': '+0.033 s',
+    '고정·직교에 가까운 카메라와 약한 원근을 가정합니다. P1 머리–턱 길이는 척도로만 고정하며 수직선으로 간주하지 않습니다. 얼굴 방향·숙임, 측면 카메라 기울기는 오차로 남습니다. 가려진 점은 다른 관절로 대체하지 마세요. F3와 시점이 맞지 않는 항목은 기존 계산을 유지하는 실험적 비교입니다.': 'Assumes fixed, near-perpendicular cameras and weak perspective. The P1 head-to-chin length is a locked scale, not a vertical reference. Face orientation, head tilt and side-camera roll remain error sources. Do not substitute occluded landmarks. Experimental comparison: F3 and unmatched analysis times retain existing results.',
+    '측면·정면 교차 보정 입력 (실험)': 'Side / Front Cross Correction (Experimental)',
+    '동일 스윙 동시 촬영·고정 카메라·서로 직각에 가까운 구도에서만 사용하세요. 양 영상에 보이는 같은 수직 기준물의 아래→위 끝점을 지정합니다. 기준물과 선수의 깊이가 다르거나 원근이 크면 사용할 수 없습니다.': 'Use only simultaneous views of the same swing from fixed, approximately perpendicular cameras. Mark the bottom and top of the same vertical reference object in both views. Do not use when the object and player have different depths or perspective is strong.',
+    '측면 원본 영상': 'Original Side Video',
+    '대응 프레임': 'Corresponding Frame',
+    '양쪽 수직 기준선 지정': 'Mark Both Vertical References',
+    '공통 포인트 다시 지정': 'Remark Common Points',
+    '현재 두 시점 대응 확인·저장': 'Confirm and Save Matched Views',
+    '정면 (기존 분석 시점)': 'Front (Saved Analysis Time)',
+    '측면 (같은 동작에 맞추세요)': 'Side (Match the Same Motion)',
+    '재생/정지': 'Play / Pause',
+    '시점(초)': 'Time (s)',
+    '교차 보정 계산·비교': 'Calculate and Compare Cross Correction',
+    '양발선 보정만 보기': 'View Stance Correction Only',
+    '교차 입력 초기화': 'Reset Cross Inputs',
+    '교차 계산: 몸통 기울기·래깅/팔–샤프트/무릎 각도·손–골반 거리·3점 분산. 이동 방향·어깨 회전·시퀀스의 기존 2D 항목은 유지합니다. 양 영상에서 같은 해부학적 지점을 선택해야 하며 가려진 점을 다른 관절로 대신하지 마세요. 3D 기준으로 검증되지 않은 기존 채점 기준을 적용한 실험 결과입니다.': 'Cross calculations: torso tilt, lag / arm-shaft / knee angles, hand-pelvis distance and three-point spread. Directional shifts, shoulder rotation and sequence retain existing 2D metrics. Mark the same anatomical landmarks in both views; do not substitute other joints for occluded points. Experimental: existing scoring thresholds have not been validated against 3D measurements.',
+    '선택한 보정 방식으로 재계산한 비교값이며 공식 결과는 유지됩니다.': 'Recomputed comparison values use the selected correction method. Official results are unchanged.',
     '측면·정면 입력 확인': 'Side / Front Input Check',
     '비교 모션': 'Comparison motion',
     '정면 비교': 'Front-view comparison',
@@ -4124,8 +4185,11 @@
     const format = (value, digits = 1) => Number.isFinite(value) ? value.toFixed(digits) : '—';
     const frameIds = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'];
     const diagnosticsPanel = document.getElementById('analysis2dDiagnostics');
-    const correctionScenario = stanceReferenceLineFront && diagnosticsPanel?.open
-      ? get2dVirtualCorrectionScenario() : null;
+    const correctionScenario = diagnosticsPanel?.open
+      ? typeof crossCorrectionMode !== 'undefined' && crossCorrectionMode === 'cross'
+        ? getCrossCorrectionScenario()
+        : stanceReferenceLineFront ? get2dVirtualCorrectionScenario() : null
+      : null;
     const originalEngineResult = classifySwingType();
     const originalEngineDecision = originalEngineResult ? getPowerEngineDecision(originalEngineResult) : null;
     const available = correctionScenario && !correctionScenario.unavailable;
@@ -4173,10 +4237,20 @@
     table.append(head, body);
     const status = document.createElement('p');
     status.textContent = correctionScenario?.unavailable || (available
-      ? text(`양발선 기울기 ${format(correctionScenario.rotationDeg)}°`,
-        `Stance tilt ${format(correctionScenario.rotationDeg)}°`)
+      ? correctionScenario.crossCorrected
+        ? text('교차 보정 적용 · 래깅/팔–샤프트 각도·반경 재산출 / 기울기·이동·회전·시퀀스는 기존 2D (실험)',
+          'Cross correction applied · lag/arm-shaft angles and radii recomputed; tilt/shifts/rotation/sequence retain 2D metrics (experimental)')
+        : text(`양발선 기울기 ${format(correctionScenario.rotationDeg)}°`,
+          `Stance tilt ${format(correctionScenario.rotationDeg)}°`)
       : text('정면 P1에서 양발 기준선을 지정하세요.', 'Mark the stance line at front P1.'));
     if (available && !areVideoSourcesSame()) status.textContent += text(' · B 영상 미보정', ' · B video uncorrected');
+    if (available && correctionScenario.crossCorrected) {
+      const labels = ids => ids.map(id => id.replace('frame', 'F')).join(', ');
+      status.textContent += text(
+        ` · 교차 적용: ${labels(correctionScenario.crossCorrectedFrames)} / 기존 유지: ${labels(correctionScenario.crossRetainedFrames)}`,
+        ` · Cross-applied: ${labels(correctionScenario.crossCorrectedFrames)} / retained: ${labels(correctionScenario.crossRetainedFrames)}`
+      );
+    }
     if (available && (!frameIds.every(id => hasMetric(correctionScenario.scores?.[id])) || !correctionScenario.engineCode)) {
       status.textContent += text(' · 미측정 항목은 해당 프레임 입력을 완료하세요.', ' · Complete frame inputs for unavailable items.');
     }
@@ -4802,6 +4876,7 @@
       // First rebuild normalizes all radii; the second resolves F3's F4 dependency.
       for (let pass = 0; pass < 2; pass++) {
         for (const frame of order) {
+          if (crossCorrectionContext?.retainedFrames?.includes(frame)) continue;
           const a = frameStateHistory.front[frame];
           const b = frameStateHistory.side[frame];
           if (!a && !b) continue;
@@ -4822,11 +4897,14 @@
     }
     const a = frameStateHistory.front[selectedSegment];
     const b = frameStateHistory.side[selectedSegment];
-    performAnalysis(false, { a: a?.videoTime ?? null, b: b?.videoTime ?? null });
+    if (!crossCorrectionContext?.retainedFrames?.includes(selectedSegment)) {
+      performAnalysis(false, { a: a?.videoTime ?? null, b: b?.videoTime ?? null });
+    }
     if (!computing2dCorrectionScenario) showGuide();
   }
 
-  function get2dVirtualCorrectionScenario() {
+  var crossCorrectionContext = null;
+  function get2dVirtualCorrectionScenario(crossModel = null) {
     if (!stanceReferenceLineFront || !frameStateHistory.front.frame1) {
       return { unavailable: getSwingUiText(
         '가상 보정 점수: 정면 P1 양발 기준선을 지정한 뒤 계산할 수 있습니다.',
@@ -4844,6 +4922,7 @@
       aspects: [getAnalysisAspect(frontVideo), getAnalysisAspect(sideVideo)],
       selectedSegment,
       uiLanguage,
+      crossModel,
     });
     if (cacheKey === cached2dCorrectionScenarioKey && cached2dCorrectionScenario) {
       return cached2dCorrectionScenario;
@@ -4885,6 +4964,7 @@
     let result = null;
     let calculationError = null;
     computing2dCorrectionScenario = true;
+    crossCorrectionContext = crossModel;
     try {
       frameStateHistory = clone(savedState.frameStateHistory);
       frame1ReferenceSnapshot = clone(savedState.frame1ReferenceSnapshot);
@@ -4911,7 +4991,20 @@
       frameSideMetricsHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
       segmentScoreHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
       segmentDeltaHistory = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [frame, null]));
+      for (const frame of crossModel?.retainedFrames || []) {
+        frameMetricsHistory[frame] = clone(savedState.frameMetricsHistory[frame]);
+        frameSideMetricsHistory[frame] = clone(savedState.frameSideMetricsHistory[frame]);
+        segmentScoreHistory[frame] = savedState.segmentScoreHistory[frame];
+        segmentDeltaHistory[frame] = clone(savedState.segmentDeltaHistory[frame]);
+      }
       refreshStoredFrameAnalyses();
+      // Other frame dependencies can refresh scores; retain the official value for unmatched motions.
+      for (const frame of crossModel?.retainedFrames || []) {
+        frameMetricsHistory[frame] = clone(savedState.frameMetricsHistory[frame]);
+        frameSideMetricsHistory[frame] = clone(savedState.frameSideMetricsHistory[frame]);
+        segmentScoreHistory[frame] = savedState.segmentScoreHistory[frame];
+        segmentDeltaHistory[frame] = clone(savedState.segmentDeltaHistory[frame]);
+      }
       const engineResult = classifySwingType();
       const engineDecision = engineResult ? getPowerEngineDecision(engineResult) : null;
       result = {
@@ -4922,6 +5015,9 @@
         engineMissing: engineResult?.missingEngineEvidence || getSwingTypeReadiness().missing || [],
         profileNumber: engineResult ? getMatchedSwingProfile(backswingClassification, engineResult)?.n ?? null : null,
         rotationDeg: angle * 180 / Math.PI,
+        crossCorrected: !!crossModel,
+        crossCorrectedFrames: crossModel?.correctedFrames || [],
+        crossRetainedFrames: crossModel?.retainedFrames || [],
       };
     } catch (error) {
       calculationError = error;
@@ -4942,6 +5038,7 @@
       guideView = savedState.guideView;
       guideStep = savedState.guideStep;
       computing2dCorrectionScenario = false;
+      crossCorrectionContext = null;
     }
 
     if (calculationError) {
@@ -6384,6 +6481,9 @@
     result.canvasHeight = canvasHeight;
     result.frameMetrics = computeFrameMetrics(points, lines, selectedSegment, heightScale, canvasHeight, videoAspect);
     const panel = viewLabel === 'A' ? 'front' : 'side';
+    if (crossCorrectionContext) {
+      applyCrossCorrectionMetrics(result.frameMetrics, crossCorrectionContext, selectedSegment, panel);
+    }
     result.frameMetrics.threePointSpreadRatio = referenceRatio(result.frameMetrics.threePointSpreadRaw, panel);
     result.frameMetrics.coreHandReferenceRatio = referenceRatio(result.frameMetrics.coreHandRadiusRaw, panel);
     result.frameMetrics.shoulderWidthReferenceRatio = referenceRatio(result.frameMetrics.shoulderHorzWidth, panel);
@@ -8937,6 +9037,10 @@
     stanceReferenceActive = false;
     stanceReferencePendingPoints = [];
     stanceReferenceLineFront = null;
+    if (typeof crossViewCorrectionData !== 'undefined') {
+      crossViewCorrectionData = { version: 2, references: {}, entries: {}, sources: {} };
+      crossCorrectionMode = 'roll';
+    }
     distanceReferencePendingPoints = { front: [], side: [] };
     distanceMeasureBtn.textContent = translateUiText('거리 산출');
     distanceReferenceBtn.textContent = translateUiText('기준선 지정');
@@ -9031,6 +9135,26 @@
   let backswingClassificationCacheKey = null;
   let backswingSourceIdentity = null;
   let backswingOriginalVideo = null;
+  var analysisVideoFiles = { front: null, backswing: null };
+
+  function getCrossCorrectionSourceFiles() {
+    const frontIdentity = backswingActive ? backswingOriginalVideo?.identity : videoFileIdentity.front;
+    return {
+      front: analysisVideoFiles.front && getVideoFileIdentity(analysisVideoFiles.front) === frontIdentity
+        ? analysisVideoFiles.front : null,
+      side: analysisVideoFiles.backswing && getVideoFileIdentity(analysisVideoFiles.backswing) === backswingSourceIdentity
+        ? analysisVideoFiles.backswing : null,
+    };
+  }
+
+  function retainRestoredBackswingVideoFile(project, hasFrameInputs) {
+    const identity = project.analysis.backswingSourceIdentity
+      || (!hasFrameInputs && project.analysis.backswingClassified ? project.media.front : null);
+    if (identity && analysisVideoFiles.front
+      && getVideoFileIdentity(analysisVideoFiles.front) === identity) {
+      analysisVideoFiles.backswing = analysisVideoFiles.front;
+    }
+  }
   let backswingProgressNotice = null;
 
   function invalidateBackswingClassification() {
@@ -11533,6 +11657,8 @@
   function drawOverlay(ctx, points, lines, canvas, video, zoom=1, previewLine=null){
     syncCanvasSize(canvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
     const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
     if (backswingActive && canvas === frontCanvas) {
       drawBackswingPoints(ctx, metrics, canvas);
@@ -11547,7 +11673,6 @@
       points = getSwingCompareEntry(view).points;
       lines = [];
     }
-    const rect = canvas.getBoundingClientRect();
     const scale = rect.width > 0 ? canvas.width / rect.width : 1;
     const radius = 3 * scale;
     const lineWidth = 2 * scale;
@@ -11865,6 +11990,9 @@
     drawOverlay(sideCtx, sidePoints, sideLines, sideCanvas, sideVideo, sideZoom);
   }
   window.addEventListener('resize', resizeVideosAndCanvases);
+  const analysisCanvasResizeObserver = new ResizeObserver(resizeVideosAndCanvases);
+  analysisCanvasResizeObserver.observe(frontCanvas);
+  analysisCanvasResizeObserver.observe(sideCanvas);
 
   function getNormalizedCoords(event, canvas, video, zoom){
     const rect = canvas.getBoundingClientRect();
@@ -12507,6 +12635,9 @@
   }
 
   function loadVideo(videoElem, file, { preserveCurrentSource = false } = {}){
+    if (videoElem === frontVideo) {
+      analysisVideoFiles[backswingActive ? 'backswing' : 'front'] = file;
+    }
     if(videoElem.src && videoElem.src.startsWith('blob:')
       && !(preserveCurrentSource && videoElem === frontVideo
         && backswingOriginalVideo?.src === videoElem.src)){
@@ -13452,6 +13583,7 @@
         distanceReferenceLinesByView,
         stanceReferenceLineFront,
         diagnostics2dSettings: get2dDiagnosticSettings(),
+        crossViewCorrection: typeof crossViewCorrectionData === 'undefined' ? null : copyProjectValue(crossViewCorrectionData),
         frame1ReferenceSnapshot,
         height: analysisHeightInput.value,
         athleteData: {
@@ -13688,6 +13820,9 @@
         && (!Number.isInteger(project.r10.reportProfileNumber) || project.r10.reportProfileNumber < 1 || project.r10.reportProfileNumber > 35))) {
       throw new Error(r10Text('저장된 프레임·점수·R10 데이터가 올바르지 않습니다.', 'The saved frame, score, or R10 data is invalid.'));
     }
+    if (state.crossViewCorrection != null && !validateCrossCorrectionData(state.crossViewCorrection)) {
+      throw new Error(r10Text('교차 보정 입력 형식이 올바르지 않습니다.', 'Invalid cross-correction inputs.'));
+    }
     const comparisonView = state.swingCompareView || 'front';
     if (!['front', 'side', 'free'].includes(comparisonView)
       || (state.swingCompareFreeData != null && !isProjectSwingCompareFreeData(state.swingCompareFreeData))
@@ -13778,6 +13913,10 @@
         'To recalculate saved metrics, load the original A and B videos used for this project and wait until video metadata is ready.'
       ));
     }
+    crossViewCorrectionData = state.crossViewCorrection
+      ? copyProjectValue(state.crossViewCorrection) : { version: 2, references: {}, entries: {}, sources: {} };
+    crossCorrectionMode = 'roll';
+    retainRestoredBackswingVideoFile(project, hasFrameInputs);
     const restoredWorkflowIndex = analysisWorkflowState?.index ?? 0;
     startAnalysisWorkflow();
     analysisGeneration += 1;
@@ -15413,6 +15552,7 @@
   if (languageSelect) languageSelect.addEventListener('change', refreshAnalysisWorkflow);
   startAnalysisWorkflow();
 </script>
+<script src="scripts/cross-view-correction.js"></script>
 
 </body>
 </html>
