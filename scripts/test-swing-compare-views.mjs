@@ -11,7 +11,7 @@ function setup() {
     return nodes.get(id);
   };
   const c = vm.createContext({
-    Math, console, uiLanguage: 'ko',
+    Math, console, uiLanguage: 'ko', backswingActive: false,
     document: { getElementById: get, body: { dataset: {} }, querySelector: get, querySelectorAll: () => [] },
     swingCompareClearPhaseBtn: get('clear'),
     frontVideo: { videoWidth: 1000, videoHeight: 1000, currentTime: 1, pause() {} },
@@ -206,4 +206,10 @@ test('comparison titles follow side/front/free selection and restore normal titl
   c.updateSwingComparePresentation();
   assert.equal(get('#frontWrapper .video-header .title').textContent, '정면 A');
   assert.equal(c.document.body.dataset.swingCompareView, undefined);
+  c.document.body.dataset.workflowStage = 'backswing';
+  c.updateSwingComparePresentation();
+  assert.equal(get('#frontWrapper .video-header .title').textContent, '측면 A');
+  c.document.body.dataset.workflowStage = 'engine';
+  c.updateSwingComparePresentation();
+  assert.equal(get('#frontWrapper .video-header .title').textContent, '정면 A');
 });

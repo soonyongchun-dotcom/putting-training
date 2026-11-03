@@ -63,6 +63,7 @@ function setup() {
   };
   const c = vm.createContext({
     console, analysisWorkflowState: null, computing2dCorrectionScenario: false,
+    updateSwingComparePresentation() {},
     renderCrossViewDiagnostics() {},
     document: { getElementById: get, createElement: element, body: element() },
     getSwingUiText: (ko, en) => en, languageSelect: null,

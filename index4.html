@@ -9124,6 +9124,7 @@
       } : null;
     }
     backswingActive = active;
+    updateSwingComparePresentation();
     if (!active) restoreBackswingOriginalVideo();
     frontFindPositionStatus.textContent = '';
     sideFindPositionStatus.textContent = '';
@@ -10171,7 +10172,9 @@
       : getSwingUiText('정면', 'Front');
     for (const [id, label] of [['frontWrapper', 'A'], ['sideWrapper', 'B']]) {
       const element = document.querySelector(`#${id} .video-header .title`);
-      if (element) element.textContent = `${title} ${label}`;
+      const backswingSide = !swingCompareActive && id === 'frontWrapper'
+        && (backswingActive || document.body.dataset.workflowStage === 'backswing');
+      if (element) element.textContent = `${backswingSide ? getSwingUiText('측면', 'Side') : title} ${label}`;
     }
     if (swingCompareClearPhaseBtn) swingCompareClearPhaseBtn.textContent = free
       ? getSwingUiText('자유 표시 지우기', 'Clear free annotations')
@@ -15335,6 +15338,7 @@
       return;
     }
     document.body.dataset.workflowStage = ANALYSIS_WORKFLOW_STEPS[analysisWorkflowState.index]?.id || 'overview';
+    updateSwingComparePresentation();
     const status = document.getElementById('analysisWorkflowStatus');
     status.hidden = true;
     status.textContent = '';
