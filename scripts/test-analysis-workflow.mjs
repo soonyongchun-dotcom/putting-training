@@ -8,6 +8,40 @@ const start = html.indexOf('  const ANALYSIS_WORKFLOW_STEPS =');
 const end = html.indexOf('\n</script>', start);
 assert.ok(start > 0 && end > start);
 
+test('A/B comparison remains accessible outside the stage-specific analysis toolbar', () => {
+  assert.match(html, /workflowFiles\.append\(swingCompareToggleBtn\)/);
+  assert.doesNotMatch(html, /body\[data-workflow-stage\] #swingCompare(?:Panel|ToggleBtn)/);
+  assert.match(html, /body\[data-swing-compare="active"\] #analysisVideoWorkspace/);
+  assert.match(html, /body\[data-swing-compare="active"\] #sideWrapper/);
+});
+
+test('comparison can open before video upload and closes without losing the selected workflow stage', () => {
+  const element = () => ({ textContent: '', classList: { toggle() {} }, setAttribute(key, value) { this[key] = value; } });
+  const c = vm.createContext({
+    document: { body: { dataset: { workflowStage: 'backswing' } } },
+    backswingActive: true, swingCompareActive: false, frontVideo: {}, sideVideo: {},
+    stanceReferenceActive: true, stanceReferencePendingPoints: [{}],
+    stanceReferenceBtn: element(), statusSpan: element(), swingComparePanel: element(),
+    swingCompareToggleBtn: element(), swingCompareStatus: element(),
+    distanceMeasureActive: true, distanceReferenceActive: true,
+    cancelPointer() {}, translateUiText: text => text, getSwingUiText: (ko, en) => en,
+    setBackswingMode(active) { c.backswingActive = active; },
+    showGuide() {}, updateSwingCompareGuide() {}, redrawSwingCompareOverlays() {}, updateSwingComparePresentation() {},
+  });
+  vm.runInContext(html.match(/  function toggleSwingCompareMode\(\)[\s\S]*?\n  }/)[0], c);
+  c.toggleSwingCompareMode();
+  assert.equal(c.swingCompareActive, true);
+  assert.equal(c.document.body.dataset.swingCompare, 'active');
+  assert.equal(c.backswingActive, false);
+  assert.equal(c.stanceReferenceActive, false);
+  assert.equal(c.swingCompareToggleBtn['aria-pressed'], 'true');
+  assert.match(c.swingCompareStatus.textContent, /Load the swings/);
+  c.toggleSwingCompareMode();
+  assert.equal(c.document.body.dataset.swingCompare, undefined);
+  assert.equal(c.document.body.dataset.workflowStage, 'backswing');
+  assert.equal(c.swingCompareToggleBtn['aria-pressed'], 'false');
+});
+
 function setup() {
   const elements = new Map();
   const element = () => ({

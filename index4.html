@@ -1606,10 +1606,8 @@
   @media (max-width: 600px) {
     #analysisWorkflowProgress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  body[data-workflow-stage] #swingComparePanel,
   body[data-workflow-stage] #appIntroPanel,
   body[data-workflow-stage]:not([data-workflow-stage="engine"]) .analysis-measure-actions,
-  body[data-workflow-stage] #swingCompareToggleBtn,
   body[data-workflow-stage] #backswingToggleBtn,
   body[data-workflow-stage] #r10EvaluationToggleBtn,
   body[data-workflow-stage] .analysis-output-actions,
@@ -1626,6 +1624,16 @@
   body[data-workflow-stage="distance"] [data-workflow-for]:not([data-workflow-for~="distance"]),
   body[data-workflow-stage="r10"] [data-workflow-for]:not([data-workflow-for~="r10"]),
   body[data-workflow-stage="overview"] [data-workflow-for] { display: none !important; }
+  body[data-swing-compare="active"] #analysisVideoWorkspace { display: flex !important; }
+  body[data-swing-compare="active"] #sideWrapper { display: block !important; }
+  body[data-swing-compare="active"] #analysisPanel,
+  body[data-swing-compare="active"] #backswingPanel,
+  body[data-swing-compare="active"] #analysisWorkflowReset,
+  body[data-swing-compare="active"] #downloadPdfBtn { display: none !important; }
+  body[data-swing-compare="active"] .video-header .analysis-btn { display: none !important; }
+  body[data-swing-compare-view="free"] :is(#swingComparePhaseSelect, #swingCompareSummary, .swing-compare-opinion, #swingCompareTableWrap, #swingCompareTableToggleBtn) { display: none !important; }
+  #swingCompareFreeTools { display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
+  body[data-swing-compare="active"][data-swing-compare-view="free"] #swingCompareFreeTools { display: flex; }
   #analysisWorkflowStatus { white-space: pre-line; line-height: 1.65; }
   .analysis-workflow [hidden] { display: none !important; }
 
@@ -1870,8 +1878,13 @@
 
 <section class="swing-compare-panel" id="swingComparePanel">
   <div class="swing-compare-header">
-    <div class="swing-compare-title">A/B 스윙 핵심 포인트 비교</div>
+    <div class="swing-compare-title" id="swingCompareTitle">A/B 스윙 핵심 포인트 비교</div>
     <div class="swing-compare-controls">
+      <select id="swingCompareViewSelect" aria-label="비교 촬영 방향">
+        <option value="front">정면 비교</option>
+        <option value="side">측면 비교</option>
+        <option value="free">자유 비교</option>
+      </select>
       <select id="swingComparePhaseSelect" aria-label="비교 시점">
         <option value="address">어드레스</option>
         <option value="top">백스윙 탑 (1/5)</option>
@@ -1884,8 +1897,15 @@
       <button type="button" id="swingCompareClearPhaseBtn" title="현재 시점의 A/B 포인트만 삭제">현재 시점 지우기</button>
       <button type="button" id="swingCompareResetBtn" title="모든 비교 포인트와 결과 삭제">비교 초기화</button>
     </div>
+    <div id="swingCompareFreeTools" aria-label="자유 비교 도구">
+      <button type="button" data-free-tool="draw" aria-pressed="true">점·선 그리기</button>
+      <button type="button" data-free-tool="reference" aria-pressed="false">기준선 지정</button>
+      <button type="button" data-free-tool="measure" aria-pressed="false">거리 산출</button>
+      <label>기준선 실제 길이(cm, 선택) <input id="swingCompareFreeLength" type="number" min="0.1" max="1000" step="0.1" placeholder="미입력 시 %" style="width:100px;"></label>
+    </div>
   </div>
   <div class="swing-compare-status" id="swingCompareStatus">A/B에 서로 다른 스윙 영상을 불러온 뒤 비교 입력을 시작하세요.</div>
+  <small id="swingCompareViewNote">A/B 모두 같은 촬영 방향의 영상을 사용하세요.</small>
   <div class="swing-compare-summary" id="swingCompareSummary"></div>
   <div class="swing-compare-opinion">
     <div id="swingCompareOpinion">6개 시점의 A/B 포인트를 입력하면 종합의견이 표시됩니다.</div>
@@ -1893,7 +1913,7 @@
   </div>
   <div class="swing-compare-table-wrap" id="swingCompareTableWrap">
     <table class="swing-compare-table">
-      <thead><tr><th>시점</th><th>A 입력</th><th>B 입력</th><th>집중도 일치(%)</th><th>손목 궤적(%)</th><th>코어 궤적(%)</th><th>래깅각 A/B(일치율)</th><th>템포 일치(%)</th></tr></thead>
+      <thead id="swingCompareTableHead"><tr><th>시점</th><th>A 입력</th><th>B 입력</th><th>집중도 일치(%)</th><th>손목 궤적(%)</th><th>코어 궤적(%)</th><th>래깅각 A/B(일치율)</th><th>템포 일치(%)</th></tr></thead>
       <tbody id="swingCompareTableBody"></tbody>
     </table>
   </div>
@@ -2423,6 +2443,18 @@
     '2D 기울기 보정 · 전후 비교': '2D Tilt Correction · Before / After',
     '측면·정면 입력 확인': 'Side / Front Input Check',
     '비교 모션': 'Comparison motion',
+    '정면 비교': 'Front-view comparison',
+    '측면 비교': 'Side-view comparison',
+    '자유 비교': 'Free comparison',
+    '점·선 그리기': 'Draw points / lines',
+    '기준선 실제 길이(cm, 선택)': 'Reference length (cm, optional)',
+    '미입력 시 %': '% if blank',
+    '자유 비교 도구': 'Free comparison tools',
+    '비교 촬영 방향': 'Comparison camera view',
+    '손 중심(그립 중앙)': 'Hand center (middle of grip)',
+    '골반 중심(측면 골반 중앙)': 'Pelvis center (side-view midpoint)',
+    'C7(목 뒤 기저부)': 'C7 (base of neck)',
+    '카메라에 가까운 팔꿈치 중심': 'Center of the near-side elbow',
     'P4 백스윙 탑': 'P4 backswing top',
     'P6 다운스윙 (샤프트 수평)': 'P6 downswing (shaft horizontal)',
     'P7 임팩트': 'P7 impact',
@@ -3338,6 +3370,7 @@
       showGuide();
       if (appIntroPanel && !appIntroPanel.hidden) renderSwingProfileIntro();
       if (swingCompareActive) updateSwingCompareGuide();
+      updateSwingComparePresentation();
       updateSwingCompareResults();
       if (backswingActive) updateBackswingGuide();
       if (backswingClassification) renderBackswingClassification();
@@ -8911,15 +8944,26 @@
     frameSideMetricsHistory = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     segmentScoreHistory  = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
     segmentDeltaHistory  = { frame1: null, frame2: null, frame3: null, frame4: null, frame5: null, frame6: null };
+    swingCompareView = 'front';
+    SWING_COMPARE_POINT_TYPES = SWING_COMPARE_FRONT_POINTS;
+    swingCompareDataByView = { front: createEmptySwingCompareData(), side: createEmptySwingCompareData() };
+    swingCompareData = swingCompareDataByView.front;
+    swingCompareFreeData = createSwingCompareFreeData();
+    swingCompareFreePending = { front: null, side: null };
+    document.getElementById('swingCompareFreeLength').value = '';
+    document.getElementById('swingCompareViewSelect').value = 'front';
     resetSwingCompareData();
     resetBackswing();
     setBackswingMode(false);
     swingCompareActive = false;
     swingComparePhase = 'address';
     if (swingComparePanel) swingComparePanel.classList.remove('visible');
+    delete document.body.dataset.swingCompare;
+    updateSwingComparePresentation();
     if (swingCompareToggleBtn) {
       swingCompareToggleBtn.textContent = translateUiText('A/B 스윙 비교');
       swingCompareToggleBtn.classList.remove('swing-compare-active');
+      swingCompareToggleBtn.setAttribute('aria-pressed', 'false');
     }
     setSelectedView(null);
     firstDualPlay = true;
@@ -10059,15 +10103,174 @@
     { id: 'preImpact', label: '임팩트 전 (4/5)' },
     { id: 'impact', label: '임팩트 (5/5)' },
   ];
-  const SWING_COMPARE_POINT_TYPES = [
+  const SWING_COMPARE_FRONT_POINTS = [
     { id: 'wristCenter', label: '손목 중심', short: 'W', color: '#ffb300' },
     { id: 'coreCenter', label: '코어 중심', short: 'C', color: '#ce66d8' },
     { id: 'c7Center', label: 'C7', short: '7', color: '#ef4770' },
     { id: 'clubHeadCenter', label: '클럽헤드 중심', short: 'K', color: '#26d9d0' },
   ];
+  const SWING_COMPARE_SIDE_POINTS = [
+    { id: 'wristCenter', label: '손 중심(그립 중앙)', short: 'W', color: '#ffb300' },
+    { id: 'coreCenter', label: '골반 중심(측면 골반 중앙)', short: 'P', color: '#ce66d8' },
+    { id: 'c7Center', label: 'C7(목 뒤 기저부)', short: '7', color: '#ef4770' },
+    { id: 'clubHeadCenter', label: '클럽헤드 중심', short: 'K', color: '#26d9d0' },
+    { id: 'elbowCenter', label: '카메라에 가까운 팔꿈치 중심', short: 'E', color: '#70b7ff' },
+  ];
+  let swingCompareView = 'front';
+  let SWING_COMPARE_POINT_TYPES = SWING_COMPARE_FRONT_POINTS;
   let swingCompareActive = false;
   let swingComparePhase = 'address';
   let swingCompareData = createEmptySwingCompareData();
+  let swingCompareDataByView = { front: swingCompareData, side: createEmptySwingCompareData() };
+  let swingCompareFreeData = createSwingCompareFreeData();
+  let swingCompareFreeTool = 'draw';
+  let swingCompareFreePending = { front: null, side: null };
+
+  function createSwingCompareFreeData() {
+    const panel = () => ({ points: [], lines: [], reference: null, measurements: [] });
+    return { front: panel(), side: panel(), referenceLengthCm: null };
+  }
+
+  function updateSwingComparePresentation() {
+    const free = swingCompareActive && swingCompareView === 'free';
+    if (swingCompareActive) document.body.dataset.swingCompareView = swingCompareView;
+    else delete document.body.dataset.swingCompareView;
+    const title = swingCompareActive
+      ? swingCompareView === 'side' ? getSwingUiText('측면', 'Side')
+        : free ? getSwingUiText('자유 비교', 'Free comparison') : getSwingUiText('정면', 'Front')
+      : getSwingUiText('정면', 'Front');
+    for (const [id, label] of [['frontWrapper', 'A'], ['sideWrapper', 'B']]) {
+      const element = document.querySelector(`#${id} .video-header .title`);
+      if (element) element.textContent = `${title} ${label}`;
+    }
+    if (swingCompareClearPhaseBtn) swingCompareClearPhaseBtn.textContent = free
+      ? getSwingUiText('자유 표시 지우기', 'Clear free annotations')
+      : getSwingUiText('현재 시점 지우기', 'Clear current phase');
+    const heading = document.getElementById('swingCompareTitle');
+    if (heading) heading.textContent = free
+      ? getSwingUiText('A/B 자유 비교', 'A/B Free Comparison')
+      : getSwingUiText('A/B 스윙 핵심 포인트 비교', 'A/B Key-Point Swing Comparison');
+  }
+
+  function setSwingCompareFreeTool(tool) {
+    if (!['draw', 'reference', 'measure'].includes(tool)) throw new Error('Invalid free comparison tool');
+    cancelPointer();
+    swingCompareFreeTool = tool;
+    swingCompareFreePending = { front: null, side: null };
+    document.querySelectorAll('[data-free-tool]').forEach(button =>
+      button.setAttribute('aria-pressed', String(button.dataset.freeTool === tool)));
+    updateSwingCompareGuide();
+    redrawSwingCompareOverlays();
+  }
+
+  function addSwingCompareFreeSelection(view, start, end = null) {
+    const entry = swingCompareFreeData[view];
+    if (swingCompareFreeTool === 'draw') {
+      if (end) entry.lines.push({ start, end });
+      else entry.points.push({ ...start });
+      return;
+    }
+    if (!end) {
+      const pending = swingCompareFreePending[view];
+      if (!pending) { swingCompareFreePending[view] = start; return; }
+      end = start;
+      start = pending;
+    }
+    swingCompareFreePending[view] = null;
+    const aspect = getSwingCompareAspect(view);
+    if (Math.hypot((end.x - start.x) * aspect, end.y - start.y) < 0.001) {
+      swingCompareStatus.textContent = getSwingUiText('서로 다른 두 지점을 선택하세요.', 'Select two distinct points.');
+      return;
+    }
+    if (swingCompareFreeTool === 'reference') entry.reference = { start, end };
+    else if (!entry.reference) swingCompareStatus.textContent = getSwingUiText(
+      `${view === 'front' ? 'A' : 'B'} 영상의 기준선을 먼저 지정하세요.`,
+      `Set the reference line in ${view === 'front' ? 'A' : 'B'} first.`);
+    else entry.measurements.push({ start, end });
+  }
+
+  function deleteSwingCompareFreeSelection(view, pos) {
+    const entry = swingCompareFreeData[view];
+    const near = point => Math.hypot(point.x - pos.x, point.y - pos.y) < 0.03;
+    if (swingCompareFreePending[view] && near(swingCompareFreePending[view])) swingCompareFreePending[view] = null;
+    else {
+      const pointIndex = entry.points.findIndex(near);
+      if (pointIndex >= 0) entry.points.splice(pointIndex, 1);
+      else {
+        const nearLine = line => {
+          const dx = line.end.x - line.start.x, dy = line.end.y - line.start.y;
+          const length = dx * dx + dy * dy;
+          const t = length ? clamp(((pos.x - line.start.x) * dx + (pos.y - line.start.y) * dy) / length, 0, 1) : 0;
+          return near({ x: line.start.x + dx * t, y: line.start.y + dy * t });
+        };
+        const measurement = entry.measurements.findIndex(nearLine);
+        const line = entry.lines.findIndex(nearLine);
+        if (measurement >= 0) entry.measurements.splice(measurement, 1);
+        else if (line >= 0) entry.lines.splice(line, 1);
+        else if (entry.reference && nearLine(entry.reference)) entry.reference = null;
+      }
+    }
+    redrawSwingCompareOverlays();
+    return true;
+  }
+
+  function getSwingCompareFreeMeasurement(view, line) {
+    const aspect = getSwingCompareAspect(view);
+    const length = item => Math.hypot((item.end.x - item.start.x) * aspect, item.end.y - item.start.y);
+    const reference = swingCompareFreeData[view].reference;
+    if (!reference || length(reference) < 0.001) return null;
+    const ratio = length(line) / length(reference);
+    const cm = swingCompareFreeData.referenceLengthCm;
+    return { percent: ratio * 100, cm: Number.isFinite(cm) && cm > 0 ? ratio * cm : null };
+  }
+
+  function drawSwingCompareFree(ctx, canvas, video, zoom, view, preview) {
+    const entry = swingCompareFreeData[view];
+    const metrics = getVideoMetrics(video, canvas.width, canvas.height, zoom);
+    const scale = canvas.width / Math.max(1, canvas.getBoundingClientRect().width);
+    const x = point => metrics.offsetX + point.x * metrics.drawWidth;
+    const y = point => metrics.offsetY + point.y * metrics.drawHeight;
+    const dot = point => { ctx.beginPath(); ctx.arc(x(point), y(point), 4 * scale, 0, 2 * Math.PI); ctx.fill(); };
+    const line = (item, color, label) => {
+      ctx.strokeStyle = ctx.fillStyle = color;
+      ctx.beginPath(); ctx.moveTo(x(item.start), y(item.start)); ctx.lineTo(x(item.end), y(item.end)); ctx.stroke();
+      dot(item.start); dot(item.end);
+      if (label) ctx.fillText(label, (x(item.start) + x(item.end)) / 2, (y(item.start) + y(item.end)) / 2 - 8 * scale);
+    };
+    ctx.save();
+    ctx.lineWidth = 2 * scale;
+    ctx.font = `bold ${12 * scale}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffdf40';
+    entry.points.forEach(dot);
+    entry.lines.forEach(item => line(item, '#ff5555'));
+    if (entry.reference) line(entry.reference, '#ffdf40', getSwingUiText('기준선 100%', 'Reference 100%'));
+    entry.measurements.forEach(item => {
+      const value = getSwingCompareFreeMeasurement(view, item);
+      line(item, '#39e66b', value
+        ? `${value.percent.toFixed(1)}%${value.cm === null ? '' : ` · ${value.cm.toFixed(1)} cm`}`
+        : getSwingUiText('기준선 미지정', 'No reference'));
+    });
+    ctx.fillStyle = '#39e66b';
+    if (swingCompareFreePending[view]) dot(swingCompareFreePending[view]);
+    if (preview) line(preview, '#ffffff');
+    ctx.restore();
+  }
+
+  function setSwingCompareView(view) {
+    if (!['front', 'side', 'free'].includes(view)) throw new Error('Invalid comparison view');
+    cancelPointer();
+    if (swingCompareView !== 'free') swingCompareDataByView[swingCompareView] = swingCompareData;
+    swingCompareView = view;
+    SWING_COMPARE_POINT_TYPES = view === 'side' ? SWING_COMPARE_SIDE_POINTS : SWING_COMPARE_FRONT_POINTS;
+    if (view !== 'free') swingCompareData = swingCompareDataByView[view];
+    swingCompareFreePending = { front: null, side: null };
+    updateSwingComparePresentation();
+    document.getElementById('swingCompareViewSelect').value = view;
+    updateSwingCompareGuide();
+    updateSwingCompareResults();
+    redrawSwingCompareOverlays();
+  }
 
   function createEmptySwingCompareData() {
     const data = { front: {}, side: {} };
@@ -10087,7 +10290,9 @@
     return getSwingCompareEntry(view, phaseId).points.find(point => point.type === type) || null;
   }
 
-  function getSwingCompareAspect(view) {
+  function getSwingCompareAspect(view, phaseId = swingComparePhase) {
+    const savedAspect = swingCompareView === 'free' ? null : getSwingCompareEntry(view, phaseId).aspectRatio;
+    if (Number.isFinite(savedAspect) && savedAspect > 0) return savedAspect;
     const video = view === 'front' ? frontVideo : sideVideo;
     return video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : 16 / 9;
   }
@@ -10096,7 +10301,7 @@
     const core = getSwingComparePoint(view, phaseId, 'coreCenter');
     const c7 = getSwingComparePoint(view, phaseId, 'c7Center');
     if (!core || !c7) return null;
-    const aspect = getSwingCompareAspect(view);
+    const aspect = getSwingCompareAspect(view, phaseId);
     const dx = (c7.x - core.x) * aspect;
     const dy = c7.y - core.y;
     const trunk = Math.hypot(dx, dy);
@@ -10145,17 +10350,22 @@
       corePathScore: computeSwingComparePhaseTrajectoryScore(phaseId, 'coreCenter'),
       lagAngleA,
       lagAngleB,
+      trunkAngleA: swingCompareView === 'side' ? computeSwingCompareTrunkAngle('front', phaseId) : null,
+      trunkAngleB: swingCompareView === 'side' ? computeSwingCompareTrunkAngle('side', phaseId) : null,
+      trunkScore: swingCompareView === 'side'
+        ? scoreFromError(Math.abs(((computeSwingCompareTrunkAngle('front', phaseId)
+          - computeSwingCompareTrunkAngle('side', phaseId) + 540) % 360) - 180), 45) : null,
       lagScore: Number.isFinite(lagAngleA) && Number.isFinite(lagAngleB)
         ? scoreFromError(Math.abs(lagAngleA - lagAngleB), 45) : null,
     };
   }
 
   function computeSwingCompareLagAngle(view, phaseId) {
-    const c7 = getSwingComparePoint(view, phaseId, 'c7Center');
+    const c7 = getSwingComparePoint(view, phaseId, swingCompareView === 'side' ? 'elbowCenter' : 'c7Center');
     const wrist = getSwingComparePoint(view, phaseId, 'wristCenter');
     const clubHead = getSwingComparePoint(view, phaseId, 'clubHeadCenter');
     if (!c7 || !wrist || !clubHead) return null;
-    const aspect = getSwingCompareAspect(view);
+    const aspect = getSwingCompareAspect(view, phaseId);
     const arm = { x: (c7.x - wrist.x) * aspect, y: c7.y - wrist.y };
     const shaft = { x: (clubHead.x - wrist.x) * aspect, y: clubHead.y - wrist.y };
     const armLength = Math.hypot(arm.x, arm.y);
@@ -10165,12 +10375,24 @@
     return Math.acos(cosine) * 180 / Math.PI;
   }
 
+  function computeSwingCompareTrunkAngle(view, phaseId) {
+    const pelvis = getSwingComparePoint(view, phaseId, 'coreCenter');
+    const c7 = getSwingComparePoint(view, phaseId, 'c7Center');
+    if (!pelvis || !c7) return null;
+    const dx = (c7.x - pelvis.x) * getSwingCompareAspect(view, phaseId);
+    const dy = pelvis.y - c7.y;
+    if (Math.hypot(dx, dy) < 0.005) return null;
+    return Math.atan2(dx, dy) * 180 / Math.PI;
+  }
+
   function getSwingCompareAddressFrame(view, phaseId, type) {
     const addressCore = getSwingComparePoint(view, 'address', 'coreCenter');
     const addressC7 = getSwingComparePoint(view, 'address', 'c7Center');
     const point = getSwingComparePoint(view, phaseId, type);
     if (!addressCore || !addressC7 || !point) return null;
-    const aspect = getSwingCompareAspect(view);
+    const aspect = getSwingCompareAspect(view, 'address');
+    const phaseAspect = getSwingCompareAspect(view, phaseId);
+    if (Math.abs(aspect - phaseAspect) > 0.001) return null;
     const dx = (addressC7.x - addressCore.x) * aspect;
     const dy = addressC7.y - addressCore.y;
     const trunk = Math.hypot(dx, dy);
@@ -10240,9 +10462,10 @@
       if (!completed.length) return 'Enter A/B points for the six phases to see the overall comparison.';
       const available = [
         { label: 'compactness match', value: values.concentration },
-        { label: 'wrist path', value: values.wristPath },
-        { label: 'core path', value: values.corePath },
-        { label: 'lag-angle match', value: values.lagging },
+        { label: swingCompareView === 'side' ? 'hand path' : 'wrist path', value: values.wristPath },
+        { label: swingCompareView === 'side' ? 'pelvis path' : 'core path', value: values.corePath },
+        { label: swingCompareView === 'side' ? 'elbow–hand–club angle' : 'lag-angle match', value: values.lagging },
+        { label: 'trunk tilt match', value: values.trunk },
         { label: 'tempo match', value: values.timing },
       ].filter(item => Number.isFinite(item.value));
       const sorted = available.slice().sort((a, b) => b.value - a.value);
@@ -10269,9 +10492,10 @@
     if (!completed.length) return '6개 시점의 A/B 포인트를 입력하면 종합의견이 표시됩니다.';
     const available = [
       { label: '집중도 일치', value: values.concentration },
-      { label: '손목 궤적', value: values.wristPath },
-      { label: '코어 궤적', value: values.corePath },
-      { label: '래깅각 일치', value: values.lagging },
+      { label: swingCompareView === 'side' ? '손 궤적' : '손목 궤적', value: values.wristPath },
+      { label: swingCompareView === 'side' ? '골반 궤적' : '코어 궤적', value: values.corePath },
+      { label: swingCompareView === 'side' ? '팔꿈치–손–클럽 각도' : '래깅각 일치', value: values.lagging },
+      { label: '전경각 일치', value: values.trunk },
       { label: '템포 일치', value: values.timing },
     ].filter(item => Number.isFinite(item.value));
     const sorted = available.slice().sort((a, b) => b.value - a.value);
@@ -10295,11 +10519,25 @@
   }
 
   function updateSwingCompareResults() {
+    if (swingCompareView === 'free') return;
+    const sideView = swingCompareView === 'side';
+    const text = (ko, en) => getSwingUiText(ko, en);
+    const count = SWING_COMPARE_POINT_TYPES.length;
+    const tableHead = document.getElementById('swingCompareTableHead');
+    const pathLabel = sideView ? text('손 궤적(%)', 'Hand path (%)') : text('손목 궤적(%)', 'Wrist path (%)');
+    const coreLabel = sideView ? text('골반 궤적(%)', 'Pelvis path (%)') : text('코어 궤적(%)', 'Core path (%)');
+    const angleLabel = sideView ? text('팔꿈치–손–클럽 각도', 'Elbow–hand–club angle') : text('래깅각', 'Lag angle');
+    if (tableHead) tableHead.innerHTML = '<tr>' + [
+      text('시점', 'Phase'), text('A 입력', 'A input'), text('B 입력', 'B input'),
+      text('집중도 일치(%)', 'Compactness match (%)'), pathLabel, coreLabel,
+      `${angleLabel} A/B`, ...(sideView ? [text('전경각 A/B', 'Trunk tilt A/B')] : []),
+      text('템포 일치(%)', 'Tempo match (%)'),
+    ].map(label => `<th>${label}</th>`).join('') + '</tr>';
     const phaseMetrics = SWING_COMPARE_PHASES.map(phase => {
       const metrics = computeSwingComparePhaseMetrics(phase.id);
       const timingScore = computeSwingComparePhaseTimingScore(phase.id);
       const phaseScore = metrics ? average([
-        metrics.concentrationScore, metrics.wristPathScore, metrics.corePathScore, metrics.lagScore, timingScore,
+        metrics.concentrationScore, metrics.wristPathScore, metrics.corePathScore, metrics.lagScore, metrics.trunkScore, timingScore,
       ].filter(Number.isFinite)) : null;
       return { phase, metrics, timingScore, phaseScore };
     });
@@ -10310,11 +10548,14 @@
         const lagText = metrics && Number.isFinite(metrics.lagAngleA) && Number.isFinite(metrics.lagAngleB)
           ? `A ${metrics.lagAngleA.toFixed(1)}° · B ${metrics.lagAngleB.toFixed(1)}° (${formatSwingCompareScore(metrics.lagScore)})`
           : '-';
-        return `<tr><td>${phase.label}</td><td>${countA}/4</td><td>${countB}/4</td>`
+        const trunkText = metrics && Number.isFinite(metrics.trunkAngleA) && Number.isFinite(metrics.trunkAngleB)
+          ? `A ${metrics.trunkAngleA.toFixed(1)}° · B ${metrics.trunkAngleB.toFixed(1)}° (${formatSwingCompareScore(metrics.trunkScore)})` : '-';
+        return `<tr><td>${translateUiText(phase.label)}</td><td>${countA}/${count}</td><td>${countB}/${count}</td>`
           + `<td>${formatSwingCompareScore(metrics && metrics.concentrationScore)}</td>`
           + `<td>${formatSwingCompareScore(metrics && metrics.wristPathScore)}</td>`
           + `<td>${formatSwingCompareScore(metrics && metrics.corePathScore)}</td>`
           + `<td>${lagText}</td>`
+          + (sideView ? `<td>${trunkText}</td>` : '')
           + `<td>${formatSwingCompareScore(timingScore)}</td></tr>`;
       }).join('');
     }
@@ -10324,10 +10565,13 @@
     const corePath = computeSwingCompareTrajectoryScore('coreCenter');
     const lagging = average(completed.map(item => item.metrics.lagScore).filter(Number.isFinite));
     const timing = computeSwingCompareTimingScore();
-    const overall = average([concentration, wristPath, corePath, lagging, timing].filter(Number.isFinite));
+    const trunk = sideView ? average(completed.map(item => item.metrics.trunkScore).filter(Number.isFinite)) : null;
+    const overall = average([concentration, wristPath, corePath, lagging, timing, trunk].filter(Number.isFinite));
     const metrics = [
-      ['종합 유사도(%)', overall], ['집중도 일치(%)', concentration], ['손목 궤적(%)', wristPath],
-      ['코어 궤적(%)', corePath], ['래깅각 일치(%)', lagging], ['템포 일치(%)', timing],
+      [text('종합 유사도(%)', 'Overall similarity (%)'), overall],
+      [text('집중도 일치(%)', 'Compactness match (%)'), concentration], [pathLabel, wristPath],
+      [coreLabel, corePath], [angleLabel, lagging], [text('템포 일치(%)', 'Tempo match (%)'), timing],
+      ...(sideView ? [[text('전경각 일치(%)', 'Trunk tilt match (%)'), trunk]] : []),
     ];
     if (swingCompareSummary) {
       swingCompareSummary.innerHTML = metrics.map(([label, value]) =>
@@ -10336,7 +10580,7 @@
     }
     if (swingCompareOpinion) {
       swingCompareOpinion.textContent = buildSwingCompareOpinion(
-        { overall, concentration, wristPath, corePath, lagging, timing },
+        { overall, concentration, wristPath, corePath, lagging, timing, trunk },
         phaseMetrics
       );
     }
@@ -10344,9 +10588,30 @@
 
   function updateSwingCompareGuide() {
     if (!swingCompareStatus) return;
+    if (swingCompareView === 'free') {
+      document.getElementById('swingCompareViewNote').textContent = getSwingUiText(
+        'A/B 각각 기준선을 지정합니다. 거리값은 기준선 대비 %이며 실제 길이 입력 시 cm도 표시합니다.',
+        'Set a reference in each video. Distances show reference % and cm when a reference length is entered.');
+      swingCompareStatus.textContent = getSwingUiText(
+        swingCompareFreeTool === 'draw' ? '클릭: 점 · 드래그: 선 · 우클릭/길게 누르기: 삭제'
+          : swingCompareFreeTool === 'reference' ? '기준선의 양 끝을 클릭하거나 드래그하세요.'
+            : '측정할 두 지점을 클릭하거나 드래그하세요.',
+        swingCompareFreeTool === 'draw' ? 'Click: point · Drag: line · Right-click/long press: delete'
+          : swingCompareFreeTool === 'reference' ? 'Click both ends or drag the reference line.' : 'Click two points or drag to measure.');
+      for (const bubble of [frontGuideBubble, sideGuideBubble]) {
+        if (bubble) bubble.classList.remove('visible');
+      }
+      return;
+    }
+    const count = SWING_COMPARE_POINT_TYPES.length;
+    const note = document.getElementById('swingCompareViewNote');
+    if (note) note.textContent = swingCompareView === 'side'
+      ? getSwingUiText('A/B 모두 같은 쪽 측면·비슷한 카메라 높이로 촬영하세요. 모든 시점에서 같은 팔꿈치를 선택하세요. 각도는 2D 투영값입니다.',
+        'Use the same side and similar camera heights in A/B. Select the same elbow at every phase. Angles are 2D projections.')
+      : getSwingUiText('A/B 모두 정면 영상을 사용하세요.', 'Use front-view videos in both A and B.');
     if (uiLanguage === 'en') {
       if (!swingCompareActive) {
-        swingCompareStatus.textContent = 'Start comparison input to open a four-landmark mode separate from the main analysis.';
+        swingCompareStatus.textContent = `Start comparison input to open a ${count}-landmark mode separate from the main analysis.`;
         showGuide();
         return;
       }
@@ -10354,8 +10619,8 @@
       const phaseLabel = translateUiText(phase.label);
       const describe = view => {
         const entry = getSwingCompareEntry(view);
-        const next = SWING_COMPARE_POINT_TYPES[entry.points.length];
-        return `${view === 'front' ? 'A' : 'B'} ${entry.points.length}/4${next ? ` · Next: ${translateUiText(next.label)}` : ' · Complete'}`;
+        const next = SWING_COMPARE_POINT_TYPES.find(type => !entry.points.some(point => point.type === type.id));
+        return `${view === 'front' ? 'A' : 'B'} ${entry.points.length}/${count}${next ? ` · Next: ${translateUiText(next.label)}` : ' · Complete'}`;
       };
       swingCompareStatus.textContent = `Set the video to ${phaseLabel}, then select the points in order. ${describe('front')} | ${describe('side')}`;
       [[frontGuideBubble, 'front'], [sideGuideBubble, 'side']].forEach(([bubble, view]) => {
@@ -10366,15 +10631,15 @@
       return;
     }
     if (!swingCompareActive) {
-      swingCompareStatus.textContent = '비교 입력 시작을 누르면 기존 분석과 분리된 4개 핵심 포인트 입력 모드가 열립니다.';
+      swingCompareStatus.textContent = `비교 입력 시작을 누르면 기존 분석과 분리된 ${count}개 핵심 포인트 입력 모드가 열립니다.`;
       showGuide();
       return;
     }
     const phase = SWING_COMPARE_PHASES.find(item => item.id === swingComparePhase);
     const describe = view => {
       const entry = getSwingCompareEntry(view);
-      const next = SWING_COMPARE_POINT_TYPES[entry.points.length];
-      return `${view === 'front' ? 'A' : 'B'} ${entry.points.length}/4${next ? ` · 다음: ${next.label}` : ' · 완료'}`;
+      const next = SWING_COMPARE_POINT_TYPES.find(type => !entry.points.some(point => point.type === type.id));
+      return `${view === 'front' ? 'A' : 'B'} ${entry.points.length}/${count}${next ? ` · 다음: ${next.label}` : ' · 완료'}`;
     };
     swingCompareStatus.textContent = `${phase.label} 프레임에 영상을 맞춘 뒤 포인트를 순서대로 선택하세요. ${describe('front')} | ${describe('side')}`;
     [[frontGuideBubble, 'front'], [sideGuideBubble, 'side']].forEach(([bubble, view]) => {
@@ -10400,32 +10665,44 @@
   }
 
   function toggleSwingCompareMode() {
-    if (!frontVideo.src || !sideVideo.src) {
-      alert('A와 B 패널에 비교할 스윙 영상을 각각 먼저 불러오세요.');
-      return;
-    }
     if (backswingActive) setBackswingMode(false);
+    cancelPointer();
+    stanceReferenceActive = false;
+    stanceReferencePendingPoints = [];
+    stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+    stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+    if (statusSpan) statusSpan.textContent = '';
     swingCompareActive = !swingCompareActive;
+    updateSwingComparePresentation();
+    if (swingCompareActive) document.body.dataset.swingCompare = 'active';
+    else delete document.body.dataset.swingCompare;
     distanceMeasureActive = false;
     distanceReferenceActive = false;
     if (swingComparePanel) swingComparePanel.classList.toggle('visible', swingCompareActive);
     if (swingCompareToggleBtn) {
       swingCompareToggleBtn.textContent = swingCompareActive ? 'A/B 비교 종료' : 'A/B 스윙 비교';
       swingCompareToggleBtn.classList.toggle('swing-compare-active', swingCompareActive);
+      swingCompareToggleBtn.setAttribute('aria-pressed', String(swingCompareActive));
     }
     showGuide();
     updateSwingCompareGuide();
+    if (swingCompareActive && (!frontVideo.src || !sideVideo.src)) {
+      swingCompareStatus.textContent = getSwingUiText(
+        'A와 B에 비교할 스윙 영상을 각각 불러오세요.',
+        'Load the swings to compare in A and B.');
+    }
     redrawSwingCompareOverlays();
   }
 
   function addSwingComparePoint(view, pos) {
     const entry = getSwingCompareEntry(view);
-    const nextType = SWING_COMPARE_POINT_TYPES[entry.points.length];
+    const nextType = SWING_COMPARE_POINT_TYPES.find(type => !entry.points.some(point => point.type === type.id));
     if (!nextType) return;
     const video = view === 'front' ? frontVideo : sideVideo;
     video.pause();
     entry.points.push({ x: pos.x, y: pos.y, type: nextType.id });
     entry.videoTime = Number.isFinite(video.currentTime) ? video.currentTime : null;
+    entry.aspectRatio = video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : null;
     updateSwingCompareGuide();
     updateSwingCompareResults();
     redrawSwingCompareOverlays();
@@ -10449,7 +10726,16 @@
   }
 
   function resetSwingCompareData() {
+    if (swingCompareView === 'free') {
+      swingCompareFreeData = createSwingCompareFreeData();
+      swingCompareFreePending = { front: null, side: null };
+      document.getElementById('swingCompareFreeLength').value = '';
+      updateSwingCompareGuide();
+      redrawSwingCompareOverlays();
+      return;
+    }
     swingCompareData = createEmptySwingCompareData();
+    swingCompareDataByView[swingCompareView] = swingCompareData;
     updateSwingCompareGuide();
     updateSwingCompareResults();
     redrawSwingCompareOverlays();
@@ -10463,6 +10749,7 @@
     ctx.save();
     points.forEach(point => {
       const type = SWING_COMPARE_POINT_TYPES.find(item => item.id === point.type);
+      if (!type) return;
       const x = metrics.offsetX + point.x * metrics.drawWidth;
       const y = metrics.offsetY + point.y * metrics.drawHeight;
       ctx.beginPath();
@@ -11219,6 +11506,10 @@
       return;
     }
     const view = canvas === frontCanvas ? 'front' : 'side';
+    if (swingCompareActive && swingCompareView === 'free') {
+      drawSwingCompareFree(ctx, canvas, video, zoom, view, previewLine);
+      return;
+    }
     if (swingCompareActive) {
       points = getSwingCompareEntry(view).points;
       lines = [];
@@ -11681,6 +11972,10 @@
     const pos = getNormalizedCoords(event, canvas, video, zoom);
     if(!pos) return;
     if (swingCompareActive) {
+      if (swingCompareView === 'free') {
+        deleteSwingCompareFreeSelection(view, pos);
+        return;
+      }
       deleteSwingComparePoint(view, pos);
       return;
     }
@@ -11831,6 +12126,19 @@
       return;
     }
     if (swingCompareActive) {
+      if (swingCompareView === 'free') {
+        activePointer = { freeMode: true, ctx, points, lines, canvas, video, zoomGetter, view,
+          startPos: pos, currentPos: pos, pointerId: event.pointerId };
+        pointerIsDragging = false;
+        longPressTriggered = false;
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => {
+          if (!activePointer?.freeMode || pointerIsDragging) return;
+          longPressTriggered = deleteSwingCompareFreeSelection(view, pos);
+        }, LONG_PRESS_MS);
+        if (!captureActivePointer(event, canvas)) return;
+        return;
+      }
       activePointer = { compareMode: true, canvas, video, zoomGetter, view, startPos: pos, currentPos: pos, pointerId: event.pointerId };
       pointerIsDragging = false;
       longPressTriggered = false;
@@ -11969,6 +12277,17 @@
       if (pos && Math.hypot(pos.x - startPos.x, pos.y - startPos.y) < 0.01) addBackswingPoint(pos);
       activePointer = null;
       releasePointerCaptureSafely(canvas, event.pointerId);
+      return;
+    }
+    if (activePointer.freeMode) {
+      const { view, startPos, currentPos, ctx, canvas, video, zoomGetter } = activePointer;
+      const end = getNormalizedCoords(event, canvas, video, zoomGetter()) || currentPos;
+      if (!longPressTriggered) addSwingCompareFreeSelection(view, startPos, pointerIsDragging ? end : null);
+      activePointer = null;
+      pointerIsDragging = false;
+      longPressTriggered = false;
+      releasePointerCaptureSafely(canvas, event.pointerId);
+      drawOverlay(ctx, [], [], canvas, video, zoomGetter());
       return;
     }
     if (activePointer.compareMode) {
@@ -12570,6 +12889,7 @@
       return;
     }
     if (swingCompareActive) {
+      if (swingCompareView === 'free') { resetSwingCompareData(); return; }
       swingCompareData.front[swingComparePhase] = { points: [], videoTime: null };
       swingCompareData.side[swingComparePhase] = { points: [], videoTime: null };
       updateSwingCompareGuide();
@@ -12937,6 +13257,7 @@
   if (swingComparePhaseSelect) {
     swingComparePhaseSelect.addEventListener('change', event => setSwingComparePhase(event.target.value));
   }
+  document.getElementById('swingCompareViewSelect').addEventListener('change', event => setSwingCompareView(event.target.value));
   if (swingCompareToggleBtn) {
     swingCompareToggleBtn.addEventListener('click', toggleSwingCompareMode);
   }
@@ -12949,6 +13270,7 @@
   }
   if (swingCompareClearPhaseBtn) {
     swingCompareClearPhaseBtn.addEventListener('click', () => {
+      if (swingCompareView === 'free') { resetSwingCompareData(); return; }
       swingCompareData.front[swingComparePhase] = { points: [], videoTime: null };
       swingCompareData.side[swingComparePhase] = { points: [], videoTime: null };
       updateSwingCompareGuide();
@@ -12956,6 +13278,19 @@
       redrawSwingCompareOverlays();
     });
   }
+  document.querySelectorAll('[data-free-tool]').forEach(button =>
+    button.addEventListener('click', () => setSwingCompareFreeTool(button.dataset.freeTool)));
+  document.getElementById('swingCompareFreeLength').addEventListener('input', event => {
+    const input = event.target;
+    if (!input.checkValidity()) {
+      swingCompareFreeData.referenceLengthCm = null;
+      redrawSwingCompareOverlays();
+      input.reportValidity();
+      return;
+    }
+    swingCompareFreeData.referenceLengthCm = input.value === '' ? null : Number(input.value);
+    redrawSwingCompareOverlays();
+  });
   if (swingCompareResetBtn) {
     swingCompareResetBtn.addEventListener('click', resetSwingCompareData);
   }
@@ -13105,7 +13440,11 @@
         // 백스윙 입력점이 지워진 뒤에도(예: 정면 영상 재선택) 판정 결과가 유지되므로 결과 자체도 저장한다.
         backswingClassificationResult: backswingClassification,
         backswingPhase: backswingPhaseSelect.value,
-        swingCompareData,
+        swingCompareData: swingCompareView === 'free' ? swingCompareDataByView.front : swingCompareData,
+        swingCompareView,
+        swingCompareDataByView: { ...swingCompareDataByView,
+          ...(swingCompareView === 'free' ? {} : { [swingCompareView]: swingCompareData }) },
+        swingCompareFreeData,
         swingComparePhase,
         lastDistanceSegment,
         lastConsistencySegment,
@@ -13188,6 +13527,36 @@
         if (result == null) return true;
         return typeof result === 'object' && !Array.isArray(result)
           && (!requireDelta || result.fm == null || (typeof result.fm === 'object' && !Array.isArray(result.fm)));
+      });
+  }
+
+  function isProjectSwingCompareData(data, view) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+    const types = view === 'side' ? SWING_COMPARE_SIDE_POINTS : SWING_COMPARE_FRONT_POINTS;
+    return Object.keys(data).every(key => ['front', 'side'].includes(key))
+      && ['front', 'side'].every(panel => data[panel] && typeof data[panel] === 'object'
+        && !Array.isArray(data[panel])
+        && Object.keys(data[panel]).every(phase => SWING_COMPARE_PHASES.some(item => item.id === phase))
+        && Object.values(data[panel]).every(entry => entry && Array.isArray(entry.points)
+          && entry.points.length <= types.length
+          && new Set(entry.points.map(point => point?.type)).size === entry.points.length
+          && entry.points.every(point => isProjectPoint(point) && types.some(type => type.id === point.type))
+          && (entry.aspectRatio == null || (Number.isFinite(entry.aspectRatio) && entry.aspectRatio > 0))
+          && (entry.videoTime == null || (Number.isFinite(entry.videoTime) && entry.videoTime >= 0))));
+  }
+
+  function isProjectSwingCompareFreeData(data) {
+    return data && typeof data === 'object' && !Array.isArray(data)
+      && (data.referenceLengthCm == null || (Number.isFinite(data.referenceLengthCm)
+        && data.referenceLengthCm >= 0.1 && data.referenceLengthCm <= 1000))
+      && ['front', 'side'].every(view => {
+        const entry = data[view];
+        const line = item => item && isProjectCoordinate(item.start) && isProjectCoordinate(item.end);
+        return entry && Array.isArray(entry.points) && entry.points.length <= 10000
+          && entry.points.every(isProjectCoordinate)
+          && Array.isArray(entry.lines) && entry.lines.length <= 10000 && entry.lines.every(line)
+          && Array.isArray(entry.measurements) && entry.measurements.length <= 10000 && entry.measurements.every(line)
+          && (entry.reference == null || line(entry.reference));
       });
   }
 
@@ -13285,6 +13654,16 @@
       || (project.r10.reportProfileNumber != null
         && (!Number.isInteger(project.r10.reportProfileNumber) || project.r10.reportProfileNumber < 1 || project.r10.reportProfileNumber > 35))) {
       throw new Error(r10Text('저장된 프레임·점수·R10 데이터가 올바르지 않습니다.', 'The saved frame, score, or R10 data is invalid.'));
+    }
+    const comparisonView = state.swingCompareView || 'front';
+    if (!['front', 'side', 'free'].includes(comparisonView)
+      || (state.swingCompareFreeData != null && !isProjectSwingCompareFreeData(state.swingCompareFreeData))
+      || (state.swingCompareData != null && !isProjectSwingCompareData(state.swingCompareData, comparisonView))
+      || (state.swingCompareDataByView != null
+        && (typeof state.swingCompareDataByView !== 'object' || Array.isArray(state.swingCompareDataByView)
+          || Object.keys(state.swingCompareDataByView).some(key => !['front', 'side'].includes(key))
+          || !['front', 'side'].every(view => isProjectSwingCompareData(state.swingCompareDataByView[view], view))))) {
+      throw new Error(r10Text('저장된 A/B 비교 데이터가 올바르지 않습니다.', 'The saved A/B comparison data is invalid.'));
     }
     for (const view of ['front', 'side']) {
       const identity = project.media[view];
@@ -13506,20 +13885,26 @@
       ? `${r10Text('복원된 백스윙 분류', 'Restored backswing classification')}: ${getBackswingProfileCode(backswingClassification) || r10Text('판정 보류', 'undetermined')}`
       : '';
     if (backswingClassification) renderBackswingClassification();
-    swingCompareData = createEmptySwingCompareData();
-    if (state.swingCompareData) {
+    swingCompareView = state.swingCompareView || 'front';
+    SWING_COMPARE_POINT_TYPES = swingCompareView === 'side' ? SWING_COMPARE_SIDE_POINTS : SWING_COMPARE_FRONT_POINTS;
+    swingCompareDataByView = { front: createEmptySwingCompareData(), side: createEmptySwingCompareData() };
+    for (const mode of ['front', 'side']) {
+      const stored = state.swingCompareDataByView?.[mode]
+        || (mode === swingCompareView ? state.swingCompareData : null);
+      if (!stored) continue;
       for (const view of ['front', 'side']) {
         for (const phase of SWING_COMPARE_PHASES) {
-          const entry = state.swingCompareData[view]?.[phase.id];
-          if (!entry || !Array.isArray(entry.points)) continue;
-          swingCompareData[view][phase.id] = {
-            points: entry.points.filter(point => point && SWING_COMPARE_POINT_TYPES.some(type => type.id === point.type)
-              && isProjectPoint({ ...point, type: String(point.type) })).map(point => ({ x: point.x, y: point.y, type: point.type })),
-            videoTime: Number.isFinite(entry.videoTime) ? entry.videoTime : null,
-          };
+          const entry = stored[view]?.[phase.id];
+          if (entry) swingCompareDataByView[mode][view][phase.id] = copyProjectValue(entry);
         }
       }
     }
+    swingCompareData = swingCompareDataByView[swingCompareView === 'free' ? 'front' : swingCompareView];
+    swingCompareFreeData = state.swingCompareFreeData ? copyProjectValue(state.swingCompareFreeData) : createSwingCompareFreeData();
+    swingCompareFreePending = { front: null, side: null };
+    document.getElementById('swingCompareFreeLength').value = swingCompareFreeData.referenceLengthCm ?? '';
+    updateSwingComparePresentation();
+    document.getElementById('swingCompareViewSelect').value = swingCompareView;
     swingComparePhase = SWING_COMPARE_PHASES.some(phase => phase.id === state.swingComparePhase) ? state.swingComparePhase : 'address';
     swingComparePhaseSelect.value = swingComparePhase;
     lastDistanceSegment = ['frame1', 'frame2', 'frame3', 'frame4'].includes(state.lastDistanceSegment) ? state.lastDistanceSegment : 'frame1';
@@ -14752,6 +15137,8 @@
   const workflowFiles = document.getElementById('analysisWorkflowFiles');
   workflowFiles.append(document.querySelector('.analysis-project-actions'), document.getElementById('downloadPdfBtn'));
   workflowFiles.append(document.getElementById('analysisWorkflowReset'));
+  workflowFiles.append(swingCompareToggleBtn);
+  swingCompareToggleBtn.setAttribute('aria-pressed', 'false');
 
   function invalidateLinkedAnalysisReports() {
     if (computing2dCorrectionScenario || !linkedAnalysisReportsReady) return;
