@@ -1668,6 +1668,10 @@
   #analysisWorkflow { padding: 0; margin: 0 auto 8px; border: 0; background: transparent; box-shadow: none; }
   #analysisWorkflowEngineNotice { margin: 0; padding: 6px 10px; font-size: 0.8125rem; }
   #analysisWorkflowStatus:not([hidden]) { padding: 8px 10px; color: #ffb6a6; }
+  #analysisWorkflowFiles { justify-content: flex-end; gap: 8px; padding: 4px 0; }
+  #analysisWorkflowFiles button { min-height: 36px; padding: 7px 10px; font-size: 0.8125rem; }
+  #analysisWorkflowFiles .analysis-project-actions { padding: 0; border: 0; background: transparent; }
+  #analysisWorkflowFiles .analysis-toolbar-label { display: none; }
   #analysisWorkflowProgress { gap: 5px; }
   body[data-workflow-stage] :is(#analysisWorkflow, #analysisVideoWorkspace, #backswingPanel, #analysisPanel, #r10AnalysisPanel) { scroll-margin-top: 12px; }
   #analysisWorkflowProgress button[data-status="pending"] { border-color: #667b90; }
@@ -1935,6 +1939,7 @@
   <ol id="analysisWorkflowProgress"></ol>
 </nav>
 <section class="analysis-workflow" id="analysisWorkflow" aria-label="분석 안내">
+  <div id="analysisWorkflowFiles" class="analysis-toolbar" aria-label="분석 파일"></div>
   <div id="analysisWorkflowBody" hidden>
     <p id="analysisWorkflowEngineNotice" hidden></p>
     <div id="analysisWorkflowStatus" role="status" aria-live="polite" hidden></div>
@@ -8639,15 +8644,26 @@
       alert('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.');
       return;
     }
-    if (backswingActive) {
+    const stage = analysisWorkflowState ? ANALYSIS_WORKFLOW_STEPS[analysisWorkflowState.index].id : null;
+    if (stage === 'backswing' || (!stage && backswingActive)) {
       await downloadBackswingAnalysisPDF();
+      return;
+    }
+    if (stage === 'distance' && computeEstimatedCarryDistance().missing) {
+      alert(getSwingUiText('잠재비거리 추정에 필요한 입력과 분석을 먼저 완료하세요.', 'Complete the required inputs and analysis before exporting potential distance.'));
+      return;
+    }
+    if (stage === 'r10' && !r10Analysis) {
+      alert(getSwingUiText('R10 CSV를 불러와 분석한 후 PDF를 다운로드하세요.', 'Load and analyze an R10 CSV before downloading a PDF.'));
       return;
     }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    const clone = analysisPanel.cloneNode(true);
+    const source = stage === 'r10' ? r10AnalysisPanel : analysisPanel;
+    const clone = source.cloneNode(true);
+    clone.hidden = false;
     clone.classList.remove('collapsed');
     clone.querySelector('#r10AnalysisPanel')?.remove();
     clone.style.position = 'fixed';
@@ -8663,6 +8679,14 @@
     const referenceGuide = clone.querySelector('#analysisReferenceGuide');
     if (referenceGuide && !referenceGuide.open) referenceGuide.remove();
     clone.querySelectorAll('button').forEach(btn => btn.remove());
+    clone.querySelectorAll('input[type="file"], .r10-file-actions').forEach(element => element.remove());
+    source.querySelectorAll('canvas').forEach(canvas => {
+      const target = Array.from(clone.querySelectorAll('canvas')).find(candidate => candidate.id === canvas.id);
+      if (!target) return;
+      target.width = canvas.width;
+      target.height = canvas.height;
+      target.getContext('2d').drawImage(canvas, 0, 0);
+    });
     const narrativeBlock = clone.querySelector('#swingNarrativeBlock');
     if (narrativeBlock && narrativeBlock.innerHTML.trim()) narrativeBlock.style.display = 'block';
     clone.querySelectorAll('*').forEach(el => {
@@ -8697,6 +8721,7 @@
     } catch (error) {
       console.warn('PDF 생성 중 오류가 발생했습니다.', error);
       alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
+      return;
     } finally {
       clone.remove();
     }
@@ -8706,7 +8731,7 @@
       : document.getElementById('frontFileName') ? document.getElementById('frontFileName').textContent : '';
     let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : 'MotionAnalysis';
     baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || 'MotionAnalysis';
-    doc.save(`${baseFileName}_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`${baseFileName}_${stage || 'analysis'}_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
   async function downloadBackswingAnalysisPDF() {
@@ -11779,6 +11804,7 @@
     stanceReferenceLineFront = { start: { ...start }, end: { ...end } };
     stanceReferencePendingPoints = [];
     stanceReferenceActive = false;
+    if (statusSpan) statusSpan.textContent = '';
     if (stanceReferenceBtn) {
       stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
       stanceReferenceBtn.setAttribute('aria-pressed', 'false');
@@ -13375,6 +13401,7 @@
         'To recalculate saved metrics, load the original A and B videos used for this project and wait until video metadata is ready.'
       ));
     }
+    const restoredWorkflowIndex = analysisWorkflowState?.index ?? 0;
     startAnalysisWorkflow();
     analysisGeneration += 1;
     pauseBothVideos();
@@ -13582,6 +13609,7 @@
     refreshSwingClassificationViews();
     checkButtonsEnabled();
     updateStatus();
+    selectAnalysisWorkflowStage(restoredWorkflowIndex);
     return hasFrameInputs;
   }
 
@@ -14753,6 +14781,8 @@
   if (workflowWorkspace) {
     workflowWorkspace.before(document.getElementById('analysisWorkflowNav'), document.getElementById('analysisWorkflow'));
   }
+  const workflowFiles = document.getElementById('analysisWorkflowFiles');
+  workflowFiles.append(document.querySelector('.analysis-project-actions'), document.getElementById('downloadPdfBtn'));
 
   const ANALYSIS_WORKFLOW_STEPS = [
     { id: 'backswing', ko: '백스윙 유형 결정', en: 'Backswing classification' },
@@ -14795,6 +14825,14 @@
 
   function openAnalysisWorkflowStage(index) {
     const id = ANALYSIS_WORKFLOW_STEPS[index].id;
+    if (stanceReferenceActive) {
+      cancelPointer();
+      stanceReferenceActive = false;
+      stanceReferencePendingPoints = [];
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (statusSpan) statusSpan.textContent = '';
     if (swingCompareActive) toggleSwingCompareMode();
     if (id !== 'backswing' && backswingActive) setBackswingMode(false);
     if (id === 'backswing') {

@@ -27,6 +27,8 @@ function setup() {
     document: { getElementById: get, createElement: element, body: element() },
     getSwingUiText: (ko, en) => en, languageSelect: null,
     backswingActive: false, backswingClassification: null, swingCompareActive: false,
+    stanceReferenceActive: false, stanceReferencePendingPoints: [], statusSpan: element(),
+    stanceReferenceBtn: element(), translateUiText: text => text, cancelPointer() {},
     r10Analysis: null, r10SourceName: '',
     getBackswingProfileCode: result => result?.profileCode || null,
     getSwingTypeReadiness: () => ({ ready: false, missing: ['F1–F4 points required'] }),
@@ -179,4 +181,15 @@ test('R10 upload opens existing CSV picker', () => {
   const { get } = setup();
   get('r10UploadBtn').listeners.click();
   assert.equal(get('r10CsvInput').clicked, true);
+});
+
+test('switching stages cancels unfinished stance selection and clears its stale message', () => {
+  const { c } = setup();
+  c.stanceReferenceActive = true;
+  c.stanceReferencePendingPoints = [{ x: 0.1, y: 0.2 }];
+  c.statusSpan.textContent = 'Select stance endpoints';
+  c.actualOpenAnalysisWorkflowStage(3);
+  assert.equal(c.stanceReferenceActive, false);
+  assert.equal(c.stanceReferencePendingPoints.length, 0);
+  assert.equal(c.statusSpan.textContent, '');
 });
