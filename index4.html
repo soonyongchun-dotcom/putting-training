@@ -1348,6 +1348,7 @@
   .analysis-power-summary-actions > button { white-space: nowrap; }
   .analysis-distance-estimate { flex-basis: 100%; margin-top: 6px; padding: 10px; border: 1px solid rgba(111, 211, 188, 0.38); border-radius: 6px; background: rgba(0, 0, 0, 0.16); white-space: pre-wrap; }
   .analysis-distance-estimate strong { display: block; margin-bottom: 5px; color: #8ee0c9; font-size: 1.05rem; }
+  .analysis-distance-missing { display: block; font-size: 0.78rem; line-height: 1.65; color: #b4c5ca; white-space: pre-line; }
   .analysis-distance-result-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
   .analysis-distance-estimate .analysis-distance-result-row strong { margin-bottom: 0; }
   .analysis-distance-reference-result { color: #d5e8e2; font-size: 0.9rem; }
@@ -1580,6 +1581,163 @@
     .r10-stat-value { font-size: 0.95rem; }
     .r10-chart-wrap { height: 260px; }
   }
+  .analysis-workflow {
+    margin: 16px 0; padding: 16px; border: 1px solid #5b88bb;
+    border-radius: 12px; background: #11233b; color: #e4efff;
+  }
+  .analysis-workflow h3 { margin: 12px 0 8px; }
+  .analysis-workflow p { line-height: 1.6; }
+  .analysis-workflow-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  #analysisWorkflowNav { background: #102a36; padding: 8px; border: 1px solid #507081; border-radius: 8px; }
+  #analysisWorkflowProgress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
+  #analysisWorkflowProgress button { width: 100%; height: 100%; text-align: left; white-space: normal; border: 2px solid #6b8190; }
+  #analysisWorkflowProgress button[data-status="complete"] { border-color: #70ebc3; }
+  #analysisWorkflowProgress button[data-status="active"] { border-color: #ffd166; }
+  #analysisWorkflowProgress button[data-status="skipped"] { border-style: dashed; }
+  #analysisWorkflowProgress button[aria-current="step"] { background: #254f62; outline: 2px solid #a9dfff; outline-offset: 1px; }
+  @media (max-width: 600px) {
+    #analysisWorkflowProgress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  body[data-workflow-stage] #swingComparePanel,
+  body[data-workflow-stage] #appIntroPanel,
+  body[data-workflow-stage]:not([data-workflow-stage="engine"]) .analysis-measure-actions,
+  body[data-workflow-stage] #swingCompareToggleBtn,
+  body[data-workflow-stage] #backswingToggleBtn,
+  body[data-workflow-stage] #r10EvaluationToggleBtn,
+  body[data-workflow-stage] .analysis-output-actions,
+  body[data-workflow-stage] #analysisToggleBtn { display: none !important; }
+  body[data-workflow-stage="backswing"] #sideWrapper,
+  body[data-workflow-stage="backswing"] .video-header .analysis-btn { display: none !important; }
+  body[data-workflow-stage="distance"] #analysisSwingType > :not(.analysis-power-summary) { display: none !important; }
+  body[data-workflow-stage="engine"] .analysis-power-summary-actions,
+  body[data-workflow-stage="engine"] #distanceEstimateResult,
+  body[data-workflow-stage="engine"] .analysis-power-summary-values > strong:first-child,
+  body[data-workflow-stage="distance"] .analysis-power-summary-values > strong:last-child { display: none !important; }
+  body[data-workflow-stage="backswing"] [data-workflow-for]:not([data-workflow-for~="backswing"]),
+  body[data-workflow-stage="engine"] [data-workflow-for]:not([data-workflow-for~="engine"]),
+  body[data-workflow-stage="distance"] [data-workflow-for]:not([data-workflow-for~="distance"]),
+  body[data-workflow-stage="r10"] [data-workflow-for]:not([data-workflow-for~="r10"]),
+  body[data-workflow-stage="overview"] [data-workflow-for] { display: none !important; }
+  #analysisWorkflowStatus { white-space: pre-line; line-height: 1.65; }
+  .analysis-workflow [hidden] { display: none !important; }
+
+  :root {
+    --ui-font: "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    --ui-text: #e7eef5;
+    --ui-muted: #b2c2d1;
+    --ui-border: #415468;
+    --ui-accent: #87e0cb;
+  }
+  body {
+    font-family: var(--ui-font);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ui-text);
+    background: linear-gradient(145deg, #192838, #0d141f);
+  }
+  button, input, select, textarea { font-family: var(--ui-font); }
+  button, select, input[type="number"], input[type="text"], input[type="password"] { box-sizing: border-box; }
+  button { line-height: 1.4; font-weight: 600; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+    outline: 3px solid #9edbff;
+    outline-offset: 3px;
+  }
+  .top-bar { padding: 18px 150px 8px; margin-bottom: 12px; }
+  .app-title-button { font-size: clamp(1.05rem, 2.2vw, 1.65rem); color: var(--ui-accent); letter-spacing: -0.02em; flex-wrap: wrap; justify-content: center; }
+  h1 .version { font-size: 0.75rem; color: var(--ui-muted); }
+  .analysis-workflow, #analysisWorkflowNav {
+    width: min(95vw, 990px);
+    box-sizing: border-box;
+    margin: 14px auto;
+    text-align: left;
+  }
+  .analysis-workflow {
+    padding: 20px;
+    background: #17283b;
+    border-color: var(--ui-border);
+    box-shadow: 0 8px 24px #00000020;
+  }
+  #analysisWorkflowStatus { font-size: 0.875rem; color: var(--ui-muted); overflow-wrap: anywhere; }
+  #analysisWorkflowEngineNotice { padding: 12px 14px; border-left: 3px solid var(--ui-accent); border-radius: 6px; background: #213d4a; color: #e2fff7; font-size: 0.9rem; }
+  #analysisWorkflowNav { padding: 5px; background: #132337; border-color: var(--ui-border); box-shadow: 0 4px 12px #00000030; }
+  #analysisWorkflowProgress li { min-width: 0; }
+  #analysisWorkflowProgress button { min-height: 44px; padding: 5px 8px; font-size: 0.8125rem; line-height: 1.4; background: #213246; color: var(--ui-text); border-width: 1px; border-radius: 6px; word-break: keep-all; overflow-wrap: anywhere; }
+  .workflow-step-label, .workflow-step-status { display: block; }
+  .workflow-step-status { font-size: 0.6875rem; opacity: 0.85; font-weight: 500; }
+  #analysisWorkflow { padding: 0; margin: 0 auto 8px; border: 0; background: transparent; box-shadow: none; }
+  #analysisWorkflowEngineNotice { margin: 0; padding: 6px 10px; font-size: 0.8125rem; }
+  #analysisWorkflowStatus:not([hidden]) { padding: 8px 10px; color: #ffb6a6; }
+  #analysisWorkflowProgress { gap: 5px; }
+  body[data-workflow-stage] :is(#analysisWorkflow, #analysisVideoWorkspace, #backswingPanel, #analysisPanel, #r10AnalysisPanel) { scroll-margin-top: 12px; }
+  #analysisWorkflowProgress button[data-status="pending"] { border-color: #667b90; }
+  #analysisWorkflowProgress button[data-status="complete"] { background: #183e38; color: #bbf7df; }
+  #analysisWorkflowProgress button[data-status="active"] { background: #403821; color: #ffebaf; }
+  #analysisWorkflowProgress button[data-status="skipped"] { background: #29313e; color: #bdc9d6; }
+  #analysisWorkflowProgress button[aria-current="step"] { outline-color: #b2dcff; font-weight: 700; }
+  .analysis-panel-header button,
+  .backswing-panel button, .r10-panel button { min-height: 38px; padding: 8px 12px; font-size: 0.875rem; border-radius: 7px; }
+  .analysis-panel, .backswing-panel, .r10-panel { border-color: var(--ui-border); border-radius: 12px; }
+  .analysis-panel { background: #1b2939; }
+  .analysis-title { font-size: 1.25rem; letter-spacing: -0.015em; font-weight: 700; }
+  .analysis-panel-header { gap: 12px; padding: 10px 0 16px; }
+  .analysis-toolbar-group { padding: 8px; gap: 8px; }
+  .analysis-toolbar-label, .analysis-height-field .height-unit { font-size: 0.8125rem; color: var(--ui-muted); }
+  .analysis-panel label:not(:has(input[type="file"])), .r10-field,
+  .zoom-controls label, .speed-controls label {
+    background: transparent;
+    color: var(--ui-muted);
+    padding: 0;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    cursor: default;
+    user-select: text;
+  }
+  .analysis-panel input:not([type="range"]):not([type="file"]), .analysis-panel select,
+  .backswing-panel select, .r10-panel select {
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    border: 1px solid #668096;
+    border-radius: 6px;
+    background: #132233;
+    color: var(--ui-text);
+  }
+  .analysis-panel input::placeholder { color: #b8c5d2; opacity: 1; }
+  .analysis-height-control { padding: 12px; border-radius: 8px; background: #142131; }
+  .analysis-panel-controls .analysis-height-control { gap: 12px 16px; }
+  .analysis-height-field { min-width: 0; }
+  .analysis-panel-body { gap: 16px; margin-top: 16px; }
+  .analysis-section { padding: 16px; gap: 8px; }
+  .analysis-section-title, .analysis-type-heading { font-size: 1rem; line-height: 1.5; font-weight: 650; }
+  .analysis-metric { font-size: 0.875rem; line-height: 1.65; }
+  .analysis-detail, .analysis-summary, .swing-type-note { font-size: 0.8125rem; line-height: 1.75; }
+  .analysis-segment-compare-card { box-sizing: border-box; min-width: 0; padding: 14px; }
+  .analysis-segment-compare-title { font-size: 0.9375rem; line-height: 1.5; }
+  .analysis-score-items, .analysis-type-row-value, .r10-stat-value { font-variant-numeric: tabular-nums; }
+  .analysis-reference > summary, .analysis-reference-detail > summary { padding: 10px 8px; font-size: 0.875rem; line-height: 1.6; }
+  .analysis-distance-estimate { text-align: left; padding: 14px; }
+  .analysis-distance-missing { font-size: 0.8125rem; line-height: 1.8; color: var(--ui-muted); }
+  .backswing-panel { text-align: left; padding: 18px; }
+  .backswing-panel .backswing-reference { font-family: var(--ui-font); font-size: 0.8125rem; line-height: 1.7; }
+  .video-header { gap: 8px; padding: 10px; flex-wrap: wrap; }
+  .video-header .title { font-size: 0.9375rem; font-weight: 650; }
+  .video-header button { min-width: 36px; min-height: 36px; border-radius: 7px; }
+  .r10-title { font-size: 1.2rem; line-height: 1.5; }
+  .r10-subtitle, .r10-status, .r10-stat-label { font-size: 0.8125rem; line-height: 1.65; }
+  .r10-stat-value { font-size: 1.3rem; }
+  @media (max-width: 640px) {
+    .top-bar { padding: 64px 12px 8px; flex-wrap: wrap; gap: 10px; }
+    .app-title-button { font-size: 1.05rem; }
+    #analysisWorkflowProgress button { padding: 5px 6px; min-height: 44px; font-size: 0.75rem; }
+    .analysis-section, .analysis-segment-compare-card { padding: 12px; }
+    .analysis-panel input:not([type="range"]):not([type="file"]), .analysis-panel select,
+    .backswing-panel select, .r10-panel select { font-size: 1rem; min-height: 42px; }
+    .analysis-height-control { width: 100%; box-sizing: border-box; }
+    .analysis-toolbar select { max-width: 100%; }
+    .analysis-title { font-size: 1.125rem; }
+  }
 </style>
 </head>
 <body class="login-page">
@@ -1595,7 +1753,7 @@
 </div>
 
 <div class="top-bar">
-  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span> <span class="version">ver 26.108-f-ad</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span>   <span class="version">ver 26.1103-f-ad</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <label class="language-select" for="languageSelect">언어
     <select id="languageSelect" aria-label="언어">
       <option value="ko">한국어</option>
@@ -1625,7 +1783,7 @@
   </div>
 </section>
 
-<div class="container">
+<div class="container" id="analysisVideoWorkspace" data-workflow-for="backswing engine">
   <div class="video-wrapper" id="frontWrapper">
     <div class="video-header">
       <span class="title">정면 A</span>
@@ -1729,8 +1887,9 @@
   </div>
 </section>
 
-<section class="backswing-panel" id="backswingPanel" aria-label="백스윙 유형 결정">
+<section class="backswing-panel" id="backswingPanel" aria-label="백스윙 유형 결정" data-workflow-for="backswing">
   <strong>측면 스윙 궤적 분류 · A 영상</strong>
+  <small>유형 결정 후 같은 A 영상을 다시 불러오면 백스윙 입력을 종료하고 포인트·판정을 유지합니다. 다른 백스윙 영상을 입력하거나 백스윙을 초기화하면 기존 판정은 지워집니다.</small>
   <label for="backswingPhase">선택 자세</label>
   <select id="backswingPhase">
     <option value="address">어드레스</option><option value="p1">P1 · 테이크어웨이 시작</option>
@@ -1772,14 +1931,24 @@
   <small class="backswing-reference">※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.</small>
 </section>
 
-<div class="analysis-panel collapsed" id="analysisPanel">
-  <div class="analysis-panel-header">
+<nav id="analysisWorkflowNav" aria-label="분석 진행 단계" hidden>
+  <ol id="analysisWorkflowProgress"></ol>
+</nav>
+<section class="analysis-workflow" id="analysisWorkflow" aria-label="분석 안내">
+  <div id="analysisWorkflowBody" hidden>
+    <p id="analysisWorkflowEngineNotice" hidden></p>
+    <div id="analysisWorkflowStatus" role="status" aria-live="polite" hidden></div>
+  </div>
+</section>
+
+<div class="analysis-panel collapsed" id="analysisPanel" data-workflow-for="engine distance r10">
+  <div class="analysis-panel-header" data-workflow-for="engine distance">
     <div class="analysis-panel-header-top">
       <span class="analysis-title">Motion Analysis</span>
       <button type="button" id="analysisToggleBtn" class="analysis-header-toggle">펼치기</button>
     </div>
     <div class="analysis-toolbar" aria-label="Motion Analysis actions">
-      <div class="analysis-toolbar-group analysis-frame-actions">
+      <div class="analysis-toolbar-group analysis-frame-actions" data-workflow-for="engine">
         <label class="analysis-toolbar-label" for="analysisSegmentSelect">분석 프레임</label>
         <select id="analysisSegmentSelect" aria-label="분석 프레임">
           <option value="frame1">Frame 1 — 백스윙 탑·축 고정/꼬임 [A: 어드레스 → B: 백스윙 최정점]</option>
@@ -1811,15 +1980,15 @@
       </div>
     </div>
     <div class="analysis-panel-controls">
-      <div class="analysis-guide-row">
+      <div class="analysis-guide-row" data-workflow-for="engine">
         <div class="analysis-guide" id="analysisGuide">분석 진행 시점을 선택하고 프레임별 랜드마크를 지정하세요.</div>
         <div class="analysis-guide-actions">
           <span class="analysis-guide-step" id="analysisGuideStep"></span>
         </div>
       </div>
-      <div class="analysis-point-reuse-status" id="analysisPointReuseStatus" hidden></div>
+      <div class="analysis-point-reuse-status" id="analysisPointReuseStatus" data-workflow-for="engine" hidden></div>
       <div class="analysis-height-control">
-        <div class="analysis-height-field">
+        <div class="analysis-height-field" data-workflow-for="manual">
           <input id="geminiApiKeyInput" type="password" autocomplete="off" placeholder="Gemini API 키" aria-label="Gemini API 키" style="min-width:180px;" />
           <span class="height-unit">현재 세션만 사용</span>
         </div>
@@ -1879,30 +2048,30 @@
           </select>
           <span class="height-unit">cm</span>
         </div>
-        <div class="analysis-height-field">
+        <div class="analysis-height-field" data-workflow-for="distance">
           <select id="referenceSex" aria-label="성별"><option value="">선택</option><option value="male">남자</option><option value="female">여자</option></select>
         </div>
         <div class="analysis-height-field">
           <input id="analysisBodyMassInput" type="number" min="30" max="200" step="0.1" placeholder="체중" aria-label="선수 체중(kg)" title="동력 프록시의 체격 입력값입니다. 정확한 실측 체중을 입력하세요." style="width:82px;">
           <span class="height-unit">kg</span>
         </div>
-        <div class="analysis-height-field">
+        <div class="analysis-height-field" data-workflow-for="distance">
           <input id="analysisLeanMassInput" type="number" min="20" max="150" step="0.1" placeholder="골격근량" aria-label="골격근량(kg)" title="체성분 측정값이 있을 때만 입력하세요. 체중이나 BMI에서 추정하지 않습니다." style="width:92px;">
           <span class="height-unit">kg</span>
         </div>
-        <div class="analysis-height-field">
+        <div class="analysis-height-field" data-workflow-for="distance">
           <input id="analysisBodyFatInput" type="number" min="3" max="50" step="0.1" placeholder="체지방률" aria-label="체지방률(%)" title="체성분 검사로 측정한 체지방률을 입력하세요. 앱에서 추정하지 않습니다." style="width:86px;">
           <span class="height-unit">%</span>
         </div>
-        <div class="analysis-height-field">
+        <div class="analysis-height-field" data-workflow-for="distance">
           <input id="analysisKnownDistanceInput" type="number" min="0" max="600" step="0.1" placeholder="알려진 총 비거리" aria-label="알려진 총 비거리(미터)" title="캐리+런 총 비거리입니다. data1 체격 기준 대비 활용추정효율 계산에 사용합니다." style="width:120px;">
           <span class="height-unit">m · 캐리+런</span>
         </div>
       </div>
     </div>
   </div>
-  <div class="analysis-panel-body" id="analysisPanelBody">
-    <div class="analysis-section" id="analysisFrontSection">
+  <div class="analysis-panel-body" id="analysisPanelBody" data-workflow-for="engine distance">
+    <div class="analysis-section" id="analysisFrontSection" data-workflow-for="engine">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div class="analysis-section-title" id="analysisFrontSectionTitle">A영상 분석</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
@@ -1928,7 +2097,7 @@
            data-tooltip="대표 각도 × 정규화 코어-손 반경&#10;클럽헤드는 각도에만 사용&#10;각속도를 측정하지 않아 실제 선속도·에너지 전달을 입증하지 않습니다">각도·반경: -</div>
       <div class="analysis-detail" id="analysisFrontDetail"></div>
     </div>
-    <div class="analysis-section" id="analysisSegmentCompareSection">
+    <div class="analysis-section" id="analysisSegmentCompareSection" data-workflow-for="engine">
       <div class="analysis-section-title">프레임별 비교 분석</div>
       <div class="analysis-segment-compare-row" id="analysisSegmentCompareRow">
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF1">
@@ -2023,18 +2192,18 @@
         <div class="analysis-b-row-item"><div class="analysis-b-section" id="analysisDeltaCardF6BSection"></div></div>
       </div>
     </div>
-    <div class="analysis-summary" id="analysisSummary"></div>
-    <details class="analysis-2d-diagnostics" id="analysis2dDiagnostics">
+    <div class="analysis-summary" id="analysisSummary" data-workflow-for="engine"></div>
+    <details class="analysis-2d-diagnostics" id="analysis2dDiagnostics" data-workflow-for="engine">
       <summary>2D 왜곡 최소화 진단 (가상 roll 보정 결과 · 공식 점수 미변경)</summary>
       <div class="analysis-2d-diagnostics-body">
         <div class="analysis-2d-diagnostics-controls">
-          <label>정면 타깃 방향
+          <label>A 영상 타깃 방향
             <select id="analysis2dFrontTarget">
               <option value="left">화면 왼쪽 타깃</option>
               <option value="right">화면 오른쪽 타깃</option>
             </select>
           </label>
-          <label>측면 타깃 방향
+          <label>B 영상 타깃 방향
             <select id="analysis2dSideTarget">
               <option value="left">화면 왼쪽 타깃</option>
               <option value="right">화면 오른쪽 타깃</option>
@@ -2053,14 +2222,14 @@
           <li>프레임 포인트가 입력되면 참고 진단을 표시합니다.</li>
         </ol>
         <p class="analysis-2d-diagnostics-note">
-          가상 점수는 지정한 정면 P1 양발선을 카메라 roll로 간주해 정면 좌표만 수평 회전한 뒤 기존 분석 산식으로 재계산합니다.
-          실제 카메라 roll이라는 보장은 없고 측면 좌표는 회전하지 않습니다. 따라서 이 결과는 가정 기반 비교이며 공식 점수·저장 포인트는 변경하지 않습니다.
+          가상 점수는 지정한 P1 양발선을 카메라 roll로 가정해 A 좌표를 회전합니다. A/B가 같은 영상이면 B의 모든 시점에도 같은 회전을 적용하며, 다른 영상의 B 좌표는 보정하지 않습니다.
+          A/B는 촬영 구도가 아니라 비교 패널입니다. 양발선 클릭 순서는 결과에 영향을 주지 않으며 너무 짧은 선은 거부합니다. 실제 카메라 roll이라는 보장은 없으며, 이 결과는 가정 기반 비교입니다. 공식 점수·저장 포인트는 변경하지 않습니다.
         </p>
       </div>
     </details>
     <details class="analysis-reference" id="analysisReferenceGuide">
     <summary>참고 안내 — 결과 해석·선수 비교·상세 근거</summary>
-    <details class="analysis-reference-detail">
+    <details class="analysis-reference-detail" data-workflow-for="distance">
       <summary>체격 기준·활용추정효율·잠재 거리</summary>
       <div class="analysis-summary" style="text-align:left;" id="physicalReferenceNote"></div>
       <div id="physicalReferenceDetails"></div>
@@ -2073,7 +2242,7 @@
         <small>1.0은 원래 산식, 1.5는 완만한 증폭입니다. Tier 3 기준거리 대비 변화비를 증폭하며 통계적으로 검증된 계수는 아닙니다. 자료 범위 밖의 끝점 제한은 유지합니다.</small>
       </details>
     </details>
-    <details class="analysis-reference-detail">
+    <details class="analysis-reference-detail" data-workflow-for="distance">
       <summary>선수 비교·거리 실현율</summary>
       <section class="analysis-type-section" id="playerReferencePanel">
         <div id="playerReferenceResult"></div>
@@ -2098,7 +2267,7 @@
         </details>
       </section>
     </details>
-    <details class="analysis-reference-detail">
+    <details class="analysis-reference-detail" data-workflow-for="engine">
       <summary>모션 채점·동력지수·스윙엔진</summary>
       <div id="analysisPowerComparisonReference"></div>
       <div id="analysisProfileWarningsReference"></div>
@@ -2112,8 +2281,8 @@
     </details>
     </details>
     <div class="analysis-swing-type" id="analysisSwingType"></div>
-    <div id="geminiReportBlock" style="display:none;margin:12px 0 0;padding:12px;background:rgba(19,87,61,0.2);border:1px solid rgba(82,216,150,0.45);border-radius:8px;text-align:left;line-height:1.65;color:#e7fff1;white-space:pre-wrap;"></div>
-    <div class="analysis-score-block" id="analysisSegmentScores">
+    <div id="geminiReportBlock" data-workflow-for="manual" style="display:none;margin:12px 0 0;padding:12px;background:rgba(19,87,61,0.2);border:1px solid rgba(82,216,150,0.45);border-radius:8px;text-align:left;line-height:1.65;color:#e7fff1;white-space:pre-wrap;"></div>
+    <div class="analysis-score-block" id="analysisSegmentScores" data-workflow-for="engine">
       <div class="analysis-score-group">
         <div class="analysis-distance-score-row">
           <div class="analysis-score-items">
@@ -2138,14 +2307,15 @@
   </div>
 </div>
 
-<section class="r10-panel" id="r10AnalysisPanel" aria-labelledby="r10AnalysisTitle" hidden>
+<section class="r10-panel" id="r10AnalysisPanel" aria-labelledby="r10AnalysisTitle" data-workflow-for="r10" hidden>
   <header class="r10-header">
     <div>
       <h2 class="r10-title" id="r10AnalysisTitle">R10 임팩트 보조 분석</h2>
       <p class="r10-subtitle">샷 중심 일관성 · 미스샷 패턴 · 영상 분석 참고</p>
     </div>
     <div class="r10-file-actions">
-      <input type="file" id="r10CsvInput" accept=".csv,text/csv" aria-label="Garmin R10 CSV 파일 선택" />
+      <button type="button" id="r10UploadBtn">📁 R10 데이터 업로드</button>
+      <input type="file" id="r10CsvInput" accept=".csv,text/csv" aria-label="Garmin R10 CSV 파일 선택" hidden />
       <button type="button" id="r10ClearBtn" disabled>초기화</button>
     </div>
   </header>
@@ -2223,10 +2393,27 @@
 <script>
   const UI_LANGUAGE_STORAGE_KEY = 'gsap_ui_language';
   const UI_TRANSLATIONS_EN = {
+    '단계별 분석 안내': 'Guided analysis',
+    '분석 시작': 'Start analysis',
+    '예 · 이 분석 진행': 'Yes · start this analysis',
+    '아니오 · 건너뛰기': 'No · skip',
+    '분석 화면 열기': 'Open analysis',
+    '결과 확인': 'Check result',
+    '다음 단계': 'Next stage',
+    '이전 단계': 'Previous stage',
+    '선택한 분석 결과': 'Selected analysis results',
+    '분석 안내로 돌아가기': 'Return to analysis guide',
+    '📁 R10 데이터 업로드': '📁 Upload R10 data',
+    '분석 진행 단계': 'Analysis stages',
+    '유형 결정 후 같은 A 영상을 다시 불러오면 백스윙 입력을 종료하고 포인트·판정을 유지합니다. 다른 백스윙 영상을 입력하거나 백스윙을 초기화하면 기존 판정은 지워집니다.': 'After classification, reloading the same A video ends backswing input while preserving checkpoints and the decision. Selecting a different backswing video or resetting backswing clears the previous decision.',
     '2D 왜곡 최소화 진단': '2D Distortion-Minimization Diagnostics',
     '참고 전용 · 기존 지표/점수 미변경': 'Reference only · existing metrics/scores unchanged',
     '정면 타깃 방향': 'Front target direction',
     '측면 타깃 방향': 'Side target direction',
+    'A 영상 타깃 방향': 'Video A target direction',
+    'B 영상 타깃 방향': 'Video B target direction',
+    '가상 점수는 지정한 P1 양발선을 카메라 roll로 가정해 A 좌표를 회전합니다. A/B가 같은 영상이면 B의 모든 시점에도 같은 회전을 적용하며, 다른 영상의 B 좌표는 보정하지 않습니다.': 'Virtual scores assume the P1 stance line represents camera roll and rotate A. When A/B use the same video, all B phases share the rotation; B from another video remains uncorrected.',
+    'A/B는 촬영 구도가 아니라 비교 패널입니다. 양발선 클릭 순서는 결과에 영향을 주지 않으며 너무 짧은 선은 거부합니다. 실제 카메라 roll이라는 보장은 없으며, 이 결과는 가정 기반 비교입니다. 공식 점수·저장 포인트는 변경하지 않습니다.': 'A/B are comparison panels, not camera views. Endpoint order does not affect the stance correction, and lines that are too short are rejected. Camera roll is an assumption, not a confirmed measurement. Official scores and saved points remain unchanged.',
     '화면 왼쪽 타깃': 'Target toward screen left',
     '화면 오른쪽 타깃': 'Target toward screen right',
     '플레이어 손잡이 방향': 'Player handedness',
@@ -3677,6 +3864,7 @@
   let computing2dCorrectionScenario = false;
   let cached2dCorrectionScenarioKey = null;
   let cached2dCorrectionScenario = null;
+  var analysisWorkflowState = null;
 
   // Frame-specific landmark type assignment
   // Frame 1: p1=C7, p2=정수리(Head), p3=골반중심(MidHip)
@@ -3712,6 +3900,7 @@
       frame5: ['handCenter', 'c7', 'pelvis', 'clubHead'],
     },
     side: {
+      frame1: ['c7', 'rightShoulder', 'leftShoulder', 'pelvis', 'handCenter', 'clubHead'],
       frame2: ['handCenter', 'clubHead', 'rightShoulder', 'pelvis', 'c7'],
       frame4: ['c7', 'leftShoulder', 'leftWrist', 'clubHead', 'pelvis', 'handCenter'],
       frame5: ['handCenter', 'c7', 'pelvis', 'clubHead'],
@@ -3736,8 +3925,76 @@
     return saved.points.find(point => point.type === types[index]
       || (frameId === 'frame2' && index === 0 && point.type === 'wrist')) || null;
   }
+  function getStanceCorrectionAngle(line, aspect) {
+    if (!line || !hasMetric(aspect) || aspect <= 0
+      || ![line.start?.x, line.start?.y, line.end?.x, line.end?.y].every(hasMetric)) {
+      throw new Error(getSwingUiText('양발 기준선 좌표가 올바르지 않습니다.', 'Invalid stance-line coordinates.'));
+    }
+    const dx = (line.end.x - line.start.x) * aspect;
+    const dy = line.end.y - line.start.y;
+    if (Math.hypot(dx, dy) <= 0.01 * aspect) {
+      throw new Error(getSwingUiText('양발 기준선이 너무 짧습니다. 양발의 서로 다른 두 지점을 지정하세요.',
+        'The stance line is too short. Mark two distinct points at the feet.'));
+    }
+    const angle = Math.atan2(dy, dx);
+    return ((angle + Math.PI / 2) % Math.PI + Math.PI) % Math.PI - Math.PI / 2;
+  }
+  function get2dDiagnosticSettings() {
+    return Object.fromEntries(['analysis2dFrontTarget', 'analysis2dSideTarget', 'analysis2dHandedness']
+      .map(id => [id, document.getElementById(id).value]));
+  }
+  function get2dPhaseObservations() {
+    const observations = [];
+    if (!areVideoSourcesSame()) return observations;
+    const address = frameStateHistory.front.frame1;
+    const reference = getPanelReferenceLength('front');
+    const originC7 = getDiagnosticSemanticPoint('front', 'frame1', 'c7');
+    const originPelvis = getDiagnosticSemanticPoint('front', 'frame1', 'pelvis');
+    if (!address || !originC7 || !originPelvis || !hasMetric(reference) || reference <= 0.0005) return observations;
+    const aspect = address.aspectRatio || getAnalysisAspect(frontVideo);
+    const spine = (c7, pelvis, ar) => ({
+      length: Math.hypot((pelvis.x - c7.x) * ar, pelvis.y - c7.y),
+      angle: Math.atan2((pelvis.x - c7.x) * ar, pelvis.y - c7.y),
+    });
+    const baseline = spine(originC7, originPelvis, aspect);
+    if (baseline.length <= 0.0005) return observations;
+    for (const [frame, phase] of [['frame1', 'P4'], ['frame2', 'P6'], ['frame4', 'P7']]) {
+      const entry = frameStateHistory.side[frame];
+      const c7 = getDiagnosticSemanticPoint('side', frame, 'c7');
+      const pelvis = getDiagnosticSemanticPoint('side', frame, 'pelvis');
+      if (!entry || !c7 || !pelvis || !hasMetric(address.videoTime)
+        || !hasMetric(entry.videoTime) || entry.videoTime <= address.videoTime) continue;
+      const ar = entry.aspectRatio || getAnalysisAspect(sideVideo);
+      if (Math.abs(ar - aspect) > 0.0001) continue;
+      const current = spine(c7, pelvis, ar);
+      if (current.length <= 0.0005) continue;
+      const delta = current.angle - baseline.angle;
+      observations.push({
+        phase,
+        c7Shift: (c7.x - originC7.x) * aspect / reference * 100,
+        pelvisShift: (pelvis.x - originPelvis.x) * aspect / reference * 100,
+        angleChange: Math.atan2(Math.sin(delta), Math.cos(delta)) * 180 / Math.PI,
+        lengthChange: Math.abs(current.length - baseline.length) / baseline.length * 100,
+      });
+    }
+    return observations;
+  }
   function update2dCorrectionDiagnostics() {
     if (computing2dCorrectionScenario) return;
+    try {
+      return render2dCorrectionDiagnostics();
+    } catch (error) {
+      console.error('2D 진단 갱신 실패', error);
+      const resultList = document.getElementById('analysis2dDiagnosticsResults');
+      if (resultList) {
+        const item = document.createElement('li');
+        item.textContent = getSwingUiText(`2D 진단 실패: ${error.message}`, `2D diagnostics failed: ${error.message}`);
+        resultList.replaceChildren(item);
+      }
+      return { status: 'error' };
+    }
+  }
+  function render2dCorrectionDiagnostics() {
     const resultList = document.getElementById('analysis2dDiagnosticsResults');
     if (!resultList) return;
     const targetDirection = {
@@ -3761,9 +4018,7 @@
     const rightAnkle = frontPointsAtP1.find(point => ankleAliases.right.includes(point.type));
     if (stanceReferenceLineFront) {
       const aspect = frontP1?.aspectRatio || getAnalysisAspect(frontVideo);
-      const dx = (stanceReferenceLineFront.end.x - stanceReferenceLineFront.start.x) * aspect;
-      const dy = stanceReferenceLineFront.end.y - stanceReferenceLineFront.start.y;
-      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      const angle = getStanceCorrectionAngle(stanceReferenceLineFront, aspect) * 180 / Math.PI;
       add(
         `정면 P1 수동 양발 기준선: ${format(angle)}°. 참고 각도 기준이며 기존 지표·점수는 변경하지 않습니다.`,
         `Manual front P1 stance line: ${format(angle)}°. This is a reference axis only; existing metrics and scores are unchanged.`
@@ -3794,74 +4049,29 @@
         ? `${format(refLength, 3)} normalized image-height units${Number.isFinite(heightCm) && heightCm > 0 ? `; about ${format(heightCm / refLength)} cm per normalized image-height unit` : ''}`
         : 'reference line unavailable';
       add(
-        `${view === 'front' ? '정면' : '측면'} 상대 스케일: ${scaleText}. 신장 기반 환산은 참고치이며 거리 비율·기존 산식에는 적용하지 않습니다.`,
-        `${view === 'front' ? 'Front' : 'Side'} relative scale: ${scaleText}. Height-based conversion is informational and is not applied to distance ratios or existing formulas.`
+        `${view === 'front' ? 'A 영상' : 'B 영상'} 상대 스케일: ${scaleText}. 신장 기반 환산은 참고치이며 거리 비율·기존 산식에는 적용하지 않습니다.`,
+        `${view === 'front' ? 'Video A' : 'Video B'} relative scale: ${scaleText}. Height-based conversion is informational and is not applied to distance ratios or existing formulas.`
       );
     });
 
-    const frontReference = getPanelReferenceLength('front');
-    const frontBaselineC7 = getDiagnosticSemanticPoint('front', 'frame1', 'c7');
-    const frontBaselinePelvis = getDiagnosticSemanticPoint('front', 'frame1', 'pelvis');
-    const frontAspect = frontP1?.aspectRatio || getAnalysisAspect(frontVideo);
+    const observations = get2dPhaseObservations();
     const signedMotion = [];
-    const sideMotion = [];
     const projectedLengths = [];
     const c7Candidates = [];
-    if (frontBaselineC7 && frontBaselinePelvis && hasMetric(frontReference) && frontReference > 0) {
-      const baselineSpine = Math.hypot(
-        (frontBaselinePelvis.x - frontBaselineC7.x) * frontAspect,
-        frontBaselinePelvis.y - frontBaselineC7.y
-      );
-      frameIds.slice(1).forEach(frameId => {
-        const c7 = getDiagnosticSemanticPoint('front', frameId, 'c7');
-        const pelvis = getDiagnosticSemanticPoint('front', frameId, 'pelvis');
-        const saved = frameStateHistory.front[frameId];
-        if (!c7 || !pelvis || !saved) return;
-        const aspect = saved.aspectRatio || frontAspect;
-        const c7TargetPct = ((c7.x - frontBaselineC7.x) * aspect * targetDirection.front / frontReference) * 100;
-        const pelvisTargetPct = ((pelvis.x - frontBaselinePelvis.x) * aspect * targetDirection.front / frontReference) * 100;
-        const spineAngle = Math.atan2(
-          (pelvis.x - c7.x) * aspect,
-          Math.abs(pelvis.y - c7.y)
-        ) * 180 / Math.PI;
-        const baselineAngle = Math.atan2(
-          (frontBaselinePelvis.x - frontBaselineC7.x) * frontAspect,
-          Math.abs(frontBaselinePelvis.y - frontBaselineC7.y)
-        ) * 180 / Math.PI;
-        signedMotion.push(`${frameLabels[frameId]} C7 ${format(c7TargetPct)}%, pelvis ${format(pelvisTargetPct)}%, local-axis angle change ${format(spineAngle - baselineAngle)}°`);
-        const spineLength = Math.hypot((pelvis.x - c7.x) * aspect, pelvis.y - c7.y);
-        if (baselineSpine > 0) {
-          const changePct = Math.abs(spineLength - baselineSpine) / baselineSpine * 100;
-          projectedLengths.push(`${frameLabels[frameId]} ${format(changePct)}%`);
-          if (changePct > 25) c7Candidates.push(`${frameLabels[frameId]} projected C7–pelvis length changed ${format(changePct)}%`);
-        }
-        if (c7TargetPct > 1.5) c7Candidates.push(`${frameLabels[frameId]} C7 target-side shift ${format(c7TargetPct)}%`);
-      });
-    }
-    const sideF5C7 = getDiagnosticSemanticPoint('side', 'frame5', 'c7');
-    const sideF5Pelvis = getDiagnosticSemanticPoint('side', 'frame5', 'pelvis');
-    const sideF6C7 = getDiagnosticSemanticPoint('side', 'frame6', 'c7');
-    const sideF6Pelvis = getDiagnosticSemanticPoint('side', 'frame6', 'pelvis');
-    const sideF5 = frameStateHistory.side.frame5;
-    const sideF6 = frameStateHistory.side.frame6;
-    const sideReference = getPanelReferenceLength('side');
-    if (sideF5C7 && sideF5Pelvis && sideF6C7 && sideF6Pelvis
-      && sideF5 && sideF6 && hasMetric(sideReference) && sideReference > 0) {
-      const aspect5 = sideF5.aspectRatio || getAnalysisAspect(sideVideo);
-      const aspect6 = sideF6.aspectRatio || aspect5;
-      const c7Shift = (sideF6C7.x * aspect6 - sideF5C7.x * aspect5) * targetDirection.side / sideReference * 100;
-      const pelvisShift = (sideF6Pelvis.x * aspect6 - sideF5Pelvis.x * aspect5) * targetDirection.side / sideReference * 100;
-      const angle5 = Math.atan2((sideF5Pelvis.x - sideF5C7.x) * aspect5, Math.abs(sideF5Pelvis.y - sideF5C7.y)) * 180 / Math.PI;
-      const angle6 = Math.atan2((sideF6Pelvis.x - sideF6C7.x) * aspect6, Math.abs(sideF6Pelvis.y - sideF6C7.y)) * 180 / Math.PI;
-      sideMotion.push(`F5→F6 C7 ${format(c7Shift)}%, pelvis ${format(pelvisShift)}%, local-axis angle change ${format(angle6 - angle5)}°`);
-    }
+    observations.forEach(observation => {
+      const shift = observation.c7Shift * targetDirection.front;
+      signedMotion.push(`P1→${observation.phase}: C7 ${format(shift)}%, pelvis ${format(observation.pelvisShift * targetDirection.front)}%, local-axis angle change ${format(observation.angleChange)}°`);
+      projectedLengths.push(`P1→${observation.phase} ${format(observation.lengthChange)}%`);
+      if (observation.lengthChange > 25) c7Candidates.push(`${observation.phase} projected C7–pelvis length changed ${format(observation.lengthChange)}%`);
+      if (Math.abs(shift) > 1.5) c7Candidates.push(`${observation.phase} C7 target-axis shift ${format(shift)}%`);
+    });
     add(
-      signedMotion.length || sideMotion.length
-        ? `부호 있는 공통 포인트 변위 (${handedness === 'right' ? '우타' : '좌타'}): ${signedMotion.length ? `정면 타깃 ${targetDirection.front > 0 ? '화면 오른쪽' : '화면 왼쪽'} — ${signedMotion.join(' · ')}` : ''}${signedMotion.length && sideMotion.length ? ' · ' : ''}${sideMotion.length ? `측면 타깃 ${targetDirection.side > 0 ? '화면 오른쪽' : '화면 왼쪽'} — ${sideMotion.join(' · ')}` : ''}. 로컬 축 각도는 화면상 C7–골반 2D 각도 변화입니다.`
-        : '부호 있는 공통 포인트 변위: 정면 P1 기준 C7·골반 포인트/기준선 또는 측면 F5·F6 공통 포인트/기준선이 부족합니다.',
-      signedMotion.length || sideMotion.length
-        ? `Signed common-point displacement (${handedness === 'right' ? 'right-handed' : 'left-handed'}): ${signedMotion.length ? `front target ${targetDirection.front > 0 ? 'screen right' : 'screen left'} — ${signedMotion.join(' · ')}` : ''}${signedMotion.length && sideMotion.length ? ' · ' : ''}${sideMotion.length ? `side target ${targetDirection.side > 0 ? 'screen right' : 'screen left'} — ${sideMotion.join(' · ')}` : ''}. Local-axis angle is the observed 2D C7–pelvis angle change.`
-        : 'Signed common-point displacement requires front address C7/pelvis points and reference, or side F5/F6 common points and reference.'
+      signedMotion.length
+        ? `동일 영상 실제 시점 변위 (원본 좌표, ${handedness === 'right' ? '우타' : '좌타'}, A 타깃 ${targetDirection.front > 0 ? '화면 오른쪽' : '화면 왼쪽'}): ${signedMotion.join(' · ')}. A의 반복 어드레스 좌표는 동작 변화로 비교하지 않습니다. 로컬 축은 2D C7–골반 축입니다.`
+        : '실제 시점 변위: 동일 영상의 P1과 이후 P4/P6/P7 공통 포인트·기준선·순방향 시점이 부족하거나 영상 비율이 다릅니다. 정상 동작으로 판정하지 않습니다.',
+      signedMotion.length
+        ? `Actual phases of the same video (original coordinates, ${handedness === 'right' ? 'right-handed' : 'left-handed'}, A target ${targetDirection.front > 0 ? 'screen right' : 'screen left'}): ${signedMotion.join(' · ')}. Repeated A address points are not compared as motion. Local axis is the 2D C7–pelvis axis.`
+        : 'Phase displacement unavailable: same-video P1 and later P4/P6/P7 common points, reference and forward times are required, with matching aspect ratios. This is not a normal-motion finding.'
     );
     add(
       projectedLengths.length
@@ -3875,14 +4085,14 @@
     add(
       c7Candidates.length
         ? `2D 관측 변화 후보(점수 미반영): ${c7Candidates.join(' · ')}. 이 값만으로 리버스 스파인이나 실제 3D 회전을 진단하지 않습니다. 수동 선택 단계 간 변화이므로 연속 3프레임 지속성은 판정하지 않습니다.`
-        : '현재 포인트에서 큰 2D 관측 변화 후보는 확인되지 않았습니다. 포인트가 부족하거나 연속 원본 프레임 추적이 없으면 지속성은 판정하지 않습니다.',
+        : observations.length ? '측정 가능한 시점에서는 큰 2D 관측 변화 후보가 없습니다. 누락 시점 및 연속 프레임 지속성은 미평가입니다.' : '비교 가능한 실제 시점이 부족하여 변화 후보를 평가하지 못했습니다. 정상 판정이 아닙니다.',
       c7Candidates.length
         ? `2D observation-change candidates (not scored): ${c7Candidates.join(' · ')}. These values alone do not diagnose reverse spine or actual 3D rotation. They compare manually selected phases, so persistence across three consecutive source frames is not assessed.`
-        : 'No large 2D observation-change candidate was identified from the available points. Persistence is not assessed when points are missing or continuous source-frame tracking is unavailable.'
+        : observations.length ? 'No large change candidate at measurable phases. Missing phases and continuous-frame persistence remain unassessed.' : 'Insufficient comparable phases to assess change candidates. This is not a normal-motion finding.'
     );
     add(
-      '공식 점수는 기존 결과를 유지합니다. 아래 정면 roll 보정 점수와 엔진 유형은 정면 P1 양발선을 수평으로 가정한 별도 가상 재계산이며, 측면 영상은 회전 보정하지 않습니다.',
-      'Official scores remain unchanged. The front-roll-adjusted scores and engine type below are a separate simulation that assumes the P1 stance line is level; side-view footage is not rotation-corrected.'
+      '공식 점수는 유지합니다. P1 양발선 기반 가상 보정은 A에 적용하며, 동일 영상의 B 모든 시점에도 같은 회전을 적용합니다. 서로 다른 영상의 B는 미보정입니다.',
+      'Official scores remain unchanged. The virtual P1 stance correction rotates A and, for the same video, all B phases together. B from a different video is not corrected.'
     );
     const diagnosticsPanel = document.getElementById('analysis2dDiagnostics');
     const correctionScenario = stanceReferenceLineFront && diagnosticsPanel?.open
@@ -3934,8 +4144,8 @@
       const virtualEngineDecision = correctionScenario.engineCode
         ? { code: correctionScenario.engineCode, mode: correctionScenario.engineMode } : null;
       add(
-        `스윙 파워 엔진 유형 (현재 → 정면 roll 가상 보정): ${engineText(originalEngineDecision, originalEngineResult)} → ${engineText(virtualEngineDecision, virtualEngineResult)}. 측면 원본 지표는 회전 보정하지 않았습니다.`,
-        `Swing power engine (current → virtual front-roll correction): ${engineText(originalEngineDecision, originalEngineResult)} → ${engineText(virtualEngineDecision, virtualEngineResult)}. Side-view metrics remain uncorrected.`
+        `스윙 파워 엔진 유형 (현재 → 가상 보정): ${engineText(originalEngineDecision, originalEngineResult)} → ${engineText(virtualEngineDecision, virtualEngineResult)}. ${areVideoSourcesSame() ? '동일 영상 A/B 공통 회전 적용.' : '다른 영상 B는 미보정.'} ${correctionScenario.engineMissing.join(' ')}`,
+        `Swing power engine (current → virtual correction): ${engineText(originalEngineDecision, originalEngineResult)} → ${engineText(virtualEngineDecision, virtualEngineResult)}. ${areVideoSourcesSame() ? 'Same-video A/B share one rotation.' : 'Different-video B is uncorrected.'} ${correctionScenario.engineMissing.join(' ')}`
       );
     } else if (correctionScenario?.unavailable) {
       add(
@@ -3958,6 +4168,11 @@
       item.textContent = text;
       return item;
     }));
+    return {
+      status: correctionScenario?.unavailable ? 'error'
+        : !correctionScenario || !frameIds.every(id => hasMetric(correctionScenario.scores[id]))
+          || !correctionScenario.engineCode ? 'incomplete' : 'success',
+    };
   }
   function reuseSharedFramePoints(frameId, view) {
     if (frameEditMode || frameStateHistory[view][frameId]) return { count: 0, sources: [] };
@@ -4492,7 +4707,7 @@
   }
 
   function performAnalysis(refreshRelated = true, storedTimes = null) {
-    if (motionAnalysisFrame !== null) {
+    if (!computing2dCorrectionScenario && motionAnalysisFrame !== null) {
       cancelAnimationFrame(motionAnalysisFrame);
       motionAnalysisFrame = null;
     }
@@ -4513,10 +4728,12 @@
     applyProjectionNormalization(sideResult, baselineFrontResult);
     updateAnalysisSection(sideResult, analysisSideMoment, analysisSideRadius, analysisSideTiming, analysisSideAcceleration, analysisSideTransfer, analysisSideImpact, analysisSideDetail);
     // Frame 2에서는 에너지전환효율/임팩트 파워 숨김 (과거 F3/4에만 유효 제한, 선속도는 전 프레임 표시)
-    if (analysisFrontTransfer) analysisFrontTransfer.style.display = 'none';  // 반경 비율 항상 숨김
-    if (analysisFrontImpact)   analysisFrontImpact.style.display   = '';  // 선속도 전 프레임 표시
-    if (analysisSideTransfer)  analysisSideTransfer.style.display  = 'none';   // 반경 비율 항상 숨김
-    if (analysisSideImpact)    analysisSideImpact.style.display    = '';   // 선속도 전 프레임 표시
+    if (!computing2dCorrectionScenario) {
+      if (analysisFrontTransfer) analysisFrontTransfer.style.display = 'none';
+      if (analysisFrontImpact) analysisFrontImpact.style.display = '';
+      if (analysisSideTransfer) analysisSideTransfer.style.display = 'none';
+      if (analysisSideImpact) analysisSideImpact.style.display = '';
+    }
     const deltaResult = createDeltaResult(displayedFrontResult, sideResult, selectedSegment, storedTimes);
     segmentScoreHistory[selectedSegment] = deltaResult.segmentScore;
     frameMetricsHistory[selectedSegment] = displayedFrontResult.frameMetrics;
@@ -4593,7 +4810,7 @@
     const a = frameStateHistory.front[selectedSegment];
     const b = frameStateHistory.side[selectedSegment];
     performAnalysis(false, { a: a?.videoTime ?? null, b: b?.videoTime ?? null });
-    showGuide();
+    if (!computing2dCorrectionScenario) showGuide();
   }
 
   function get2dVirtualCorrectionScenario() {
@@ -4611,34 +4828,36 @@
       distanceReferenceLinesByView,
       videoFileIdentity,
       backswingClassification,
+      aspects: [getAnalysisAspect(frontVideo), getAnalysisAspect(sideVideo)],
+      selectedSegment,
+      uiLanguage,
     });
     if (cacheKey === cached2dCorrectionScenarioKey && cached2dCorrectionScenario) {
       return cached2dCorrectionScenario;
     }
 
     const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
+    // The legacy calculator reads globals; use isolated copies synchronously and restore original references in finally.
     const savedState = {
-      frameStateHistory: clone(frameStateHistory),
-      frameMetricsHistory: clone(frameMetricsHistory),
-      frameSideMetricsHistory: clone(frameSideMetricsHistory),
-      segmentScoreHistory: clone(segmentScoreHistory),
-      segmentDeltaHistory: clone(segmentDeltaHistory),
-      baselineFrontResult: clone(baselineFrontResult),
-      frame1ReferenceSnapshot: clone(frame1ReferenceSnapshot),
+      frameStateHistory,
+      frameMetricsHistory,
+      frameSideMetricsHistory,
+      segmentScoreHistory,
+      segmentDeltaHistory,
+      baselineFrontResult,
+      frame1ReferenceSnapshot,
       selectedSegment,
-      frontPoints: clone(frontPoints),
-      frontLines: clone(frontLines),
-      sidePoints: clone(sidePoints),
-      sideLines: clone(sideLines),
+      frontPoints,
+      frontLines,
+      sidePoints,
+      sideLines,
       frameEditMode,
       guideView,
       guideStep,
     };
     const aspect = savedState.frameStateHistory.front.frame1.aspectRatio
       || getAnalysisAspect(frontVideo);
-    const dx = (stanceReferenceLineFront.end.x - stanceReferenceLineFront.start.x) * aspect;
-    const dy = stanceReferenceLineFront.end.y - stanceReferenceLineFront.start.y;
-    const angle = Math.atan2(dy, dx);
+    const angle = getStanceCorrectionAngle(stanceReferenceLineFront, aspect);
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
     const rotatePoint = (point, frameAspect) => {
@@ -4652,11 +4871,12 @@
     };
     let result = null;
     let calculationError = null;
-    let restoreError = null;
     computing2dCorrectionScenario = true;
     try {
       frameStateHistory = clone(savedState.frameStateHistory);
-      Object.values(frameStateHistory.front).forEach(entry => {
+      frame1ReferenceSnapshot = clone(savedState.frame1ReferenceSnapshot);
+      const views = areVideoSourcesSame() ? ['front', 'side'] : ['front'];
+      views.forEach(view => Object.values(frameStateHistory[view]).forEach(entry => {
         if (!entry) return;
         const frameAspect = entry.aspectRatio || aspect;
         entry.points = entry.points.map(point => rotatePoint(point, frameAspect));
@@ -4665,7 +4885,7 @@
           start: rotatePoint(line.start, frameAspect),
           end: rotatePoint(line.end, frameAspect),
         }));
-      });
+      }));
       selectedSegment = savedState.selectedSegment;
       const activeFrontFrame = frameStateHistory.front[selectedSegment];
       const activeSideFrame = frameStateHistory.side[selectedSegment];
@@ -4686,69 +4906,36 @@
         engineCode: engineDecision?.code || null,
         engineMode: engineDecision?.mode || 'undetermined',
         engineShares: engineResult?.pct || null,
-        engineMissing: engineResult?.missingEngineEvidence || [],
+        engineMissing: engineResult?.missingEngineEvidence || getSwingTypeReadiness().missing || [],
         rotationDeg: angle * 180 / Math.PI,
       };
     } catch (error) {
       calculationError = error;
     } finally {
-      try {
-        frameStateHistory = clone(savedState.frameStateHistory);
-        frameMetricsHistory = clone(savedState.frameMetricsHistory);
-        frameSideMetricsHistory = clone(savedState.frameSideMetricsHistory);
-        segmentScoreHistory = clone(savedState.segmentScoreHistory);
-        segmentDeltaHistory = clone(savedState.segmentDeltaHistory);
-        baselineFrontResult = clone(savedState.baselineFrontResult);
-        frame1ReferenceSnapshot = clone(savedState.frame1ReferenceSnapshot);
-        selectedSegment = savedState.selectedSegment;
-        frontPoints = clone(savedState.frontPoints);
-        frontLines = clone(savedState.frontLines);
-        sidePoints = clone(savedState.sidePoints);
-        sideLines = clone(savedState.sideLines);
-        frameEditMode = savedState.frameEditMode;
-        guideView = savedState.guideView;
-        guideStep = savedState.guideStep;
-        refreshStoredFrameAnalyses();
-      } catch (error) {
-        restoreError = error;
-      } finally {
-        frameStateHistory = clone(savedState.frameStateHistory);
-        frameMetricsHistory = clone(savedState.frameMetricsHistory);
-        frameSideMetricsHistory = clone(savedState.frameSideMetricsHistory);
-        segmentScoreHistory = clone(savedState.segmentScoreHistory);
-        segmentDeltaHistory = clone(savedState.segmentDeltaHistory);
-        baselineFrontResult = clone(savedState.baselineFrontResult);
-        frame1ReferenceSnapshot = clone(savedState.frame1ReferenceSnapshot);
-        selectedSegment = savedState.selectedSegment;
-        frontPoints = clone(savedState.frontPoints);
-        frontLines = clone(savedState.frontLines);
-        sidePoints = clone(savedState.sidePoints);
-        sideLines = clone(savedState.sideLines);
-        frameEditMode = savedState.frameEditMode;
-        guideView = savedState.guideView;
-        guideStep = savedState.guideStep;
-        if (restoreError) {
-          try {
-            const front = frameStateHistory.front[selectedSegment];
-            const side = frameStateHistory.side[selectedSegment];
-            performAnalysis(false, { a: front?.videoTime ?? null, b: side?.videoTime ?? null });
-          } catch (error) {
-            restoreError = error;
-          }
-        }
-        computing2dCorrectionScenario = false;
-        updateSegmentScoresDisplay();
-        updateAllFramesMetricBar();
-      }
+      frameStateHistory = savedState.frameStateHistory;
+      frameMetricsHistory = savedState.frameMetricsHistory;
+      frameSideMetricsHistory = savedState.frameSideMetricsHistory;
+      segmentScoreHistory = savedState.segmentScoreHistory;
+      segmentDeltaHistory = savedState.segmentDeltaHistory;
+      baselineFrontResult = savedState.baselineFrontResult;
+      frame1ReferenceSnapshot = savedState.frame1ReferenceSnapshot;
+      selectedSegment = savedState.selectedSegment;
+      frontPoints = savedState.frontPoints;
+      frontLines = savedState.frontLines;
+      sidePoints = savedState.sidePoints;
+      sideLines = savedState.sideLines;
+      frameEditMode = savedState.frameEditMode;
+      guideView = savedState.guideView;
+      guideStep = savedState.guideStep;
+      computing2dCorrectionScenario = false;
     }
 
-    if (calculationError || restoreError) {
-      const error = restoreError || calculationError;
-      console.error('2D 가상 보정 결과 계산 실패', error);
+    if (calculationError) {
+      console.error('2D 가상 보정 결과 계산 실패', calculationError);
       return {
         unavailable: getSwingUiText(
-          '가상 보정 점수를 다시 계산하지 못했습니다. 원본 점수는 유지했습니다.',
-          'Could not calculate the virtual corrected scores. Original scores were preserved.'
+          `가상 보정 계산 실패: ${calculationError.message}. 원본 점수는 유지했습니다.`,
+          `Virtual correction failed: ${calculationError.message}. Original scores were preserved.`
         ),
       };
     }
@@ -6282,6 +6469,7 @@
   }
 
   function updateAllFramesMetricBar() {
+    if (computing2dCorrectionScenario) return;
     updateThreePointSpreadDisplay();
     if (!analysisFrontDetail) return;
     const frames = [
@@ -6317,6 +6505,7 @@
   }
 
   function updateAnalysisSection(result, momentEl, radiusEl, timingEl, accelEl, transferEl, impactEl, detailEl) {
+    if (computing2dCorrectionScenario) return;
     if (!momentEl || !radiusEl || !timingEl || !accelEl || !transferEl || !impactEl || !detailEl) return;
     const momentProxy = Number.isFinite(result.momentProxy) ? result.momentProxy : 0;
     const radiusProxy = result.frameMetrics && hasMetric(result.frameMetrics.swingRadius)
@@ -6417,6 +6606,7 @@
   }
 
   function updateSegmentComparisonCard(segment, deltaResult) {
+    if (computing2dCorrectionScenario) return;
     const fm = deltaResult.fm || {};
     if (segment === 'frame5') fm._consistency = computeConsistencyReport(fm);
     if (segment === 'frame6') fm._tempo = computeTempoSequenceReport(fm);
@@ -6846,6 +7036,7 @@
   }
 
   function updateSwingNarrative(frontResult, sideResult, deltaResult, segment) {
+    if (computing2dCorrectionScenario) return;
     const btn   = document.getElementById('swingNarrativeToggleBtn');
     const block = document.getElementById('swingNarrativeBlock');
     if (!btn || !block) return;
@@ -7221,6 +7412,7 @@
   }
 
   function refreshSwingClassificationViews() {
+    refreshAnalysisWorkflow();
     renderPlayerReferenceComparison();
     if (!analysisSwingType) return;
     const previousDistanceEstimate = analysisSwingType.querySelector('#distanceEstimateResult');
@@ -7961,8 +8153,11 @@
     if (computedEstimate.missing) {
       const reference = document.getElementById('distanceEstimateReference');
       if (reference) reference.replaceChildren();
-      target.textContent = getSwingUiText('추정 보류 · 입력·분석 필요: ', 'Estimate held · required inputs or analysis: ')
-        + computedEstimate.missing.join(' · ');
+      const note = document.createElement('small');
+      note.className = 'analysis-distance-missing';
+      note.textContent = getSwingUiText('추정 보류 · 입력·분석 필요:\n', 'Estimate held · required inputs or analysis:\n')
+        + computedEstimate.missing.join('\n');
+      target.append(note);
       return;
     }
     if (!muscleAnchor || muscleAnchor.key !== computedEstimate.muscleAdjustmentKey) {
@@ -8250,6 +8445,7 @@
         updateSegmentComparisonCard(frame, segmentDeltaHistory[frame]);
       }
     });
+    if (computing2dCorrectionScenario) return;
     refreshSwingClassificationViews();
     const scoreLabel = (frame, scale = 1) => hasMetric(getStoredSegmentScore(frame))
       ? (getStoredSegmentScore(frame) * scale).toFixed(1)
@@ -8274,6 +8470,7 @@
       const reference = document.getElementById('analysisBonusReference');
       if (reference) reference.textContent = hasMetric(summary.score) || analyzed ? formatDistanceMotionSummary(summary) : '';
     }
+    refreshAnalysisWorkflow();
   }
 
   function updateConsistencyAverageDisplay() {
@@ -8304,6 +8501,7 @@
   }
 
   function updateSummary(frontResult, sideResult, deltaResult) {
+    if (computing2dCorrectionScenario) return;
     if (!analysisSummary) return;
     if (!deltaResult) {
       analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 선택 프레임에 맞는 랜드마크를 찍으면 지표가 업데이트됩니다.';
@@ -8671,6 +8869,7 @@
 
   function resetAll() {
     if (!confirm('모든 분석 데이터(영상 포인트, 점수, 기록)를 초기화합니다. 계속하시겠습니까?')) return;
+    startAnalysisWorkflow();
     analysisGeneration += 1;
     pauseBothVideos();
     if (motionAnalysisFrame !== null) cancelAnimationFrame(motionAnalysisFrame);
@@ -8784,6 +8983,7 @@
   let backswingFrames = {};
   let backswingClassification = null;
   let backswingClassificationCacheKey = null;
+  let backswingSourceIdentity = null;
   let backswingOriginalVideo = null;
   let backswingProgressNotice = null;
 
@@ -8867,8 +9067,9 @@
     backswingOriginalVideo = null;
   }
 
-  function setBackswingMode(active) {
+  function setBackswingMode(active, { promptForVideo = true } = {}) {
     if (active && !backswingActive) {
+      if (!backswingSourceIdentity) backswingSourceIdentity = videoFileIdentity.front;
       backswingOriginalVideo = frontVideo.src ? {
         src: frontVideo.src,
         time: Number.isFinite(frontVideo.currentTime) ? frontVideo.currentTime : 0,
@@ -8894,7 +9095,7 @@
       distanceMeasureBtn.style.background = distanceMeasureBtn.style.borderColor = '';
       distanceReferenceBtn.style.background = distanceReferenceBtn.style.borderColor = '';
       updateBackswingGuide();
-      if (!frontVideo.src) frontFileInput.click();
+      if (!frontVideo.src && promptForVideo) frontFileInput.click();
     } else {
       showGuide();
     }
@@ -11568,6 +11769,13 @@
   }
 
   function finishStanceReferenceSelection(start, end, ctx, canvas, video, zoom) {
+    try {
+      getStanceCorrectionAngle({ start, end }, getAnalysisAspect(video));
+    } catch (error) {
+      stanceReferencePendingPoints = [];
+      alert(error.message);
+      return;
+    }
     stanceReferenceLineFront = { start: { ...start }, end: { ...end } };
     stanceReferencePendingPoints = [];
     stanceReferenceActive = false;
@@ -11993,10 +12201,17 @@
       if(statusSpan) statusSpan.textContent = '지원되지 않는 파일 형식입니다.';
       return;
     }
+    const fileIdentity = getVideoFileIdentity(file);
+    // Reloading the completed source is an engine-analysis handoff, not a new backswing.
+    if (backswingActive && backswingClassification
+      && fileIdentity === backswingSourceIdentity) {
+      setBackswingMode(false);
+    }
     if (backswingActive && backswingOriginalVideo) {
       poseSampleCache.delete(frontVideo);
       frontFindPositionStatus.textContent = '';
       resetBackswing();
+      backswingSourceIdentity = fileIdentity;
       setFileName('frontFileName', file);
       loadVideo(frontVideo, file, { preserveCurrentSource: true });
       pauseBothVideos();
@@ -12008,10 +12223,11 @@
       return;
     }
     setFileName('frontFileName', file);
-    videoFileIdentity.front = getVideoFileIdentity(file);
+    videoFileIdentity.front = fileIdentity;
     poseSampleCache.delete(frontVideo);
     frontFindPositionStatus.textContent = '';
     if (backswingActive || !backswingClassification) resetBackswing();
+    if (backswingActive) backswingSourceIdentity = fileIdentity;
     clearAnalysisResults();
     resetSwingCompareData();
     baselineFrontResult = null;
@@ -12415,6 +12631,10 @@
   }
   if (distanceMeasureBtn) {
     distanceMeasureBtn.addEventListener('click', () => {
+      stanceReferenceActive = false;
+      stanceReferencePendingPoints = [];
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
       if (backswingActive) setBackswingMode(false);
       distanceMeasureActive = !distanceMeasureActive;
       distanceReferenceActive = false;
@@ -12437,6 +12657,10 @@
           'Set the head-to-left-foot reference at F1 address. Reanalyzing F1 after changing it refreshes all distance metrics.'));
         return;
       }
+      stanceReferenceActive = false;
+      stanceReferencePendingPoints = [];
+      stanceReferenceBtn.setAttribute('aria-pressed', 'false');
+      stanceReferenceBtn.textContent = translateUiText('정면 P1 양발 기준선 지정');
       if (backswingActive) setBackswingMode(false);
       distanceReferenceActive = !distanceReferenceActive;
       distanceMeasureActive = false;
@@ -12531,16 +12755,20 @@
       try {
         cached2dCorrectionScenarioKey = null;
         cached2dCorrectionScenario = null;
-        update2dCorrectionDiagnostics();
-        refresh2dDiagnosticsButton.textContent = translateUiText('갱신 완료', 'Updated');
+        const result = update2dCorrectionDiagnostics();
+        refresh2dDiagnosticsButton.textContent = result?.status === 'success'
+          ? getSwingUiText('갱신 완료', 'Updated')
+          : result?.status === 'error'
+            ? getSwingUiText('갱신 실패', 'Update failed')
+            : getSwingUiText('갱신됨 · 입력 부족', 'Updated · inputs missing');
       } catch (error) {
         console.error('2D 진단 갱신 실패', error);
-        refresh2dDiagnosticsButton.textContent = translateUiText('갱신 실패', 'Update failed');
+        refresh2dDiagnosticsButton.textContent = getSwingUiText('갱신 실패', 'Update failed');
       } finally {
         refresh2dDiagnosticsButton.disabled = false;
         refresh2dDiagnosticsButton.removeAttribute('aria-busy');
         window.setTimeout(() => {
-          refresh2dDiagnosticsButton.textContent = translateUiText('2D 진단 갱신', 'Refresh 2D diagnostics');
+          refresh2dDiagnosticsButton.textContent = getSwingUiText('2D 진단 갱신', 'Refresh 2D diagnostics');
         }, 1500);
       }
     }, 0);
@@ -12553,6 +12781,9 @@
       alert(getSwingUiText('정면 P1 어드레스 프레임에서 지정하세요.', 'Set the line at front-view P1 address.'));
       return;
     }
+    if (backswingActive) setBackswingMode(false);
+    if (swingCompareActive) toggleSwingCompareMode();
+    cancelPointer();
     stanceReferenceActive = !stanceReferenceActive;
     stanceReferencePendingPoints = [];
     if (distanceReferenceActive) {
@@ -12798,6 +13029,7 @@
       localStorage.setItem(key, JSON.stringify({
         signature,
         backswingFrames,
+        backswingSourceIdentity,
         classification: backswingClassification,
       }));
       backswingClassificationCacheKey = key;
@@ -12836,7 +13068,8 @@
         ? sanitizeStoredBackswingClassification(cached.classification) || classifyBackswing(frames)
         : classifyBackswing(frames);
       if (classification.error) return null;
-      return { frames, classification, key };
+      return { frames, classification, key,
+        sourceIdentity: typeof cached.backswingSourceIdentity === 'string' ? cached.backswingSourceIdentity : media.front };
     } catch (error) {
       reportBackswingCacheError('읽기', error);
       return null;
@@ -12865,6 +13098,7 @@
         distanceLinesByView,
         distanceReferenceLinesByView,
         stanceReferenceLineFront,
+        diagnostics2dSettings: get2dDiagnosticSettings(),
         frame1ReferenceSnapshot,
         height: analysisHeightInput.value,
         athleteData: {
@@ -12881,6 +13115,7 @@
         frontSpeedFactor,
         sideSpeedFactor,
         backswingFrames,
+        backswingSourceIdentity,
         backswingClassified: !!backswingClassification,
         // 백스윙 입력점이 지워진 뒤에도(예: 정면 영상 재선택) 판정 결과가 유지되므로 결과 자체도 저장한다.
         backswingClassificationResult: backswingClassification,
@@ -12999,6 +13234,10 @@
       || (state.stanceReferenceLineFront != null
         && (!isProjectCoordinate(state.stanceReferenceLineFront.start)
           || !isProjectCoordinate(state.stanceReferenceLineFront.end)))
+      || (state.diagnostics2dSettings != null
+        && (!['left', 'right'].includes(state.diagnostics2dSettings.analysis2dFrontTarget)
+          || !['left', 'right'].includes(state.diagnostics2dSettings.analysis2dSideTarget)
+          || !['left', 'right'].includes(state.diagnostics2dSettings.analysis2dHandedness)))
       || !state.distanceLinesByView || typeof state.distanceLinesByView !== 'object' || Array.isArray(state.distanceLinesByView)
       || !['front', 'side'].every(view =>
         Array.isArray(state.distanceLinesByView[view]) && state.distanceLinesByView[view].length <= 100
@@ -13042,6 +13281,8 @@
           || state.segmentScoreHistory[frame] < 0
           || state.segmentScoreHistory[frame] > (['frame1', 'frame2', 'frame3', 'frame4'].includes(frame) ? 10 : 100)))
       || !state.backswingFrames || typeof state.backswingFrames !== 'object' || Array.isArray(state.backswingFrames)
+      || (state.backswingSourceIdentity != null
+        && (typeof state.backswingSourceIdentity !== 'string' || state.backswingSourceIdentity.length > 1024))
       || Object.keys(state.backswingFrames).some(phase => !BACKSWING_PHASES.includes(phase))
       || Object.values(state.backswingFrames).some(entry => !entry || !Array.isArray(entry.points)
         || entry.points.length > 3 || !entry.points.every(isProjectCoordinate)
@@ -13134,6 +13375,7 @@
         'To recalculate saved metrics, load the original A and B videos used for this project and wait until video metadata is ready.'
       ));
     }
+    startAnalysisWorkflow();
     analysisGeneration += 1;
     pauseBothVideos();
     if (motionAnalysisFrame !== null) cancelAnimationFrame(motionAnalysisFrame);
@@ -13168,6 +13410,14 @@
     distanceReferenceLinesByView = copyProjectValue(state.distanceReferenceLinesByView);
     stanceReferenceLineFront = state.stanceReferenceLineFront
       ? copyProjectValue(state.stanceReferenceLineFront) : null;
+    const diagnosticsSettings = state.diagnostics2dSettings || {
+      analysis2dFrontTarget: 'left', analysis2dSideTarget: 'left', analysis2dHandedness: 'right',
+    };
+    Object.entries(diagnosticsSettings).forEach(([id, value]) => {
+      if (['analysis2dFrontTarget', 'analysis2dSideTarget', 'analysis2dHandedness'].includes(id)) {
+        document.getElementById(id).value = value;
+      }
+    });
     stanceReferencePendingPoints = [];
     stanceReferenceActive = false;
     if (stanceReferenceBtn) {
@@ -13232,6 +13482,7 @@
     }
     backswingClassificationCacheKey = null;
     backswingFrames = copyProjectValue(state.backswingFrames || {});
+    backswingSourceIdentity = state.backswingSourceIdentity || project.media.front || null;
     backswingClassification = null;
     if (state.backswingClassified) {
       // Legacy checkpoints have no source aspect ratio; retain their saved decision.
@@ -13250,6 +13501,7 @@
         project.media, state.frameStateHistory);
       if (cachedBackswing) {
         backswingFrames = cachedBackswing.frames;
+        backswingSourceIdentity = cachedBackswing.sourceIdentity;
         backswingClassification = cachedBackswing.classification;
         backswingClassificationCacheKey = cachedBackswing.key;
       }
@@ -13828,10 +14080,13 @@
   function renderR10Analysis() {
     const analysis = calculateR10Analysis();
     if (!analysis) {
+      r10Analysis = null;
+      refreshAnalysisWorkflow();
       setR10Status(r10Text('선택한 지표에 유효한 샷 데이터가 2개 이상 필요합니다.', 'At least two valid shots are required for the selected metrics.'), 'error');
       return;
     }
     r10Analysis = analysis;
+    refreshAnalysisWorkflow();
     updateConsistencyAverageDisplay();
     const copy = uiLanguage === 'en'
       ? { shots: 'Shots in session', outliers: 'Shots outside center',
@@ -14463,6 +14718,7 @@
   r10ClearBtn.addEventListener('click', () => {
     r10CsvInput.value = '';
     r10Shots = []; r10Analysis = null; r10SourceName = ''; r10Units = {}; r10SelectedShotNo = null;
+    refreshAnalysisWorkflow();
     updateConsistencyAverageDisplay();
     r10Dashboard.hidden = true; r10ClearBtn.disabled = true; r10ReportOpenBtn.disabled = true;
     r10ReportPreview.hidden = true; r10GeneratedReport = null;
@@ -14492,6 +14748,162 @@
   window.addEventListener('resize', () => { if (r10Analysis) drawR10Dispersion(r10Analysis); });
   if (languageSelect) languageSelect.addEventListener('change', setR10LanguageCopy);
   setR10LanguageCopy();
+
+  const workflowWorkspace = document.getElementById('analysisVideoWorkspace');
+  if (workflowWorkspace) {
+    workflowWorkspace.before(document.getElementById('analysisWorkflowNav'), document.getElementById('analysisWorkflow'));
+  }
+
+  const ANALYSIS_WORKFLOW_STEPS = [
+    { id: 'backswing', ko: '백스윙 유형 결정', en: 'Backswing classification' },
+    { id: 'engine', ko: '스윙 파워 엔진 유형 분석', en: 'Swing power engine analysis' },
+    { id: 'distance', ko: '잠재비거리 추정', en: 'Potential-distance estimate' },
+    { id: 'r10', ko: 'R10 추가 분석', en: 'Additional R10 analysis' },
+  ];
+
+  function getAnalysisWorkflowResult(id) {
+    if (id === 'backswing') {
+      if (!backswingClassification) return { ready: false, text: getSwingUiText('백스윙 유형을 아직 결정하지 않았습니다.', 'Backswing classification has not been run.') };
+      return { ready: true, text: getBackswingProfileCode(backswingClassification)
+        || getSwingUiText('판정 보류 · 다섯 패턴 조건과 일치하지 않음', 'Undetermined · no match among the five patterns') };
+    }
+    if (id === 'engine') {
+      const readiness = getSwingTypeReadiness();
+      const engine = readiness.ready ? classifySwingType() : null;
+      const code = getPowerEngineDecision(engine)?.code;
+      const missing = readiness.ready ? engine?.missingEngineEvidence || [] : readiness.missing;
+      return {
+        ready: Boolean(code),
+        text: code ? `${code} · ATE ${engine.pct.type1}% · LSE ${engine.pct.type2}% · VEE ${engine.pct.type3}%`
+          : getSwingUiText('판정 보류: ', 'Undetermined: ') + (missing?.length ? missing.join('\n')
+            : getSwingUiText('엔진 판정에 필요한 관측 자료가 부족합니다.', 'Engine evidence is incomplete.')),
+      };
+    }
+    if (id === 'distance') {
+      const result = computeEstimatedCarryDistance();
+      return {
+        ready: !result.missing,
+        text: result.missing ? getSwingUiText('추정 보류: ', 'Estimate held: ') + result.missing.join('\n')
+          : getSwingUiText(`잠재 총거리 참고 추정 ${result.estimateMeters.toFixed(1)} m`,
+            `Reference potential total distance ${result.estimateMeters.toFixed(1)} m`),
+      };
+    }
+    return { ready: Boolean(r10Analysis),
+      text: r10Analysis ? `${getSwingUiText('분석 샷', 'Analyzed shots')}: ${r10Analysis.shots.length} · ${r10SourceName}`
+        : getSwingUiText('R10 CSV를 불러와 분석하세요.', 'Load an R10 CSV for analysis.') };
+  }
+
+  function openAnalysisWorkflowStage(index) {
+    const id = ANALYSIS_WORKFLOW_STEPS[index].id;
+    if (swingCompareActive) toggleSwingCompareMode();
+    if (id !== 'backswing' && backswingActive) setBackswingMode(false);
+    if (id === 'backswing') {
+      if (!backswingActive) setBackswingMode(true, { promptForVideo: !backswingClassification });
+      if (backswingClassification) renderBackswingClassification();
+      document.getElementById('backswingPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (id === 'r10') {
+      r10AnalysisPanel.hidden = false;
+      r10EvaluationToggleBtn.setAttribute('aria-expanded', 'true');
+      if (r10Analysis) drawR10Dispersion(r10Analysis);
+      r10AnalysisPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      if (analysisPanel.classList.contains('collapsed')) toggleAnalysisPanel();
+      if (id === 'distance') {
+        refreshSwingClassificationViews();
+        const output = document.getElementById('distanceEstimateResult');
+        if (output) {
+          output.hidden = false;
+          document.getElementById('distanceEstimateBtn')?.setAttribute('aria-expanded', 'true');
+          renderEstimatedCarryDistance(output, distanceEstimateMuscleAnchor);
+        }
+      }
+      analysisPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function refreshAnalysisWorkflow() {
+    if (computing2dCorrectionScenario) return;
+    const body = document.getElementById('analysisWorkflowBody');
+    if (!body) return;
+    body.hidden = !analysisWorkflowState;
+    document.getElementById('analysisWorkflowNav').hidden = !analysisWorkflowState;
+    if (!analysisWorkflowState) {
+      document.body.removeAttribute('data-workflow-stage');
+      return;
+    }
+    document.body.dataset.workflowStage = ANALYSIS_WORKFLOW_STEPS[analysisWorkflowState.index]?.id || 'overview';
+    const status = document.getElementById('analysisWorkflowStatus');
+    status.hidden = true;
+    status.textContent = '';
+    try {
+      renderAnalysisWorkflow();
+    } catch (error) {
+      console.error('Analysis workflow refresh failed', error);
+      document.getElementById('analysisWorkflowStatus').textContent =
+        getSwingUiText('안내 갱신 실패: ', 'Guide refresh failed: ') + error.message;
+      status.hidden = false;
+    }
+  }
+
+  function renderAnalysisWorkflow() {
+    const state = analysisWorkflowState;
+    const current = ANALYSIS_WORKFLOW_STEPS[state.index];
+    const label = step => getSwingUiText(step.ko, step.en);
+    const results = new Map(ANALYSIS_WORKFLOW_STEPS.filter(step => state.choices[step.id] === 'yes')
+      .map(step => [step.id, getAnalysisWorkflowResult(step.id)]));
+    const progress = document.getElementById('analysisWorkflowProgress');
+    progress.replaceChildren(...ANALYSIS_WORKFLOW_STEPS.map((step, index) => {
+      const item = document.createElement('li');
+      const choice = state.choices[step.id];
+      const status = choice === 'no' ? 'skipped' : choice === 'yes'
+        ? results.get(step.id).ready ? 'complete' : 'active' : 'pending';
+      const statuses = {
+        skipped: getSwingUiText('건너뜀', 'Skipped'), complete: getSwingUiText('분석완료', 'Complete'),
+        active: getSwingUiText('분석중', 'In progress'), pending: getSwingUiText('분석전', 'Not started'),
+      };
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.status = status;
+      const title = document.createElement('span');
+      title.className = 'workflow-step-label';
+      title.textContent = `${index + 1}. ${label(step)}`;
+      const badge = document.createElement('span');
+      badge.className = 'workflow-step-status';
+      badge.textContent = statuses[status];
+      button.append(title, badge);
+      button.title = `${label(step)} · ${statuses[status]}`;
+      if (index === state.index) button.setAttribute('aria-current', 'step');
+      button.addEventListener('click', () => selectAnalysisWorkflowStage(index));
+      item.append(button);
+      return item;
+    }));
+    const engineNotice = document.getElementById('analysisWorkflowEngineNotice');
+    engineNotice.hidden = current.id !== 'engine';
+    engineNotice.textContent = engineNotice.hidden ? '' : getSwingUiText(
+      '📁 A와 B에 분석할 동일한 스윙 영상을 각각 불러오세요.',
+      '📁 Load the same swing video into both A and B for analysis.');
+  }
+
+  function selectAnalysisWorkflowStage(index) {
+    const state = analysisWorkflowState;
+    if (!state || !ANALYSIS_WORKFLOW_STEPS[index]) return;
+    if (backswingActive && index !== 0) setBackswingMode(false);
+    state.index = index;
+    state.choices[ANALYSIS_WORKFLOW_STEPS[index].id] = 'yes';
+    refreshAnalysisWorkflow();
+    openAnalysisWorkflowStage(index);
+  }
+
+  function startAnalysisWorkflow() {
+    analysisWorkflowState = { index: 0, choices: {} };
+    refreshAnalysisWorkflow();
+  }
+  document.getElementById('r10UploadBtn').addEventListener('click', () => document.getElementById('r10CsvInput').click());
+  for (const event of ['change', 'input']) {
+    document.getElementById('analysisPanel').addEventListener(event, refreshAnalysisWorkflow);
+  }
+  if (languageSelect) languageSelect.addEventListener('change', refreshAnalysisWorkflow);
+  startAnalysisWorkflow();
 </script>
 
 </body>

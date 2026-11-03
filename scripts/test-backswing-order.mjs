@@ -58,6 +58,11 @@ function sandbox() {
     backswingPhaseSelect: { value: 'address', querySelector: () => ({ textContent: '' }) },
     backswingFrames: checkpoints(), backswingClassification: null,
     backswingClassificationCacheKey: null, backswingOriginalVideo: null,
+    backswingSourceIdentity: 'side-view',
+    setBackswingMode(active) {
+      context.backswingActive = active;
+      context.backswingOriginalVideo = null;
+    },
     backswingActive: false, backswingProgressNotice: null, backswingResult: element(),
     frontVideo: { src: 'side-view', currentTime: 0, videoWidth: 1600, videoHeight: 900, pause: noop },
     sideVideo: { src: 'engine', currentTime: 0, videoWidth: 900, videoHeight: 1600 },
@@ -148,6 +153,45 @@ test('backswing-first survives engine A/B video loading with original checkpoint
   assert.ok(c.backswingClassificationCacheKey, 'retained evidence is persisted for the new engine media');
   const restored = c.loadBackswingClassificationCache(c.videoFileIdentity, c.frameStateHistory);
   assert.deepEqual(clone(restored.classification), expected);
+});
+
+test('completed active backswing survives same-source A/B reload without requiring manual exit', async () => {
+  const c = sandbox();
+  c.backswingClassification = c.classifyBackswing(c.backswingFrames);
+  const expected = clone(c.backswingClassification);
+  const frames = clone(c.backswingFrames);
+  c.backswingActive = true;
+  await c.handleFrontVideoFile({ name: 'side-view', type: 'video/mp4' });
+  await c.handleSideVideoFile({ name: 'side-view', type: 'video/mp4' });
+  assert.equal(c.backswingActive, false);
+  assert.deepEqual(clone(c.backswingClassification), expected);
+  assert.deepEqual(clone(c.backswingFrames), frames);
+  const restored = c.loadBackswingClassificationCache(c.videoFileIdentity, c.frameStateHistory);
+  assert.equal(restored.sourceIdentity, 'side-view');
+  assert.deepEqual(clone(restored.classification), expected);
+});
+
+test('completed temporary backswing source hands off before the temporary-video reset branch', async () => {
+  const c = sandbox();
+  c.backswingClassification = c.classifyBackswing(c.backswingFrames);
+  const expected = clone(c.backswingClassification);
+  const frames = clone(c.backswingFrames);
+  c.videoFileIdentity.front = 'original-engine';
+  c.backswingOriginalVideo = { src: 'original-engine', identity: 'original-engine' };
+  c.backswingActive = true;
+  await c.handleFrontVideoFile({ name: 'side-view', type: 'video/mp4' });
+  assert.equal(c.backswingActive, false);
+  assert.deepEqual(clone(c.backswingClassification), expected);
+  assert.deepEqual(clone(c.backswingFrames), frames);
+  assert.equal(c.videoFileIdentity.front, 'side-view');
+});
+
+test('unfinished same-source reload still resets its partial checkpoints', async () => {
+  const c = sandbox();
+  c.backswingActive = true;
+  await c.handleFrontVideoFile({ name: 'side-view', type: 'video/mp4' });
+  assert.deepEqual(clone(c.backswingFrames), {});
+  assert.equal(c.backswingClassification, null);
 });
 
 test('reclassification and cache restore use the checkpoint video aspect, not the engine A video', () => {
@@ -246,8 +290,8 @@ test('language rendering preserves a restored legacy decision without reclassify
   c.classifyBackswing = () => assert.fail('display changes must not reclassify a different video');
   c.renderBackswingClassification();
   assert.deepEqual(clone(c.backswingClassification), expected);
-  assert.equal(c.backswingResult.children.length, 3);
-  assert.equal(c.backswingResult.children[0].children[1].textContent, expected.profileCode);
+  assert.equal(c.backswingResult.children.length, 2);
+  assert.equal(c.backswingResult.children[0].children[0].children[1].textContent, expected.profileCode);
 });
 
 test('delivery observations show exact geometry without changing scores or classification', () => {
