@@ -1631,7 +1631,7 @@
   body[data-swing-compare="active"] #analysisWorkflowReset,
   body[data-swing-compare="active"] #downloadPdfBtn { display: none !important; }
   body[data-swing-compare="active"] .video-header .analysis-btn { display: none !important; }
-  body[data-swing-compare-view="free"] :is(#swingComparePhaseSelect, #swingCompareSummary, .swing-compare-opinion, #swingCompareTableWrap, #swingCompareTableToggleBtn) { display: none !important; }
+  body[data-swing-compare-view="free"] :is(#swingComparePhaseSelect, #swingCompareSummary, .swing-compare-opinion, #swingCompareTableWrap, #swingCompareTableToggleBtn, #swingCompareClearPhaseBtn) { display: none !important; }
   #swingCompareFreeTools { display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
   body[data-swing-compare="active"][data-swing-compare-view="free"] #swingCompareFreeTools { display: flex; }
   #analysisWorkflowStatus { white-space: pre-line; line-height: 1.65; }
@@ -1744,6 +1744,37 @@
   .video-header { gap: 8px; padding: 10px; flex-wrap: wrap; }
   .video-header .title { font-size: 0.9375rem; font-weight: 650; }
   .video-header button { min-width: 36px; min-height: 36px; border-radius: 7px; }
+  .video-wrapper { min-width: 0; max-width: 100%; }
+  .video-header { box-sizing: border-box; max-width: 100%; min-width: 0; }
+  .video-header .title { min-width: 0; }
+  #frontFileName, #sideFileName { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  body[data-workflow-stage="backswing"]:not([data-swing-compare="active"]) {
+    --single-video-width: min(60vw, 800px);
+  }
+  body[data-workflow-stage="backswing"]:not([data-swing-compare="active"]) :is(.top-bar, #analysisWorkflowNav, #analysisWorkflow, .controls) {
+    width: var(--single-video-width);
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  body[data-workflow-stage="backswing"]:not([data-swing-compare="active"]) .top-bar {
+    padding-left: 12px;
+    padding-right: 12px;
+    flex-wrap: wrap;
+  }
+  .top-bar h1 { min-width: 0; max-width: 100%; }
+  .app-title-button { max-width: 100%; overflow-wrap: anywhere; }
+  #analysisWorkflowFiles, #analysisWorkflowFiles .analysis-project-actions { max-width: 100%; min-width: 0; flex-wrap: wrap; }
+  .controls #status { min-width: 0; overflow-wrap: anywhere; }
+  .controls > * { box-sizing: border-box; max-width: 100%; min-width: 0; }
+  @media (max-width: 900px) {
+    body[data-workflow-stage="backswing"]:not([data-swing-compare="active"]) { --single-video-width: min(95vw, 800px); }
+  }
+  @media (max-width: 600px) {
+    body[data-workflow-stage="backswing"]:not([data-swing-compare="active"]) { --single-video-width: 100%; }
+  }
   .r10-title { font-size: 1.2rem; line-height: 1.5; }
   .r10-subtitle, .r10-status, .r10-stat-label { font-size: 0.8125rem; line-height: 1.65; }
   .r10-stat-value { font-size: 1.3rem; }
