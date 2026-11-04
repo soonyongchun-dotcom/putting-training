@@ -61,6 +61,18 @@ const HelpCircleIcon = ({ size = 14, className = "" }) => (
   </svg>
 );
 
+function HelpDetails({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="text-xs text-slate-400">
+      <summary className="flex min-h-9 w-fit cursor-pointer list-none items-center gap-1.5 rounded px-1 font-bold text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
+        <HelpCircleIcon size={18} />
+        <span>{title}</span>
+      </summary>
+      <div className="mt-1 space-y-2 leading-relaxed">{children}</div>
+    </details>
+  );
+}
+
 // CONSTANTS & CONVERSIONS
 const GRAVITY = 9.81;
 const BALL_MASS = 0.0459;
@@ -301,12 +313,14 @@ function PersonalClubEditor({ base, profile, onChange, onReset }: {
           );
         })}
       </div>
+      <HelpDetails title="개인 입력 기준 안내">
       <p className="text-[11px] text-slate-400">
         기준 캐리는 무풍·20°C·평지의 런 제외 거리입니다. 캐리 또는 높이를 입력하면 개인 발사 데이터로 항력·양력을 재보정합니다.
         캐리만 입력한 경우 높이는 투어 높이에 거리 비율을 적용한 추정값입니다.
         캐리·높이가 모두 비어 있으면 투어 공력 모델에 입력 발사 데이터를 적용합니다.
         클럽 스피드는 참고용이며 비행 계산은 볼 스피드를 사용합니다.
       </p>
+      </HelpDetails>
       <button onClick={onReset} className="w-full border border-slate-600 rounded-lg p-2 text-xs text-slate-300">
         이 클럽 개인 입력 지우기 (투어 평균 복원)
       </button>
@@ -1264,6 +1278,7 @@ export default function App() {
               ))}
             </div>
             <p data-testid="wind-direction-label" className="text-xs font-bold text-sky-300">{windDirectionLabel(windDirDeg)}</p>
+            <HelpDetails title="풍향 설정 안내">
             <p className="text-[11px] text-slate-400">
               맞바람/뒷바람 중 하나와 훅바람/슬라이스바람 중 하나를 조합할 수 있습니다.
               같은 축의 반대 바람은 교체되며, 선택한 항목을 다시 누르면 해당 성분을 해제합니다(최소 한 방향 유지).
@@ -1271,6 +1286,7 @@ export default function App() {
               풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s).
               선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다.
             </p>
+            </HelpDetails>
             <input
               type="range"
               aria-label="풍향"
@@ -1296,19 +1312,21 @@ export default function App() {
                 {LIE_OPTIONS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
               </select>
             </label>
-            <p data-testid="lie-assumptions" className="text-[11px] text-amber-200">{getLie(lie).note}</p>
             <div className="text-[11px] text-slate-300 bg-slate-900 p-2.5 rounded-lg border border-slate-700">
               <p className="font-bold text-sky-300">라이·강우 반영 전 → 반영 후 출발 조건</p>
               <p data-testid="impact-speed">볼속도 {activeClub.speed.toFixed(1)} → {trajResult.appliedLaunch.ballSpeedMph.toFixed(1)} mph</p>
               <p data-testid="impact-launch">발사각 {activeClub.launch.toFixed(1)} → {trajResult.appliedLaunch.launchAngleDeg.toFixed(1)}°</p>
               <p data-testid="impact-spin">백스핀 {Math.round(activeClub.spin)} → {Math.round(trajResult.appliedLaunch.spinRateRpm)} rpm</p>
             </div>
+            <HelpDetails title="라이 보정 안내">
+            <p data-testid="lie-assumptions" className="text-[11px] text-amber-200">{getLie(lie).note}</p>
             <p className="text-[11px] text-slate-400">
               라이 보정은 양 모드에 적용합니다. 개인 입력은 라이·강우 보정 전 기준 샷으로 입력하세요.
               실측한 러프 샷을 이미 입력했다면 중립 라이를 선택해 중복 보정을 피하세요.
               수치는 실측 보장값이 아닌 가정이며, 캐리 증감은 클럽·발사 조건별 계산 결과입니다.
               런은 계산하지 않습니다.
             </p>
+            </HelpDetails>
           </div>
 
           {/* Temperature & Temp Unit Toggle */}
@@ -1384,12 +1402,7 @@ export default function App() {
 
         {/* SECTION 3: SUMMARY FOOTER */}
         <div className="p-4 bg-slate-900/60 space-y-2">
-          <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span className="flex items-center justify-center">
-              <HelpCircleIcon size={14} />
-            </span>
-            <span>산출 방식과 한계</span>
-          </div>
+          <HelpDetails title="산출 방식과 한계">
           <p className="text-xs text-slate-400 leading-relaxed">
             기준은 무풍·20°C·해수면·평지·중립 페어웨이 캐리(런 제외)입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정하고,
             상대풍속의 3차원 항력·마그누스 양력·중력·스핀 감쇠를 적분합니다.
@@ -1402,6 +1415,7 @@ export default function App() {
             부분 샷은 동일 발사각·스핀 가정이며, 강우는 항력 +3/+8%, 초기 스핀 -5/-15%의 추정 시나리오입니다.
             코스 난류·돌풍·구종·지면 런은 반영하지 않으며 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다.
           </p>
+          </HelpDetails>
         </div>
 
         </div>
