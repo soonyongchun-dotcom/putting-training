@@ -41,3 +41,12 @@ $env:AUTH_ALIAS_DOMAIN="syegtp.app"
 ## 6) 커밋 권장 범위
 - 포함: `index3.html`, `deployed_index3.html`, `scripts/*`, `sql/*`, 문서
 - 제외: 로컬 실험용 사본/개인 경로 파일
+
+## 7) 샷거리시뮬레이터
+- 선수포탈 > 시합준비 > 오늘경기데이터 입력 왼쪽의 `샷거리시뮬레이터` 버튼으로 새 탭에서 실행합니다.
+- 소스: `shot-distance-simulator/App.tsx`. 다운로드 폴더의 원본이나 로컬 미리보기 서버에 의존하지 않습니다.
+- 수정 후 `shot-distance-simulator`에서 `npm ci`, `npm test`, `npm run build`를 실행합니다.
+- `shot-distance-simulator/dist`의 HTML과 assets를 함께 배포/커밋해야 합니다. 현재 Pages 워크플로는 저장소의 정적 파일을 그대로 배포합니다.
+- 배포 페이지는 `shot-distance-simulator/dist/index.html`이며, React·스타일을 로컬 assets에 포함하므로 실행 시 npm/CDN이 필요하지 않습니다.
+- 개인 입력은 접속 도메인의 브라우저 localStorage에 클럽별로 저장됩니다. 로컬 미리보기의 개인 입력은 배포 도메인으로 자동 이전되지 않으며 선수 계정 간 동기화도 하지 않습니다.
+- 배포 확인: 버튼 위치/새 탭 열기, 투어·개인 입력 전환, 개인 데이터 재접속 유지, 측면/위에서 보기, 샷 실행/리셋.
