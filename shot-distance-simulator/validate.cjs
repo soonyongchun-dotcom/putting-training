@@ -21,7 +21,7 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
@@ -30,7 +30,9 @@ const { resolvePersonalClub, readPersonalProfiles } = result.exports.engine;
 const { projectTopView } = result.exports.engine;
 const { impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel } = result.exports.engine;
 const { toggleWindDirection, isWindSelected } = result.exports.engine;
-const { windDirectionFromPoint } = result.exports.engine;
+const { windDirectionFromPoint, WindDirectionControl } = result.exports.engine;
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
 let assertions = 0;
 const check = (condition, message) => { assertions++; assert(condition, message); };
 const close = (actual, expected, tolerance, message) => check(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`);
@@ -251,6 +253,22 @@ for (let degrees = 0; degrees < 360; degrees++) {
   const radians = degrees * Math.PI / 180;
   close(windDirectionFromPoint(30 * Math.sin(radians), 30 * Math.cos(radians)), degrees, 0,
     'compass airflow maps to exact one-degree wind');
+  const markup = renderToStaticMarkup(React.createElement('svg', null,
+    React.createElement(WindDirectionControl, { degrees, speed: 5, unit: 'm/s', onChange: () => {} })));
+  const rotation = markup.match(/<g transform="rotate\(([-\d.]+)\)" pointer-events="none">/);
+  check(rotation !== null, `rendered wind arrow has rotation at ${degrees} degrees`);
+  const arrowRadians = Number(rotation[1]) * Math.PI / 180;
+  const arrowX = Math.sin(arrowRadians);
+  const arrowY = -Math.cos(arrowRadians);
+  close(arrowX, Math.sin(radians), 1e-10, `rendered arrow lateral airflow at ${degrees} degrees`);
+  close(arrowY, Math.cos(radians), 1e-10, `rendered arrow longitudinal airflow at ${degrees} degrees`);
+  close(windDirectionFromPoint(30 * arrowX, 30 * arrowY), degrees, 0,
+    `clicking rendered arrow preserves ${degrees} degrees`);
+  if (degrees % 45 === 0 && Math.abs(arrowX) > 1e-8) {
+    const flight = calculateTrajectory(clubLaunch(sample), { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: degrees });
+    check(Math.sign(flight.sideOffsetYds) === Math.sign(arrowX),
+      `rendered arrow matches actual lateral drift at ${degrees} degrees`);
+  }
 }
 check(windDirectionFromPoint(0, 0) === null && windDirectionFromPoint(2, 2) === null,
   'compass center preserves direction');

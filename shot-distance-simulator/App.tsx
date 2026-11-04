@@ -200,7 +200,7 @@ function WindDirectionControl({ degrees, speed, unit, onChange }: {
         {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
           <line key={angle} x1="0" y1="-27" x2="0" y2="-32" stroke="#64748b" transform={`rotate(${angle})`} />
         ))}
-        <g transform={`rotate(${degrees + 180})`} pointerEvents="none">
+        <g transform={`rotate(${180 - degrees})`} pointerEvents="none">
           <line x1="0" y1="18" x2="0" y2="-18" stroke="#38bdf8" strokeWidth="3" />
           <polygon points="0,-24 8,-9 -8,-9" fill="#38bdf8" />
         </g>
@@ -1285,6 +1285,7 @@ export default function App() {
               두 성분 선택 시 45° 대각선으로 설정하며, 화면 풍향계를 클릭·드래그하거나 아래 각도로 1°씩 조정할 수 있습니다.
               풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s).
               선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다.
+              목표가 위쪽일 때 화살표는 훅바람 ←, 슬라이스바람 →, 맞바람 ↓, 뒷바람 ↑로 표시됩니다.
             </p>
             </HelpDetails>
             <input
