@@ -85,6 +85,59 @@ const MPH_TO_MS = 0.44704;
 const KMH_TO_MS = 1 / 3.6;
 const TRACKMAN_SOURCE = 'https://www.trackman.media/tour-averages';
 
+type DistanceUnit = 'yd' | 'm';
+
+function distanceFromYards(yards: number, unit: DistanceUnit) {
+  return unit === 'm' ? yards * YDS_TO_M : yards;
+}
+
+function distanceToYards(value: number, unit: DistanceUnit) {
+  return unit === 'm' ? value / YDS_TO_M : value;
+}
+
+function formatDistance(yards: number, unit: DistanceUnit, precision = 1) {
+  return `${Number(distanceFromYards(yards, unit).toFixed(precision))}${unit}`;
+}
+
+function distanceGrid(maxYards: number, unit: DistanceUnit) {
+  return Array.from({ length: Math.floor(distanceFromYards(maxYards, unit) / 50) },
+    (_, i) => distanceToYards((i + 1) * 50, unit));
+}
+
+function DistanceInput({ value, unit, min, max, reference, label, onChange, className }: {
+  value: string; unit: DistanceUnit; min: number; max: number; reference?: number;
+  label: string; onChange: (yards: string) => void; className: string;
+}) {
+  const [draft, setDraft] = useState<{ source: string; unit: DistanceUnit; text: string } | null>(null);
+  const convertedValue = distanceFromYards(Number(value), unit);
+  const roundedValue = Number(convertedValue.toFixed(1));
+  const displayValue = roundedValue < distanceFromYards(min, unit) || roundedValue > distanceFromYards(max, unit)
+    ? convertedValue : roundedValue;
+  const converted = value.trim() && Number.isFinite(Number(value))
+    ? String(displayValue) : value;
+  const shown = draft?.source === value && draft.unit === unit ? draft.text : converted;
+  return (
+    <input type="number" aria-label={label} min={distanceFromYards(min, unit)} max={distanceFromYards(max, unit)} step="any"
+      value={shown} placeholder={reference === undefined ? undefined : String(Number(distanceFromYards(reference, unit).toFixed(1)))}
+      onChange={(event) => {
+        const text = event.target.value;
+        const yards = text.trim() ? String(distanceToYards(Number(text), unit)) : '';
+        setDraft({ source: yards, unit, text });
+        onChange(yards);
+      }} className={className} />
+  );
+}
+
+function DistanceTick({ yards, unit, x, y, signed = false, textAnchor = 'middle' }: {
+  yards: number; unit: DistanceUnit; x: number; y: number; signed?: boolean; textAnchor?: 'middle' | 'end';
+}) {
+  return (
+    <text x={x} y={y} textAnchor={textAnchor} fill="#94a3b8" fontSize="10">
+      {signed && yards > 0 ? '+' : ''}{formatDistance(yards, unit, 0)}
+    </text>
+  );
+}
+
 type TourId = 'LPGA' | 'KLPGA' | 'PGA';
 type RainLevel = 'NONE' | 'LIGHT' | 'HEAVY';
 const WIND_PRESETS = [
@@ -126,7 +179,7 @@ const LIE_OPTIONS = [
   { id: 'HALF_ROUGH', label: '러프 · 반쯤 잠김 (50%)', speed: 0.94, spin: 0.50, launchDelta: 0,
     note: '볼속도 6% 감소, 스핀 50% 감소. 발사각은 유지합니다.' },
   { id: 'DEEP_ROUGH', label: '러프 · 완전히 잠김 (100%)', speed: 0.85, spin: 0.50, launchDelta: -3,
-    note: '볼속도 15% 감소. 발사각 -3°·스핀 50% 감소는 모델 가정입니다. 고정 20–30yd 손실을 강제하지 않으며 클럽·샷별로 계산합니다.' },
+    note: '볼속도 15% 감소. 발사각 -3°·스핀 50% 감소는 모델 가정입니다. 고정 거리 손실을 강제하지 않으며 클럽·샷별로 계산합니다.' },
 ] as const;
 type LieId = typeof LIE_OPTIONS[number]['id'];
 
@@ -267,7 +320,7 @@ function readPersonalProfiles(): { profiles: PersonalProfiles; error: string | n
   }
 }
 
-function resolvePersonalClub(base: CalibratedClub, profile: PersonalProfile) {
+function resolvePersonalClub(base: CalibratedClub, profile: PersonalProfile, unit: DistanceUnit = 'yd') {
   const errors: string[] = [];
   const values: Partial<Record<PersonalField, number>> = {};
   for (const field of PERSONAL_FIELDS) {
@@ -275,7 +328,10 @@ function resolvePersonalClub(base: CalibratedClub, profile: PersonalProfile) {
     if (!raw) continue;
     const value = Number(raw);
     if (!Number.isFinite(value) || value < field.min || value > field.max) {
-      errors.push(`${field.label}: ${field.min}–${field.max}${field.unit} 범위로 입력하세요.`);
+      const range = field.unit === 'yd'
+        ? `${formatDistance(field.min, unit, 4)}–${formatDistance(field.max, unit, 4)}`
+        : `${field.min}–${field.max}${field.unit}`;
+      errors.push(`${field.label}: ${range} 범위로 입력하세요.`);
     } else values[field.key] = value;
   }
   const carry = values.carry ?? base.carry;
@@ -284,12 +340,12 @@ function resolvePersonalClub(base: CalibratedClub, profile: PersonalProfile) {
     speed: values.speed ?? base.speed, launch: values.launch ?? base.launch, spin: values.spin ?? base.spin,
     apex: values.apex ?? (values.carry !== undefined ? base.apex * carry / base.carry : base.apex),
   };
-  const club = values.carry !== undefined || values.apex !== undefined ? calibrateClub(data) : { ...base, ...data };
+  const club = values.carry !== undefined || values.apex !== undefined ? calibrateClub(data, values.axis ?? 0) : { ...base, ...data };
   return { club, axis: values.axis ?? 0, errors, hasPersonal: Object.keys(values).length > 0 };
 }
 
-function PersonalClubEditor({ base, profile, onChange, onReset }: {
-  base: CalibratedClub; profile: PersonalProfile;
+function PersonalClubEditor({ base, profile, unit, onChange, onReset }: {
+  base: CalibratedClub; profile: PersonalProfile; unit: DistanceUnit;
   onChange: (field: PersonalField, value: string) => void; onReset: () => void;
 }) {
   return (
@@ -301,14 +357,22 @@ function PersonalClubEditor({ base, profile, onChange, onReset }: {
       <div className="grid grid-cols-2 gap-2">
         {PERSONAL_FIELDS.map((field) => {
           const reference = field.key === 'axis' ? 0 : base[field.key];
+          const isDistance = field.unit === 'yd';
+          const raw = profile[field.key] ?? '';
           return (
             <label key={field.key} className="block text-[11px] text-slate-300">
-              {field.label} ({field.unit})
-              <span className="block text-sky-300">투어 기준: {Number(reference.toFixed(1))}{field.unit}</span>
-              <input type="number" aria-label={`개인 ${field.label}`} min={field.min} max={field.max} step={field.step}
-                value={profile[field.key] ?? ''} placeholder={String(Number(reference.toFixed(1)))}
-                onChange={(e) => onChange(field.key, e.target.value)}
-                className="mt-1 w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1.5 focus:border-emerald-400" />
+              {field.label} ({isDistance ? unit : field.unit})
+              <span className="block text-sky-300">투어 기준: {isDistance ? formatDistance(reference, unit) : `${Number(reference.toFixed(1))}${field.unit}`}</span>
+              {isDistance ? (
+                <DistanceInput value={raw} unit={unit} min={field.min} max={field.max} reference={reference}
+                  label={`개인 ${field.label}`} onChange={(value) => onChange(field.key, value)}
+                  className="mt-1 w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1.5 focus:border-emerald-400" />
+              ) : (
+                <input type="number" aria-label={`개인 ${field.label}`} min={field.min} max={field.max} step={field.step}
+                  value={raw} placeholder={String(Number(reference.toFixed(1)))}
+                  onChange={(e) => onChange(field.key, e.target.value)}
+                  className="mt-1 w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1.5 focus:border-emerald-400" />
+              )}
             </label>
           );
         })}
@@ -316,8 +380,10 @@ function PersonalClubEditor({ base, profile, onChange, onReset }: {
       <HelpDetails title="개인 입력 기준 안내">
       <p className="text-[11px] text-slate-400">
         기준 캐리는 무풍·20°C·평지의 런 제외 거리입니다. 캐리 또는 높이를 입력하면 개인 발사 데이터로 항력·양력을 재보정합니다.
+        거리와 높이는 화면 상단에서 선택한 단위로 입력합니다. 단위를 바꿔도 저장된 실제 거리는 유지됩니다.
         캐리만 입력한 경우 높이는 투어 높이에 거리 비율을 적용한 추정값입니다.
         캐리·높이가 모두 비어 있으면 투어 공력 모델에 입력 발사 데이터를 적용합니다.
+        입력한 스핀축도 기준 캐리·높이 보정에 적용됩니다.
         클럽 스피드는 참고용이며 비행 계산은 볼 스피드를 사용합니다.
       </p>
       </HelpDetails>
@@ -433,7 +499,8 @@ function impactLaunch(shot: Launch, env: Environment): Launch {
   };
 }
 
-function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, recordPath = true) {
+function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, recordPath = true, timeStep = 0.01) {
+  if (!Number.isFinite(timeStep) || timeStep <= 0 || timeStep > 0.05) throw new Error('비행 적분 시간 간격은 0초 초과 0.05초 이하여야 합니다.');
   const appliedLaunch = impactLaunch(shot, env);
   const { ballSpeedMph, launchAngleDeg, spinRateRpm, spinAxisDeg, aimAngleDeg, dragScale, liftScale } = appliedLaunch;
   const { windSpeedMs, windDirDeg, tempC, elevationDeltaM, rainLevel } = env;
@@ -453,10 +520,10 @@ function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, rec
   const windVx = windSpeedMs * Math.sin(windRad);
   const windVz = -windSpeedMs * Math.cos(windRad);
   const rho = getAirDensity(tempC);
-  const dt = 0.01;
-  let x = 0, y = 0.1, z = 0;
+  const dt = timeStep;
+  let x = 0, y = 0, z = 0;
   let t = 0;
-  const path = [{ x: 0, y: 0.1, z: 0, time: 0, v: v0 }];
+  const path = [{ x: 0, y: 0, z: 0, time: 0, v: v0 }];
   let maxApex = y;
   let landed = false;
   const acceleration = (ux: number, uy: number, uz: number, time: number) => {
@@ -469,11 +536,11 @@ function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, rec
     const lx = axisY * rz - axisZ * uy;
     const ly = axisZ * rx - axisX * rz;
     const lz = axisX * uy - axisY * rx;
-    const norm = Math.hypot(lx, ly, lz);
+    // Keep the sin(angle) factor: a spin axis parallel to airflow produces no Magnus force.
     return {
-      x: speed > 0 ? -drag * rx / speed + (norm > 0 ? lift * lx / norm : 0) : 0,
-      y: (speed > 0 ? -drag * uy / speed + (norm > 0 ? lift * ly / norm : 0) : 0) - GRAVITY,
-      z: speed > 0 ? -drag * rz / speed + (norm > 0 ? lift * lz / norm : 0) : 0,
+      x: speed > 0 ? (-drag * rx + lift * lx) / speed : 0,
+      y: (speed > 0 ? (-drag * uy + lift * ly) / speed : 0) - GRAVITY,
+      z: speed > 0 ? (-drag * rz + lift * lz) / speed : 0,
     };
   };
   while (t < 20 && !landed) {
@@ -521,12 +588,15 @@ function clubLaunch(club: ClubData & AeroModel): Launch {
   };
 }
 
-function calibrateClub(club: ClubData): CalibratedClub {
+function calibrateClub(club: ClubData, spinAxisDeg = 0): CalibratedClub {
+  const launch = (dragScale: number, liftScale: number): Launch => ({
+    ...clubLaunch({ ...club, dragScale, liftScale }), spinAxisDeg,
+  });
   let dragScale = 1;
   let liftScale = 1;
   let error = Infinity;
   for (let iteration = 0; iteration < 24; iteration++) {
-    const shot = clubLaunch({ ...club, dragScale, liftScale });
+    const shot = launch(dragScale, liftScale);
     const base = calculateTrajectory(shot, REFERENCE_ENV, false);
     const r = (base.carryYds - club.carry) / club.carry;
     const h = (base.apexYds - club.apex) / club.apex;
@@ -546,20 +616,23 @@ function calibrateClub(club: ClubData): CalibratedClub {
     dragScale = Math.max(0.15, Math.min(4, dragScale * Math.exp(deltaDrag)));
     liftScale = Math.max(0.15, Math.min(4, liftScale * Math.exp(deltaLift)));
   }
+  const final = calculateTrajectory(launch(dragScale, liftScale), REFERENCE_ENV, false);
+  error = Math.max(Math.abs(final.carryYds - club.carry) / club.carry, Math.abs(final.apexYds - club.apex) / club.apex);
   return {
     ...club, dragScale, liftScale,
-    calibrationError: error < 0.003 ? null : `${club.name} 기준 캐리·높이 보정 실패`,
+    calibrationError: final.landed && Number.isFinite(error) && error < 0.003 ? null : `${club.name} 기준 캐리·높이 보정 실패: 입력한 거리·높이·발사 조건의 조합을 확인하세요.`,
   };
 }
 
 type Trajectory = ReturnType<typeof calculateTrajectory>;
 
-function projectTopView(trajectory: Trajectory, targetYds: number, progress: number) {
+function projectTopView(trajectory: Trajectory, targetYds: number, progress: number, unit: DistanceUnit = 'yd') {
   const maxForward = Math.max(targetYds * YDS_TO_M, ...trajectory.path.map(p => p.z), 30);
   const maxLateral = Math.max(...trajectory.path.map(p => Math.abs(p.x)), 1);
   const minForward = Math.min(0, ...trajectory.path.map(p => p.z));
   const scale = Math.min(260 / (maxForward - minForward), 290 / maxLateral);
-  const tickStep = [5, 10, 20, 40, 80, 160, 320, 640].find(yd => yd * YDS_TO_M * scale >= 48) ?? 1280;
+  const tickStep = distanceToYards([5, 10, 20, 40, 80, 160, 320, 640]
+    .find(value => distanceToYards(value, unit) * YDS_TO_M * scale >= 48) ?? 1280, unit);
   const tickCount = Math.floor(330 / (tickStep * YDS_TO_M * scale));
   const lateralTicks = Array.from({ length: tickCount * 2 + 1 }, (_, i) => (i - tickCount) * tickStep)
     .filter(yd => yd !== 0);
@@ -590,23 +663,36 @@ type Recommendation = {
 };
 
 function solveSpeed(shot: Launch, env: Environment, targetYds: number, maxSpeed: number) {
-  const full = calculateTrajectory({ ...shot, ballSpeedMph: maxSpeed }, env, false);
-  if (!full.landed || full.carryYds < targetYds - 0.02) return null;
-  let low = 10;
-  let high = maxSpeed;
+  if (!Number.isFinite(targetYds) || targetYds <= 0 || !Number.isFinite(maxSpeed) || maxSpeed <= 0) return null;
+  let low = 0;
+  let high: number | null = null;
+  // Strong winds can make range non-monotonic; bracket the first reachable speed, not just full speed.
+  for (let i = 0; i <= 32; i++) {
+    const speed = maxSpeed * i / 32;
+    const result = calculateTrajectory({ ...shot, ballSpeedMph: speed }, env, false);
+    if (result.landed && result.carryYds >= targetYds) {
+      high = speed;
+      break;
+    }
+    low = speed;
+  }
+  if (high === null) return null;
+  let upper = high;
   for (let i = 0; i < 25; i++) {
-    const mid = (low + high) / 2;
+    const mid = (low + upper) / 2;
     const result = calculateTrajectory({ ...shot, ballSpeedMph: mid }, env, false);
     if (!result.landed || result.carryYds < targetYds) low = mid;
-    else high = mid;
+    else upper = mid;
   }
-  return (low + high) / 2;
+  const speed = (low + upper) / 2;
+  const result = calculateTrajectory({ ...shot, ballSpeedMph: speed }, env, false);
+  return result.landed && Math.abs(result.carryYds - targetYds) <= 0.02 ? speed : null;
 }
 
 function solveAimedShot(shot: Launch, env: Environment, targetYds: number, maxSpeed: number) {
   let requiredSpeed = solveSpeed(shot, env, targetYds, maxSpeed);
   if (requiredSpeed === null) return null;
-  let aimAngleDeg = 0;
+  let aimAngleDeg = shot.aimAngleDeg;
   let trajectory = calculateTrajectory({ ...shot, ballSpeedMph: requiredSpeed }, env);
   for (let i = 0; i < 6; i++) {
     if (Math.abs(trajectory.sideOffsetYds) < 0.02) break;
@@ -665,7 +751,11 @@ function recommendShot(
 
 export default function App() {
   const [calcMode, setCalcMode] = useState('GENERAL');
-  const [targetDistYds, setTargetDistYds] = useState(140);
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('yd');
+  const [targetInputYds, setTargetInputYds] = useState('140');
+  const targetValue = Number(targetInputYds);
+  const targetValid = targetInputYds.trim() !== '' && Number.isFinite(targetValue) && targetValue >= 50 && targetValue <= 350;
+  const targetDistYds = targetValid ? targetValue : 140;
   const [selectedTour, setSelectedTour] = useState<TourId>('LPGA');
   const [selectedClubId, setSelectedClubId] = useState('AUTO');
   const [viewMode, setViewMode] = useState<'SIDE' | 'TOP'>('SIDE');
@@ -707,13 +797,13 @@ export default function App() {
     return tempVal;
   }, [tempVal, tempUnit]);
 
-  const tourClubs = useMemo(() => TOURS[selectedTour].clubs.map(calibrateClub), [selectedTour]);
+  const tourClubs = useMemo(() => TOURS[selectedTour].clubs.map(club => calibrateClub(club)), [selectedTour]);
   const environment = useMemo<Environment>(() => ({
     windSpeedMs, windDirDeg, tempC: tempCelsius, elevationDeltaM: elevationM, rainLevel, lie,
   }), [windSpeedMs, windDirDeg, tempCelsius, elevationM, rainLevel, lie]);
   const customClub = tourClubs.find((c) => c.id === selectedClubId) ?? tourClubs.find((c) => c.id === '7I') ?? tourClubs[0];
   const profile = personalState.profiles[customClub.id];
-  const personal = useMemo(() => resolvePersonalClub(customClub, profile ?? {}), [customClub, profile]);
+  const personal = useMemo(() => resolvePersonalClub(customClub, profile ?? {}, distanceUnit), [customClub, profile, distanceUnit]);
   const recommendation = useMemo(() => recommendShot(
     tourClubs, targetDistYds, environment,
     calcMode === 'TRACKMAN' ? customClub.id : selectedClubId,
@@ -726,8 +816,10 @@ export default function App() {
   }, environment), [activeClub, isCustom, personal.axis, environment]);
   const displayedDistance = trajResult.landed ? trajResult.carryYds : null;
   const distanceAdjustment = displayedDistance === null ? null
-    : Math.round(displayedDistance - recommendation.horizontalYds);
-  const displayWarning = (isCustom && personal.errors.length ? personal.errors.join(' ') : null) ?? activeClub.calibrationError
+    : displayedDistance - recommendation.horizontalYds;
+  const targetError = targetValid ? null : `목표 거리는 ${formatDistance(50, distanceUnit, 4)}–${formatDistance(350, distanceUnit, 4)} 범위로 입력하세요. 입력을 수정할 때까지 궤적은 기본 목표 기준입니다.`;
+  const geometryError = targetValid && targetDistYds * YDS_TO_M <= Math.abs(elevationM) ? '레이저 거리는 고도 차이보다 커야 합니다.' : null;
+  const displayWarning = targetError ?? geometryError ?? (isCustom && personal.errors.length ? personal.errors.join(' ') : null) ?? activeClub.calibrationError
     ?? (!trajResult.landed ? '샷이 그린 높이의 하강 착지점에 도달하지 못했습니다. 예상 캐리를 산출할 수 없습니다.' : null);
   const sideOffsetYds = trajResult.sideOffsetYds;
 
@@ -844,8 +936,8 @@ export default function App() {
 
     return { pathString: d, ballPos, pinPos, groundY, startX, scaleX, scaleY };
   }, [trajResult, animProgress, recommendation.horizontalYds, elevationM]);
-  const topView = useMemo(() => projectTopView(trajResult, recommendation.horizontalYds, animProgress),
-    [trajResult, recommendation.horizontalYds, animProgress]);
+  const topView = useMemo(() => projectTopView(trajResult, recommendation.horizontalYds, animProgress, distanceUnit),
+    [trajResult, recommendation.horizontalYds, animProgress, distanceUnit]);
 
   return (
     <div className="flex flex-col min-h-screen lg:h-screen w-full bg-slate-950 text-slate-100 font-sans lg:overflow-hidden">
@@ -858,6 +950,15 @@ export default function App() {
             ver26.1104-1f-ad
           </span>
         </h1>
+        <div role="group" aria-label="거리 단위 선택" className="mt-2 flex items-center gap-2 text-xs">
+          <span className="text-slate-300">거리 단위</span>
+          {([{ id: 'm', label: '미터 (m)' }, { id: 'yd', label: '야드 (yd)' }] as const).map(({ id, label }) => (
+            <button key={id} onClick={() => setDistanceUnit(id)} aria-pressed={distanceUnit === id}
+              className={`rounded-lg border px-3 py-1 font-bold ${distanceUnit === id ? 'border-sky-400 bg-sky-500/20 text-sky-300' : 'border-slate-700 text-slate-400'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </header>
       <div className="flex flex-col lg:flex-row flex-1 lg:min-h-0">
       
@@ -874,17 +975,14 @@ export default function App() {
             <div>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">목표 레이저 거리</span>
               <div className="flex items-center space-x-1">
-                <input
-                  aria-label="목표 레이저 거리"
-                  type="number"
-                  min="50"
-                  max="350"
-                  value={targetDistYds}
-                  onChange={(e) => setTargetDistYds(Math.max(50, Math.min(350, Number(e.target.value))))}
+                <DistanceInput
+                  label="목표 레이저 거리"
+                  min={50} max={350} unit={distanceUnit}
+                  value={targetInputYds}
+                  onChange={setTargetInputYds}
                   className="w-20 bg-slate-950 border border-slate-700 rounded-lg text-xl font-black text-white px-2 py-0.5 text-center focus:outline-none focus:border-emerald-500"
                 />
-                <span className="text-xs text-slate-400 font-bold">yd</span>
-                <span className="text-xs text-slate-500">({Math.round(targetDistYds * YDS_TO_M)}m)</span>
+                <span className="text-xs text-slate-400 font-bold">{distanceUnit}</span>
               </div>
             </div>
           </div>
@@ -893,16 +991,15 @@ export default function App() {
           <div className="flex items-center space-x-3 bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-500/50 px-4 py-2 rounded-xl">
             <div className="text-right">
               <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider block">
-                {isCustom ? '환경반영예상캐리' : `${selectedTour} 환경반영 예상캐리`}
+                환경반영예상캐리
               </span>
               <div className="flex items-baseline justify-end space-x-1">
-                <span data-testid="play-as" className="text-2xl font-black text-indigo-200">{displayWarning || displayedDistance === null ? '—' : Math.round(displayedDistance)}</span>
-                <span className="text-xs text-indigo-300 font-bold">yd</span>
+                <span data-testid="play-as" className="text-xl sm:text-2xl font-black text-indigo-200">{displayWarning || displayedDistance === null ? '—' : formatDistance(displayedDistance, distanceUnit)}</span>
               </div>
             </div>
             <div className={`p-1.5 rounded-lg font-black text-xs ${distanceAdjustment !== null && distanceAdjustment > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'}`}>
-              {displayWarning || distanceAdjustment === null ? '도달 불가'
-                : distanceAdjustment === 0 ? '목표 일치' : `목표보다 ${Math.abs(distanceAdjustment)}yd ${distanceAdjustment > 0 ? '김' : '짧음'}`}
+              {displayWarning || distanceAdjustment === null ? '입력·산출 확인'
+                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? '목표 일치' : `목표보다 ${formatDistance(Math.abs(distanceAdjustment), distanceUnit)} ${distanceAdjustment > 0 ? '김' : '짧음'}`}
             </div>
           </div>
 
@@ -914,8 +1011,8 @@ export default function App() {
             <div>
               <span className="text-[10px] text-slate-400 block font-medium">예상 좌우 편차</span>
               <span className="text-xs font-black text-slate-200">
-                {Math.abs(sideOffsetYds) < 0.5 ? '중앙 예상'
-                  : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${Math.abs(sideOffsetYds).toFixed(1)}yd 예상`}
+                {displayWarning ? '—' : Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙 예상'
+                  : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)} 예상`}
               </span>
             </div>
           </div>
@@ -942,21 +1039,21 @@ export default function App() {
                 return (
                   <g key={yd}>
                     <line x1={x} y1="40" x2={x} y2="310" stroke="#065f46" strokeDasharray="3 4" />
-                    <text x={x} y="329" textAnchor="middle" fill="#94a3b8" fontSize="10">{yd > 0 ? '+' : ''}{yd}yd</text>
+                    <DistanceTick yards={yd} unit={distanceUnit} x={x} y={329} signed />
                   </g>
                 );
               })}
-              {[50, 100, 150, 200, 250, 300, 350].map((yd) => {
+              {distanceGrid((topView.originY - 40) / topView.scale * M_TO_YDS, distanceUnit).map((yd) => {
                 const y = topView.originY - yd * YDS_TO_M * topView.scale;
                 if (y < 40 || y > 310) return null;
                 return <g key={yd}>
                   <line x1="65" y1={y} x2="735" y2={y} stroke="#065f46" />
-                  <text x="55" y={y + 3} textAnchor="end" fill="#94a3b8" fontSize="10">{yd}yd</text>
+                  <DistanceTick yards={yd} unit={distanceUnit} x={55} y={y} textAnchor="end" />
                 </g>;
               })}
               <line x1="400" y1="40" x2="400" y2={topView.originY} stroke="#fbbf24" strokeDasharray="6 4" />
               <circle cx={topView.target.x} cy={topView.target.y} r="10" fill="#059669" stroke="#fbbf24" strokeWidth="2" />
-              <text x={topView.target.x + 15} y={topView.target.y - 7} fill="#fbbf24" fontSize="11">목표 {recommendation.horizontalYds.toFixed(1)}yd</text>
+              <text x={topView.target.x + 15} y={topView.target.y - 7} fill="#fbbf24" fontSize="11">목표 {formatDistance(recommendation.horizontalYds, distanceUnit)}</text>
               <circle cx="400" cy={topView.originY} r="4" fill="#ffffff" />
               <text x="415" y={topView.originY + 4} fill="#cbd5e1" fontSize="10">출발</text>
               {animProgress >= 1 && (
@@ -965,14 +1062,16 @@ export default function App() {
                   <circle cx={topView.landing.x} cy={topView.landing.y} r="7" fill="none" stroke="#f472b6" strokeWidth="2" />
                   <text x={topView.landing.x + (sideOffsetYds >= 0 ? 14 : -14)} y={topView.landing.y + 18}
                     textAnchor={sideOffsetYds >= 0 ? 'start' : 'end'} fill="#f9a8d4" fontSize="11">
-                    {trajResult.landed ? '착지' : '비행 종료'} · {Math.abs(sideOffsetYds) < 0.05 ? '중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${Math.abs(sideOffsetYds).toFixed(1)}yd`}
+                    {trajResult.landed ? '착지' : '비행 종료'} · {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}
                   </text>
                 </g>
               )}
               <path data-testid="top-trajectory" d={topView.path} fill="none" stroke="#38bdf8" strokeWidth="3" />
               <circle data-testid="top-ball" cx={topView.ball.x} cy={topView.ball.y} r="5" fill="#ffffff" stroke="#38bdf8" strokeWidth="2" />
               <WindDirectionControl degrees={windDirDeg} speed={windSpeedVal} unit={windUnit} onChange={setWindDirDeg} />
-              <text x="400" y="360" textAnchor="middle" fill="#cbd5e1" fontSize="11">수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준</text>
+              <text x="400" y="360" textAnchor="middle" fill="#cbd5e1" fontSize="11">
+                {displayWarning ? '입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)' : '수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준'}
+              </text>
             </svg>
           ) : (
           <svg aria-label="측면 비행 궤적" viewBox="0 0 800 380" className="w-full h-full max-h-[520px] rounded-2xl border border-slate-800 shadow-2xl">
@@ -1005,21 +1104,21 @@ export default function App() {
             {/* Deep Contrast Background */}
             <rect x="0" y="0" width="800" height="380" fill="url(#skyGrad)" rx="16" />
 
+            {/* Fairway Surface */}
+            <rect x="0" y={svgPathData.groundY} width="800" height={380 - svgPathData.groundY} fill="url(#grassGrad)" />
+            <line x1="0" y1={svgPathData.groundY} x2="800" y2={svgPathData.groundY} stroke="#10b981" strokeWidth="2" />
+
             {/* Distance Grid & Yardage Lines */}
-            {[50, 100, 150, 200, 250, 300, 350].map((yd) => {
+            {distanceGrid(660 / svgPathData.scaleX * M_TO_YDS, distanceUnit).map((yd) => {
               const xPos = svgPathData.startX + (yd * YDS_TO_M) * svgPathData.scaleX;
               if (xPos > 760) return null;
               return (
                 <g key={yd}>
                   <line x1={xPos} y1="40" x2={xPos} y2={svgPathData.groundY} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                  <text x={xPos} y="332" fill="#64748b" fontSize="10" fontWeight="bold" textAnchor="middle">{yd}yd</text>
+                  <DistanceTick yards={yd} unit={distanceUnit} x={xPos} y={332} />
                 </g>
               );
             })}
-
-            {/* Fairway Surface */}
-            <rect x="0" y={svgPathData.groundY} width="800" height={380 - svgPathData.groundY} fill="url(#grassGrad)" />
-            <line x1="0" y1={svgPathData.groundY} x2="800" y2={svgPathData.groundY} stroke="#10b981" strokeWidth="2" />
 
             {/* Target Green Surface & Elevated Platform */}
             <ellipse cx={svgPathData.pinPos.x} cy={svgPathData.pinPos.y + 2} rx="36" ry="10" fill="#34d399" filter="url(#neonGlow)" opacity="0.4" />
@@ -1030,7 +1129,8 @@ export default function App() {
             <polygon points={`${svgPathData.pinPos.x},${svgPathData.pinPos.y - 50} ${svgPathData.pinPos.x - 22},${svgPathData.pinPos.y - 42} ${svgPathData.pinPos.x},${svgPathData.pinPos.y - 34}`} fill="#ef4444" stroke="#f8fafc" strokeWidth="1" />
 
             <text x="400" y="355" fill="#cbd5e1" fontSize="11" textAnchor="middle">
-              {isCustom ? '입력한 선수 샷 · 환경반영 예상 궤적' : `${selectedTour} ${activeClub.name} 평균 샷 · 환경반영 예상 궤적`}
+              {displayWarning ? '입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)'
+                : isCustom ? '입력한 선수 샷 · 환경반영 예상 궤적' : `${selectedTour} ${activeClub.name} 평균 샷 · 환경반영 예상 궤적`}
             </text>
 
             {/* Animated High-Glow Trajectory Path */}
@@ -1077,22 +1177,22 @@ export default function App() {
           <div className="hidden md:flex items-center space-x-6 text-xs text-slate-300 font-mono">
             <div>
               <span className="text-slate-500 block font-sans">{trajResult.landed ? '수평 캐리 (Carry)' : '미도달 비행거리'}</span>
-              <span className="text-base font-black text-emerald-400">{Math.round(trajResult.carryYds)} yd</span>
+              <span className="text-base font-black text-emerald-400">{displayWarning ? '—' : formatDistance(trajResult.carryYds, distanceUnit)}</span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
               <span className="text-slate-500 block font-sans">최고 높이 (Apex)</span>
-              <span className="text-base font-black text-sky-400">{Math.round(trajResult.apexYds)} yd</span>
+              <span className="text-base font-black text-sky-400">{displayWarning ? '—' : formatDistance(trajResult.apexYds, distanceUnit)}</span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
               <span className="text-slate-500 block font-sans">체공 시간 (Hang Time)</span>
-              <span className="text-base font-black text-indigo-400">{trajResult.flightTimeSec.toFixed(1)}s</span>
+              <span className="text-base font-black text-indigo-400">{displayWarning ? '—' : `${trajResult.flightTimeSec.toFixed(1)}s`}</span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
               <span className="text-slate-500 block font-sans">낙하 각도 (Landing)</span>
-              <span className="text-base font-black text-amber-400">{Math.round(trajResult.landingAngleDeg)}°</span>
+              <span className="text-base font-black text-amber-400">{displayWarning ? '—' : `${Math.round(trajResult.landingAngleDeg)}°`}</span>
             </div>
           </div>
         </div>
@@ -1124,7 +1224,7 @@ export default function App() {
               }`}
             >
               <LayersIcon size={14} />
-              <span>투어·클럽 시뮬레이션</span>
+              <span>투어기준시뮬레이션</span>
             </button>
             <button
               onClick={() => setCalcMode('TRACKMAN')}
@@ -1157,11 +1257,11 @@ export default function App() {
               onChange={(e) => setSelectedClubId(e.target.value)}
               className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
               <option value="AUTO">{calcMode === 'GENERAL' ? '자동 추천 (현재 환경에서 도달 가능한 클럽)' : '7번 아이언 기준 모델'}</option>
-              {tourClubs.map((c) => <option key={c.id} value={c.id}>{c.name} · {Math.round(c.carry)}yd{c.estimated ? ' (추정)' : ''}</option>)}
+              {tourClubs.map((c) => <option key={c.id} value={c.id}>{c.name} · {formatDistance(c.carry, distanceUnit)}{c.estimated ? ' (추정)' : ''}</option>)}
             </select>
           </label>
           {isCustom && (
-            <PersonalClubEditor base={customClub} profile={profile ?? {}} onChange={updatePersonalField} onReset={resetPersonalClub} />
+            <PersonalClubEditor key={customClub.id} base={customClub} profile={profile ?? {}} unit={distanceUnit} onChange={updatePersonalField} onReset={resetPersonalClub} />
           )}
           {isCustom && (personalState.error || storageError) && (
             <p role="alert" className="text-xs text-amber-200">{personalState.error ?? storageError}</p>
@@ -1173,9 +1273,9 @@ export default function App() {
               <p className="font-bold text-emerald-300">
                 {isCustom && personal.hasPersonal ? '개인 입력 · ' : `${selectedTour} 기준 · `}{activeClub.name}{activeClub.estimated ? ' (투어 기준 추정 포함)' : ''}
               </p>
-              <p>레이저 {targetDistYds}yd → 수평 {recommendation.horizontalYds.toFixed(1)}yd</p>
-              <p data-testid="recommendation">{isCustom ? '환경반영예상캐리' : `${selectedTour} 환경반영 예상캐리`} <strong>{trajResult.carryYds.toFixed(1)}yd</strong> (런 제외)</p>
-              <p>{isCustom ? `적용 볼속도 ${activeClub.speed.toFixed(1)}mph` : `투어 평균 볼속도 ${activeClub.speed.toFixed(1)}mph`} · {isCustom ? '기준 캐리' : '클럽 풀샷 평균'} {activeClub.carry.toFixed(1)}yd</p>
+              <p>레이저 {formatDistance(targetDistYds, distanceUnit)} → 수평 {formatDistance(recommendation.horizontalYds, distanceUnit)}</p>
+              <p data-testid="recommendation">환경반영예상캐리 <strong>{formatDistance(trajResult.carryYds, distanceUnit)}</strong> (런 제외)</p>
+              <p>{isCustom ? `적용 볼속도 ${activeClub.speed.toFixed(1)}mph` : `투어 평균 볼속도 ${activeClub.speed.toFixed(1)}mph`} · {isCustom ? '기준 캐리' : '클럽 풀샷 평균'} {formatDistance(activeClub.carry, distanceUnit)}</p>
               <p className="text-amber-200">라이: {getLie(lie).label} · 런 제외</p>
               <p className="text-slate-400">
                 {isCustom ? '입력 볼속도·발사각·스핀에 현재 환경을 적용한 수평 캐리와 미보정 궤적입니다. 목표 거리에 맞춰 샷을 변경하지 않습니다.'
@@ -1190,11 +1290,11 @@ export default function App() {
             <summary className="cursor-pointer font-bold text-sky-300">선택 투어 클럽별 평균 데이터</summary>
             <div className="overflow-x-auto mt-2">
               <table className="w-full text-[10px] text-right">
-                <thead><tr className="text-slate-400"><th className="text-left">클럽</th><th>캐리 yd</th><th>클럽 mph</th><th>볼 mph</th><th>발사 °</th><th>스핀 rpm</th><th>높이 yd</th></tr></thead>
+                <thead><tr className="text-slate-400"><th className="text-left">클럽</th><th>캐리 {distanceUnit}</th><th>클럽 mph</th><th>볼 mph</th><th>발사 °</th><th>스핀 rpm</th><th>높이 {distanceUnit}</th></tr></thead>
                 <tbody>{tourClubs.map((c) => (
                   <tr key={c.id} className="border-t border-slate-800">
                     <td className="py-1.5 text-left">{c.id}{c.estimated ? '*' : ''}</td>
-                    <td>{c.carry.toFixed(0)}</td><td>{c.clubSpeed.toFixed(1)}</td><td>{c.speed.toFixed(1)}</td><td>{c.launch.toFixed(1)}</td><td>{Math.round(c.spin)}</td><td>{c.apex.toFixed(1)}</td>
+                    <td className="whitespace-nowrap">{formatDistance(c.carry, distanceUnit)}</td><td>{c.clubSpeed.toFixed(1)}</td><td>{c.speed.toFixed(1)}</td><td>{c.launch.toFixed(1)}</td><td>{Math.round(c.spin)}</td><td className="whitespace-nowrap">{formatDistance(c.apex, distanceUnit)}</td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1217,15 +1317,16 @@ export default function App() {
           <div className="space-y-1">
             <div className="flex justify-between text-xs">
               <span className="text-slate-400">목표 그린 레이저 거리 (Target)</span>
-              <span className="font-bold text-white font-mono">{targetDistYds} yd</span>
+              <span className="font-bold text-white font-mono">{targetValid ? formatDistance(targetDistYds, distanceUnit) : '입력 확인'}</span>
             </div>
             <input
               type="range"
               aria-label="목표 거리 슬라이더"
-              min="50"
-              max="350"
-              value={targetDistYds}
-              onChange={(e) => setTargetDistYds(Number(e.target.value))}
+              min={distanceFromYards(50, distanceUnit)}
+              max={distanceFromYards(350, distanceUnit)}
+              step="any"
+              value={distanceFromYards(targetDistYds, distanceUnit)}
+              onChange={(e) => setTargetInputYds(String(distanceToYards(Number(e.target.value), distanceUnit)))}
               className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
           </div>
@@ -1366,16 +1467,17 @@ export default function App() {
             <div className="flex justify-between text-xs">
               <span className="text-slate-400">그린 고도 차이 (ΔH)</span>
               <span className={`font-bold font-mono ${elevationM >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {elevationM === 0 ? '0m (평지)' : elevationM > 0 ? `+${elevationM}m (${Math.round(elevationM * M_TO_YDS)}yd 오르막)` : `${elevationM}m (${Math.round(elevationM * M_TO_YDS)}yd 내리막)`}
+                {elevationM > 0 ? '+' : ''}{formatDistance(elevationM * M_TO_YDS, distanceUnit)} ({elevationM === 0 ? '평지' : elevationM > 0 ? '오르막' : '내리막'})
               </span>
             </div>
             <input
               type="range"
               aria-label="그린 고도 차이"
-              min="-15"
-              max="25"
-              value={elevationM}
-              onChange={(e) => setElevationM(Number(e.target.value))}
+              min={distanceFromYards(-15 * M_TO_YDS, distanceUnit)}
+              max={distanceFromYards(25 * M_TO_YDS, distanceUnit)}
+              step="any"
+              value={distanceFromYards(elevationM * M_TO_YDS, distanceUnit)}
+              onChange={(e) => setElevationM(distanceToYards(Number(e.target.value), distanceUnit) * YDS_TO_M)}
               className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
           </div>
@@ -1407,14 +1509,19 @@ export default function App() {
           <p className="text-xs text-slate-400 leading-relaxed">
             기준은 무풍·20°C·해수면·평지·중립 페어웨이 캐리(런 제외)입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정하고,
             상대풍속의 3차원 항력·마그누스 양력·중력·스핀 감쇠를 적분합니다.
+            출발점을 높이 0으로 두고 스핀축과 상대풍속의 각도에 따라 양력을 줄입니다.
             레이저 거리와 고도 차이에서 수평 거리를 구해 예상캐리와 비교합니다.
+            예상캐리는 목표선 방향 수평 성분이며, 좌우 편차는 별도로 표시합니다. 목표 높이의 수평면과 하강 궤적의 교점을 착지로 봅니다.
             투어 모드는 클럽 평균 풀샷, 선수개별맞춤은 입력 샷의 환경반영 예상캐리를 표시합니다.
+            모든 거리·높이와 입력 단위는 화면 상단의 미터/야드 선택을 따릅니다.
             자동 추천은 목표 도달 가능성을 역산해 클럽만 선택하며, 표시 샷의 속도·조준은 바꾸지 않습니다.
             현재 공기밀도 {airDensityText} kg/m³.
             라이 보정은 기준 모델 보정 이후 임팩트 볼속도·발사각·스핀에 한 번만 적용하며 강우 스핀 계수와 곱합니다.
             순결·플라이어의 스핀 감소가 모든 클럽의 캐리 증가를 의미하지는 않으며 딥러프 손실도 고정 야드로 강제하지 않습니다.
-            부분 샷은 동일 발사각·스핀 가정이며, 강우는 항력 +3/+8%, 초기 스핀 -5/-15%의 추정 시나리오입니다.
-            코스 난류·돌풍·구종·지면 런은 반영하지 않으며 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다.
+            캐리·최고 높이 두 값으로 공력 계수를 맞춘 경험적 모델이므로 체공 시간·낙하각·바람 반응의 실측 일치를 보증하지 않습니다.
+            부분 샷 추천 역산은 동일 발사각·스핀 가정이며, 강우는 항력 +3/+8%, 초기 스핀 -5/-15%의 추정 시나리오입니다.
+            고도 차이는 착지 높이이며 해발고도 입력이 아닙니다. 공기밀도는 해수면 표준기압과 선택 기온 기준입니다.
+            실제 경사면·중간 지형·습도·볼 온도·난류·돌풍·지면 런은 반영하지 않으며 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다.
           </p>
           </HelpDetails>
         </div>

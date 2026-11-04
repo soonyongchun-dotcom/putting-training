@@ -21,7 +21,7 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
@@ -31,12 +31,113 @@ const { projectTopView } = result.exports.engine;
 const { impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel } = result.exports.engine;
 const { toggleWindDirection, isWindSelected } = result.exports.engine;
 const { windDirectionFromPoint, WindDirectionControl } = result.exports.engine;
+const { formatDistance, DistanceTick, PersonalClubEditor } = result.exports.engine;
+const { DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity } = result.exports.engine;
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 let assertions = 0;
 const check = (condition, message) => { assertions++; assert(condition, message); };
 const close = (actual, expected, tolerance, message) => check(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`);
-const bags = Object.fromEntries(TOUR_IDS.map(id => [id, TOURS[id].clubs.map(calibrateClub)]));
+const bags = Object.fromEntries(TOUR_IDS.map(id => [id, TOURS[id].clubs.map(club => calibrateClub(club))]));
+for (const [yards, expectedYards, expectedMeters] of [
+  [100, '100yd', '91.4m'], [140, '140yd', '128m'], [150.5, '150.5yd', '137.6m'],
+  [0, '0yd', '0m'], [-10, '-10yd', '-9.1m'], [-0.001, '0yd', '0m'],
+]) {
+  check(formatDistance(yards, 'yd') === expectedYards, `yard distance ${yards}`);
+  check(formatDistance(yards, 'm') === expectedMeters, `meter distance ${yards}`);
+  close(distanceToYards(distanceFromYards(yards, 'm'), 'm'), yards, 1e-10, 'unit conversion round trip');
+}
+const editorBase = bags.LPGA.find(club => club.id === '7I');
+check(distanceToYards(320.04, 'm') === 350, 'metric target upper limit is not rejected by multiplication rounding');
+function editorMarkup(profile, unit = 'yd') {
+  return renderToStaticMarkup(React.createElement(PersonalClubEditor, {
+    base: editorBase, profile, unit, onChange: () => {}, onReset: () => {},
+  }));
+}
+for (const unit of ['yd', 'm']) {
+  const blankEditor = editorMarkup({}, unit);
+  check(blankEditor.includes(`투어 기준: ${formatDistance(editorBase.carry, unit)}`), 'personal carry reference uses selected unit');
+  check(blankEditor.includes(`투어 기준: ${formatDistance(editorBase.apex, unit)}`), 'personal height reference uses selected unit');
+  for (const [carry, apex] of [['100', '30'], ['150.5', '25.3'], ['0', '0']]) {
+    const markup = editorMarkup({ carry, apex }, unit);
+    for (const value of [carry, apex]) {
+      check(markup.includes(`value="${Number(distanceFromYards(Number(value), unit).toFixed(1))}"`), 'personal input uses selected unit');
+    }
+    check(markup.includes(`기준 캐리 (${unit})`) && markup.includes(`최고 높이 (${unit})`), 'input labels use selected unit');
+  }
+  const input = renderToStaticMarkup(React.createElement(DistanceInput, {
+    value: '100', unit, min: 20, max: 400, label: 'distance', onChange: () => {}, className: '',
+  }));
+  check(input.includes(`min="${distanceFromYards(20, unit)}"`) && input.includes(`max="${distanceFromYards(400, unit)}"`),
+    'distance input physical bounds are converted');
+  const invalidDistance = resolvePersonalClub(editorBase, { carry: '401', apex: '81' }, unit);
+  check(invalidDistance.errors.some(error => error.includes(`${formatDistance(20, unit, 4)}–${formatDistance(400, unit, 4)}`)),
+    'carry validation range uses selected unit');
+  check(invalidDistance.errors.some(error => error.includes(`${formatDistance(2, unit, 4)}–${formatDistance(80, unit, 4)}`)),
+    'height validation range uses selected unit');
+  for (const yards of [-10, 0, 50, 350]) {
+    const markup = renderToStaticMarkup(React.createElement('svg', null,
+      React.createElement(DistanceTick, { yards, unit, x: 100, y: 329, signed: true })));
+    check(markup.includes(`${yards > 0 ? '+' : ''}${formatDistance(yards, unit, 0)}</text>`), 'chart tick uses selected unit and sign');
+  }
+  const grid = distanceGrid(350, unit);
+  grid.forEach((value, i) => close(distanceFromYards(value, unit), 50 * (i + 1), 1e-10, 'chart grid uses round selected-unit ticks'));
+  for (const boundary of [20, 400]) {
+    const markup = renderToStaticMarkup(React.createElement(DistanceInput, {
+      value: String(boundary), unit, min: 20, max: 400, label: 'distance', onChange: () => {}, className: '',
+    }));
+    const displayedValue = Number(markup.match(/ value="([^"]+)"/)[1]);
+    check(displayedValue >= distanceFromYards(20, unit) && displayedValue <= distanceFromYards(400, unit),
+      'unit-switch rounding does not invalidate boundary inputs');
+  }
+}
+const appMarkup = renderToStaticMarkup(React.createElement(result.exports.default));
+check(/data-testid="play-as"[^>]*>[\d.]+yd</.test(appMarkup), 'main expected carry uses default yards');
+check(/data-testid="recommendation"[^>]*>환경반영예상캐리 <strong>[\d.]+yd<\/strong>/.test(appMarkup),
+  'analysis expected carry has no tour prefix');
+check(appMarkup.includes('투어기준시뮬레이션') && !appMarkup.includes('투어·클럽 시뮬레이션'), 'tour mode title updated');
+check(!/(LPGA|PGA|KLPGA) 환경반영/.test(appMarkup), 'expected carry labels have no tour prefix');
+check(appMarkup.includes('거리 단위 선택'), 'global distance unit selector exists');
+check(appMarkup.indexOf('fill="url(#grassGrad)"') < appMarkup.indexOf('>50yd</text>'),
+  'side chart distance labels are painted above the fairway surface');
+
+const vacuumShot = {
+  ballSpeedMph: 100, launchAngleDeg: 30, spinRateRpm: 0, spinAxisDeg: 0, aimAngleDeg: 0,
+  dragScale: 0, liftScale: 0,
+};
+for (const angle of [5, 15, 30, 45, 60]) {
+  const v = vacuumShot.ballSpeedMph * 0.44704;
+  const theta = angle * Math.PI / 180;
+  for (const elevationDeltaM of [-15, 0, 10, 25]) {
+    const flight = calculateTrajectory({ ...vacuumShot, launchAngleDeg: angle }, { ...REFERENCE_ENV, elevationDeltaM });
+    const discriminant = (v * Math.sin(theta)) ** 2 - 2 * 9.81 * elevationDeltaM;
+    check(flight.path[0].y === 0, 'launch origin matches laser/elevation origin');
+    if (discriminant < 0) {
+      check(!flight.landed, 'vacuum shot below raised plane must not land');
+      continue;
+    }
+    const time = (v * Math.sin(theta) + Math.sqrt(discriminant)) / 9.81;
+    close(flight.flightTimeSec, time, 0.001, 'vacuum analytical landing time');
+    close(flight.carryYds * 0.9144, v * Math.cos(theta) * time, 0.01, 'vacuum analytical range');
+    close(flight.apexYds * 0.9144, (v * Math.sin(theta)) ** 2 / (2 * 9.81), 0.0002, 'vacuum analytical apex');
+    close(flight.path.at(-1).y, elevationDeltaM, 1e-10, 'descending landing exactly on target plane');
+    check(flight.flightTimeSec >= v * Math.sin(theta) / 9.81, 'raised plane landing is descending, not ascending');
+    const expectedAngle = Math.atan2(Math.sqrt(discriminant), v * Math.cos(theta)) * 180 / Math.PI;
+    close(flight.landingAngleDeg, expectedAngle, 0.01, 'analytical landing angle');
+  }
+}
+const verticalShot = { ...vacuumShot, launchAngleDeg: 90, spinAxisDeg: 90, dragScale: 1, liftScale: 1 };
+const verticalNoSpin = calculateTrajectory(verticalShot);
+const verticalSpin = calculateTrajectory({ ...verticalShot, spinRateRpm: 10000 });
+close(verticalSpin.carryYds, 0, 1e-8, 'parallel spin axis produces no spurious horizontal lift');
+close(verticalSpin.apexYds, verticalNoSpin.apexYds, 1e-8, 'parallel spin axis produces no spurious vertical lift');
+close(verticalSpin.flightTimeSec, verticalNoSpin.flightTimeSec, 1e-8, 'parallel spin axis preserves flight time');
+for (const dt of [0, -0.01, 0.1, NaN]) {
+  assert.throws(() => calculateTrajectory(vacuumShot, REFERENCE_ENV, true, dt), /시간 간격/);
+  assertions++;
+}
+check(getAirDensity(-10) > getAirDensity(20) && getAirDensity(20) > getAirDensity(40), 'air density follows inverse absolute temperature');
+close(getAirDensity(20), 101325 / (287.058 * 293.15), 1e-12, 'sea-level ideal gas density');
 for (const id of TOUR_IDS) {
   for (const club of bags[id]) {
     const sim = calculateTrajectory(clubLaunch(club));
@@ -145,6 +246,71 @@ for (const id of TOUR_IDS) {
   }
 }
 const sample = bags.LPGA.find(c => c.id === '7I');
+for (const axis of [-30, 30]) {
+  const reference = calculateTrajectory({ ...clubLaunch(sample), spinAxisDeg: axis });
+  const profile = resolvePersonalClub(sample, { carry: String(reference.carryYds), apex: String(reference.apexYds), axis: String(axis) });
+  check(!profile.club.calibrationError, 'personal axis is included in reference calibration');
+  const flight = calculateTrajectory({ ...clubLaunch(profile.club), spinAxisDeg: profile.axis });
+  close(flight.carryYds, reference.carryYds, 0.3, 'personal reference carry retained with tilted spin axis');
+  close(flight.apexYds, reference.apexYds, 0.15, 'personal reference apex retained with tilted spin axis');
+}
+const windyWedge = bags.LPGA.find(club => club.id === 'LW');
+const strongHeadwind = { ...REFERENCE_ENV, windSpeedMs: 20 };
+check(calculateTrajectory(clubLaunch(windyWedge), strongHeadwind).carryYds < 6.2,
+  'non-monotonic strong-headwind fixture full shot is short');
+const lowerSpeedSolution = solveSpeed(clubLaunch(windyWedge), strongHeadwind, 6.2, windyWedge.speed);
+check(lowerSpeedSolution !== null && lowerSpeedSolution < windyWedge.speed, 'strong-wind solver finds intermediate speed despite full-shot shortfall');
+close(calculateTrajectory({ ...clubLaunch(windyWedge), ballSpeedMph: lowerSpeedSolution }, strongHeadwind).carryYds, 6.2, 0.02,
+  'intermediate strong-wind solution actually reaches target');
+check(calibrateClub({ ...sample, speed: 20, carry: 400, apex: 80 }).calibrationError !== null,
+  'physically incompatible personal reference must fail calibration');
+for (const id of TOUR_IDS) {
+  for (const clubId of ['D', '7I', 'LW']) {
+    const club = bags[id].find(value => value.id === clubId);
+    const shot = clubLaunch(club);
+    const calm = calculateTrajectory(shot);
+    let previousEnergy = Infinity;
+    for (const point of calm.path) {
+      const energy = 0.5 * point.v ** 2 + 9.81 * point.y;
+      check(energy <= previousEnergy + 1e-5, `${id}/${clubId} still-air drag cannot create mechanical energy`);
+      previousEnergy = energy;
+    }
+    const right = calculateTrajectory({ ...shot, spinAxisDeg: 20 }, { ...REFERENCE_ENV, windSpeedMs: 8, windDirDeg: 90 });
+    const left = calculateTrajectory({ ...shot, spinAxisDeg: -20 }, { ...REFERENCE_ENV, windSpeedMs: 8, windDirDeg: 270 });
+    close(right.carryYds, left.carryYds, 1e-8, 'spin/crosswind mirror forward distance');
+    close(right.sideOffsetYds, -left.sideOffsetYds, 1e-8, 'spin/crosswind mirror lateral distance');
+    close(right.apexYds, left.apexYds, 1e-8, 'spin/crosswind mirror height');
+    for (const env of [
+      REFERENCE_ENV,
+      { ...REFERENCE_ENV, windSpeedMs: 20, windDirDeg: 45, elevationDeltaM: -15, rainLevel: 'HEAVY', lie: 'FLYER' },
+      { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: 270, elevationDeltaM: 10, lie: 'HALF_ROUGH' },
+    ]) {
+      const regular = calculateTrajectory({ ...shot, spinAxisDeg: 15 }, env, true, 0.01);
+      const fine = calculateTrajectory({ ...shot, spinAxisDeg: 15 }, env, true, 0.005);
+      check(regular.landed === fine.landed, 'time-step refinement preserves landing classification');
+      close(regular.carryYds, fine.carryYds, 0.01, 'time-step range convergence within 0.01yd');
+      close(regular.sideOffsetYds, fine.sideOffsetYds, 0.01, 'time-step lateral convergence within 0.01yd');
+      close(regular.apexYds, fine.apexYds, 0.003, 'time-step height convergence within 0.003yd');
+      close(regular.flightTimeSec, fine.flightTimeSec, 0.001, 'time-step flight time convergence');
+    }
+    const original = calculateTrajectory({ ...shot, spinAxisDeg: 10 }, { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: 90 });
+    const rotated = calculateTrajectory({ ...shot, spinAxisDeg: 10, aimAngleDeg: 30 },
+      { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: 60 });
+    const radians = Math.PI / 6;
+    close(rotated.sideOffsetYds, original.sideOffsetYds * Math.cos(radians) + original.carryYds * Math.sin(radians), 1e-8,
+      'rotation covariance of wind/spin/aim lateral component');
+    close(rotated.carryYds, original.carryYds * Math.cos(radians) - original.sideOffsetYds * Math.sin(radians), 1e-8,
+      'rotation covariance of wind/spin/aim forward component');
+    close(rotated.apexYds, original.apexYds, 1e-8, 'rotation preserves apex');
+  }
+}
+const aimed = solveAimedShot({ ...clubLaunch(sample), aimAngleDeg: 12 }, REFERENCE_ENV, 100, sample.speed);
+check(aimed !== null, 'aim solver handles nonzero initial aim');
+close(aimed.trajectory.sideOffsetYds, 0, 0.02, 'aim solver maintains initial-aim trajectory consistency');
+const smallSpeed = solveSpeed(vacuumShot, REFERENCE_ENV, 0.5, 100);
+check(smallSpeed !== null && smallSpeed < 10, 'inverse speed solver supports speeds below old 10mph floor');
+close(calculateTrajectory({ ...vacuumShot, ballSpeedMph: smallSpeed }).carryYds, 0.5, 0.02, 'low-speed inverse solution verified');
+check(solveSpeed(vacuumShot, REFERENCE_ENV, NaN, 100) === null, 'nonfinite inverse target is not a valid solution');
 for (const profile of [{carry:'-1'}, {speed:'NaN'}, {launch:'90'}, {spin:'-100'}, {apex:'0'}, {axis:'31'}]) {
   check(resolvePersonalClub(sample, profile).errors.length > 0, 'invalid profile must report errors');
 }
