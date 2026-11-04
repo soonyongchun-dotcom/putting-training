@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc --project tsconfig.json",
     "test": "node validate.cjs",
     "dev": "vite --host 127.0.0.1"
   },

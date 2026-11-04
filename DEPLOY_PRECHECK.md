@@ -45,6 +45,8 @@ $env:AUTH_ALIAS_DOMAIN="syegtp.app"
 ## 7) 샷거리시뮬레이터
 - 선수포탈 > 시합준비 > 오늘경기데이터 입력 왼쪽의 `샷거리시뮬레이터` 버튼으로 새 탭에서 실행합니다.
 - 소스: `shot-distance-simulator/App.tsx`. 다운로드 폴더의 원본이나 로컬 미리보기 서버에 의존하지 않습니다.
+- VS Code에서 수정할 파일도 `shot-distance-simulator/App.tsx`입니다. 다운로드 폴더의 단독 TSX는 React 의존성을 찾지 못하므로 프로젝트 파일 대신 사용하지 않습니다.
+- `tsconfig.json`으로 에디터의 React JSX·엄격한 타입 검사를 설정하며, `npm run typecheck`로 동일 프로젝트를 검사합니다. `npm run build`도 타입 검사 성공 후에만 빌드합니다.
 - 수정 후 `shot-distance-simulator`에서 `npm ci`, `npm test`, `npm run build`를 실행합니다.
 - `shot-distance-simulator/dist`의 HTML과 assets를 함께 배포/커밋해야 합니다. 현재 Pages 워크플로는 저장소의 정적 파일을 그대로 배포합니다.
 - 배포 페이지는 `shot-distance-simulator/dist/index.html`이며, React·스타일을 로컬 assets에 포함하므로 실행 시 npm/CDN이 필요하지 않습니다.
