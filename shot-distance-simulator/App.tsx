@@ -75,6 +75,63 @@ const TRACKMAN_SOURCE = 'https://www.trackman.media/tour-averages';
 
 type TourId = 'LPGA' | 'KLPGA' | 'PGA';
 type RainLevel = 'NONE' | 'LIGHT' | 'HEAVY';
+const WIND_PRESETS = [
+  { degrees: 0, label: '맞바람', direction: '목표 → 선수' },
+  { degrees: 180, label: '뒷바람', direction: '선수 → 목표' },
+  { degrees: 270, label: '훅바람', direction: '우측 → 좌측' },
+  { degrees: 90, label: '슬라이스바람', direction: '좌측 → 우측' },
+] as const;
+function windSelections(degrees: number) {
+  const radians = degrees * Math.PI / 180;
+  const component = (value: number) => Math.abs(value) < 1e-8 ? 0 : Math.sign(value);
+  return { forward: component(Math.cos(radians)), lateral: component(Math.sin(radians)) };
+}
+
+function isWindSelected(degrees: number, preset: number) {
+  const selected = windSelections(degrees);
+  const option = windSelections(preset);
+  return option.forward !== 0 ? selected.forward === option.forward : selected.lateral === option.lateral;
+}
+
+function toggleWindDirection(degrees: number, preset: number) {
+  const selected = windSelections(degrees);
+  const option = windSelections(preset);
+  const forward = option.forward !== 0 ? (selected.forward === option.forward ? 0 : option.forward) : selected.forward;
+  const lateral = option.lateral !== 0 ? (selected.lateral === option.lateral ? 0 : option.lateral) : selected.lateral;
+  if (forward === 0 && lateral === 0) return degrees;
+  return (Math.atan2(lateral, forward) * 180 / Math.PI + 360) % 360;
+}
+
+const LIE_OPTIONS = [
+  { id: 'FAIRWAY', label: '페어웨이 · 중립', speed: 1, spin: 1, launchDelta: 0,
+    note: '기준 라이입니다. 볼속도·발사각·스핀을 변경하지 않습니다.' },
+  { id: 'DOWNGRAIN', label: '페어웨이 · 순결', speed: 1, spin: 0.80, launchDelta: 0,
+    note: '볼속도 유지, 스핀 20% 감소(제시 범위 15–25%의 중간값). 착지 후 런 증가 가능성이 있습니다.' },
+  { id: 'AGAINST_GRAIN', label: '페어웨이 · 역결', speed: 0.97, spin: 1, launchDelta: 0,
+    note: '볼속도 3% 감소(제시 범위 2–4%의 중간값). 헤드 뒤틀림의 방향은 예측하지 않습니다.' },
+  { id: 'FLYER', label: '러프 · 약간 잠김 (25% / 플라이어)', speed: 1, spin: 0.65, launchDelta: 2,
+    note: '볼속도 유지, 스핀 35% 감소. 높은 출발을 위한 발사각 +2°는 모델 가정입니다. 런 증가 가능성이 있으나 캐리 증가는 보장하지 않습니다.' },
+  { id: 'HALF_ROUGH', label: '러프 · 반쯤 잠김 (50%)', speed: 0.94, spin: 0.50, launchDelta: 0,
+    note: '볼속도 6% 감소, 스핀 50% 감소. 발사각은 유지합니다.' },
+  { id: 'DEEP_ROUGH', label: '러프 · 완전히 잠김 (100%)', speed: 0.85, spin: 0.50, launchDelta: -3,
+    note: '볼속도 15% 감소. 발사각 -3°·스핀 50% 감소는 모델 가정입니다. 고정 20–30yd 손실을 강제하지 않으며 클럽·샷별로 계산합니다.' },
+] as const;
+type LieId = typeof LIE_OPTIONS[number]['id'];
+
+function getLie(id: LieId) {
+  const lie = LIE_OPTIONS.find(option => option.id === id);
+  if (!lie) throw new Error('지원하지 않는 라이입니다.');
+  return lie;
+}
+
+function windDirectionLabel(degrees: number) {
+  const normalized = ((degrees % 360) + 360) % 360;
+  const preset = WIND_PRESETS.find(option => option.degrees === normalized);
+  if (preset) return `${preset.label} (${preset.direction})`;
+  const longitudinal = normalized < 90 || normalized > 270 ? '맞바람' : '뒷바람';
+  const lateral = normalized < 180 ? '슬라이스바람 · 좌→우' : '훅바람 · 우→좌';
+  return `${normalized}° ${longitudinal} + ${lateral}`;
+}
 type ClubData = {
   id: string;
   name: string;
@@ -193,6 +250,7 @@ type Environment = {
   tempC: number;
   elevationDeltaM: number;
   rainLevel: RainLevel;
+  lie: LieId;
 };
 type Launch = AeroModel & {
   ballSpeedMph: number;
@@ -203,7 +261,7 @@ type Launch = AeroModel & {
 };
 
 const REFERENCE_ENV: Environment = {
-  windSpeedMs: 0, windDirDeg: 0, tempC: 20, elevationDeltaM: 0, rainLevel: 'NONE',
+  windSpeedMs: 0, windDirDeg: 0, tempC: 20, elevationDeltaM: 0, rainLevel: 'NONE', lie: 'FAIRWAY',
 };
 const TOUR_IDS: TourId[] = ['LPGA', 'KLPGA', 'PGA'];
 
@@ -281,8 +339,20 @@ function getCl(spinRps: number, velocity: number) {
   return Math.min(0.40, 0.60 * spinRatio);
 }
 
+function impactLaunch(shot: Launch, env: Environment): Launch {
+  const lie = getLie(env.lie);
+  const rainSpinMult = env.rainLevel === 'HEAVY' ? 0.85 : env.rainLevel === 'LIGHT' ? 0.95 : 1;
+  return {
+    ...shot,
+    ballSpeedMph: shot.ballSpeedMph * lie.speed,
+    launchAngleDeg: Math.max(1, shot.launchAngleDeg + lie.launchDelta),
+    spinRateRpm: shot.spinRateRpm * lie.spin * rainSpinMult,
+  };
+}
+
 function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, recordPath = true) {
-  const { ballSpeedMph, launchAngleDeg, spinRateRpm, spinAxisDeg, aimAngleDeg, dragScale, liftScale } = shot;
+  const appliedLaunch = impactLaunch(shot, env);
+  const { ballSpeedMph, launchAngleDeg, spinRateRpm, spinAxisDeg, aimAngleDeg, dragScale, liftScale } = appliedLaunch;
   const { windSpeedMs, windDirDeg, tempC, elevationDeltaM, rainLevel } = env;
   const v0 = ballSpeedMph * MPH_TO_MS;
   const theta = (launchAngleDeg * Math.PI) / 180;
@@ -290,9 +360,8 @@ function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, rec
   let vx = v0 * Math.cos(theta) * Math.sin(phi);
   let vy = v0 * Math.sin(theta);
   let vz = v0 * Math.cos(theta) * Math.cos(phi);
-  const rainSpinMult = rainLevel === 'HEAVY' ? 0.85 : rainLevel === 'LIGHT' ? 0.95 : 1;
   const rainDragMult = rainLevel === 'HEAVY' ? 1.08 : rainLevel === 'LIGHT' ? 1.03 : 1;
-  const spinRps = spinRateRpm * rainSpinMult / 60;
+  const spinRps = spinRateRpm / 60;
   const spinAxisRad = (spinAxisDeg * Math.PI) / 180;
   const axisX = -Math.cos(spinAxisRad) * Math.cos(phi);
   const axisY = Math.sin(spinAxisRad);
@@ -356,7 +425,7 @@ function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, rec
     if (y < Math.min(0, elevationDeltaM) - 5) break;
   }
   return {
-    path, landed, carryYds: z * M_TO_YDS, sideOffsetYds: x * M_TO_YDS,
+    path, landed, appliedLaunch, carryYds: z * M_TO_YDS, sideOffsetYds: x * M_TO_YDS,
     apexYds: maxApex * M_TO_YDS, flightTimeSec: t,
     landingAngleDeg: Math.abs(Math.atan2(vy, Math.hypot(vx, vz)) * 180 / Math.PI),
   };
@@ -527,6 +596,7 @@ export default function App() {
   const [windDirDeg, setWindDirDeg] = useState(0);
   const [elevationM, setElevationM] = useState(0);
   const [rainLevel, setRainLevel] = useState<RainLevel>('NONE');
+  const [lie, setLie] = useState<LieId>('FAIRWAY');
 
   const [personalState, setPersonalState] = useState(readPersonalProfiles);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -556,8 +626,8 @@ export default function App() {
 
   const tourClubs = useMemo(() => TOURS[selectedTour].clubs.map(calibrateClub), [selectedTour]);
   const environment = useMemo<Environment>(() => ({
-    windSpeedMs, windDirDeg, tempC: tempCelsius, elevationDeltaM: elevationM, rainLevel,
-  }), [windSpeedMs, windDirDeg, tempCelsius, elevationM, rainLevel]);
+    windSpeedMs, windDirDeg, tempC: tempCelsius, elevationDeltaM: elevationM, rainLevel, lie,
+  }), [windSpeedMs, windDirDeg, tempCelsius, elevationM, rainLevel, lie]);
   const customClub = tourClubs.find((c) => c.id === selectedClubId) ?? tourClubs.find((c) => c.id === '7I') ?? tourClubs[0];
   const profile = personalState.profiles[customClub.id];
   const personal = useMemo(() => resolvePersonalClub(customClub, profile ?? {}), [customClub, profile]);
@@ -1034,6 +1104,7 @@ export default function App() {
               <p>레이저 {targetDistYds}yd → 수평 {recommendation.horizontalYds.toFixed(1)}yd</p>
               <p data-testid="recommendation">{isCustom ? '환경반영예상캐리' : `${selectedTour} 환경반영 예상캐리`} <strong>{trajResult.carryYds.toFixed(1)}yd</strong> (런 제외)</p>
               <p>{isCustom ? `적용 볼속도 ${activeClub.speed.toFixed(1)}mph` : `투어 평균 볼속도 ${activeClub.speed.toFixed(1)}mph`} · {isCustom ? '기준 캐리' : '클럽 풀샷 평균'} {activeClub.carry.toFixed(1)}yd</p>
+              <p className="text-amber-200">라이: {getLie(lie).label} · 런 제외</p>
               <p className="text-slate-400">
                 {isCustom ? '입력 볼속도·발사각·스핀에 현재 환경을 적용한 수평 캐리와 미보정 궤적입니다. 목표 거리에 맞춰 샷을 변경하지 않습니다.'
                   : '선택 투어·클럽의 평균 볼속도·발사각·스핀에 현재 환경을 적용한 풀샷입니다. 목표에 맞춰 볼속도나 조준을 변경하지 않습니다.'}
@@ -1119,13 +1190,29 @@ export default function App() {
           </div>
 
           {/* Wind Direction */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <span className="text-slate-400">풍향 (Wind Direction)</span>
-              <span className="font-bold text-sky-300 font-mono">
-                {windDirDeg % 360 === 0 ? '맞바람 (Headwind)' : windDirDeg === 180 ? '뒷바람 (Tailwind)' : windDirDeg === 90 ? '좌측→우측 횡풍' : windDirDeg === 270 ? '우측→좌측 횡풍' : `${windDirDeg}° 횡풍`}
-              </span>
             </div>
+            <div role="group" aria-label="풍향 빠른 선택" className="grid grid-cols-2 gap-2">
+              {WIND_PRESETS.map(preset => (
+                <button key={preset.degrees} type="button" onClick={() => setWindDirDeg(current => toggleWindDirection(current, preset.degrees))}
+                  aria-pressed={isWindSelected(windDirDeg, preset.degrees)}
+                  className={`px-2 py-2 text-xs rounded-lg border font-bold ${isWindSelected(windDirDeg, preset.degrees)
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-400' : 'bg-slate-900 text-slate-300 border-slate-700'}`}>
+                  <span className="block">{preset.label}</span>
+                  <span className="block text-[10px] font-normal">{preset.direction}</span>
+                </button>
+              ))}
+            </div>
+            <p data-testid="wind-direction-label" className="text-xs font-bold text-sky-300">{windDirectionLabel(windDirDeg)}</p>
+            <p className="text-[11px] text-slate-400">
+              맞바람/뒷바람 중 하나와 훅바람/슬라이스바람 중 하나를 조합할 수 있습니다.
+              같은 축의 반대 바람은 교체되며, 선택한 항목을 다시 누르면 해당 성분을 해제합니다(최소 한 방향 유지).
+              두 성분 선택 시 45° 대각선으로 설정하며, 아래 각도로 비율을 조정할 수 있습니다.
+              풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s).
+              선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다.
+            </p>
             <input
               type="range"
               aria-label="풍향"
@@ -1136,6 +1223,34 @@ export default function App() {
               onChange={(e) => setWindDirDeg(Number(e.target.value))}
               className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs text-slate-300">
+              잔디 및 라이 (임팩트 추정 시나리오)
+              <select aria-label="잔디 및 라이" value={lie}
+                onChange={(e) => {
+                  const option = LIE_OPTIONS.find(item => item.id === e.target.value);
+                  if (!option) throw new Error('지원하지 않는 라이입니다.');
+                  setLie(option.id);
+                }}
+                className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                {LIE_OPTIONS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+              </select>
+            </label>
+            <p data-testid="lie-assumptions" className="text-[11px] text-amber-200">{getLie(lie).note}</p>
+            <div className="text-[11px] text-slate-300 bg-slate-900 p-2.5 rounded-lg border border-slate-700">
+              <p className="font-bold text-sky-300">라이·강우 반영 전 → 반영 후 출발 조건</p>
+              <p data-testid="impact-speed">볼속도 {activeClub.speed.toFixed(1)} → {trajResult.appliedLaunch.ballSpeedMph.toFixed(1)} mph</p>
+              <p data-testid="impact-launch">발사각 {activeClub.launch.toFixed(1)} → {trajResult.appliedLaunch.launchAngleDeg.toFixed(1)}°</p>
+              <p data-testid="impact-spin">백스핀 {Math.round(activeClub.spin)} → {Math.round(trajResult.appliedLaunch.spinRateRpm)} rpm</p>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              라이 보정은 양 모드에 적용합니다. 개인 입력은 라이·강우 보정 전 기준 샷으로 입력하세요.
+              실측한 러프 샷을 이미 입력했다면 중립 라이를 선택해 중복 보정을 피하세요.
+              수치는 실측 보장값이 아닌 가정이며, 캐리 증감은 클럽·발사 조건별 계산 결과입니다.
+              런은 계산하지 않습니다.
+            </p>
           </div>
 
           {/* Temperature & Temp Unit Toggle */}
@@ -1218,12 +1333,14 @@ export default function App() {
             <span>산출 방식과 한계</span>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            기준은 무풍·20°C·해수면·평지 캐리(런 제외)입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정하고,
+            기준은 무풍·20°C·해수면·평지·중립 페어웨이 캐리(런 제외)입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정하고,
             상대풍속의 3차원 항력·마그누스 양력·중력·스핀 감쇠를 적분합니다.
             레이저 거리와 고도 차이에서 수평 거리를 구해 예상캐리와 비교합니다.
             투어 모드는 클럽 평균 풀샷, 선수개별맞춤은 입력 샷의 환경반영 예상캐리를 표시합니다.
             자동 추천은 목표 도달 가능성을 역산해 클럽만 선택하며, 표시 샷의 속도·조준은 바꾸지 않습니다.
             현재 공기밀도 {airDensityText} kg/m³.
+            라이 보정은 기준 모델 보정 이후 임팩트 볼속도·발사각·스핀에 한 번만 적용하며 강우 스핀 계수와 곱합니다.
+            순결·플라이어의 스핀 감소가 모든 클럽의 캐리 증가를 의미하지는 않으며 딥러프 손실도 고정 야드로 강제하지 않습니다.
             부분 샷은 동일 발사각·스핀 가정이며, 강우는 항력 +3/+8%, 초기 스핀 -5/-15%의 추정 시나리오입니다.
             코스 난류·돌풍·구종·지면 런은 반영하지 않으며 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다.
           </p>

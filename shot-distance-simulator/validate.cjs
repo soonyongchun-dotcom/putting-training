@@ -21,13 +21,15 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
 const { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot } = result.exports.engine;
 const { resolvePersonalClub, readPersonalProfiles } = result.exports.engine;
 const { projectTopView } = result.exports.engine;
+const { impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel } = result.exports.engine;
+const { toggleWindDirection, isWindSelected } = result.exports.engine;
 let assertions = 0;
 const check = (condition, message) => { assertions++; assert(condition, message); };
 const close = (actual, expected, tolerance, message) => check(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`);
@@ -164,5 +166,85 @@ for (const windDirDeg of [0, 90, 180, 270]) {
     check(x >= 100 && x <= 700 && y >= 49 && y <= 311, 'top flight inside plot');
   }
 }
+const lieCoefficients = {
+  FAIRWAY: [1, 1, 0],
+  DOWNGRAIN: [1, 0.8, 0],
+  AGAINST_GRAIN: [0.97, 1, 0],
+  FLYER: [1, 0.65, 2],
+  HALF_ROUGH: [0.94, 0.5, 0],
+  DEEP_ROUGH: [0.85, 0.5, -3],
+};
+check(LIE_OPTIONS.length === Object.keys(lieCoefficients).length, 'all lie scenarios tested');
+for (const id of TOUR_IDS) {
+  for (const club of bags[id]) {
+    const shot = clubLaunch(club);
+    const original = JSON.stringify(shot);
+    const neutral = calculateTrajectory(shot);
+    for (const [lie, [speedFactor, spinFactor, angleDelta]] of Object.entries(lieCoefficients)) {
+      const env = { ...REFERENCE_ENV, lie };
+      const impact = impactLaunch(shot, env);
+      close(impact.ballSpeedMph, club.speed * speedFactor, 1e-10, `${id}/${club.id}/${lie} speed coefficient`);
+      close(impact.spinRateRpm, club.spin * spinFactor, 1e-10, `${id}/${club.id}/${lie} spin coefficient`);
+      close(impact.launchAngleDeg, Math.max(1, club.launch + angleDelta), 1e-10, `${id}/${club.id}/${lie} launch coefficient`);
+      const flight = calculateTrajectory(shot, env);
+      const once = calculateTrajectory(impact, REFERENCE_ENV, false);
+      close(flight.carryYds, once.carryYds, 1e-8, `${id}/${club.id}/${lie} apply exactly once`);
+      check(flight.landed && flight.carryYds > 0, `${id}/${club.id}/${lie} valid landing`);
+      check(flight.path.every(p => [p.x, p.y, p.z, p.time, p.v].every(Number.isFinite)), 'finite lie trajectory');
+      close(flight.appliedLaunch.ballSpeedMph, impact.ballSpeedMph, 1e-10, 'reported impact speed is simulated');
+      if (lie === 'FAIRWAY') close(flight.carryYds, neutral.carryYds, 1e-8, 'neutral preserves original carry');
+      if (lie === 'DEEP_ROUGH') check(flight.carryYds < neutral.carryYds, `${id}/${club.id} deep rough reduces carry`);
+      const rain = impactLaunch(shot, { ...env, rainLevel: 'HEAVY' });
+      close(rain.spinRateRpm, club.spin * spinFactor * 0.85, 1e-8, 'rain and lie compose multiplicatively');
+      const combined = calculateTrajectory(shot, { ...env, rainLevel: 'LIGHT', windSpeedMs: 8, windDirDeg: 90, elevationDeltaM: 10 });
+      check(Number.isFinite(combined.carryYds) && Number.isFinite(combined.sideOffsetYds), 'combined weather/lie finite');
+      const top = projectTopView(combined, 140, 1);
+      check(!/NaN|Infinity/.test(top.path), 'lie reflected in valid top projection');
+    }
+    check(JSON.stringify(shot) === original, 'lie must not mutate saved reference shot');
+  }
+}
+const personalLie = resolvePersonalClub(sample, { carry: '120', speed: '98', spin: '6000', launch: '20' });
+check(!personalLie.club.calibrationError, 'personal lie baseline calibration');
+const personalFlight = calculateTrajectory(clubLaunch(personalLie.club), { ...REFERENCE_ENV, lie: 'HALF_ROUGH' });
+close(personalFlight.appliedLaunch.ballSpeedMph, 98 * 0.94, 1e-10, 'personal speed receives lie after calibration');
+close(personalFlight.appliedLaunch.spinRateRpm, 3000, 1e-10, 'personal spin receives lie');
+close(calculateTrajectory(clubLaunch(personalLie.club)).carryYds, 120, 0.3, 'personal neutral carry remains unchanged');
+for (const lie of Object.keys(lieCoefficients)) {
+  const rec = recommend('LPGA', 80, { lie, windSpeedMs: 5 });
+  reachable(rec, `auto club recommendation includes ${lie}`);
+  check(rec.requiredSpeed <= rec.club.speed + 0.01, 'auto club respects average speed after lie compensation');
+}
+const deepLong = recommend('LPGA', 140, { lie: 'DEEP_ROUGH', windSpeedMs: 5 });
+if (deepLong.warning) {
+  check(deepLong.playAsYds === null, 'unreachable deep rough must not recommend a distance');
+  check(bags.LPGA.every(club => calculateTrajectory(clubLaunch(club),
+    { ...REFERENCE_ENV, lie: 'DEEP_ROUGH', windSpeedMs: 5 }, false).carryYds < 140),
+  'deep rough warning corresponds to actual insufficient carry');
+} else reachable(deepLong, 'deep rough long target');
+for (const preset of WIND_PRESETS) {
+  check(windDirectionLabel(preset.degrees).includes(preset.label), 'wind preset label matches angle');
+}
+check(windDirectionLabel(360) === windDirectionLabel(0), '360 equals headwind');
+check(windDirectionLabel(270).includes('훅바람') && windDirectionLabel(270).includes('우측 → 좌측'), 'right-handed hook direction');
+check(windDirectionLabel(90).includes('슬라이스바람') && windDirectionLabel(90).includes('좌측 → 우측'), 'right-handed slice direction');
+check(windDirectionLabel(45).includes('맞바람') && windDirectionLabel(45).includes('슬라이스바람'), 'diagonal wind label');
+for (const [longitudinal, lateral, expected] of [[0, 90, 45], [0, 270, 315], [180, 90, 135], [180, 270, 225]]) {
+  const angle = toggleWindDirection(longitudinal, lateral);
+  close(angle, expected, 1e-8, 'compound wind angle');
+  check(isWindSelected(angle, longitudinal) && isWindSelected(angle, lateral), 'both components selected');
+  check(!isWindSelected(angle, (longitudinal + 180) % 360), 'opposite longitudinal off');
+  close(toggleWindDirection(angle, lateral), longitudinal, 1e-8, 'remove lateral component');
+  close(toggleWindDirection(angle, longitudinal), lateral, 1e-8, 'remove longitudinal component');
+  close(toggleWindDirection(longitudinal, longitudinal), longitudinal, 1e-8, 'retain final direction');
+  const flight = calculateTrajectory(clubLaunch(sample), { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: angle });
+  check(lateral === 90 ? flight.sideOffsetYds > 0 : flight.sideOffsetYds < 0, 'compound drift matches component');
+  const radians = angle * Math.PI / 180;
+  close(Math.hypot(5 * Math.sin(radians), 5 * Math.cos(radians)), 5, 1e-10, 'compound total speed unchanged');
+}
+close(toggleWindDirection(315, 180), 225, 1e-8, 'replace headwind with tailwind preserving hook');
+close(toggleWindDirection(315, 90), 45, 1e-8, 'replace hook with slice preserving headwind');
+check(isWindSelected(360, 0) && !isWindSelected(360, 90), 'cardinal float tolerance');
+check(isWindSelected(30, 0) && isWindSelected(30, 90), 'slider components synchronized');
 console.log(`PASS ${assertions} numerical assertions`);
 if (!diagnostics.length) console.log('PASS strict TypeScript and unused-symbol checks');
