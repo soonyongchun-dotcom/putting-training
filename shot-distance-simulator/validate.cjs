@@ -21,7 +21,7 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
@@ -30,6 +30,7 @@ const { resolvePersonalClub, readPersonalProfiles } = result.exports.engine;
 const { projectTopView } = result.exports.engine;
 const { impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel } = result.exports.engine;
 const { toggleWindDirection, isWindSelected } = result.exports.engine;
+const { windDirectionFromPoint } = result.exports.engine;
 let assertions = 0;
 const check = (condition, message) => { assertions++; assert(condition, message); };
 const close = (actual, expected, tolerance, message) => check(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`);
@@ -246,5 +247,16 @@ close(toggleWindDirection(315, 180), 225, 1e-8, 'replace headwind with tailwind 
 close(toggleWindDirection(315, 90), 45, 1e-8, 'replace hook with slice preserving headwind');
 check(isWindSelected(360, 0) && !isWindSelected(360, 90), 'cardinal float tolerance');
 check(isWindSelected(30, 0) && isWindSelected(30, 90), 'slider components synchronized');
+for (let degrees = 0; degrees < 360; degrees++) {
+  const radians = degrees * Math.PI / 180;
+  close(windDirectionFromPoint(30 * Math.sin(radians), 30 * Math.cos(radians)), degrees, 0,
+    'compass airflow maps to exact one-degree wind');
+}
+check(windDirectionFromPoint(0, 0) === null && windDirectionFromPoint(2, 2) === null,
+  'compass center preserves direction');
+close(windDirectionFromPoint(0, 30), 0, 0, 'down arrow is headwind');
+close(windDirectionFromPoint(30, 0), 90, 0, 'right arrow is slice wind');
+close(windDirectionFromPoint(0, -30), 180, 0, 'up arrow is tailwind');
+close(windDirectionFromPoint(-30, 0), 270, 0, 'left arrow is hook wind');
 console.log(`PASS ${assertions} numerical assertions`);
 if (!diagnostics.length) console.log('PASS strict TypeScript and unused-symbol checks');

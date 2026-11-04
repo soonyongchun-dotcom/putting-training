@@ -132,6 +132,75 @@ function windDirectionLabel(degrees: number) {
   const lateral = normalized < 180 ? '슬라이스바람 · 좌→우' : '훅바람 · 우→좌';
   return `${normalized}° ${longitudinal} + ${lateral}`;
 }
+
+function windDirectionFromPoint(x: number, y: number) {
+  if (Math.hypot(x, y) < 4) return null;
+  // The arrow shows airflow: down is headwind, right is slice wind.
+  return (Math.round(Math.atan2(x, y) * 180 / Math.PI) + 360) % 360;
+}
+
+function WindDirectionControl({ degrees, speed, unit, onChange }: {
+  degrees: number; speed: number; unit: string; onChange: (degrees: number) => void;
+}) {
+  const updateFromPointer = (event: React.PointerEvent<SVGGElement>) => {
+    const matrix = event.currentTarget.getScreenCTM();
+    if (!matrix) return;
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    const angle = windDirectionFromPoint(point.x, point.y);
+    if (angle !== null) onChange(angle);
+  };
+  return (
+    <g transform="translate(90, 85)">
+      <text x="0" y="-44" textAnchor="middle" fill="#cbd5e1" fontSize="11">목표 ↑</text>
+      <g role="slider" tabIndex={0} aria-label="풍향계 직접 조절" aria-valuemin={0} aria-valuemax={359}
+        aria-valuenow={degrees % 360} aria-valuetext={windDirectionLabel(degrees)}
+        className="cursor-crosshair focus:outline focus:outline-2 focus:outline-sky-300"
+        style={{ touchAction: 'none' }}
+        onPointerDown={event => {
+          if (!event.isPrimary || event.button !== 0) return;
+          event.preventDefault();
+          event.currentTarget.focus();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          updateFromPointer(event);
+        }}
+        onPointerMove={event => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) updateFromPointer(event);
+        }}
+        onPointerUp={event => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            updateFromPointer(event);
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+        }}
+        onPointerCancel={event => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+        }}
+        onKeyDown={event => {
+          const step = event.shiftKey ? 15 : 1;
+          const delta = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step }[event.key];
+          if (delta !== undefined || event.key === 'Home' || event.key === 'End') {
+            event.preventDefault();
+            onChange(event.key === 'Home' ? 0 : event.key === 'End' ? 359 : (degrees + (delta ?? 0) + 360) % 360);
+          }
+        }}>
+        <title>클릭 또는 드래그로 풍향 조절 · 방향키 1° / Shift+방향키 15°</title>
+        <circle r="34" fill="#020617" stroke="#38bdf8" strokeWidth="2" />
+        {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
+          <line key={angle} x1="0" y1="-27" x2="0" y2="-32" stroke="#64748b" transform={`rotate(${angle})`} />
+        ))}
+        <g transform={`rotate(${degrees + 180})`} pointerEvents="none">
+          <line x1="0" y1="18" x2="0" y2="-18" stroke="#38bdf8" strokeWidth="3" />
+          <polygon points="0,-24 8,-9 -8,-9" fill="#38bdf8" />
+        </g>
+      </g>
+      <g pointerEvents="none" fill="#38bdf8" fontSize="12">
+        <text x="46" y="-10" fontWeight="900">풍속 {Number(speed.toFixed(1))} {unit} · {degrees}°</text>
+        <text x="46" y="9" fontSize="11">풍향계 클릭·드래그로 조절</text>
+        <text x="46" y="26" fontSize="10" fill="#94a3b8">화살표 = 바람이 부는 방향 · 목표 ↑ 기준</text>
+      </g>
+    </g>
+  );
+}
 type ClubData = {
   id: string;
   name: string;
@@ -888,11 +957,7 @@ export default function App() {
               )}
               <path data-testid="top-trajectory" d={topView.path} fill="none" stroke="#38bdf8" strokeWidth="3" />
               <circle data-testid="top-ball" cx={topView.ball.x} cy={topView.ball.y} r="5" fill="#ffffff" stroke="#38bdf8" strokeWidth="2" />
-              <g transform="translate(100, 75)">
-                <circle r="20" fill="#020617" stroke="#38bdf8" />
-                <g transform={`rotate(${windDirDeg + 180})`}><polygon points="0,-13 6,8 -6,8" fill="#38bdf8" /></g>
-                <text x="28" y="4" fill="#38bdf8" fontSize="11">풍속 {Number(windSpeedVal.toFixed(1))} {windUnit}</text>
-              </g>
+              <WindDirectionControl degrees={windDirDeg} speed={windSpeedVal} unit={windUnit} onChange={setWindDirDeg} />
               <text x="400" y="360" textAnchor="middle" fill="#cbd5e1" fontSize="11">수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준</text>
             </svg>
           ) : (
@@ -950,14 +1015,6 @@ export default function App() {
             <line x1={svgPathData.pinPos.x} y1={svgPathData.pinPos.y} x2={svgPathData.pinPos.x} y2={svgPathData.pinPos.y - 50} stroke="#ffffff" strokeWidth="3.5" filter="url(#neonGlow)" />
             <polygon points={`${svgPathData.pinPos.x},${svgPathData.pinPos.y - 50} ${svgPathData.pinPos.x - 22},${svgPathData.pinPos.y - 42} ${svgPathData.pinPos.x},${svgPathData.pinPos.y - 34}`} fill="#ef4444" stroke="#f8fafc" strokeWidth="1" />
 
-            {/* Wind Direction Visual Indicator */}
-            <g transform="translate(90, 70)">
-              <circle cx="0" cy="0" r="24" fill="#020617" stroke="#38bdf8" strokeWidth="2" filter="url(#neonGlow)" />
-              <g transform={`rotate(${windDirDeg + 180})`}>
-                <polygon points="0,-14 7,9 -7,9" fill="#38bdf8" />
-              </g>
-              <text x="34" y="4" fill="#38bdf8" fontSize="12" fontWeight="900">풍속 {Number(windSpeedVal.toFixed(1))} {windUnit}</text>
-            </g>
             <text x="400" y="355" fill="#cbd5e1" fontSize="11" textAnchor="middle">
               {isCustom ? '입력한 선수 샷 · 환경반영 예상 궤적' : `${selectedTour} ${activeClub.name} 평균 샷 · 환경반영 예상 궤적`}
             </text>
@@ -977,6 +1034,7 @@ export default function App() {
               <circle cx="0" cy="0" r="10" fill="#38bdf8" opacity="0.4" filter="url(#neonGlow)" />
               <circle cx="0" cy="0" r="6" fill="#ffffff" stroke="#38bdf8" strokeWidth="2" />
             </g>
+            <WindDirectionControl degrees={windDirDeg} speed={windSpeedVal} unit={windUnit} onChange={setWindDirDeg} />
           </svg>
           )}
         </div>
@@ -1209,7 +1267,7 @@ export default function App() {
             <p className="text-[11px] text-slate-400">
               맞바람/뒷바람 중 하나와 훅바람/슬라이스바람 중 하나를 조합할 수 있습니다.
               같은 축의 반대 바람은 교체되며, 선택한 항목을 다시 누르면 해당 성분을 해제합니다(최소 한 방향 유지).
-              두 성분 선택 시 45° 대각선으로 설정하며, 아래 각도로 비율을 조정할 수 있습니다.
+              두 성분 선택 시 45° 대각선으로 설정하며, 화면 풍향계를 클릭·드래그하거나 아래 각도로 1°씩 조정할 수 있습니다.
               풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s).
               선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다.
             </p>
@@ -1218,7 +1276,7 @@ export default function App() {
               aria-label="풍향"
               min="0"
               max="360"
-              step="15"
+              step="1"
               value={windDirDeg}
               onChange={(e) => setWindDirDeg(Number(e.target.value))}
               className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
