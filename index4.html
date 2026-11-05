@@ -1682,6 +1682,7 @@
   .cross-correction-frame-row { justify-content: space-between; }
   .cross-correction-frame-row label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.84rem; font-weight: 700; }
   #crossCorrectionFrame { min-width: min(100%, 290px); }
+  .cross-correction-partial-note { margin: 0 0 10px; padding: 8px 10px; border-radius: 7px; background: #eef6f8; color: #35566a; font-size: 0.8rem; line-height: 1.55; }
   #crossCorrectionSetup button,
   #crossCorrectionSetup select,
   #crossCorrectionSetup input[type="number"] {
@@ -1710,6 +1711,8 @@
   .cross-correction-video-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
   .cross-correction-video-heading strong { color: #20394c; font-size: 0.98rem; }
   .cross-correction-video-heading span { color: #64748b; font-size: 0.76rem; }
+  .cross-correction-point-picker { display: flex; align-items: center; gap: 8px; color: #526579; font-size: 0.8rem; font-weight: 700; }
+  .cross-correction-point-picker select { flex: 1; min-width: 0; }
   .cross-correction-stage { position: relative; overflow: hidden; border-radius: 7px; background: #0b1118; }
   .cross-correction-stage video { position: static; width: 100%; height: auto; display: block; transform: none; }
   .cross-correction-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
@@ -2408,12 +2411,16 @@
             <div class="cross-correction-reference-actions">
               <button type="button" id="crossCorrectionReference">지면선·샤프트 기준 선택</button>
               <button type="button" id="crossCorrectionReferenceSave">보정 기준 저장</button>
-              <button type="button" id="crossCorrectionCapture">정면·측면 프레임 저장</button>
+              <button type="button" id="crossCorrectionCapture">선택한 점 저장</button>
             </div>
           </div>
+          <p class="cross-correction-partial-note">각 영상의 ‘찍을 점’에서 원하는 지점을 선택한 뒤 영상에 표시하세요. 가려져 보이지 않는 점은 건너뛰어도 됩니다. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다.</p>
           <div class="cross-correction-videos">
             <div class="cross-correction-video-card">
               <div class="cross-correction-video-heading"><strong>정면 기준 영상</strong><span>분석 프레임을 확인하세요</span></div>
+              <label class="cross-correction-point-picker" for="crossCorrectionFrontPointType">찍을 점
+                <select id="crossCorrectionFrontPointType"></select>
+              </label>
               <div class="cross-correction-stage"><video id="crossCorrectionFrontVideo" playsinline></video><canvas id="crossCorrectionFrontCanvas"></canvas></div>
               <div class="cross-correction-video-controls">
                 <button type="button" id="crossCorrectionFrontPlay">재생/정지</button>
@@ -2424,6 +2431,9 @@
             </div>
             <div class="cross-correction-video-card">
               <div class="cross-correction-video-heading"><strong>측면 대응 영상</strong><span>정면과 같은 동작에 맞추세요</span></div>
+              <label class="cross-correction-point-picker" for="crossCorrectionSidePointType">찍을 점
+                <select id="crossCorrectionSidePointType"></select>
+              </label>
               <div class="cross-correction-stage"><video id="crossCorrectionSideVideo" playsinline></video><canvas id="crossCorrectionSideCanvas"></canvas></div>
               <div class="cross-correction-video-controls">
                 <button type="button" id="crossCorrectionSidePlay">재생/정지</button>
@@ -2439,7 +2449,7 @@
             <button type="button" id="crossCorrectionRollOnly">양발선 보정만 보기</button>
             <button type="button" id="crossCorrectionClear">교차 입력 초기화</button>
           </div>
-          <small>같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. F1–F6에서는 두 영상의 시점이 서로 달라도 괜찮지만, 같은 동작의 관절·물체 위치를 선택해야 합니다. 가려져 위치를 확인할 수 없는 점은 임의로 지정하지 마세요. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.</small>
+          <small>같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. F1–F6에서는 두 영상의 시점이 서로 달라도 괜찮지만, 같은 동작의 관절·물체 위치를 선택해야 합니다. 보이지 않는 점을 억지로 추정하지 마세요. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.</small>
         </details>
         <p class="analysis-2d-diagnostics-note">선택한 보정 방식으로 재계산한 비교값이며 공식 결과는 유지됩니다.</p>
       </div>
@@ -4372,8 +4382,7 @@
     const status = document.createElement('p');
     status.textContent = correctionScenario?.unavailable || (available
       ? correctionScenario.crossCorrected
-        ? text('정면 기준으로 측면 시점을 맞춘 F1–F6 대응점 적용 (실험)',
-          'Matched F1–F6 points applied after aligning side motion to the front reference (experimental)')
+        ? text('교차 보정 계산 완료 (실험)', 'Cross-view correction calculated (experimental)')
         : text(`양발선 기울기 ${format(correctionScenario.rotationDeg)}°`,
           `Stance tilt ${format(correctionScenario.rotationDeg)}°`)
       : '');
@@ -4382,13 +4391,21 @@
     if (available && correctionScenario.crossCorrected) {
       const labels = ids => ids.map(id => id.replace('frame', 'F')).join(', ');
       status.textContent += text(
-        ` · 교차 적용: ${labels(correctionScenario.crossCorrectedFrames)}`,
-        ` · Cross-applied: ${labels(correctionScenario.crossCorrectedFrames)}`
+        ` · 보정 적용: ${labels(correctionScenario.crossCorrectedFrames) || '없음'}`,
+        ` · Corrected: ${labels(correctionScenario.crossCorrectedFrames) || 'none'}`
       );
       if (correctionScenario.crossRetainedFrames.length) {
+        const retainedDetails = correctionScenario.crossRetainedFrames.map(frame => {
+          const detail = correctionScenario.crossRetainedDetails?.[frame];
+          const counts = ['front', 'side'].map(view => {
+            const count = detail?.[view]?.length || 0;
+            return count ? `${view === 'front' ? text('정면', 'front') : text('측면', 'side')} ${count}` : null;
+          }).filter(Boolean).join('·');
+          return `${frame.replace('frame', 'F')}${counts ? `(${counts})` : ''}`;
+        }).join(', ');
         status.textContent += text(
-          ` / 기존 유지: ${labels(correctionScenario.crossRetainedFrames)}`,
-          ` / retained: ${labels(correctionScenario.crossRetainedFrames)}`
+          ` / 필수점 미선택으로 기존 분석값 유지: ${retainedDetails}`,
+          ` / original analysis retained for unmarked landmarks: ${retainedDetails}`
         );
       }
       const backswingCode = correctionScenario.backswingCode;
@@ -5170,6 +5187,7 @@
         crossCorrected: !!crossModel,
         crossCorrectedFrames: crossModel?.correctedFrames || [],
         crossRetainedFrames: crossModel?.retainedFrames || [],
+        crossRetainedDetails: clone(crossModel?.retainedDetails || {}),
       };
     } catch (error) {
       calculationError = error;

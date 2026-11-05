@@ -141,6 +141,24 @@ test('large vertical differences between same-motion views are fused instead of 
   assert.ok(Math.abs(model.frame3.front.points.clubHead.y - (front.vertical + side.vertical) / 2) < 1e-10);
 });
 
+test('frames with occluded landmarks remain uncorrected while complete frames are still fused', () => {
+  const c = setup();
+  for (const view of ['front', 'side']) {
+    c.crossViewCorrectionData.entries.frame4[`${view}Points`] =
+      c.crossViewCorrectionData.entries.frame4[`${view}Points`].filter(point => point.type !== 'pelvisCenter');
+  }
+  c.crossViewCorrectionData.analysisSignature = c.getCrossCorrectionAnalysisSignature();
+  assert.equal(c.validateCrossCorrectionData(c.crossViewCorrectionData), true);
+  const model = c.getCrossCorrectionModel();
+  assert.ok(!model.correctedFrames.includes('frame4'));
+  assert.ok(model.retainedFrames.includes('frame4'));
+  assert.deepEqual(Array.from(model.retainedDetails.frame4.front), ['pelvisCenter']);
+  assert.deepEqual(Array.from(model.retainedDetails.frame4.side), ['pelvisCenter']);
+  const metrics = { coreHandRadiusRaw: 0.123 };
+  c.applyCrossCorrectionMetrics(metrics, model, 'frame4', 'front');
+  assert.deepEqual(metrics, { coreHandRadiusRaw: 0.123 }, 'missing points never produce guessed corrected metrics');
+});
+
 test('independent source scales produce equal fused geometry and the same front-unit length', () => {
   const c = setup(), before = c.getCrossCorrectionModel();
   for (const view of ['front', 'side']) {
@@ -475,10 +493,34 @@ test('editor restores saved analysis landmarks and reports only the missing poin
   fire('Setup', 'toggle');
   assert.match(element('crossCorrectionStatus').textContent, /정면 5\/6: 클럽헤드/);
   assert.match(element('crossCorrectionStatus').textContent, /측면 5\/6: 클럽헤드/);
+  for (const view of ['Front', 'Side']) {
+    element(`crossCorrection${view}PointType`).value = 'clubHead';
+  }
   fire('FrontCanvas', 'click', { clientX: 240, clientY: 240 });
   assert.match(element('crossCorrectionStatus').textContent, /정면 6\/6: 필요 점 확인 완료/);
   fire('SideCanvas', 'click', { clientX: 240, clientY: 240 });
   assert.match(element('crossCorrectionStatus').textContent, /측면 6\/6: 필요 점 확인 완료/);
+});
+
+test('editor can select a later visible landmark and save a partial frame without guessing occluded points', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source', name: 'front.mp4' };
+  files.side = { id: 'independent-side-source', name: 'side.mp4' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  fire('Points', 'click');
+  for (const view of ['Front', 'Side']) {
+    const selector = element(`crossCorrection${view}PointType`);
+    selector.value = 'clubHead';
+    fire(`${view}PointType`, 'change');
+    fire(`${view}Canvas`, 'click', { clientX: 240, clientY: 240 });
+  }
+  fire('Capture', 'click');
+  const entry = c.crossViewCorrectionData.entries.frame1;
+  assert.deepEqual(Array.from(entry.frontPoints, point => point.type), ['clubHead']);
+  assert.deepEqual(Array.from(entry.sidePoints, point => point.type), ['clubHead']);
+  assert.equal(c.validateCrossCorrectionData(c.crossViewCorrectionData), true);
+  assert.equal(element('crossCorrectionFrame').value, 'frame2');
 });
 
 test('side frame is not forced to a backswing checkpoint and requires front-matched points', () => {

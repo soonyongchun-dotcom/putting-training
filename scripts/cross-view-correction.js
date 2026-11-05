@@ -128,7 +128,7 @@ function getCrossCorrectionModel() {
       `${frame.replace('frame', 'F')}: 대응점이 저장되지 않았습니다. 해당 프레임 점을 선택한 뒤 ‘정면·측면 프레임 저장’을 누르세요.`,
       `${frame.replace('frame', 'F')}: landmarks have not been saved. Mark the points, then click “Save matched front/side frame”.`);
   }
-  const model = { correctedFrames: [], retainedFrames: [] };
+  const model = { correctedFrames: [], retainedFrames: [], retainedDetails: {} };
   const project = (point, calibration) => {
     if (!isProjectCoordinate(point)) crossCorrectionError('유효하지 않은 공통 포인트 좌표입니다.', 'Invalid common-landmark coordinates.');
     const dx = (point.x - calibration.bottom.x) * calibration.aspect;
@@ -141,14 +141,16 @@ function getCrossCorrectionModel() {
     if (Math.abs(entry.frontAspect - front.aspect) > 0.001 || Math.abs(entry.sideAspect - side.aspect) > 0.001) {
       crossCorrectionError(`${frame.replace('frame', 'F')}: 기준 지정 후 영상 비율이 변경되었습니다.`, `${frame.replace('frame', 'F')}: video aspect changed after calibration.`);
     }
+    const missingByView = {};
     for (const view of ['front', 'side']) {
       const required = CROSS_CORRECTION_POINTS[frame][view];
       const points = entry[`${view}Points`];
-      if (!required.every(type => points.some(point => point.type === type))) {
-        const missing = required.find(type => !points.some(point => point.type === type));
-        crossCorrectionError(`${frame.replace('frame', 'F')} ${view === 'front' ? '정면' : '측면'} ${missing}: 필요한 점을 선택하세요.`,
-          `${frame.replace('frame', 'F')} ${view} ${missing}: mark this required landmark.`);
-      }
+      missingByView[view] = required.filter(type => !points.some(point => point.type === type));
+    }
+    if (missingByView.front.length || missingByView.side.length) {
+      model.retainedFrames.push(frame);
+      model.retainedDetails[frame] = missingByView;
+      continue;
     }
     const types = CROSS_CORRECTION_POINTS[frame].front.filter(type => CROSS_CORRECTION_POINTS[frame].side.includes(type));
     const points = {};
@@ -316,8 +318,9 @@ function validateCrossCorrectionData(data) {
     && ['front', 'side'].every(view => {
       const field = `${view}Points`;
       const viewTypes = Array.isArray(types[view]) ? types[view] : types;
-      return Array.isArray(entry[field]) && entry[field].length === viewTypes.length
-        && new Set(entry[field].map(point => point?.type)).size === viewTypes.length
+      return Array.isArray(entry[field]) && (framePairs ? entry[field].length > 0 && entry[field].length <= viewTypes.length
+        : entry[field].length === viewTypes.length)
+        && new Set(entry[field].map(point => point?.type)).size === entry[field].length
         && entry[field].every(point => isProjectCoordinate(point) && viewTypes.includes(point.type));
     });
   const entriesValid = Object.entries(data.entries).every(([key, entry]) => {
@@ -388,6 +391,27 @@ function validateCrossCorrectionData(data) {
   };
   const pointLabel = (key, type) => text(...(pointLabels[key][type] || [type, type]));
   const requiredTypes = (key, view) => CROSS_CORRECTION_POINTS[key][view];
+  const pointSelectors = { front: el('FrontPointType'), side: el('SidePointType') };
+  function updatePointSelectors() {
+    const frame = selected();
+    for (const view of ['front', 'side']) {
+      const selector = pointSelectors[view];
+      const previous = selector.value;
+      selector.options.length = 0;
+      for (const type of requiredTypes(frame, view)) {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = pointLabel(frame, type);
+        selector.append(option);
+      }
+      selector.value = requiredTypes(frame, view).includes(previous) ? previous
+        : requiredTypes(frame, view).find(type => !draft[view].some(point => point.type === type)) || '';
+    }
+  }
+  function selectNextUnmarkedPoint(view) {
+    const selector = pointSelectors[view];
+    selector.value = requiredTypes(selected(), view).find(type => !draft[view].some(point => point.type === type)) || '';
+  }
   const analysisSourceMatches = view => {
     const expected = view === 'front'
       ? [videoFileIdentity.front]
@@ -482,6 +506,7 @@ function validateCrossCorrectionData(data) {
     });
   }
   function notice() {
+    updatePointSelectors();
     if (crossViewCorrectionData.version !== 2 || crossViewCorrectionData.workflow !== 'frame-pairs') {
       el('Status').textContent = text('저장된 이전 형식은 새 대응점으로 자동 변환할 수 없습니다. 영상을 다시 연결한 뒤 F1–F6을 선택하세요.',
         'The saved legacy inputs cannot be converted into matched landmarks. Reconnect both videos and mark F1–F6.');
@@ -504,8 +529,13 @@ function validateCrossCorrectionData(data) {
         return `${view === 'front' ? text('정면', 'Front') : text('측면', 'Side')} ${count}/${types.length}: ${missing
           ? pointLabel(frame, missing) : text('필요 점 확인 완료', 'Required landmarks ready')}`;
       }).join('\n') + `\n${text('저장 입력', 'Saved inputs')}: ${
-        CROSS_CORRECTION_FRAMES.map((item, index) => crossViewCorrectionData.entries[item] ? `F${index + 1}` : null)
-          .filter(Boolean).join(' · ') || '—'} (${Object.keys(crossViewCorrectionData.entries).length}/6)\n${text('보정 기준', 'Calibration references')}: ${
+        CROSS_CORRECTION_FRAMES.map((item, index) => {
+          const entry = crossViewCorrectionData.entries[item];
+          if (!entry) return null;
+          const complete = ['front', 'side'].every(view => requiredTypes(item, view)
+            .every(type => entry[`${view}Points`]?.some(point => point.type === type)));
+          return `F${index + 1}${complete ? '' : '*'}`;
+        }).filter(Boolean).join(' · ') || '—'} (${Object.keys(crossViewCorrectionData.entries).length}/6; * ${text('일부 점만 저장', 'partial points saved')})\n${text('보정 기준', 'Calibration references')}: ${
           crossViewCorrectionData.calibration === 'shaft-ground-v1'
             ? `${text('저장 완료', 'Saved')} · ${['front', 'side'].map(view =>
               `${view === 'front' ? text('정면', 'Front') : text('측면', 'Side')} ${
@@ -561,10 +591,16 @@ function validateCrossCorrectionData(data) {
         const target = calibration.stancePoints.length < 2 ? calibration.stancePoints : calibration.shaftPoints;
         if (target.length < 2) target.push(point);
       } else {
-        const types = requiredTypes(selected(), view);
-        const type = types.find(item => !draft[view].some(savedPoint => savedPoint.type === item));
-        if (!type) return;
-        draft[view].push({ ...point, type });
+        const type = pointSelectors[view].value;
+        if (!type) {
+          el('Status').textContent = text('찍을 점을 선택하세요. 가려진 점은 건너뛰고 보이는 점을 선택할 수 있습니다.',
+            'Choose a landmark to mark. Skip occluded landmarks and select visible points.');
+          return;
+        }
+        const index = draft[view].findIndex(savedPoint => savedPoint.type === type);
+        if (index >= 0) draft[view][index] = { ...point, type };
+        else draft[view].push({ ...point, type });
+        selectNextUnmarkedPoint(view);
       }
       if (crossCorrectionMode === 'cross') update2dCorrectionDiagnostics();
       notice();
@@ -646,6 +682,9 @@ function validateCrossCorrectionData(data) {
     });
   }
   selector.addEventListener('change', loadFrame);
+  for (const selector of Object.values(pointSelectors)) {
+    selector.addEventListener('change', notice);
+  }
   el('Setup').addEventListener('toggle', () => {
     if (el('Setup').open) {
       syncAnalysisSources();
@@ -722,12 +761,17 @@ function validateCrossCorrectionData(data) {
     update2dCorrectionDiagnostics();
     notice();
   });
-  el('Points').addEventListener('click', () => { referenceMode = false; draft = { front: [], side: [] }; notice(); });
+  el('Points').addEventListener('click', () => {
+    referenceMode = false;
+    draft = { front: [], side: [] };
+    updatePointSelectors();
+    notice();
+  });
   el('Capture').addEventListener('click', () => {
     const frame = selected();
     if (referenceMode || ['front', 'side'].some(view => !loadedSources[view] || videos[view].readyState < 2
       || videos[view].seeking || !videos[view].paused || loadedSources[view] !== crossViewCorrectionData.sources[view]
-      || !requiredTypes(frame, view).every(type => draft[view].some(point => point.type === type)))) {
+      || draft[view].length === 0)) {
       el('Status').textContent = text('정면 기준 프레임의 동작에 맞춰 측면 영상을 별도로 이동한 뒤, 양쪽 영상에서 빠진 점을 선택하세요. 시점의 초 단위 값은 서로 다를 수 있습니다.',
         'Move the side video independently until it matches the front reference motion, then mark the missing points in both views. Their time values may differ.');
       return;
