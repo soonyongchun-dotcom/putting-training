@@ -50,9 +50,9 @@ test('comparison can open before video upload and closes without losing the sele
 function setup() {
   const elements = new Map();
   const element = () => ({
-    hidden: false, textContent: '', children: [], listeners: {}, dataset: {},
+    hidden: false, open: false, textContent: '', children: [], listeners: {}, dataset: {},
     setAttribute() {}, removeAttribute(name) { if (name === 'data-workflow-stage') delete this.dataset.workflowStage; },
-    scrollIntoView() {}, click() { this.clicked = true; },
+    scrollIntoView() { this.scrolled = true; }, click() { this.clicked = true; },
     replaceChildren(...children) { this.children = children; },
     append(...children) { this.children.push(...children); },
     addEventListener(event, callback) { this.listeners[event] = callback; },
@@ -63,8 +63,13 @@ function setup() {
   };
   const c = vm.createContext({
     console, analysisWorkflowState: null, computing2dCorrectionScenario: false,
+    crossCorrectionMode: 'roll', stanceReferenceLineFront: null,
+    window: { syncCrossCorrectionAnalysisSources() { c.sourceSyncCount = (c.sourceSyncCount || 0) + 1; } },
     updateSwingComparePresentation() {},
     renderCrossViewDiagnostics() {},
+    update2dCorrectionDiagnostics() { c.diagnosticUpdateCount = (c.diagnosticUpdateCount || 0) + 1; },
+    get2dVirtualCorrectionScenario: () => null,
+    getCrossCorrectionScenario: () => null,
     document: { getElementById: get, createElement: element, body: element() },
     getSwingUiText: (ko, en) => en, languageSelect: null,
     backswingActive: false, backswingClassification: null, swingCompareActive: false,
@@ -73,6 +78,8 @@ function setup() {
     r10Analysis: null, r10SourceName: '',
     getBackswingProfileCode: result => result?.profileCode || null,
     getSwingTypeReadiness: () => ({ ready: false, missing: ['F1–F4 points required'] }),
+    getDistanceMotionSummary: () => ({ complete: false, score: null }),
+    formatDistanceMotionSummary: () => 'Distance Motion Average: 8.0 / 10',
     classifySwingType: () => null,
     getPowerEngineDecision: result => result?.decision || null,
     computeEstimatedCarryDistance: () => ({ missing: ['Body mass', 'Backswing', 'Engine'] }),
@@ -92,14 +99,25 @@ function setup() {
 test('compact bar replaces duplicate workflow navigation and question', () => {
   const { c, get } = setup();
   assert.equal(c.analysisWorkflowState.index, 0);
-  assert.equal(get('analysisWorkflowProgress').children.length, 4);
+  assert.equal(get('analysisWorkflowProgress').children.length, 6);
+  assert.match(html, /id: 'backswing', ko: '백스윙 유형 분석', en: 'Backswing type analysis'/);
+  assert.match(html, /aria-label="백스윙 유형 분석"/);
+  assert.match(html, /id="backswingToggleBtn"[^>]*>백스윙 유형 분석/);
+  assert.doesNotMatch(html, /백스윙 유형 결정/);
+  assert.match(html, /ko: '비거리 모션 분석'/);
+  assert.match(html, /ko: '스윙 유형 분석'/);
+  assert.match(html, /id: 'correction', ko: '2D 왜곡 보정 분석'/);
+  assert.match(html, /<summary>2D 왜곡 보정 분석<\/summary>/);
+  assert.match(html, /body\[data-workflow-stage="correction"\] #analysisPanelBody > :not\(#analysis2dDiagnostics\)/);
+  assert.match(html, /body\[data-workflow-stage="swingtype"\] #analysisSwingType > \.analysis-power-summary/);
+  assert.match(html, /data-workflow-for="engine swingtype distance r10 correction"/);
   assert.doesNotMatch(html, /id="analysisWorkflow(?:Start|Yes|Skip|Open|Check|Next|Back|Return|Question|Prerequisites|Results)"/);
   assert.match(html, /ver 26\.1103-f-ad/);
 });
 
 test('every progress button directly opens the selected analysis', () => {
   const { c, get } = setup();
-  for (const index of [1, 2, 3, 0]) {
+  for (const index of [1, 2, 3, 4, 5, 0]) {
     get('analysisWorkflowProgress').children[index].children[0].listeners.click();
     assert.equal(c.analysisWorkflowState.index, index);
     assert.equal(c.openedStages.at(-1), index);
@@ -109,20 +127,20 @@ test('every progress button directly opens the selected analysis', () => {
 test('live statuses change from pending to active to complete and invalidate correctly', () => {
   const { c, get } = setup();
   const statuses = () => get('analysisWorkflowProgress').children.map(item => item.children[0].dataset.status);
-  assert.deepEqual(statuses(), ['pending', 'pending', 'pending', 'pending']);
+  assert.deepEqual(statuses(), ['pending', 'pending', 'pending', 'pending', 'pending', 'pending']);
   c.selectAnalysisWorkflowStage(0);
-  assert.deepEqual(statuses(), ['active', 'pending', 'pending', 'pending']);
+  assert.deepEqual(statuses(), ['active', 'pending', 'pending', 'pending', 'pending', 'pending']);
   c.backswingClassification = { profileCode: 'OPA' };
   c.refreshAnalysisWorkflow();
-  assert.deepEqual(statuses(), ['complete', 'pending', 'pending', 'pending']);
-  c.selectAnalysisWorkflowStage(3);
+  assert.deepEqual(statuses(), ['complete', 'pending', 'pending', 'pending', 'pending', 'pending']);
+  c.selectAnalysisWorkflowStage(4);
   c.r10Analysis = { shots: [{}, {}] };
   c.refreshAnalysisWorkflow();
-  assert.deepEqual(statuses(), ['complete', 'pending', 'pending', 'complete']);
+  assert.deepEqual(statuses(), ['complete', 'pending', 'pending', 'pending', 'complete', 'pending']);
   c.backswingClassification = null;
   c.refreshAnalysisWorkflow();
-  assert.deepEqual(statuses(), ['active', 'pending', 'pending', 'complete']);
-  assert.equal(c.analysisWorkflowState.index, 3);
+  assert.deepEqual(statuses(), ['active', 'pending', 'pending', 'pending', 'complete', 'pending']);
+  assert.equal(c.analysisWorkflowState.index, 4);
 });
 
 test('switching completed stages preserves data without auto advancing', () => {
@@ -130,7 +148,7 @@ test('switching completed stages preserves data without auto advancing', () => {
   const classification = { profileCode: 'OPA' };
   c.backswingClassification = classification;
   c.selectAnalysisWorkflowStage(0);
-  c.selectAnalysisWorkflowStage(2);
+  c.selectAnalysisWorkflowStage(3);
   c.selectAnalysisWorkflowStage(0);
   assert.equal(c.backswingClassification, classification);
   assert.equal(c.analysisWorkflowState.index, 0);
@@ -145,22 +163,45 @@ test('opening engine or R10 preserves current frame and partial inputs', () => {
   c.actualOpenAnalysisWorkflowStage(1);
   assert.equal(c.swingCompareActive, false);
   c.backswingActive = true;
-  c.actualOpenAnalysisWorkflowStage(3);
+  c.actualOpenAnalysisWorkflowStage(4);
   assert.equal(c.backswingActive, false);
   assert.equal(c.r10AnalysisPanel.hidden, false);
   assert.equal(c.selectedSegment, 'frame3');
   assert.equal(c.frontPoints, points);
 });
 
-test('engine and distance readiness still require actual evidence', () => {
+test('motion, swing-type and distance steps report their own required evidence', () => {
   const { c } = setup();
   assert.equal(c.getAnalysisWorkflowResult('engine').ready, false);
+  c.getDistanceMotionSummary = () => ({ complete: true, score: 8 });
+  assert.match(c.getAnalysisWorkflowResult('engine').text, /Distance Motion Average/);
+  assert.match(c.getAnalysisWorkflowResult('engine').text, /supplemental/);
+  assert.equal(c.getAnalysisWorkflowResult('swingtype').ready, false);
   c.getSwingTypeReadiness = () => ({ ready: true });
   c.classifySwingType = () => ({ decision: { code: 'RLH' }, pct: { type1: 40, type2: 35, type3: 25 } });
-  assert.match(c.getAnalysisWorkflowResult('engine').text, /RLH/);
+  assert.match(c.getAnalysisWorkflowResult('swingtype').text, /RLH/);
   assert.equal(c.getAnalysisWorkflowResult('distance').ready, false);
   c.computeEstimatedCarryDistance = () => ({ estimateMeters: 225 });
   assert.match(c.getAnalysisWorkflowResult('distance').text, /225.0 m/);
+});
+
+test('2D correction is its own final stage and reports correction readiness', () => {
+  const { c, get } = setup();
+  assert.equal(c.getAnalysisWorkflowResult('correction').ready, false);
+  get('analysis2dDiagnostics').open = true;
+  c.crossCorrectionMode = 'cross';
+  c.getCrossCorrectionScenario = () => ({ unavailable: null });
+  assert.equal(c.getAnalysisWorkflowResult('correction').ready, true);
+  c.getCrossCorrectionScenario = () => ({ unavailable: 'Matched front and side inputs are required.' });
+  assert.equal(c.getAnalysisWorkflowResult('correction').ready, false);
+
+  get('analysis2dDiagnostics').open = false;
+  c.actualOpenAnalysisWorkflowStage(5);
+  assert.equal(get('analysis2dDiagnostics').open, true);
+  assert.equal(get('crossCorrectionSetup').open, true);
+  assert.equal(c.sourceSyncCount, 1, 'entering correction synchronizes analysis video files even if details were already open');
+  assert.equal(get('analysis2dDiagnostics').scrolled, true);
+  assert.equal(c.diagnosticUpdateCount, 1);
 });
 
 test('errors remain visible without removed navigation controls', () => {
@@ -200,11 +241,13 @@ test('reviewing completed backswing does not request another video', () => {
   assert.equal(prompt, false);
 });
 
-test('engine notice is displayed only in engine stage', () => {
+test('workflow notice explains shared frame inputs in motion and swing-type steps', () => {
   const { c, get } = setup();
   c.selectAnalysisWorkflowStage(1);
-  assert.match(get('analysisWorkflowEngineNotice').textContent, /same swing video into both A and B/);
+  assert.match(get('analysisWorkflowEngineNotice').textContent, /same swing into A and B/);
   c.selectAnalysisWorkflowStage(2);
+  assert.match(get('analysisWorkflowEngineNotice').textContent, /return to distance-motion analysis/);
+  c.selectAnalysisWorkflowStage(3);
   assert.equal(get('analysisWorkflowEngineNotice').hidden, true);
 });
 
@@ -229,7 +272,7 @@ test('switching stages cancels unfinished stance selection and clears its stale 
   c.stanceReferenceActive = true;
   c.stanceReferencePendingPoints = [{ x: 0.1, y: 0.2 }];
   c.statusSpan.textContent = 'Select stance endpoints';
-  c.actualOpenAnalysisWorkflowStage(3);
+  c.actualOpenAnalysisWorkflowStage(4);
   assert.equal(c.stanceReferenceActive, false);
   assert.equal(c.stanceReferencePendingPoints.length, 0);
   assert.equal(c.statusSpan.textContent, '');

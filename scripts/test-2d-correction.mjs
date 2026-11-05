@@ -163,34 +163,11 @@ test('virtual analysis does not render cards, narratives, summary or analysis se
   assert.doesNotThrow(() => c.updateSegmentScoresDisplay());
 });
 
-test('refresh feedback distinguishes failure, missing input and success', () => {
-  const source = html.slice(html.indexOf('  const refresh2dDiagnosticsButton ='),
-    html.indexOf('  const analysis2dDiagnostics ='));
-  for (const [status, expected] of [['success', 'Updated'], ['incomplete', 'Updated · inputs missing'],
-    ['error', 'Update failed']]) {
-    let click;
-    const timers = [];
-    const button = {
-      setAttribute() {}, removeAttribute() {},
-      addEventListener(event, callback) { click = callback; },
-    };
-    const c = vm.createContext({
-      console, computing2dCorrectionScenario: false,
-      cached2dCorrectionScenarioKey: 'old', cached2dCorrectionScenario: {},
-      document: { getElementById: () => button },
-      window: { setTimeout: fn => timers.push(fn) },
-      getSwingUiText: (ko, en) => en,
-      update2dCorrectionDiagnostics: () => ({ status }),
-    });
-
-    vm.runInContext(source, c);
-    click();
-    assert.equal(button.disabled, true);
-    timers.shift()();
-    assert.equal(button.textContent, expected);
-    assert.equal(button.disabled, false);
-    assert.equal(c.cached2dCorrectionScenario, null);
-  }
+test('duplicate stance and diagnostic refresh controls are removed from the correction header', () => {
+  assert.doesNotMatch(html, /id="(?:stanceReferenceBtn|refresh2dDiagnostics)"/);
+  assert.doesNotMatch(html, /정면 P1에서 양발 기준선을 지정하세요\./);
+  assert.match(html, /id="crossCorrectionReference"/);
+  assert.match(html, /id="crossCorrectionReferenceSave"/);
 });
 
 test('diagnostic wrapper exposes errors instead of preserving stale success content', () => {
@@ -289,7 +266,7 @@ test('only handedness and motion selection persist; obsolete target controls are
 
 test('input buttons open the selected side motion or its matching front B frame', () => {
   const source = html.slice(html.indexOf('  const analysis2dDiagnostics ='),
-    html.indexOf("  const stanceReferenceBtn = document.getElementById"));
+    html.indexOf('  const stanceReferenceBtn = null;'));
   const nodes = new Map();
   const get = id => {
     if (!nodes.has(id)) nodes.set(id, { listeners: {}, value: 'impact',
@@ -324,6 +301,7 @@ function comparisonSetup(scenario) {
   c.get2dVirtualCorrectionScenario = () => scenario;
   c.classifySwingType = () => ({ pct: { type1: 33, type2: 35.5, type3: 31.5 } });
   c.getPowerEngineDecision = () => ({ code: 'TKE' });
+  c.getBackswingProfileCode = () => null;
   c.getMatchedSwingProfile = () => ({ n: 7 });
   c.segmentScoreHistory = Object.fromEntries(ids.map((id, i) => [id, 5 + i * 0.5]));
   load(c, 'render2dCorrectionDiagnostics');
@@ -338,10 +316,11 @@ test('compact comparison includes F1-F6, three shares, engine and profile number
   assert.deepEqual(values().slice(0, 2), [['F1 /10', '5.0', '7.0'], ['F2 /10', '5.5', '7.0']]);
   assert.deepEqual(values()[4], ['F5 /100', '70.0', '70.0']);
   assert.deepEqual(values()[5], ['F6 /100', '75.0', '70.0']);
-  assert.deepEqual(values()[6], ['ATE', '33.0%', '50.0%']);
+  assert.deepEqual(values()[6], ['ATE fit share', '33.0%', '50.0%']);
   assert.deepEqual(values()[9], ['Engine type', 'TKE', 'ATE']);
-  assert.deepEqual(values()[10], ['Swing profile number', '07', '08']);
-  assert.equal(values().length, 11);
+  assert.deepEqual(values()[10], ['Backswing type', 'Undetermined', 'Undetermined']);
+  assert.deepEqual(values()[11], ['Swing profile number', '07', '08']);
+  assert.equal(values().length, 12);
   assert.match(result.children[0].textContent, /-1.6°/);
   assert.equal(result.children[1].children[1].children[0].children[2].className, 'analysis-2d-changed');
   assert.equal(result.children[1].children[1].children[4].children[2].className, undefined);
@@ -354,6 +333,6 @@ test('missing or failed correction does not leave stale corrected values in the 
   assert.ok(values().every(row => row[2] === '—'));
   c.get2dVirtualCorrectionScenario = () => null;
   assert.equal(c.render2dCorrectionDiagnostics().status, 'incomplete');
-  assert.match(result.children[0].textContent, /Mark the stance line/);
+  assert.equal(result.children[0].textContent, '');
   assert.ok(values().every(row => row[2] === '—'));
 });

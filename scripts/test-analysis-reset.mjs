@@ -39,7 +39,7 @@ function setup(id) {
   vm.runInContext(html.slice(begin, end), c);
   return { c, calls };
 }
-for (const id of ['backswing', 'engine', 'distance', 'r10']) {
+for (const id of ['backswing', 'engine', 'swingtype', 'distance', 'r10']) {
   test(`${id} reset clears only its inputs and invalidates linked outputs`, () => {
     const { c, calls } = setup(id);
     c.resetCurrentAnalysisStage();
@@ -51,7 +51,7 @@ for (const id of ['backswing', 'engine', 'distance', 'r10']) {
     assert.ok(calls.includes('scores'));
     assert.ok(calls.includes('views'));
     if (id === 'backswing') assert.ok(calls.includes('reset-backswing'));
-    if (id === 'engine') {
+    if (id === 'engine' || id === 'swingtype') {
       assert.equal(Object.keys(c.frameStateHistory.front).length, 0);
       assert.equal(c.selectedSegment, 'frame1');
       assert.ok(calls.includes('derived'));
