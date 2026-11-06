@@ -25,6 +25,9 @@ function setup() {
   vm.runInContext(html.slice(html.indexOf('  const FRAME_POINT_TYPES ='),
     html.indexOf('  function getReusableFrameGroup')), c);
   vm.runInContext(html.match(/  function getBackswingPhaseForAnalysisFrame\([\s\S]*?\n  }/)[0], c);
+  for (const name of ['computeFrameMetrics', 'computeThreePointSpread', 'clamp', 'hasMetric']) {
+    vm.runInContext(html.match(new RegExp(`  function ${name}\\([\\s\\S]*?\\n  }`))[0], c);
+  }
   vm.runInContext(source.slice(0, setupStart), c);
   const data = c.crossViewCorrectionData;
   data.workflow = 'frame-pairs';
@@ -85,7 +88,8 @@ test('six matched metric frames map to fused coordinates without type checkpoint
   c.applyCrossCorrectionMetrics(metrics, model, 'frame3', 'side');
   assert.ok(Number.isFinite(metrics.kneeExtensionDeg));
   assert.ok(metrics.coreHandRadiusRaw > 0);
-  assert.equal(model.frame1.front.points.wrist, model.frame1.front.points.c7);
+  assert.equal(model.frame1.front, undefined);
+  assert.equal(model.frame1.side.points.wrist, model.frame1.side.points.c7);
   assert.equal(model.frame4.side.points.shoulder, model.frame4.side.points.leftWrist);
   assert.equal(model.backswingFrames, undefined);
 });
@@ -105,7 +109,7 @@ test('shaft length and stance line calibrate normalized cross-view geometry inde
   const p = model.frame5.side.points;
   const expected = Math.hypot(p.pelvis.x - p.handMid.x, p.pelvis.y - p.handMid.y, p.pelvis.z - p.handMid.z) * model.frame5.side.scale;
   assert.ok(Math.abs(metrics.coreHandRadiusRaw - expected) < 1e-10);
-  assert.equal(metrics.spineAngleDeg, 12);
+  assert.equal(metrics.spineAngleDeg, null);
   assert.notEqual(metrics.shaftAngleDeg, 13);
   assert.notEqual(metrics.spineAngleDeg5, 14);
   assert.ok(Number.isFinite(metrics.shaftAngleDeg));
@@ -113,7 +117,7 @@ test('shaft length and stance line calibrate normalized cross-view geometry inde
   assert.ok(metrics.threePointSpreadRaw > 0);
 });
 
-test('large vertical differences between same-motion views are fused instead of blocking all results', () => {
+test('opposite vertical projections retain front reference height instead of averaging it away', () => {
   const c = setup();
   const entry = c.crossViewCorrectionData.entries.frame3;
   const frontHead = entry.frontPoints.find(point => point.type === 'clubHead');
@@ -139,7 +143,42 @@ test('large vertical differences between same-motion views are fused instead of 
   const front = project(frontHead, 'front', frontCalibration);
   const side = project(sideHead, 'side', sideCalibration);
   assert.ok(Math.abs(front.vertical - side.vertical) > 0.5);
-  assert.ok(Math.abs(model.frame3.front.points.clubHead.y - (front.vertical + side.vertical) / 2) < 1e-10);
+  assert.ok(Math.abs(model.frame3.side.points.clubHead.y - front.vertical) < 1e-10);
+});
+
+test('correction never replaces A reference poses and B positions stay in front-camera units', () => {
+  const c = setup(), model = c.getCrossCorrectionModel();
+  for (const frame of frames) {
+    const a = { c7NormX: 0.3, pelvisNormX: 0.4, lagAngleDeg6: 95 };
+    c.applyCrossCorrectionMetrics(a, model, frame, 'front');
+    assert.deepEqual(a, { c7NormX: 0.3, pelvisNormX: 0.4, lagAngleDeg6: 95 }, frame);
+    const b = {};
+    c.applyCrossCorrectionMetrics(b, model, frame, 'side');
+    const entry = model[frame].side;
+    const expected = c.computeFrameMetrics(entry.projectionPoints, [], frame, 1, 1, entry.aspect);
+    for (const key of ['c7NormX', 'c7NormY', 'pelvisNormX', 'hipNormY', 'bodyLength',
+      'c7NormX2', 'pelvisCenterNormX', 'kneeExtensionDeg', 'spineLen5',
+      'handX', 'handY', 'c7X', 'c7Y', 'pelvisX', 'pelvisY', 'c7NormX6', 'comNormX6']) {
+      assert.equal(b[key], expected[key], `${frame} ${key}`);
+    }
+    if (frame === 'frame6') {
+      assert.equal(b.rotRadius6, expected.rotRadius6);
+      assert.equal(b.lagAngleDeg6, expected.lagAngleDeg6);
+    }
+  }
+});
+
+test('shaft tilt cannot collapse when the side camera projects the clubhead on the opposite side vertically', () => {
+  const c = setup(), pair = c.crossViewCorrectionData.entries.frame5;
+  pair.frontPoints.find(p => p.type === 'handMid').y = 0.5;
+  pair.frontPoints.find(p => p.type === 'clubHead').y = 0.3;
+  pair.sidePoints.find(p => p.type === 'handMid').y = 0.5;
+  pair.sidePoints.find(p => p.type === 'clubHead').y = 0.7;
+  const model = c.getCrossCorrectionModel(), metrics = {};
+  c.applyCrossCorrectionMetrics(metrics, model, 'frame5', 'side');
+  const points = model.frame5.side.points;
+  assert.ok(Math.abs(points.clubHead.y - points.handMid.y) > 1);
+  assert.ok(metrics.shaftAngleDeg > 45);
 });
 
 test('frames with occluded landmarks remain uncorrected while complete frames are still fused', () => {
@@ -240,7 +279,7 @@ test('frame pairs allow independently aligned timestamps without a backswing che
   const model = c.getCrossCorrectionModel();
   const metrics = {};
   c.applyCrossCorrectionMetrics(metrics, model, 'frame1', 'side');
-  assert.equal(metrics.topShaftAngleDeg, undefined);
+  assert.ok(Number.isFinite(metrics.topShaftAngleDeg));
   assert.equal(model.frame1.side.points.topHandMid, undefined);
 });
 
@@ -306,6 +345,57 @@ function loadCalculators(c) {
   for (const method of ['updateAnalysisSection', 'updateSummary', 'updateComparisonSection', 'updateSegmentScoresDisplay',
     'updateAllFramesMetricBar', 'updateSwingNarrative', 'updateSegmentComparisonCard', 'showGuide']) c[method] = () => {};
 }
+
+test('real scoring preserves temporal movement evidence while correcting only matched B geometry', () => {
+  const c = setup(); loadCalculators(c);
+  for (const [index, frame] of frames.entries()) {
+    for (const point of c.frameStateHistory.side[frame].points) point.x += 0.06 + index * 0.01;
+    c.crossViewCorrectionData.entries[frame].frontPoints =
+      c.CROSS_CORRECTION_POINTS[frame].front.map(type => {
+        const sourceType = frame === 'frame1' && type === 'clubHead' ? 'clubHeadTop' : type;
+        const point = c.frameStateHistory.side[frame].points.find(p => p.type === sourceType);
+        assert.ok(point, `${frame} ${sourceType}`);
+        return { ...point, type };
+      });
+  }
+  c.crossViewCorrectionData.analysisSignature = c.getCrossCorrectionAnalysisSignature();
+  const original = JSON.stringify(c.frameStateHistory);
+  const classify = c.classifySwingType;
+  const deltas = [];
+  c.classifySwingType = () => {
+    deltas.push(structuredClone(c.segmentDeltaHistory));
+    return classify();
+  };
+  c.computing2dCorrectionScenario = false;
+  const rolled = c.get2dVirtualCorrectionScenario();
+  const crossed = c.getCrossCorrectionScenario();
+  assert.equal(rolled.unavailable, undefined);
+  assert.equal(crossed.unavailable, undefined);
+  assert.ok(crossed.engineShares.type2 > 0, 'real F2 movement must not become zero LSE');
+  const fields = {
+    frame1: ['spineAngleDelta', 'xFactorDelta', 'c7XPercent', 'c7YPercent'],
+    frame2: ['pelvisLateralDelta', 'c7LateralDelta2', 'laggingAngleDelta'],
+    frame3: ['kneeExtDelta', 'leadHipRiseBodyPercent', 'c7RisePercent'],
+    frame4: ['armShaftDelta', 'c7XPercent', 'c7YPercent'],
+    frame5: ['handOffsetDelta', 'handAlongDelta', 'c7SwayRatio', 'c7RiseRatio', 'pelvisShiftRatio'],
+    frame6: ['timeDeltaSec', 'releaseIndex', 'lagAngleA6', 'sequenceIndex', 'pelvisNetP6', 'c7NetP7', 'c7TopShift6'],
+  };
+  for (const [frame, keys] of Object.entries(fields)) {
+    for (const key of keys) {
+      assert.ok(Math.abs(deltas[0][frame].fm[key] - deltas[1][frame].fm[key]) < 1e-10, `${frame} ${key}`);
+    }
+  }
+  assert.equal(JSON.stringify(c.frameStateHistory), original);
+  for (const pair of Object.values(c.crossViewCorrectionData.entries)) {
+    pair.frontTime += 13;
+    pair.sideTime += 29;
+  }
+  c.cached2dCorrectionScenarioKey = null;
+  const independentTimes = c.getCrossCorrectionScenario();
+  assert.deepEqual(independentTimes.scores, crossed.scores);
+  assert.deepEqual(independentTimes.engineShares, crossed.engineShares,
+    'independent file timestamps must not change scores for the same selected motion');
+});
 
 test('real scoring pipeline recalculates all frames while preserving official state', () => {
   const c = setup(); loadCalculators(c);

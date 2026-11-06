@@ -133,9 +133,16 @@ function getCrossCorrectionModel() {
     if (!isProjectCoordinate(point)) crossCorrectionError('유효하지 않은 공통 포인트 좌표입니다.', 'Invalid common-landmark coordinates.');
     const dx = (point.x - calibration.bottom.x) * calibration.aspect;
     const dy = point.y - calibration.bottom.y;
-    return { horizontal: (dx * -calibration.uy + dy * calibration.ux) / calibration.length,
-      vertical: (dx * calibration.ux + dy * calibration.uy) / calibration.length };
+    const cosine = Math.cos(calibration.roll), sine = Math.sin(calibration.roll);
+    return { horizontal: (dx * cosine + dy * sine) / calibration.length,
+      vertical: (dx * sine - dy * cosine) / calibration.length };
   };
+  for (const view of ['front', 'side']) {
+    const reference = data.references[view];
+    calibrations[view].roll = getStanceCorrectionAngle({
+      start: reference.stancePoints[0], end: reference.stancePoints[1],
+    }, reference.aspect);
+  }
   for (const frame of CROSS_CORRECTION_FRAMES) {
     const entry = data.entries[frame];
     if (Math.abs(entry.frontAspect - front.aspect) > 0.001 || Math.abs(entry.sideAspect - side.aspect) > 0.001) {
@@ -159,18 +166,24 @@ function getCrossCorrectionModel() {
       const b = entry.sidePoints.find(point => point.type === type);
       if (!a || !b) crossCorrectionError(`${frame.replace('frame', 'F')} ${type}: 양쪽 공통 포인트를 지정하세요.`, `${frame.replace('frame', 'F')} ${type}: mark the common landmark in both videos.`);
       const pa = project(a, front), pb = project(b, side);
-      points[type] = { x: pa.horizontal, y: (pa.vertical + pb.vertical) / 2, z: pb.horizontal };
+      // Camera pitch can reverse apparent shaft height; do not average incompatible vertical projections.
+      points[type] = { x: pa.horizontal, y: pa.vertical, z: pb.horizontal };
     }
-    model[frame] = {};
-    for (const [index, panel] of ['front', 'side'].entries()) {
-      const p = { ...points };
-      const aliases = frame === 'frame1'
-        ? { c7: p.wrist }
-        : frame === 'frame3' ? { hip: p.wrist, knee: p.club, ankle: p.shoulder, c7: p.pelvis }
-        : frame === 'frame4' ? { c7: p.wrist, pelvisCenter: p.pelvisCenter, clubHead: p.pelvis, leftShoulder: p.club, leftWrist: p.shoulder }
-        : {};
-      model[frame][panel] = { points: { ...p, ...aliases }, scale: front.length, headScale: true };
-    }
+    const aliases = frame === 'frame1'
+      ? { c7: points.wrist }
+      : frame === 'frame3' ? { hip: points.wrist, knee: points.club, ankle: points.shoulder, c7: points.pelvis }
+      : frame === 'frame4' ? { c7: points.wrist, clubHead: points.pelvis, leftShoulder: points.club, leftWrist: points.shoulder }
+      : {};
+    const cosine = Math.cos(front.roll), sine = Math.sin(front.roll);
+    const projectionPoints = entry.frontPoints.map(point => {
+      const x = (point.x - 0.5) * front.aspect, y = point.y - 0.5;
+      return { ...point, type: frame === 'frame1' && point.type === 'clubHead' ? 'clubHeadTop' : point.type,
+        x: (cosine * x + sine * y) / front.aspect + 0.5,
+        y: -sine * x + cosine * y + 0.5 };
+    });
+    // A is address / pre-impact / P6; the matched pair contains only the B action.
+    model[frame] = { side: { points: { ...points, ...aliases }, projectionPoints,
+      aspect: front.aspect, scale: front.length } };
     model.correctedFrames.push(frame);
   }
   return model;
@@ -179,6 +192,12 @@ function getCrossCorrectionModel() {
 function applyCrossCorrectionMetrics(metrics, model, frame, panel) {
   if (!model[frame]?.[panel]) return;
   const entry = model[frame][panel], p = entry.points, scale = entry.scale;
+  // Temporal displacement must remain in the same front-camera coordinates as the unmodified A input.
+  const projected = computeFrameMetrics(entry.projectionPoints, [], frame, 1, 1, entry.aspect);
+  Object.assign(metrics, projected);
+  metrics.crossCorrected = true;
+  // There is no matched side-camera P6 pair: keep both P6→P7 release radii in the front projection.
+  if (frame === 'frame6') return;
   const distance = (a, b) => crossCorrectionLength(crossCorrectionVector(a, b));
   const core = ['frame3', 'frame4'].includes(frame) ? p.pelvisCenter : p.pelvis;
   const c7 = ['frame1', 'frame4'].includes(frame) ? p.wrist : p.c7;
@@ -188,7 +207,6 @@ function applyCrossCorrectionMetrics(metrics, model, frame, panel) {
     if (metrics.coreHandRadiusRaw < 1e-6) crossCorrectionError(`${frame}: 골반과 양손 중심이 겹칩니다.`, `${frame}: pelvis and hand center overlap.`);
     metrics.swingRadiusRaw = metrics.coreHandRadiusRaw;
     if (frame === 'frame4') metrics.rMaxNorm = metrics.coreHandRadiusRaw;
-    if (frame === 'frame6') metrics.rotRadius6 = metrics.coreHandRadiusRaw;
   }
   if (core && hand && c7) {
     const center = { x: (core.x + hand.x + c7.x) / 3, y: (core.y + hand.y + c7.y) / 3,
@@ -196,85 +214,27 @@ function applyCrossCorrectionMetrics(metrics, model, frame, panel) {
     metrics.threePointSpreadRaw = Math.sqrt([core, hand, c7].reduce((sum, point) =>
       sum + distance(center, point) ** 2, 0) / 3) * scale;
   }
-  if (frame === 'frame1') {
-    if (p.wrist && p.pelvis) {
-      metrics.spineAngleDeg = Math.atan2(Math.hypot(p.pelvis.x - p.wrist.x, p.pelvis.z - p.wrist.z),
-        Math.abs(p.pelvis.y - p.wrist.y)) * 180 / Math.PI;
-      metrics.c7NormX = p.wrist.x;
-      metrics.c7NormY = p.wrist.y;
-      metrics.pelvisNormX = p.pelvis.x;
-    }
-    if (p.club && p.shoulder) {
-      const dx = p.shoulder.x - p.club.x, dy = p.shoulder.y - p.club.y, dz = p.shoulder.z - p.club.z;
-      const shoulderWidth = Math.hypot(dx, dz);
-      metrics.xFactorDeg = -Math.atan2(dy, shoulderWidth) * 180 / Math.PI;
-      metrics.shoulderHorzWidth = Math.hypot(dx, dz);
-      metrics.shoulderVertDiff = Math.abs(dy);
-      metrics.shoulderTotalDist = distance(p.club, p.shoulder);
-    }
-    if (p.topHandMid && p.clubHeadTop) metrics.topShaftAngleDeg = Math.atan2(
-      p.topHandMid.y - p.clubHeadTop.y, Math.abs(p.topHandMid.z - p.clubHeadTop.z)) * 180 / Math.PI;
-  }
   if (frame === 'frame2') {
+    metrics.projectedLaggingAngleDeg = metrics.laggingAngleDeg;
     metrics.laggingAngleDeg = crossCorrectionAngle(p.shoulder, hand, p.club);
-    metrics.torsoRefDist = distance(p.shoulder, p.pelvis) * scale;
-    metrics.pelvisNormX = p.pelvis.x;
-    metrics.c7NormX2 = p.c7.x;
   }
   if (frame === 'frame3' && p.hip && p.knee && p.ankle) {
-    metrics.kneeExtensionDeg = crossCorrectionAngle(p.hip, p.knee, p.ankle);
     const legLength = distance(p.hip, p.ankle);
     metrics.leadLegBraceRatio = legLength > 0.0005
       ? Math.hypot(p.knee.x - p.ankle.x, p.knee.z - p.ankle.z) / legLength : null;
-    metrics.hipNormY = p.hip.y;
-    metrics.c7NormX = p.pelvis.x;
-    metrics.c7NormY = p.pelvis.y;
-    const bodyLength = distance(p.ankle, p.pelvis);
-    metrics.bodyLength = bodyLength > 0.0005 ? bodyLength : null;
   }
   if (frame === 'frame4' && p.club && p.shoulder && p.pelvis) {
+    metrics.projectedArmShaftAngleDeg = metrics.armShaftAngleDeg;
+    metrics.projectedRMaxNorm = projected.rMaxNorm;
     metrics.armShaftAngleDeg = crossCorrectionAngle(p.club, p.shoulder, p.pelvis);
     metrics.armShaftMissingReason = null;
-    metrics.lateralLeanAngle = Math.atan2(p.club.x - p.wrist.x, Math.abs(p.club.y - p.wrist.y)) * 180 / Math.PI;
-    metrics.c7NormX = p.wrist.x;
-    metrics.c7NormY = p.wrist.y;
-    metrics.pelvisCenterNormX = p.pelvisCenter.x;
   }
   if (frame === 'frame5') {
-    const spine = crossCorrectionVector(p.c7, p.pelvis);
-    const spineLength = crossCorrectionLength(spine);
-    if (spineLength > 0.0005) {
-      const unit = { x: spine.x / spineLength, y: spine.y / spineLength, z: spine.z / spineLength };
-      const handOffset = crossCorrectionVector(p.c7, hand);
-      const along = handOffset.x * unit.x + handOffset.y * unit.y + handOffset.z * unit.z;
-      const handDistance = crossCorrectionLength(handOffset);
-      const cross = handOffset.x * unit.y - handOffset.y * unit.x;
-      metrics.spineLen5 = spineLength * scale;
-      metrics.handAlongRatio = along / spineLength;
-      metrics.handOffsetRatio = Math.sign(cross || handOffset.z * unit.y) *
-        Math.sqrt(Math.max(0, handDistance ** 2 - along ** 2)) / spineLength;
-      metrics.spineAngleDeg5 = Math.atan2(Math.hypot(spine.x, spine.z), Math.abs(spine.y)) * 180 / Math.PI;
-      metrics.handX = hand.x * scale;
-      metrics.handY = hand.y * scale;
-      metrics.c7X = p.c7.x * scale;
-      metrics.c7Y = p.c7.y * scale;
-      metrics.pelvisX = p.pelvis.x * scale;
-      metrics.pelvisY = p.pelvis.y * scale;
-    }
     if (hand && p.clubHead) metrics.shaftAngleDeg = Math.atan2(
       Math.abs(p.clubHead.y - hand.y),
       Math.hypot(p.clubHead.x - hand.x, p.clubHead.z - hand.z)) * 180 / Math.PI;
     metrics.lagAngleDeg5 = 180 - crossCorrectionAngle(p.c7, hand, p.clubHead);
   }
-  if (frame === 'frame6') {
-    metrics.lagAngleDeg6 = crossCorrectionAngle(p.c7, hand, p.clubHead);
-    metrics.c7NormX6 = p.c7.x;
-    metrics.comNormX6 = p.pelvis.x;
-    metrics.sideBendDeg6 = Math.atan2(
-      Math.hypot(p.pelvis.x - p.c7.x, p.pelvis.z - p.c7.z),
-      Math.abs(p.pelvis.y - p.c7.y)) * 180 / Math.PI;
-  }
-  metrics.crossCorrected = true;
 }
 
 function getCrossCorrectionScenario() {

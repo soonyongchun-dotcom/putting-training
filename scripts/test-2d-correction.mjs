@@ -159,6 +159,7 @@ test('virtual analysis does not render cards, narratives, summary or analysis se
     assert.doesNotThrow(() => c[name](), name);
   }
   load(c, 'updateSegmentScoresDisplay');
+  load(c, 'syncSegmentScoreSnapshots');
   c.segmentScoreHistory = {};
   assert.doesNotThrow(() => c.updateSegmentScoresDisplay());
 });

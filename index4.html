@@ -2416,6 +2416,7 @@
             </div>
           </div>
           <p>지면선·샤프트 기준 선택 시 양쪽 영상의 저장된 어드레스로 이동합니다. 저장된 어드레스가 없으면 직접 맞추세요. 각 영상에서 지면선 2점과 샤프트 양 끝점 2점을 선택하고 보정 기준을 저장하면 F1부터 표시합니다.</p>
+          <p>교차 보정은 B 동작의 반경·래깅·임팩트 정렬 등에 실험적 결합 기하를 적용합니다. A 기준 자세는 유지하며, A→B 이동·각도 변화와 F6 P6→P7 비교는 같은 정면 투영 좌표로 계산합니다. 높이는 정면을 기준으로 사용하고 두 영상의 높이를 평균하지 않습니다. 영상별 시각은 달라도 되며 실제 동작을 맞추세요. 카메라 교정에 의한 실제 3D 복원은 아닙니다.</p>
           <p class="cross-correction-partial-note">각 영상의 ‘찍을 점’에서 원하는 지점을 선택한 뒤 영상에 표시하세요. 가려져 보이지 않는 점은 건너뛰어도 됩니다. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다.</p>
           <div class="cross-correction-videos">
             <div class="cross-correction-video-card">
@@ -2659,6 +2660,7 @@
     '현재 두 시점 대응 확인·저장': 'Save Matched Front and Side Frames',
     '현재 프레임 점 다시 선택': 'Reselect Current Frame Points',
     '마지막 입력점 취소': 'Undo Last Entered Point',
+    '교차 보정은 B 동작의 반경·래깅·임팩트 정렬 등에 실험적 결합 기하를 적용합니다. A 기준 자세는 유지하며, A→B 이동·각도 변화와 F6 P6→P7 비교는 같은 정면 투영 좌표로 계산합니다. 높이는 정면을 기준으로 사용하고 두 영상의 높이를 평균하지 않습니다. 영상별 시각은 달라도 되며 실제 동작을 맞추세요. 카메라 교정에 의한 실제 3D 복원은 아닙니다.': 'Cross correction applies experimental combined geometry to B-action radii, lag and impact alignment. A reference poses are preserved; A-to-B movement and angle changes and F6 P6-to-P7 comparisons stay in the same front projection. Height uses the front view, not an average of both cameras. Video timestamps may differ; match the actual motion. This is not calibrated 3D reconstruction.',
     '지면선·샤프트 기준 선택 시 양쪽 영상의 저장된 어드레스로 이동합니다. 저장된 어드레스가 없으면 직접 맞추세요. 각 영상에서 지면선 2점과 샤프트 양 끝점 2점을 선택하고 보정 기준을 저장하면 F1부터 표시합니다.': 'Selecting ground/shaft references seeks both videos to their saved address poses. If no address is saved, align it manually. Mark 2 ground points and 2 shaft endpoints in each video, then save calibration to return to F1.',
     '정면·측면 중 마지막으로 찍은 점을 되돌립니다. 저장한 입력은 바뀌지 않습니다.': 'Undo the most recently marked point in either view. Saved inputs remain unchanged.',
     '정면·측면 프레임 저장': 'Save Matched Front and Side Frames',
@@ -6364,7 +6366,8 @@
           referencePositionX(fmA.pelvisNormX, 'front'), referencePositionX(fmB.pelvisNormX, 'side'))
         : null;
     } else if (segment === 'frame2') {
-      fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg, fmB.laggingAngleDeg);
+      fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg,
+        fmB.projectedLaggingAngleDeg ?? fmB.laggingAngleDeg);
       fm.laggingAngleBDeg    = fmB.laggingAngleDeg ?? null; // B프레임(다운스윙) 실제 래깅각
       const frame1History = frameMetricsHistory['frame1'];
       fm.radiusTop = frame1History && hasMetric(frame1History._coreHandRadiusB) ? frame1History._coreHandRadiusB : null;
@@ -6433,15 +6436,16 @@
       fm.c7AddressDriftDirectional3 = c7Drift3.directional;
       fm._groundForce = computeGroundForceTransitionReport(fm);
     } else if (segment === 'frame4') {
-      fm.rMaxNormDelta = computeMetricDelta(referenceRatio(fmA.rMaxNorm, 'front'), referenceRatio(fmB.rMaxNorm, 'side'));
+      fm.rMaxNormDelta = computeMetricDelta(referenceRatio(fmA.rMaxNorm, 'front'),
+        referenceRatio(fmB.projectedRMaxNorm ?? fmB.rMaxNorm, 'side'));
       const frame2History = frameMetricsHistory['frame2'];
       fm.radiusF2 = frame2History && hasMetric(frame2History._swingRadiusB) ? frame2History._swingRadiusB : null;
       fm.radiusCurrent = hasMetric(fmB.swingRadius) ? fmB.swingRadius : null;
       fm.radiusExpansionRatio = (fm.radiusF2 != null && fm.radiusF2 > 0 && fm.radiusCurrent != null)
         ? (fm.radiusCurrent - fm.radiusF2) / fm.radiusF2 : null;
       // armShaftDelta: B - A (임팩트각 - 어드레스각) → 양수 = 각도 증가 = 팔-샤프트 직선화(릴리즈) = 좋음
-      fm.armShaftDelta     = fmA.armShaftAngleDeg != null && fmB.armShaftAngleDeg != null
-        ? fmB.armShaftAngleDeg - fmA.armShaftAngleDeg : null;
+      fm.armShaftDelta = computeMetricDelta(fmA.armShaftAngleDeg,
+        fmB.projectedArmShaftAngleDeg ?? fmB.armShaftAngleDeg);
       fm.armShaftAngleBDeg = hasMetric(fmB.armShaftAngleDeg) ? fmB.armShaftAngleDeg : null;
       fm.armShaftMissingA = hasMetric(fmA.armShaftAngleDeg) ? null : fmA.armShaftMissingReason || 'missingPoints';
       fm.armShaftMissingB = hasMetric(fmB.armShaftAngleDeg) ? null : fmB.armShaftMissingReason || 'missingPoints';
