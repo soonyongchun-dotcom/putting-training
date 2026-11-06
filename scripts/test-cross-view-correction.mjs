@@ -199,6 +199,118 @@ test('frames with occluded landmarks remain uncorrected while complete frames ar
   assert.deepEqual(metrics, { coreHandRadiusRaw: 0.123 }, 'missing points never produce guessed corrected metrics');
 });
 
+function hidePoints(c, frame, view, types) {
+  const pair = c.crossViewCorrectionData.entries[frame];
+  pair[`${view}Points`] = pair[`${view}Points`].filter(point => !types.includes(point.type));
+  pair[`${view}Hidden`] = [...types];
+}
+
+test('a hidden unrelated point cannot disable cross-view radius and spread corrections elsewhere', () => {
+  for (const [frame, type] of [['frame1', 'clubHead'], ['frame2', 'shoulder'], ['frame5', 'clubHead'], ['frame6', 'c7']]) {
+    const c = setup();
+    const before = c.getCrossCorrectionModel(), expected = {};
+    c.applyCrossCorrectionMetrics(expected, before, 'frame3', 'side');
+    hidePoints(c, frame, 'side', [type]);
+    const after = c.getCrossCorrectionModel(), actual = {};
+    c.applyCrossCorrectionMetrics(actual, after, 'frame3', 'side');
+    assert.equal(after.geometryBasis.radius, 'cross', `${frame} radius`);
+    assert.equal(after.geometryBasis.spread, 'cross', `${frame} spread`);
+    assert.equal(actual.coreHandRadiusRaw, expected.coreHandRadiusRaw);
+    assert.equal(actual.threePointSpreadRaw, expected.threePointSpreadRaw);
+  }
+});
+
+test('missing C7 changes only temporal spread basis, preserving radius and unrelated angles', () => {
+  const c = setup(), before = c.getCrossCorrectionModel(), expected = {};
+  c.applyCrossCorrectionMetrics(expected, before, 'frame2', 'side');
+  hidePoints(c, 'frame2', 'side', ['c7']);
+  const after = c.getCrossCorrectionModel(), actual = {};
+  c.applyCrossCorrectionMetrics(actual, after, 'frame2', 'side');
+  assert.equal(after.geometryBasis.radius, 'cross');
+  assert.equal(after.geometryBasis.spread, 'front');
+  assert.equal(actual.coreHandRadiusRaw, expected.coreHandRadiusRaw);
+  assert.equal(actual.laggingAngleDeg, expected.laggingAngleDeg);
+  for (const frame of ['frame1', 'frame2', 'frame3', 'frame4']) {
+    const metrics = {}, entry = after[frame].side;
+    c.applyCrossCorrectionMetrics(metrics, after, frame, 'side');
+    const projected = c.computeFrameMetrics(entry.projectionPoints, [], frame, 1, 1, entry.aspect);
+    assert.equal(metrics.threePointSpreadRaw, projected.threePointSpreadRaw, frame);
+  }
+});
+
+test('a missing temporal radius endpoint never mixes projected and combined lengths across phases', () => {
+  const c = setup();
+  hidePoints(c, 'frame3', 'side', ['handMid']);
+  const model = c.getCrossCorrectionModel();
+  assert.equal(model.geometryBasis.radius, 'front');
+  assert.equal(model.geometryBasis.spread, 'front');
+  for (const frame of ['frame1', 'frame2', 'frame3', 'frame4']) {
+    const metrics = {}, entry = model[frame].side;
+    c.applyCrossCorrectionMetrics(metrics, model, frame, 'side');
+    const projected = c.computeFrameMetrics(entry.projectionPoints, [], frame, 1, 1, entry.aspect);
+    assert.equal(metrics.coreHandRadiusRaw, projected.coreHandRadiusRaw, frame);
+  }
+  const metrics = {};
+  c.applyCrossCorrectionMetrics(metrics, model, 'frame5', 'side');
+  const p = model.frame5.side.points;
+  assert.equal(metrics.coreHandRadiusRaw,
+    Math.hypot(p.handMid.x - p.pelvis.x, p.handMid.y - p.pelvis.y, p.handMid.z - p.pelvis.z) * model.frame5.side.scale);
+});
+
+test('one visible view supplies absolute angles, but never cross-camera temporal displacement', () => {
+  const c = setup();
+  hidePoints(c, 'frame2', 'front', ['handMid', 'club', 'shoulder', 'pelvis', 'c7']);
+  const model = c.getCrossCorrectionModel(), metrics = { pelvisNormX: 123, c7NormX2: 456 };
+  c.applyCrossCorrectionMetrics(metrics, model, 'frame2', 'side');
+  const projected = c.computeFrameMetrics(model.frame2.side.sideProjectionPoints, [], 'frame2', 1, 1, 1);
+  assert.equal(metrics.laggingAngleDeg, projected.laggingAngleDeg);
+  assert.ok(Number.isFinite(metrics.laggingAngleDeg));
+  assert.equal(metrics.pelvisNormX, undefined, 'must remove original hidden coordinates');
+  assert.equal(metrics.c7NormX2, undefined);
+  assert.equal(metrics.projectedLaggingAngleDeg, null, 'side-only angle cannot be subtracted from front A');
+  assert.equal(model.projectedRadii, true);
+  assert.equal(model.visibility.frame2.side, 5);
+  assert.equal(model.retainedFrames.includes('frame2'), false);
+});
+
+test('front-only points use front geometry without retaining original scores or guessing depth', () => {
+  const c = setup();
+  hidePoints(c, 'frame5', 'side', [...c.CROSS_CORRECTION_POINTS.frame5.side]);
+  const model = c.getCrossCorrectionModel(), metrics = {};
+  c.applyCrossCorrectionMetrics(metrics, model, 'frame5', 'side');
+  const projected = c.computeFrameMetrics(model.frame5.side.projectionPoints, [], 'frame5', 1, 1, 1);
+  assert.equal(metrics.shaftAngleDeg, projected.shaftAngleDeg);
+  assert.equal(metrics.lagAngleDeg5, projected.lagAngleDeg5);
+  assert.equal(metrics.coreHandRadiusRaw, projected.coreHandRadiusRaw);
+  assert.equal(model.visibility.frame5.front, 4);
+  assert.deepEqual(Object.keys(model.frame5.side.points), []);
+});
+
+test('angles require all landmarks in one clear view and never mix unrelated visible endpoints', () => {
+  const c = setup();
+  hidePoints(c, 'frame4', 'front', ['pelvis']);
+  hidePoints(c, 'frame4', 'side', ['club']);
+  const model = c.getCrossCorrectionModel(), metrics = { armShaftAngleDeg: 170 };
+  c.applyCrossCorrectionMetrics(metrics, model, 'frame4', 'side');
+  assert.equal(metrics.armShaftAngleDeg, null);
+  assert.equal(metrics.armShaftMissingReason, 'missingPoints');
+});
+
+test('visibility persistence rejects unknown, duplicate, overlapping or incomplete all-hidden input', () => {
+  const c = setup();
+  for (const hidden of [['invalid'], ['c7', 'c7'], 'c7', ['c7']]) {
+    const data = structuredClone(c.crossViewCorrectionData);
+    data.entries.frame5.frontHidden = hidden;
+    assert.equal(c.validateCrossCorrectionData(data), false);
+  }
+  const data = structuredClone(c.crossViewCorrectionData);
+  data.entries.frame5.frontPoints = [];
+  data.entries.frame5.frontHidden = ['c7'];
+  assert.equal(c.validateCrossCorrectionData(data), false);
+  data.entries.frame5.frontHidden = [...c.CROSS_CORRECTION_POINTS.frame5.front];
+  assert.equal(c.validateCrossCorrectionData(data), true);
+});
+
 test('independent source scales produce equal fused geometry and the same front-unit length', () => {
   const c = setup(), before = c.getCrossCorrectionModel();
   for (const view of ['front', 'side']) {
@@ -420,6 +532,53 @@ test('real scoring pipeline recalculates all frames while preserving official st
   assert.equal(c.crossCorrectionContext, null);
 });
 
+test('all-hidden frames withhold scores and engine classification without falling back to original points', () => {
+  const c = setup(); loadCalculators(c);
+  for (const frame of frames) {
+    for (const view of ['front', 'side']) {
+      hidePoints(c, frame, view, [...c.CROSS_CORRECTION_POINTS[frame][view]]);
+    }
+  }
+  c.computing2dCorrectionScenario = false;
+  const original = JSON.stringify([c.frameStateHistory, c.segmentScoreHistory, c.crossViewCorrectionData]);
+  const result = c.getCrossCorrectionScenario();
+  assert.equal(result.unavailable, undefined);
+  for (const frame of frames) assert.equal(result.scores[frame], null, frame);
+  assert.equal(result.engineShares, null);
+  assert.equal(result.engineCode, null);
+  assert.ok(result.engineMissing.length > 0);
+  assert.equal(JSON.stringify([c.frameStateHistory, c.segmentScoreHistory, c.crossViewCorrectionData]), original);
+});
+
+test('skipping an unused side F6 point preserves corrected scores instead of reverting to roll-only scores', () => {
+  const c = setup(); loadCalculators(c);
+  c.computing2dCorrectionScenario = false;
+  const rolled = c.get2dVirtualCorrectionScenario();
+  const before = c.getCrossCorrectionScenario();
+  assert.equal(before.unavailable, undefined);
+  assert.notDeepEqual(before.scores, rolled.scores);
+  hidePoints(c, 'frame6', 'side', ['clubHead']);
+  const after = c.getCrossCorrectionScenario();
+  assert.equal(after.unavailable, undefined);
+  assert.deepEqual(after.scores, before.scores);
+  assert.deepEqual(after.engineShares, before.engineShares);
+  assert.notDeepEqual(after.scores, rolled.scores);
+});
+
+test('side-only F5 angles are scored while an entirely hidden shaft cannot receive a path-only score', () => {
+  const c = setup(); loadCalculators(c);
+  hidePoints(c, 'frame5', 'front', [...c.CROSS_CORRECTION_POINTS.frame5.front]);
+  c.computing2dCorrectionScenario = false;
+  const result = c.getCrossCorrectionScenario();
+  assert.equal(result.unavailable, undefined);
+  assert.ok(Number.isFinite(result.scores.frame5));
+  hidePoints(c, 'frame5', 'side', ['handMid', 'clubHead']);
+  c.cached2dCorrectionScenarioKey = null;
+  const hidden = c.getCrossCorrectionScenario();
+  assert.equal(hidden.unavailable, undefined);
+  assert.equal(hidden.scores.frame5, null);
+});
+
 test('calculator failure restores original references and clears correction context', () => {
   const c = setup(); loadCalculators(c);
   const original = c.frameStateHistory;
@@ -494,6 +653,121 @@ test('undo removes only the most recent point across views and restores the sele
   assert.equal(element('crossCorrectionFrontPointType').value, 'wrist');
   assert.equal(element('crossCorrectionUndo').disabled, true);
   assert.deepEqual(structuredClone(c.crossViewCorrectionData.entries), saved);
+});
+
+test('not-visible replaces an existing point, advances, and is reversible without changing saved data', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source' };
+  files.side = { id: 'independent-side-source' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  fire('FrontVideo', 'seeked');
+  const saved = structuredClone(c.crossViewCorrectionData.entries);
+  element('crossCorrectionFrontPointType').value = 'wrist';
+  fire('FrontHidden', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면 5\/6:.*안 보임 1/);
+  assert.equal(element('crossCorrectionFrontPointType').value, '');
+  assert.ok(element('crossCorrectionFrontPointType').options.some(option => /안 보임/.test(option.textContent)));
+  fire('Undo', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면 6\/6:/);
+  assert.doesNotMatch(element('crossCorrectionStatus').textContent, /안 보임 1/);
+  assert.equal(element('crossCorrectionFrontPointType').value, 'wrist');
+  assert.deepEqual(structuredClone(c.crossViewCorrectionData.entries), saved);
+});
+
+test('not-visible advances through all points, persists empty-view input, and restores after JSON reload', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source' };
+  files.side = { id: 'independent-side-source' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  fire('Points', 'click');
+  const types = c.CROSS_CORRECTION_POINTS.frame1.front;
+  for (const type of types) {
+    assert.equal(element('crossCorrectionFrontPointType').value, type);
+    fire('FrontHidden', 'click');
+  }
+  for (const type of c.CROSS_CORRECTION_POINTS.frame1.side) {
+    element('crossCorrectionSidePointType').value = type;
+    fire('SideCanvas', 'click', { clientX: 120, clientY: 180 });
+  }
+  assert.match(element('crossCorrectionStatus').textContent, /측면만 6/);
+  assert.equal(element('crossCorrectionFrontHidden').disabled, true);
+  fire('Capture', 'click');
+  assert.equal(c.crossViewCorrectionData.entries.frame1.frontPoints.length, 0);
+  assert.deepEqual(Array.from(c.crossViewCorrectionData.entries.frame1.frontHidden), Array.from(types));
+  assert.equal(c.validateCrossCorrectionData(c.crossViewCorrectionData), true);
+  c.crossViewCorrectionData = JSON.parse(JSON.stringify(c.crossViewCorrectionData));
+  element('crossCorrectionFrame').value = 'frame1';
+  fire('Frame', 'change');
+  fire('FrontVideo', 'seeked');
+  fire('SideVideo', 'seeked');
+  assert.match(element('crossCorrectionStatus').textContent, /안 보임 6/);
+  element('crossCorrectionFrontPointType').value = 'wrist';
+  fire('FrontCanvas', 'click', { clientX: 100, clientY: 150 });
+  assert.match(element('crossCorrectionStatus').textContent, /양쪽 명확 1/);
+  fire('Capture', 'click');
+  assert.equal(c.crossViewCorrectionData.entries.frame1.frontHidden.includes('wrist'), false);
+  assert.equal(c.crossViewCorrectionData.entries.frame1.frontPoints.length, 1);
+});
+
+test('both-hidden inputs can be saved but cannot skip ground and shaft calibration', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source' };
+  files.side = { id: 'independent-side-source' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  fire('Reference', 'click');
+  assert.equal(element('crossCorrectionFrontHidden').disabled, true);
+  assert.equal(element('crossCorrectionSideHidden').disabled, true);
+  fire('FrontHidden', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /지면선 0\/2/);
+  fire('Points', 'click');
+  for (const view of ['Front', 'Side']) {
+    for (const type of c.CROSS_CORRECTION_POINTS.frame1[view.toLowerCase()]) {
+      element(`crossCorrection${view}PointType`).value = type;
+      fire(`${view}Hidden`, 'click');
+    }
+  }
+  assert.match(element('crossCorrectionStatus').textContent, /양쪽 안 보임 6/);
+  fire('Capture', 'click');
+  assert.equal(c.crossViewCorrectionData.entries.frame1.frontPoints.length, 0);
+  assert.equal(c.crossViewCorrectionData.entries.frame1.sidePoints.length, 0);
+  assert.equal(c.validateCrossCorrectionData(c.crossViewCorrectionData), true);
+});
+
+test('a manually selected independent video restores both marked and hidden points from its own saved pair', () => {
+  const { c, element, fire } = setupEditor();
+  fire('FrontFile', 'change', { target: { files: [{ id: 'front-source' }] } });
+  fire('SideFile', 'change', { target: { files: [{ id: 'manual-independent-side' }] } });
+  c.crossViewCorrectionData.entries.frame1 = {
+    frontPoints: [{ type: 'wrist', x: 0.2, y: 0.3 }],
+    sidePoints: [{ type: 'wrist', x: 0.4, y: 0.3 }],
+    frontHidden: ['club'], sideHidden: ['club'],
+    frontTime: 2, sideTime: 5, frontAspect: 1, sideAspect: 1,
+  };
+  fire('Frame', 'change');
+  fire('FrontVideo', 'seeked');
+  fire('SideVideo', 'seeked');
+  assert.match(element('crossCorrectionStatus').textContent, /측면 1\/6:.*안 보임 1/);
+  assert.match(element('crossCorrectionStatus').textContent, /양쪽 명확 1/);
+});
+
+test('not-visible state is cleared on seeking, replay, frame reset and source replacement', () => {
+  const { element, fire } = setupEditor();
+  fire('Points', 'click');
+  fire('FrontHidden', 'click');
+  fire('FrontVideo', 'seeked');
+  assert.doesNotMatch(element('crossCorrectionStatus').textContent, /안 보임 1/);
+  fire('FrontHidden', 'click');
+  fire('FrontVideo', 'play');
+  assert.doesNotMatch(element('crossCorrectionStatus').textContent, /안 보임 1/);
+  fire('FrontHidden', 'click');
+  fire('Points', 'click');
+  assert.doesNotMatch(element('crossCorrectionStatus').textContent, /안 보임 1/);
+  fire('FrontHidden', 'click');
+  fire('FrontFile', 'change', { target: { files: [{ id: 'new-source' }] } });
+  assert.doesNotMatch(element('crossCorrectionStatus').textContent, /안 보임 1/);
 });
 
 test('undo restores the prior position when an existing point is replaced', () => {
@@ -951,9 +1225,24 @@ test('calculate identifies unsaved frames and tells the user to save selected la
   const before = updates();
   fire('Calculate', 'click');
   assert.match(element('crossCorrectionStatus').textContent, /저장되지 않은 분석 프레임: F1, F2, F3, F4, F5, F6/);
-  assert.match(element('crossCorrectionStatus').textContent, /정면·측면 프레임 저장/);
+  assert.match(element('crossCorrectionStatus').textContent, /선택한 점 저장/);
   assert.equal(c.crossCorrectionMode, 'roll');
   assert.equal(updates(), before + 1);
+});
+
+test('incomplete saved project lists calibration and F5-F6 without clearing F1-F4 visibility inputs', () => {
+  const { c, element, fire } = setupEditor();
+  delete c.crossViewCorrectionData.calibration;
+  c.crossViewCorrectionData.references = {};
+  delete c.crossViewCorrectionData.entries.frame5;
+  delete c.crossViewCorrectionData.entries.frame6;
+  hidePoints(c, 'frame1', 'side', ['wrist']);
+  const before = JSON.stringify(c.crossViewCorrectionData);
+  fire('Calculate', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /보정 기준 미저장/);
+  assert.match(element('crossCorrectionStatus').textContent, /저장되지 않은 분석 프레임: F5, F6/);
+  assert.equal(JSON.stringify(c.crossViewCorrectionData), before);
+  assert.equal(c.crossCorrectionMode, 'roll');
 });
 
 test('calculate preserves stale inputs and withholds cross mode until the pairs are saved again', () => {

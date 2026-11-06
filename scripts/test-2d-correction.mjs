@@ -189,6 +189,44 @@ test('diagnostic wrapper exposes errors instead of preserving stale success cont
   assert.match(children[0].textContent, /invalid stance/);
 });
 
+test('diagnostic results disclose one-view visibility and unavailable metrics', () => {
+  const c = setup();
+  const node = () => ({ textContent: '', children: [], append(...items) { this.children.push(...items); } });
+  const list = node();
+  list.replaceChildren = (...items) => { list.children = items; };
+  c.document = {
+    getElementById: id => id === 'analysis2dDiagnostics' ? { open: true } : list,
+    createElement: node,
+  };
+  c.crossCorrectionMode = 'cross';
+  c.getCrossCorrectionScenario = () => ({
+    scores: {}, crossCorrected: true, crossCorrectedFrames: ['frame5'], crossRetainedFrames: [],
+    crossVisibility: { frame5: { both: 1, front: 1, side: 1, unavailable: 1 } }, projectedRadii: true,
+    crossGeometryBasis: { radius: 'cross', spread: 'front' },
+  });
+  c.getBackswingProfileCode = () => null;
+  load(c, 'render2dCorrectionDiagnostics');
+  assert.equal(c.render2dCorrectionDiagnostics().status, 'incomplete');
+  assert.match(list.children[0].textContent, /F5: both 1 \/ front only 1 \/ side only 1 \/ unavailable 1/);
+  assert.match(list.children[0].textContent, /radius comparison: cross-view \/ three-point spread: front projection/);
+  assert.match(list.children[0].textContent, /Unrelated metrics retain cross-view correction/);
+});
+
+test('empty correction results show missing prerequisites instead of an unexplained blank table', () => {
+  const c = setup();
+  const node = () => ({ textContent: '', children: [], append(...items) { this.children.push(...items); } });
+  const list = node();
+  list.replaceChildren = (...items) => { list.children = items; };
+  c.document = { getElementById: id => id === 'analysis2dDiagnostics' ? { open: true } : list, createElement: node };
+  c.stanceReferenceLineFront = null;
+  c.getCrossCorrectionPendingMessage = () => 'Calibration not saved; unsaved frames F5, F6';
+  c.getBackswingProfileCode = () => null;
+  load(c, 'render2dCorrectionDiagnostics');
+  c.render2dCorrectionDiagnostics();
+  assert.equal(list.children[0].hidden, false);
+  assert.match(list.children[0].textContent, /Calibration not saved; unsaved frames F5, F6/);
+});
+
 function crossSetup() {
   const c = setup();
   const nodes = {

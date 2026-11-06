@@ -2417,13 +2417,14 @@
           </div>
           <p>지면선·샤프트 기준 선택 시 양쪽 영상의 저장된 어드레스로 이동합니다. 저장된 어드레스가 없으면 직접 맞추세요. 각 영상에서 지면선 2점과 샤프트 양 끝점 2점을 선택하고 보정 기준을 저장하면 F1부터 표시합니다.</p>
           <p>교차 보정은 B 동작의 반경·래깅·임팩트 정렬 등에 실험적 결합 기하를 적용합니다. A 기준 자세는 유지하며, A→B 이동·각도 변화와 F6 P6→P7 비교는 같은 정면 투영 좌표로 계산합니다. 높이는 정면을 기준으로 사용하고 두 영상의 높이를 평균하지 않습니다. 영상별 시각은 달라도 되며 실제 동작을 맞추세요. 카메라 교정에 의한 실제 3D 복원은 아닙니다.</p>
-          <p class="cross-correction-partial-note">각 영상의 ‘찍을 점’에서 원하는 지점을 선택한 뒤 영상에 표시하세요. 가려져 보이지 않는 점은 건너뛰어도 됩니다. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다.</p>
+          <p class="cross-correction-partial-note">명확히 보이는 점만 찍고, 추정해야 하면 ‘안 보임’을 누르세요. 다음 점으로 자동 이동하며 ‘마지막 입력점 취소’로 되돌릴 수 있습니다. 한쪽만 보이면 그 뷰로 가능한 지표만 계산하고, 양쪽 모두 안 보이면 해당 지표는 측정 보류합니다. 변위는 같은 뷰 안에서만 비교합니다.</p>
           <div class="cross-correction-videos">
             <div class="cross-correction-video-card">
               <div class="cross-correction-video-heading"><strong>정면 기준 영상</strong><span>분석 프레임을 확인하세요</span></div>
-              <label class="cross-correction-point-picker" for="crossCorrectionFrontPointType">찍을 점
+              <div class="cross-correction-point-picker"><label for="crossCorrectionFrontPointType">찍을 점</label>
                 <select id="crossCorrectionFrontPointType"></select>
-              </label>
+                <button type="button" id="crossCorrectionFrontHidden">안 보임</button>
+              </div>
               <div class="cross-correction-stage"><video id="crossCorrectionFrontVideo" playsinline></video><canvas id="crossCorrectionFrontCanvas"></canvas></div>
               <div class="cross-correction-video-controls">
                 <button type="button" id="crossCorrectionFrontPlay">재생/정지</button>
@@ -2434,9 +2435,10 @@
             </div>
             <div class="cross-correction-video-card">
               <div class="cross-correction-video-heading"><strong>측면 대응 영상</strong><span>정면과 같은 동작에 맞추세요</span></div>
-              <label class="cross-correction-point-picker" for="crossCorrectionSidePointType">찍을 점
+              <div class="cross-correction-point-picker"><label for="crossCorrectionSidePointType">찍을 점</label>
                 <select id="crossCorrectionSidePointType"></select>
-              </label>
+                <button type="button" id="crossCorrectionSideHidden">안 보임</button>
+              </div>
               <div class="cross-correction-stage"><video id="crossCorrectionSideVideo" playsinline></video><canvas id="crossCorrectionSideCanvas"></canvas></div>
               <div class="cross-correction-video-controls">
                 <button type="button" id="crossCorrectionSidePlay">재생/정지</button>
@@ -2452,7 +2454,7 @@
             <button type="button" id="crossCorrectionRollOnly">양발선 보정만 보기</button>
             <button type="button" id="crossCorrectionClear">교차 입력 초기화</button>
           </div>
-          <small>같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. 보정할 자세는 F1 백스윙 탑, F2·F5 다운스윙 중기(양손 허리 높이), F3 임팩트 직전, F4·F6 임팩트입니다. F2/F5와 F4/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요. 정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다. 측면은 같은 원본의 저장 동작이 있을 때만 연결합니다. 저장 동작이 없으면 안내된 자세로 직접 이동하세요. 각 F에서 초 단위 시간이 아니라 실제 동작이 일치하는지 확인하세요. 보이지 않는 점을 억지로 추정하지 마세요. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.</small>
+          <small>같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. 보정할 자세는 F1 백스윙 탑, F2·F5 다운스윙 중기(양손 허리 높이), F3 임팩트 직전, F4·F6 임팩트입니다. F2/F5와 F4/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요. 정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다. 측면은 같은 원본의 저장 동작이 있을 때만 연결합니다. 저장 동작이 없으면 안내된 자세로 직접 이동하세요. 각 F에서 초 단위 시간이 아니라 실제 동작이 일치하는지 확인하세요. 보이지 않는 점은 ‘안 보임’으로 지정하세요. 해당 점이 필요한 지표는 명확한 뷰만 사용하거나 측정 보류하며, 기존 점으로 대체하지 않습니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.</small>
         </details>
         <p class="analysis-2d-diagnostics-note">선택한 보정 방식으로 재계산한 비교값이며 공식 결과는 유지됩니다.</p>
       </div>
@@ -2660,6 +2662,8 @@
     '현재 두 시점 대응 확인·저장': 'Save Matched Front and Side Frames',
     '현재 프레임 점 다시 선택': 'Reselect Current Frame Points',
     '마지막 입력점 취소': 'Undo Last Entered Point',
+    '안 보임': 'Not Visible',
+    '명확히 보이는 점만 찍고, 추정해야 하면 ‘안 보임’을 누르세요. 다음 점으로 자동 이동하며 ‘마지막 입력점 취소’로 되돌릴 수 있습니다. 한쪽만 보이면 그 뷰로 가능한 지표만 계산하고, 양쪽 모두 안 보이면 해당 지표는 측정 보류합니다. 변위는 같은 뷰 안에서만 비교합니다.': 'Mark only clearly visible points; click “Not Visible” instead of guessing. The next landmark is selected automatically; use Undo Last Entered Point to reverse it. With only one clear view, calculate only supported metrics. With neither view clear, withhold the metric. Compare displacement only within the same view.',
     '교차 보정은 B 동작의 반경·래깅·임팩트 정렬 등에 실험적 결합 기하를 적용합니다. A 기준 자세는 유지하며, A→B 이동·각도 변화와 F6 P6→P7 비교는 같은 정면 투영 좌표로 계산합니다. 높이는 정면을 기준으로 사용하고 두 영상의 높이를 평균하지 않습니다. 영상별 시각은 달라도 되며 실제 동작을 맞추세요. 카메라 교정에 의한 실제 3D 복원은 아닙니다.': 'Cross correction applies experimental combined geometry to B-action radii, lag and impact alignment. A reference poses are preserved; A-to-B movement and angle changes and F6 P6-to-P7 comparisons stay in the same front projection. Height uses the front view, not an average of both cameras. Video timestamps may differ; match the actual motion. This is not calibrated 3D reconstruction.',
     '지면선·샤프트 기준 선택 시 양쪽 영상의 저장된 어드레스로 이동합니다. 저장된 어드레스가 없으면 직접 맞추세요. 각 영상에서 지면선 2점과 샤프트 양 끝점 2점을 선택하고 보정 기준을 저장하면 F1부터 표시합니다.': 'Selecting ground/shaft references seeks both videos to their saved address poses. If no address is saved, align it manually. Mark 2 ground points and 2 shaft endpoints in each video, then save calibration to return to F1.',
     '정면·측면 중 마지막으로 찍은 점을 되돌립니다. 저장한 입력은 바뀌지 않습니다.': 'Undo the most recently marked point in either view. Saved inputs remain unchanged.',
@@ -2812,7 +2816,7 @@
     '모션 채점·동력지수·스윙엔진': 'Motion Scoring, Power Indices and Swing Engine',
     '스윙유형 산출 기준·상세 근거': 'Swing-Type Calculation Rules and Detailed Evidence',
     'ATE·LSE·VEE 지수의 산출 입력, 상대 적합도와 유형 판정 규칙을 표시합니다. 백분율은 파워 비중이나 판정 확률이 아니며, 필요한 관측 자료가 부족하면 판정을 보류합니다.': 'Shows the ATE, LSE and VEE inputs, relative fits and type decision rules. Percentages are not power shares or probabilities; classification is withheld when required observations are missing.',
-    '같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. 보정할 자세는 F1 백스윙 탑, F2·F5 다운스윙 중기(양손 허리 높이), F3 임팩트 직전, F4·F6 임팩트입니다. F2/F5와 F4/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요. 정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다. 측면은 같은 원본의 저장 동작이 있을 때만 연결합니다. 저장 동작이 없으면 안내된 자세로 직접 이동하세요. 각 F에서 초 단위 시간이 아니라 실제 동작이 일치하는지 확인하세요. 보이지 않는 점을 억지로 추정하지 마세요. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.': 'Use fixed-camera videos of the same swing. Save two ground-line points and both shaft endpoints for each video. Target poses are F1 top of backswing, F2/F5 mid-downswing (hands at waist), F3 just before impact, and F4/F6 impact. F2/F5 and F4/F6 use different metric landmark sets, so save each separately. The front view uses saved analysis 2 B actions, not analysis A address times. The side view links saved actions only from the same source. If no action is saved, seek to the indicated pose manually. Confirm the actual motion for each F, not matching timestamps. Do not guess occluded landmarks. If required points are not visible in both views, that frame remains uncorrected and its original analysis values are retained. This comparison reduces 2D projection distortion; it does not reconstruct 3D motion or measure force.',
+    '같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. 보정할 자세는 F1 백스윙 탑, F2·F5 다운스윙 중기(양손 허리 높이), F3 임팩트 직전, F4·F6 임팩트입니다. F2/F5와 F4/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요. 정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다. 측면은 같은 원본의 저장 동작이 있을 때만 연결합니다. 저장 동작이 없으면 안내된 자세로 직접 이동하세요. 각 F에서 초 단위 시간이 아니라 실제 동작이 일치하는지 확인하세요. 보이지 않는 점은 ‘안 보임’으로 지정하세요. 해당 점이 필요한 지표는 명확한 뷰만 사용하거나 측정 보류하며, 기존 점으로 대체하지 않습니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.': 'Use fixed-camera videos of the same swing. Save two ground-line points and both shaft endpoints for each video. Target poses are F1 top of backswing, F2/F5 mid-downswing (hands at waist), F3 just before impact, and F4/F6 impact. F2/F5 and F4/F6 use different metric landmark sets, so save each separately. The front view uses saved analysis 2 B actions, not analysis A address times. The side view links saved actions only from the same source. If no action is saved, seek to the indicated pose manually. Confirm actual motion, not timestamps. Mark occluded points as Not Visible. Affected metrics use a clear view only or are withheld; original points are not substituted. This reduces 2D projection distortion; it does not reconstruct 3D motion or measure force.',
     '잠재 최대 총거리 추정 산식': 'Potential Maximum Total-Distance Formula',
     '잠정 점수 구성 (세부 지표는 각 항목의 도움말 참고): F2 래깅 40%·압축 20%·골반/C7 이동 40%, F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐이 참고 범위를 벗어날 때만 F3/F4에서 감점하고, 범위 안의 보완도 동일 영상·순서 근거가 있을 때만 적용합니다. F4 어드레스→임팩트 분리 감점은 최대 3점, F3/F4 측면 경로 보완은 10%입니다. F6는 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. 시간차와 Release Index는 미검증 관측값으로 점수에서 제외하며, 누락 항목은 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 범위는 소표본 잠정 기준이며 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.': 'Provisional weights (see each metric tooltip for details): F2 lag 40%, compression 20%, pelvis/C7 shift 40%; F3 extension 35%, axis stability 25%, posture transition 40%; F4 alignment 70%, C7 X/Y 15% each. F3/F4 deductions for the ordered F1–F4 B-point spread apply only when same-video timing evidence is available; in-range adjustments require the same evidence. F4 address-to-impact separation deduction is capped at 3 points; F3/F4 side-path adjustment is 10%. F6 uses relative displacement alone, or 90% displacement and 10% path when available. Unvalidated time and Release Index observations are excluded from scoring, and missing components are renormalized. The distance-motion average is the mean of F1–F4 scores. Ranges are provisional and based on small samples; 2D geometry does not measure force, ground reaction force, or speed.',
     '비교자료 불러오기·조건 설정': 'Load Reference Data and Set Conditions',
@@ -4428,7 +4432,9 @@
         : text(`양발선 기울기 ${format(correctionScenario.rotationDeg)}°`,
           `Stance tilt ${format(correctionScenario.rotationDeg)}°`)
       : '');
-    status.hidden = !correctionScenario;
+    const pending = typeof getCrossCorrectionPendingMessage === 'function' ? getCrossCorrectionPendingMessage() : '';
+    if (pending) status.textContent += (status.textContent ? '\n' : '') + pending;
+    status.hidden = !correctionScenario && !pending;
     if (available && !areVideoSourcesSame()) status.textContent += text(' · B 영상 미보정', ' · B video uncorrected');
     if (available && correctionScenario.crossCorrected) {
       const labels = ids => ids.map(id => id.replace('frame', 'F')).join(', ');
@@ -4449,6 +4455,19 @@
           ` / 필수점 미선택으로 기존 분석값 유지: ${retainedDetails}`,
           ` / original analysis retained for unmarked landmarks: ${retainedDetails}`
         );
+      }
+      if (correctionScenario.crossVisibility) {
+        const visibility = Object.entries(correctionScenario.crossVisibility).map(([frame, counts]) =>
+          `${frame.replace('frame', 'F')}: ${text('양쪽', 'both')} ${counts.both} / ${
+            text('정면만', 'front only')} ${counts.front} / ${text('측면만', 'side only')} ${counts.side} / ${
+            text('측정 보류', 'unavailable')} ${counts.unavailable}`);
+        status.textContent += ' · ' + visibility.join('; ');
+        if (correctionScenario.crossGeometryBasis) {
+          const basis = value => value === 'cross' ? text('교차 보정', 'cross-view') : text('정면 투영', 'front projection');
+          status.textContent += text(
+            ` · F1–F4 반경 비교: ${basis(correctionScenario.crossGeometryBasis.radius)} / 3점 퍼짐 비교: ${basis(correctionScenario.crossGeometryBasis.spread)}. 가려진 점과 무관한 지표의 교차 보정은 유지합니다.`,
+            ` · F1–F4 radius comparison: ${basis(correctionScenario.crossGeometryBasis.radius)} / three-point spread: ${basis(correctionScenario.crossGeometryBasis.spread)}. Unrelated metrics retain cross-view correction.`);
+        }
       }
       const backswingCode = correctionScenario.backswingCode;
       status.textContent += text(
@@ -5220,7 +5239,7 @@
         scores: clone(segmentScoreHistory),
         engineCode: engineDecision?.code || null,
         engineMode: engineDecision?.mode || 'undetermined',
-        engineShares: engineResult?.pct || null,
+        engineShares: engineResult?.missingEngineEvidence?.length ? null : engineResult?.pct || null,
         engineMissing: engineResult?.missingEngineEvidence || getSwingTypeReadiness().missing || [],
         profileNumber: engineResult ? getMatchedSwingProfile(correctedBackswing, engineResult)?.n ?? null : null,
         backswingCode: correctedBackswing ? getBackswingProfileCode(correctedBackswing) : null,
@@ -5230,6 +5249,9 @@
         crossCorrectedFrames: crossModel?.correctedFrames || [],
         crossRetainedFrames: crossModel?.retainedFrames || [],
         crossRetainedDetails: clone(crossModel?.retainedDetails || {}),
+        crossVisibility: clone(crossModel?.visibility || null),
+        projectedRadii: crossModel?.projectedRadii || false,
+        crossGeometryBasis: clone(crossModel?.geometryBasis || null),
       };
     } catch (error) {
       calculationError = error;
@@ -5940,7 +5962,7 @@
         { value: sHead, weight: 0.20 },
       ].filter(part => hasMetric(part.value));
     const totalWeight = parts.reduce((sum, part) => sum + part.weight, 0);
-    const score100 = totalWeight > 0
+    const score100 = totalWeight > 0 && !(fm.visibilityLimited && !hasMetric(sHead))
       ? roundToStep(clamp(100 - parts.reduce((sum, part) => sum + part.value * part.weight, 0) / totalWeight, 0, 100), 1)
       : null;
     const grade = score100 == null ? '측정 불가'
@@ -6234,6 +6256,15 @@
   }
 
   function computeRawSegmentScore(deltaResult, segment) {
+    const observed = deltaResult.fm || {};
+    if (observed.visibilityLimited) {
+      const evidence = {
+        frame2: [observed.laggingAngleBDeg, observed.pelvisLateralDelta, observed.radiusCompressionRatio],
+        frame3: [observed.kneeExtDelta, observed.hipDropPercent, observed.leadLegBraceRatioB],
+        frame4: [observed.armShaftAngleBDeg, observed.c7XPercent, observed.c7YPercent],
+      }[segment];
+      if (evidence && !evidence.some(hasMetric)) return null;
+    }
     if (['frame2', 'frame3', 'frame4'].includes(segment)) {
       const parts = getFrameScoreParts(deltaResult.fm || {}, segment);
       deltaResult.scoreCoverage = { available: parts.filter(part => hasMetric(part.value)).length, total: parts.length };
@@ -6340,6 +6371,7 @@
     const fmA = frontResult.frameMetrics || {};
     const fmB = sideResult.frameMetrics || {};
     const fm = { distanceComparable: areVideoSourcesSame() };
+    if (fmB.visibilityLimited) fm.visibilityLimited = true;
     if (segment === 'frame1') {
       fm.spineAngleDelta   = computeMetricDelta(fmA.spineAngleDeg, fmB.spineAngleDeg);
       // 어깨 회전각 (X-Factor) — atan2 기반 직접 각도 차이
@@ -6367,7 +6399,7 @@
         : null;
     } else if (segment === 'frame2') {
       fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg,
-        fmB.projectedLaggingAngleDeg ?? fmB.laggingAngleDeg);
+        fmB.crossCorrected ? fmB.projectedLaggingAngleDeg : fmB.laggingAngleDeg);
       fm.laggingAngleBDeg    = fmB.laggingAngleDeg ?? null; // B프레임(다운스윙) 실제 래깅각
       const frame1History = frameMetricsHistory['frame1'];
       fm.radiusTop = frame1History && hasMetric(frame1History._coreHandRadiusB) ? frame1History._coreHandRadiusB : null;
@@ -6437,7 +6469,7 @@
       fm._groundForce = computeGroundForceTransitionReport(fm);
     } else if (segment === 'frame4') {
       fm.rMaxNormDelta = computeMetricDelta(referenceRatio(fmA.rMaxNorm, 'front'),
-        referenceRatio(fmB.projectedRMaxNorm ?? fmB.rMaxNorm, 'side'));
+        referenceRatio(fmB.crossCorrected ? fmB.projectedRMaxNorm : fmB.rMaxNorm, 'side'));
       const frame2History = frameMetricsHistory['frame2'];
       fm.radiusF2 = frame2History && hasMetric(frame2History._swingRadiusB) ? frame2History._swingRadiusB : null;
       fm.radiusCurrent = hasMetric(fmB.swingRadius) ? fmB.swingRadius : null;
@@ -6445,7 +6477,7 @@
         ? (fm.radiusCurrent - fm.radiusF2) / fm.radiusF2 : null;
       // armShaftDelta: B - A (임팩트각 - 어드레스각) → 양수 = 각도 증가 = 팔-샤프트 직선화(릴리즈) = 좋음
       fm.armShaftDelta = computeMetricDelta(fmA.armShaftAngleDeg,
-        fmB.projectedArmShaftAngleDeg ?? fmB.armShaftAngleDeg);
+        fmB.crossCorrected ? fmB.projectedArmShaftAngleDeg : fmB.armShaftAngleDeg);
       fm.armShaftAngleBDeg = hasMetric(fmB.armShaftAngleDeg) ? fmB.armShaftAngleDeg : null;
       fm.armShaftMissingA = hasMetric(fmA.armShaftAngleDeg) ? null : fmA.armShaftMissingReason || 'missingPoints';
       fm.armShaftMissingB = hasMetric(fmB.armShaftAngleDeg) ? null : fmB.armShaftMissingReason || 'missingPoints';
