@@ -10289,6 +10289,60 @@
     return figure;
   }
 
+  function computeHandPathObservations(points) {
+    const valid = point => point && Number.isFinite(point.x) && Number.isFinite(point.y);
+    const find = phase => points.find(point => point.phase === phase && valid(point));
+    const address = find('address'), top = find('top');
+    const down = find('transition') || points.find(point => valid(point) && point.phase !== 'top'
+      && point.sources?.includes('F2 B'));
+    let topAngle = null, downOffset = null;
+    if (address && top && down) {
+      const a = { x: address.x - top.x, y: address.y - top.y };
+      const b = { x: down.x - top.x, y: down.y - top.y };
+      const length = Math.hypot(a.x, a.y), downLength = Math.hypot(b.x, b.y);
+      if (length > 1e-6 && downLength > 1e-6) {
+        topAngle = Math.acos(clamp((a.x * b.x + a.y * b.y) / (length * downLength), -1, 1)) * 180 / Math.PI;
+        const upX = top.x - address.x, upY = top.y - address.y;
+        downOffset = (upY * (down.x - address.x) - upX * (down.y - address.y)) / length;
+      }
+    }
+    const shoulderBack = find('backShoulder'), shoulderDown = find('downShoulder');
+    const p3 = find('p3');
+    return {
+      top, down, topAngle, downOffset, downLabel: down?.phase === 'transition' ? 'P5' : 'F2 B',
+      shoulderGapX: shoulderBack && shoulderDown ? shoulderDown.x - shoulderBack.x : null,
+      p3P5GapX: p3 && down ? down.x - p3.x : null,
+    };
+  }
+
+  function createHandPathObservationSummary(points) {
+    const observations = computeHandPathObservations(points);
+    const summary = document.createElement('div');
+    summary.className = 'backswing-delivery-note';
+    const signed = value => `${value > 0 ? '+' : ''}${value.toFixed(2)}`;
+    const add = text => {
+      const line = document.createElement('p');
+      line.textContent = text;
+      summary.append(line);
+    };
+    add(getSwingUiText('경로 수치 · 관측 전용', 'Path measurements · observation only'));
+    const label = phase => phase === 'top' ? getSwingUiText('탑', 'Top') : observations.downLabel;
+    for (const [phase, point] of [['top', observations.top], ['down', observations.down]]) {
+      if (point) add(`${label(phase)}: X ${signed(point.x)}, Y ${signed(point.y)}`);
+    }
+    add(getSwingUiText(`어드레스–탑–${observations.downLabel} 내각`, `Address–top–${observations.downLabel} interior angle`)
+      + `: ${observations.topAngle == null ? '—' : observations.topAngle.toFixed(1) + '°'}`);
+    if (observations.downOffset != null) add(getSwingUiText(`어드레스→탑 직선 대비 ${observations.downLabel} 부호 거리`, `${observations.downLabel} signed distance from address→top line`)
+      + `: ${signed(observations.downOffset)}`);
+    if (observations.shoulderGapX != null) add(getSwingUiText('어깨 높이 손 X 차이(다운−백)', 'Shoulder-height hand X gap (down−back)')
+      + `: ${signed(observations.shoulderGapX)}`);
+    if (observations.p3P5GapX != null) add(`${observations.downLabel}−P3 X: ${signed(observations.p3P5GapX)}`);
+    add(getSwingUiText(
+      '거리·좌표 단위=영상 높이의 1%. X−=영상 왼쪽, X+=오른쪽, Y+=위. 부호 거리는 어드레스→탑 진행선의 오른쪽이 +. 내각 0°는 같은 방향으로 되짚어 내려옴을 뜻합니다. 선택점 기준이며 경로 겹침률·우열·3D 동작을 뜻하지 않습니다. 촬영 조건이 같은 자료끼리 비교하세요.',
+      'Distances/coordinates: 1% of image height. X−=image left, X+=right, Y+=up. Signed distance is positive to the right of the directed address→top line. A 0° interior angle means retracing the same direction. Based on selected points, not overlap percentage, quality or 3D motion. Compare matching camera conditions.'));
+    return summary;
+  }
+
   function createHandPathFigure(points, options) {
     const figure = document.createElement('figure');
     figure.className = 'backswing-hand-path';
@@ -10302,6 +10356,7 @@
       figure.append(missing);
       return figure;
     }
+    figure.append(createHandPathObservationSummary(points));
     const makeSvg = createGraphSvgElement;
     const topIndex = points.findIndex(point => point.phase === 'top');
     const makeChart = (chartPoints, expanded = false) => {
