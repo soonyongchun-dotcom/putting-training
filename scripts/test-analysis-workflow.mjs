@@ -114,7 +114,7 @@ test('compact bar replaces duplicate workflow navigation and question', () => {
   assert.match(html, /data-workflow-for="swingtype">[\s\S]*?id="analysisTypeReference"/);
   assert.match(html, /data-workflow-for="engine swingtype distance r10 correction"/);
   assert.doesNotMatch(html, /id="analysisWorkflow(?:Start|Yes|Skip|Open|Check|Next|Back|Return|Question|Prerequisites|Results)"/);
-  assert.match(html, /ver 26\.1103-f-ad/);
+  assert.match(html, /ver 26\.1105-f1-ad/);
 });
 
 test('every progress button directly opens the selected analysis', () => {

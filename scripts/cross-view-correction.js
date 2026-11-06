@@ -363,6 +363,7 @@ function validateCrossCorrectionData(data) {
   let referenceDraft = { front: { stancePoints: [], shaftPoints: [] }, side: { stancePoints: [], shaftPoints: [] } };
   let referenceDraftTimes = { front: null, side: null };
   let draft = { front: [], side: [] };
+  let pointUndoHistory = [];
   const realignedFrames = new Set();
   const selector = el('Frame');
   const frameLabels = [
@@ -443,6 +444,22 @@ function validateCrossCorrectionData(data) {
       && identity && identity === backswingSourceIdentity ? backswingFrames[phase]?.time : null;
     return Number.isFinite(time) && time >= 0 ? { time, points: [] } : null;
   }
+  function getAddressTime(view) {
+    const identity = crossViewCorrectionData.sources[view];
+    if (!identity) return null;
+    const referenceTime = identity === videoFileIdentity.front
+      ? frameStateHistory.front?.frame1?.videoTime : null;
+    if (Number.isFinite(referenceTime) && referenceTime >= 0) return referenceTime;
+    const time = typeof backswingSourceIdentity !== 'undefined' && identity === backswingSourceIdentity
+      ? backswingFrames.address?.time : null;
+    return Number.isFinite(time) && time >= 0 ? time : null;
+  }
+  function seekAddress(view) {
+    const video = videos[view], time = getAddressTime(view);
+    video.pause();
+    if (Number.isFinite(time) && video.readyState >= 1
+      && Math.abs(video.currentTime - time) > 0.002) video.currentTime = time;
+  }
   function resetReferencePanelPairs() {
     if (crossViewCorrectionData.sources.front !== videoFileIdentity.front
       || crossViewCorrectionData.sources.front !== videoFileIdentity.side) return false;
@@ -481,6 +498,7 @@ function validateCrossCorrectionData(data) {
     if (automatic && loadedSources[view] === identity
       && crossViewCorrectionData.version === 2 && crossViewCorrectionData.workflow === 'frame-pairs'
       && crossViewCorrectionData.sources[view] === identity) return;
+    pointUndoHistory = [];
     if (urls[view]) URL.revokeObjectURL(urls[view]);
     if (crossViewCorrectionData.version !== 2 || crossViewCorrectionData.workflow !== 'frame-pairs'
       || crossViewCorrectionData.sources[view] !== identity) {
@@ -552,6 +570,7 @@ function validateCrossCorrectionData(data) {
     });
   }
   function notice() {
+    el('Undo').disabled = pointUndoHistory.length === 0;
     updatePointSelectors();
     if (crossViewCorrectionData.version !== 2 || crossViewCorrectionData.workflow !== 'frame-pairs') {
       el('Status').textContent = text('저장된 이전 형식은 새 대응점으로 자동 변환할 수 없습니다. 영상을 다시 연결한 뒤 F1–F6을 선택하세요.',
@@ -561,12 +580,14 @@ function validateCrossCorrectionData(data) {
     }
     const frame = selected();
     el('Status').textContent = referenceMode
-      ? text('보정용 프레임에서 양쪽 영상의 같은 동작을 맞춘 뒤, 각 영상에 바닥의 수평에 가까운 지면선 2점 → 샤프트의 그립 끝·클럽헤드 2점을 차례로 선택하고 기준을 저장하세요.',
-        'Align both videos to the same swing action. In each, mark 2 points along a near-horizontal floor line, then 2 shaft endpoints (grip end and clubhead), and save the references.')
+      ? text('양쪽 영상의 어드레스에서 지면선 2점 → 샤프트의 그립 끝·클럽헤드 2점을 차례로 선택하세요. 보정 기준을 저장하면 F1부터 표시합니다.',
+        'At address in both videos, mark 2 ground-line points, then the shaft grip end and clubhead. Saving calibration returns to F1.')
         + '\n' + ['front', 'side'].map(view => {
           const label = view === 'front' ? text('정면', 'Front') : text('측면', 'Side');
           const ref = referenceDraft[view];
-          return `${label}: ${text('지면선 ', 'Ground ')}${ref.stancePoints.length}/2 · ${text('샤프트 ', 'Shaft ')}${ref.shaftPoints.length}/2 · ${videos[view].currentTime.toFixed(3)}s`;
+          return `${label}: ${text('지면선 ', 'Ground ')}${ref.stancePoints.length}/2 · ${text('샤프트 ', 'Shaft ')}${ref.shaftPoints.length}/2 · ${videos[view].currentTime.toFixed(3)}s${
+            getAddressTime(view) === null ? text(' · 저장된 어드레스 없음: 직접 어드레스로 이동하세요.',
+              ' · No saved address: seek to address manually.') : ''}`;
         }).join(' | ')
       : ['front', 'side'].map(view => {
         const types = requiredTypes(frame, view);
@@ -607,6 +628,7 @@ function validateCrossCorrectionData(data) {
     return Math.abs(getStanceCorrectionAngle({ start, end }, reference.aspect)) * 180 / Math.PI;
   }
   function loadFrame() {
+    pointUndoHistory = [];
     referenceMode = false;
     const resetPairs = resetReferencePanelPairs();
     const frame = selected(), saved = crossViewCorrectionData.entries?.[frame];
@@ -637,12 +659,16 @@ function validateCrossCorrectionData(data) {
       if (referenceMode) {
         if (referenceDraftTimes[view] == null
           || Math.abs(referenceDraftTimes[view] - video.currentTime) > 0.002) {
+          pointUndoHistory = pointUndoHistory.filter(entry => entry.view !== view);
           referenceDraft[view] = { stancePoints: [], shaftPoints: [] };
           referenceDraftTimes[view] = video.currentTime;
         }
         const calibration = referenceDraft[view];
         const target = calibration.stancePoints.length < 2 ? calibration.stancePoints : calibration.shaftPoints;
-        if (target.length < 2) target.push(point);
+        if (target.length < 2) {
+          pointUndoHistory.push({ view, reference: structuredClone(calibration) });
+          target.push(point);
+        }
       } else {
         const type = pointSelectors[view].value;
         if (!type) {
@@ -651,6 +677,7 @@ function validateCrossCorrectionData(data) {
           return;
         }
         const index = draft[view].findIndex(savedPoint => savedPoint.type === type);
+        pointUndoHistory.push({ view, points: structuredClone(draft[view]), type });
         if (index >= 0) draft[view][index] = { ...point, type };
         else draft[view].push({ ...point, type });
         selectNextUnmarkedPoint(view);
@@ -659,6 +686,7 @@ function validateCrossCorrectionData(data) {
       notice();
     });
     videos[view].addEventListener('seeked', () => {
+      pointUndoHistory = pointUndoHistory.filter(entry => entry.view !== view);
       if (referenceMode) {
         referenceDraft[view] = { stancePoints: [], shaftPoints: [] };
         referenceDraftTimes[view] = videos[view].currentTime;
@@ -668,6 +696,7 @@ function validateCrossCorrectionData(data) {
       notice();
     });
     videos[view].addEventListener('play', () => {
+      pointUndoHistory = pointUndoHistory.filter(entry => entry.view !== view);
       draft[view] = [];
       if (referenceMode) {
         referenceDraft[view] = { stancePoints: [], shaftPoints: [] };
@@ -683,7 +712,10 @@ function validateCrossCorrectionData(data) {
           'No video dimensions decoded. Check the video track/codec or convert to H.264 MP4 and select it again.');
         return;
       }
-      loadFrame();
+      if (referenceMode) {
+        seekAddress(view);
+        notice();
+      } else loadFrame();
     });
     const prefix = view === 'front' ? 'Front' : 'Side';
     el(`${prefix}Play`).addEventListener('click', async () => {
@@ -760,22 +792,11 @@ function validateCrossCorrectionData(data) {
     }
   });
   el('Reference').addEventListener('click', () => {
-    selector.value = 'frame1';
-    videos.front.pause(); videos.side.pause();
-    const savedFrame = crossViewCorrectionData.entries?.frame1;
-    const referenceTimes = {
-      front: savedFrame?.frontTime ?? getAnalysisMotion('front', 'frame1')?.time,
-      side: savedFrame?.sideTime ?? crossViewCorrectionData.references?.side?.time
-        ?? getAnalysisMotion('side', 'frame1')?.time,
-    };
-    for (const view of ['front', 'side']) {
-      const time = referenceTimes[view];
-      if (Number.isFinite(time) && videos[view].readyState >= 1
-        && Math.abs(videos[view].currentTime - time) > 0.002) videos[view].currentTime = time;
-    }
+    pointUndoHistory = [];
     referenceDraft = { front: { stancePoints: [], shaftPoints: [] }, side: { stancePoints: [], shaftPoints: [] } };
-    referenceDraftTimes = { front: videos.front.currentTime, side: videos.side.currentTime };
     referenceMode = true;
+    for (const view of ['front', 'side']) seekAddress(view);
+    referenceDraftTimes = { front: videos.front.currentTime, side: videos.side.currentTime };
     notice();
   });
   el('ReferenceSave').addEventListener('click', () => {
@@ -822,9 +843,26 @@ function validateCrossCorrectionData(data) {
     notice();
   });
   el('Points').addEventListener('click', () => {
+    pointUndoHistory = [];
     referenceMode = false;
     draft = { front: [], side: [] };
     updatePointSelectors();
+    notice();
+  });
+  el('Undo').addEventListener('click', () => {
+    const previous = pointUndoHistory.pop();
+    if (!previous) {
+      notice();
+      el('Status').textContent += '\n' + text('취소할 입력점이 없습니다.', 'No entered point to undo.');
+      return;
+    }
+    if (previous.reference) {
+      referenceDraft[previous.view] = previous.reference;
+    } else {
+      draft[previous.view] = previous.points;
+      pointSelectors[previous.view].value = previous.type;
+    }
+    if (crossCorrectionMode === 'cross') update2dCorrectionDiagnostics();
     notice();
   });
   el('Capture').addEventListener('click', () => {
@@ -859,6 +897,7 @@ function validateCrossCorrectionData(data) {
       frontAspect: getAnalysisAspect(videos.front), sideAspect: getAnalysisAspect(videos.side),
     };
     crossViewCorrectionData.entries[frame] = entry;
+    pointUndoHistory = [];
     realignedFrames.delete(frame);
     crossCorrectionMode = 'roll';
     update2dCorrectionDiagnostics();
@@ -899,6 +938,7 @@ function validateCrossCorrectionData(data) {
     crossCorrectionMode = 'roll';
     realignedFrames.clear();
     draft = { front: [], side: [] };
+    pointUndoHistory = [];
     update2dCorrectionDiagnostics(); notice();
   });
   window.addEventListener('resize', () => { draw('front'); draw('side'); });

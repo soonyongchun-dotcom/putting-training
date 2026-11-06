@@ -385,6 +385,79 @@ test('correction selector names the target motion and directs side alignment to 
   assert.doesNotMatch(html, /이 화면을 열면 1번 측면·2번 정면 영상을 자동으로 가져옵니다/);
 });
 
+test('undo removes only the most recent point across views and restores the selected landmark', () => {
+  const { c, element, fire } = setupEditor();
+  fire('Points', 'click');
+  assert.equal(element('crossCorrectionUndo').disabled, true);
+  const saved = structuredClone(c.crossViewCorrectionData.entries);
+  element('crossCorrectionFrontPointType').value = 'wrist';
+  fire('FrontCanvas', 'click', { clientX: 120, clientY: 120 });
+  element('crossCorrectionSidePointType').value = 'club';
+  fire('SideCanvas', 'click', { clientX: 180, clientY: 180 });
+  assert.equal(element('crossCorrectionUndo').disabled, false);
+  fire('Undo', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면 1\/6:/);
+  assert.match(element('crossCorrectionStatus').textContent, /측면 0\/6:/);
+  assert.equal(element('crossCorrectionSidePointType').value, 'club');
+  fire('Undo', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면 0\/6:/);
+  assert.equal(element('crossCorrectionFrontPointType').value, 'wrist');
+  assert.equal(element('crossCorrectionUndo').disabled, true);
+  assert.deepEqual(structuredClone(c.crossViewCorrectionData.entries), saved);
+});
+
+test('undo restores the prior position when an existing point is replaced', () => {
+  const { c, element, fire } = setupEditor();
+  fire('FrontFile', 'change', { target: { files: [{ id: 'front-source' }] } });
+  fire('SideFile', 'change', { target: { files: [{ id: 'independent-side-source' }] } });
+  fire('Frame', 'change');
+  fire('FrontVideo', 'seeked');
+  fire('SideVideo', 'seeked');
+  const original = structuredClone(c.crossViewCorrectionData.entries.frame1.frontPoints);
+  element('crossCorrectionFrontPointType').value = 'wrist';
+  fire('FrontCanvas', 'click', { clientX: 360, clientY: 360 });
+  fire('Undo', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면 6\/6:/);
+  fire('Capture', 'click');
+  assert.deepEqual(structuredClone(c.crossViewCorrectionData.entries.frame1.frontPoints), original);
+  assert.equal(element('crossCorrectionUndo').disabled, true);
+});
+
+test('undo supports ground and shaft points without changing saved calibration', () => {
+  const { c, element, fire } = setupEditor();
+  const references = structuredClone(c.crossViewCorrectionData.references);
+  fire('Reference', 'click');
+  for (const [x, y] of [[60, 300], [300, 300], [120, 60]]) {
+    fire('FrontCanvas', 'click', { clientX: x, clientY: y });
+  }
+  assert.match(element('crossCorrectionStatus').textContent, /정면: 지면선 2\/2 · 샤프트 1\/2/);
+  fire('Undo', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면: 지면선 2\/2 · 샤프트 0\/2/);
+  fire('Undo', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /정면: 지면선 1\/2 · 샤프트 0\/2/);
+  assert.deepEqual(structuredClone(c.crossViewCorrectionData.references), references);
+  fire('Points', 'click');
+  assert.equal(element('crossCorrectionUndo').disabled, true);
+});
+
+test('undo history cannot cross frame changes, seeking or reset boundaries', () => {
+  const { element, fire } = setupEditor();
+  fire('Points', 'click');
+  fire('FrontCanvas', 'click', { clientX: 120, clientY: 120 });
+  fire('SideCanvas', 'click', { clientX: 180, clientY: 180 });
+  fire('FrontVideo', 'seeked');
+  fire('Undo', 'click');
+  assert.equal(element('crossCorrectionUndo').disabled, true, 'seeking discards only that view undo entries');
+  fire('Points', 'click');
+  fire('FrontCanvas', 'click', { clientX: 120, clientY: 120 });
+  element('crossCorrectionFrame').value = 'frame2';
+  fire('Frame', 'change');
+  assert.equal(element('crossCorrectionUndo').disabled, true);
+  fire('FrontCanvas', 'click', { clientX: 120, clientY: 120 });
+  fire('Clear', 'click');
+  assert.equal(element('crossCorrectionUndo').disabled, true);
+});
+
 test('correction uses analysis B action and the exact independent backswing checkpoint, never analysis A', () => {
   const { c, element, fire } = setupEditor();
   fire('FrontFile', 'change', { target: { files: [{ id: 'front-source' }] } });
@@ -473,19 +546,39 @@ test('reference save rejects steep floor lines with measured angle before storin
   assert.match(element('crossCorrectionStatus').textContent, /허용 범위는 수평 기준 ±30° 이내/);
 });
 
-test('reference selection uses the front F1 pose and keeps the independently matched side time', () => {
+test('reference selection seeks both addresses and saving calibration returns both views to F1', () => {
   const { c, element, fire, files } = setupEditor();
   files.front = { id: 'front-source', name: 'front.mp4' };
   files.side = { id: 'independent-side-source', name: 'side.mp4' };
   element('crossCorrectionSetup').open = true;
   fire('Setup', 'toggle');
+  c.backswingSourceIdentity = 'independent-side-source';
+  c.backswingFrames.address = { time: 0.35 };
+  c.frameStateHistory.front.frame1.videoTime = 0.15;
   c.crossViewCorrectionData.entries.frame1 = { frontTime: 2.2, sideTime: 3.4 };
+  c.crossViewCorrectionData.analysisSignature = c.getCrossCorrectionAnalysisSignature();
+  element('crossCorrectionFrame').value = 'frame5';
   element('crossCorrectionFrontVideo').currentTime = 10;
   element('crossCorrectionSideVideo').currentTime = 11;
   fire('Reference', 'click');
+  assert.equal(element('crossCorrectionFrame').value, 'frame5');
+  assert.equal(element('crossCorrectionFrontVideo').currentTime, 0.15);
+  assert.equal(element('crossCorrectionSideVideo').currentTime, 0.35);
+  for (const view of ['Front', 'Side']) {
+    fire(`${view}Video`, 'seeked');
+    for (const [x, y] of [[80, 400], [300, 400], [180, 160], [200, 300]]) {
+      fire(`${view}Canvas`, 'click', { clientX: x, clientY: y });
+    }
+  }
+  fire('ReferenceSave', 'click');
+  assert.equal(c.crossViewCorrectionData.references.front.time, 0.15);
+  assert.equal(c.crossViewCorrectionData.references.side.time, 0.35);
+  assert.equal(c.crossViewCorrectionData.references.front.shaftPoints.length, 2);
+  assert.equal(c.crossViewCorrectionData.calibration, 'shaft-ground-v1');
   assert.equal(element('crossCorrectionFrame').value, 'frame1');
   assert.equal(element('crossCorrectionFrontVideo').currentTime, 2.2);
   assert.equal(element('crossCorrectionSideVideo').currentTime, 3.4);
+  assert.equal(element('crossCorrectionUndo').disabled, true);
 });
 
 test('all six front frames restore analysis B actions and landmarks instead of A reference poses', () => {
@@ -517,6 +610,66 @@ test('all six front frames restore analysis B actions and landmarks instead of A
     assert.match(element('crossCorrectionStatus').textContent, /측면 0\/\d+:/);
     assert.match(element('crossCorrectionStatus').textContent, /같은 원본의 저장 동작 없음/);
   }
+});
+
+test('reference mode survives metadata loading and reports missing same-source address', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source' };
+  files.side = { id: 'independent-side-source' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  c.frameStateHistory.front.frame1.videoTime = 0.25;
+  const front = element('crossCorrectionFrontVideo');
+  front.readyState = 0;
+  front.currentTime = 8;
+  element('crossCorrectionSideVideo').currentTime = 9;
+  fire('Reference', 'click');
+  assert.equal(front.currentTime, 8);
+  assert.equal(element('crossCorrectionSideVideo').currentTime, 9);
+  assert.match(element('crossCorrectionStatus').textContent, /저장된 어드레스 없음: 직접 어드레스로 이동/);
+  front.readyState = 2;
+  front.videoWidth = 480;
+  front.videoHeight = 480;
+  fire('FrontVideo', 'loadedmetadata');
+  assert.equal(front.currentTime, 0.25);
+  fire('FrontVideo', 'seeked');
+  fire('FrontCanvas', 'click', { clientX: 80, clientY: 400 });
+  assert.match(element('crossCorrectionStatus').textContent, /정면: 지면선 1\/2/);
+  const references = structuredClone(c.crossViewCorrectionData.references);
+  fire('ReferenceSave', 'click');
+  assert.deepEqual(structuredClone(c.crossViewCorrectionData.references), references);
+  assert.match(element('crossCorrectionStatus').textContent, /모두 선택한 뒤 저장/);
+});
+
+test('new calibration returns to unsaved F1 using B top and same-source side top', () => {
+  const { c, element, fire, files } = setupEditor();
+  c.videoFileIdentity.side = 'front-source';
+  c.backswingSourceIdentity = 'independent-side-source';
+  c.backswingFrames = { address: { time: 0.3 }, top: { time: 2.5 } };
+  c.frameStateHistory.front.frame1.videoTime = 0.2;
+  c.frameStateHistory.side.frame1.videoTime = 2;
+  c.crossViewCorrectionData.entries = {};
+  files.front = { id: 'front-source' };
+  files.side = { id: 'independent-side-source' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  fire('Reference', 'click');
+  assert.equal(element('crossCorrectionFrontVideo').currentTime, 0.2);
+  assert.equal(element('crossCorrectionSideVideo').currentTime, 0.3);
+  for (const view of ['Front', 'Side']) {
+    fire(`${view}Video`, 'seeked');
+    for (const [x, y] of [[80, 400], [300, 400], [180, 160], [200, 300]]) {
+      fire(`${view}Canvas`, 'click', { clientX: x, clientY: y });
+    }
+  }
+  fire('ReferenceSave', 'click');
+  assert.equal(element('crossCorrectionFrame').value, 'frame1');
+  assert.equal(element('crossCorrectionFrontVideo').currentTime, 2);
+  assert.equal(element('crossCorrectionSideVideo').currentTime, 2.5);
+  fire('FrontVideo', 'seeked');
+  fire('SideVideo', 'seeked');
+  assert.match(element('crossCorrectionStatus').textContent, /보정 기준: 저장 완료/);
+  assert.doesNotMatch(element('crossCorrectionStatus').textContent, /지면선 0\/2/);
 });
 
 test('only old A-time pairs are reset; custom motion pairs, calibration and analysis are preserved', () => {
@@ -598,7 +751,7 @@ test('missing B input never falls back to analysis A and late metadata loads the
   assert.equal(video.currentTime, 8);
 
   fire('Reference', 'click');
-  assert.equal(video.currentTime, c.frameStateHistory.side.frame1.videoTime, 'reference selection must not restore A either');
+  assert.equal(video.currentTime, c.frameStateHistory.front.frame1.videoTime, 'calibration uses address, not the F1 action');
 });
 
 test('editor restores saved analysis landmarks and reports only the missing point', () => {
