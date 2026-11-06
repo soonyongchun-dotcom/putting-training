@@ -13,7 +13,7 @@ function setup() {
     console: { error() {} }, Math, structuredClone,
     getSwingUiText: (ko, en) => ko,
     ANALYSIS_FRAME_IDS: Array.from({ length: 6 }, (_, index) => `frame${index + 1}`),
-    frameStateHistory: { front: {}, side: {} }, backswingFrames: {},
+    frameStateHistory: { front: {}, side: {} }, backswingFrames: {}, backswingSourceIdentity: null,
     videoFileIdentity: { front: 'front-source', side: 'independent-side-source' },
     areVideoSourcesSame: () => true, getPanelReferenceLength: () => 1,
     getStanceCorrectionAngle: () => 0,
@@ -24,6 +24,7 @@ function setup() {
   });
   vm.runInContext(html.slice(html.indexOf('  const FRAME_POINT_TYPES ='),
     html.indexOf('  function getReusableFrameGroup')), c);
+  vm.runInContext(html.match(/  function getBackswingPhaseForAnalysisFrame\([\s\S]*?\n  }/)[0], c);
   vm.runInContext(source.slice(0, setupStart), c);
   const data = c.crossViewCorrectionData;
   data.workflow = 'frame-pairs';
@@ -202,6 +203,21 @@ test('source mismatch, stale analysis, missing frame and invalid geometry withho
   }
 });
 
+test('changed analysis is withheld without repeated exception logging or input mutation', () => {
+  const c = setup();
+  const before = JSON.stringify(c.crossViewCorrectionData);
+  let errors = 0, calculations = 0;
+  c.console = { error() { errors++; } };
+  c.get2dVirtualCorrectionScenario = () => { calculations++; };
+  c.frameStateHistory.front.frame1.points[0].x += 0.01;
+  for (let index = 0; index < 4; index++) {
+    assert.match(c.getCrossCorrectionScenario().unavailable, /기존 분석이 변경/);
+  }
+  assert.equal(errors, 0);
+  assert.equal(calculations, 0);
+  assert.equal(JSON.stringify(c.crossViewCorrectionData), before);
+});
+
 test('ground reference tilted over 30 degrees is rejected before corrected values are calculated', () => {
   const c = setup();
   c.getStanceCorrectionAngle = (line, aspect) => {
@@ -353,13 +369,39 @@ function setupEditor() {
   return { c, element, fire, files, updates: () => updates };
 }
 
-test('correction selector contains only six frames and directs side alignment to the front reference', () => {
+test('correction selector names the target motion and directs side alignment to the front reference', () => {
   const { element } = setupEditor();
   const options = element('crossCorrectionFrame').options;
   assert.equal(options.length, 6);
-  assert.ok(options.every(option => /정면 기준 동작에 측면 맞춤/.test(option.textContent)));
+  assert.match(options[0].textContent, /백스윙 탑/);
+  assert.match(options[1].textContent, /양손 허리 높이/);
+  assert.match(options[2].textContent, /임팩트 직전/);
+  assert.match(options[3].textContent, /임팩트/);
+  assert.match(options[4].textContent, /양손 허리 높이/);
+  assert.match(options[5].textContent, /임팩트/);
+  assert.match(html, /F2\/F5와 F4\/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요/);
+  assert.match(html, /정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다/);
   assert.match(html, /두 영상의 시점은 별도로 맞추며 같은 초를 의미하지 않습니다/);
   assert.doesNotMatch(html, /이 화면을 열면 1번 측면·2번 정면 영상을 자동으로 가져옵니다/);
+});
+
+test('correction uses analysis B action and the exact independent backswing checkpoint, never analysis A', () => {
+  const { c, element, fire } = setupEditor();
+  fire('FrontFile', 'change', { target: { files: [{ id: 'front-source' }] } });
+  fire('SideFile', 'change', { target: { files: [{ id: 'independent-side-source' }] } });
+  delete c.crossViewCorrectionData.entries.frame2;
+  c.videoFileIdentity.side = 'front-source';
+  c.frameStateHistory.front.frame2.videoTime = 0.1;
+  c.frameStateHistory.side.frame2.videoTime = 8;
+  c.backswingSourceIdentity = 'independent-side-source';
+  c.backswingFrames.address = { time: 0.2 };
+  c.backswingFrames.downP6 = { time: 9 };
+
+  element('crossCorrectionFrame').value = 'frame2';
+  fire('Frame', 'change');
+
+  assert.equal(element('crossCorrectionFrontVideo').currentTime, 8);
+  assert.equal(element('crossCorrectionSideVideo').currentTime, 9);
 });
 
 test('editor reuses and saves per-frame front/side landmarks without changing analysis state', () => {
@@ -446,39 +488,122 @@ test('reference selection uses the front F1 pose and keeps the independently mat
   assert.equal(element('crossCorrectionSideVideo').currentTime, 3.4);
 });
 
-test('F2-F6 restore matching saved analysis times and landmarks in both views', () => {
+test('all six front frames restore analysis B actions and landmarks instead of A reference poses', () => {
   const { c, element, fire, files } = setupEditor();
+  c.videoFileIdentity.side = 'front-source';
   files.front = { id: 'front-source', name: 'front.mp4' };
   files.side = { id: 'independent-side-source', name: 'side.mp4' };
   for (const [index, frame] of c.CROSS_CORRECTION_FRAMES.entries()) {
-    if (frame === 'frame1') continue;
-    for (const view of ['front', 'side']) {
-      c.frameStateHistory[view][frame] = {
-        points: c.CROSS_CORRECTION_POINTS[frame][view].map((type, pointIndex) => ({
-          type, x: 0.2 + pointIndex * 0.05, y: 0.3 + pointIndex * 0.04,
-        })),
-        videoTime: index + (view === 'front' ? 0.25 : 0.75),
-        lines: [], aspectRatio: 1,
-      };
-    }
+    c.frameStateHistory.front[frame].videoTime = frame === 'frame3' ? index + 0.75 : 0.1;
+    c.frameStateHistory.side[frame] = {
+      points: c.CROSS_CORRECTION_POINTS[frame].front.map((type, pointIndex) => ({
+        type: frame === 'frame1' && type === 'clubHead' ? 'clubHeadTop' : type,
+        x: 0.2 + pointIndex * 0.05, y: 0.3 + pointIndex * 0.04,
+      })),
+      videoTime: index + 0.75, lines: [], aspectRatio: 1,
+    };
   }
+  c.crossViewCorrectionData.entries = {};
   element('crossCorrectionSetup').open = true;
   fire('Setup', 'toggle');
   for (const [index, frame] of c.CROSS_CORRECTION_FRAMES.entries()) {
-    if (frame === 'frame1') continue;
     element('crossCorrectionFrame').value = frame;
     fire('Frame', 'change');
-    assert.equal(element('crossCorrectionFrontVideo').currentTime, index + 0.25);
-    assert.equal(element('crossCorrectionSideVideo').currentTime, index + 0.75);
+    assert.equal(element('crossCorrectionFrontVideo').currentTime, index + 0.75);
+    assert.equal(element('crossCorrectionSideVideo').currentTime, 0, 'unrelated source must not reuse B times');
     fire('FrontVideo', 'seeked');
     fire('SideVideo', 'seeked');
     assert.match(element('crossCorrectionStatus').textContent, /정면 \d+\/\d+: 필요 점 확인 완료/);
-    assert.match(element('crossCorrectionStatus').textContent, /측면 \d+\/\d+: 필요 점 확인 완료/);
+    assert.match(element('crossCorrectionStatus').textContent, /측면 0\/\d+:/);
+    assert.match(element('crossCorrectionStatus').textContent, /같은 원본의 저장 동작 없음/);
   }
+});
+
+test('only old A-time pairs are reset; custom motion pairs, calibration and analysis are preserved', () => {
+  const { c, element, fire, files, updates } = setupEditor();
+  c.videoFileIdentity.side = 'front-source';
+  files.front = { id: 'front-source' };
+  files.side = { id: 'independent-side-source' };
+  for (const [index, frame] of frames.entries()) {
+    c.frameStateHistory.front[frame].videoTime = 0.1;
+    c.frameStateHistory.side[frame].videoTime = index + 1;
+    c.crossViewCorrectionData.entries[frame].frontTime = 0.1;
+  }
+  c.crossViewCorrectionData.entries.frame4.frontTime = 15.4;
+  c.crossViewCorrectionData.analysisSignature = c.getCrossCorrectionAnalysisSignature();
+  const original = structuredClone(c.frameStateHistory);
+  const references = c.crossViewCorrectionData.references;
+  const custom = c.crossViewCorrectionData.entries.frame4;
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+
+  assert.deepEqual(Object.keys(c.crossViewCorrectionData.entries), ['frame3', 'frame4']);
+  assert.equal(c.crossViewCorrectionData.references, references);
+  assert.equal(c.crossViewCorrectionData.calibration, 'shaft-ground-v1');
+  assert.equal(c.crossViewCorrectionData.entries.frame4, custom);
+  assert.deepEqual(structuredClone(c.frameStateHistory), original);
+  assert.equal(element('crossCorrectionFrontVideo').currentTime, 1);
+  assert.match(element('crossCorrectionStatus').textContent, /기존 A 기준 시점으로 저장된 F1·F2·F5·F6/);
+  assert.equal(c.crossCorrectionMode, 'roll');
+  assert.ok(updates() > 0);
+
+  element('crossCorrectionFrame').value = 'frame4';
+  fire('Frame', 'change');
+  assert.equal(element('crossCorrectionFrontVideo').currentTime, 15.4, 'manual matched time takes priority over B');
+});
+
+test('every side motion uses its exact same-source checkpoint and never interpolates F3', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.side = { id: 'independent-side-source' };
+  c.crossViewCorrectionData.entries = {};
+  c.backswingSourceIdentity = 'independent-side-source';
+  c.backswingFrames = {
+    address: { time: 0.1 }, top: { time: 2 }, downP6: { time: 3 }, impact: { time: 4 },
+  };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  const expected = [2, 3, 3, 4, 3, 4];
+  for (const [index, frame] of frames.entries()) {
+    element('crossCorrectionFrame').value = frame;
+    fire('Frame', 'change');
+    assert.equal(element('crossCorrectionSideVideo').currentTime, expected[index], frame);
+    if (frame === 'frame3') assert.match(element('crossCorrectionStatus').textContent, /같은 원본의 저장 동작 없음/);
+  }
+});
+
+test('missing B input never falls back to analysis A and late metadata loads the selected B action', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source' };
+  c.videoFileIdentity.side = 'front-source';
+  c.crossViewCorrectionData.entries = {};
+  c.frameStateHistory.front.frame2.videoTime = 0.1;
+  c.frameStateHistory.side.frame2 = null;
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  const video = element('crossCorrectionFrontVideo');
+  video.currentTime = 5;
+  element('crossCorrectionFrame').value = 'frame2';
+  fire('Frame', 'change');
+  assert.equal(video.currentTime, 5);
+  assert.match(element('crossCorrectionStatus').textContent, /정면.*같은 원본의 저장 동작 없음/);
+
+  video.readyState = 0;
+  c.frameStateHistory.side.frame2 = { videoTime: 8, points: [] };
+  fire('Frame', 'change');
+  assert.equal(video.currentTime, 5, 'seek waits until metadata is ready');
+  video.readyState = 1;
+  video.videoWidth = 480;
+  video.videoHeight = 480;
+  fire('FrontVideo', 'loadedmetadata');
+  assert.equal(video.currentTime, 8);
+
+  fire('Reference', 'click');
+  assert.equal(video.currentTime, c.frameStateHistory.side.frame1.videoTime, 'reference selection must not restore A either');
 });
 
 test('editor restores saved analysis landmarks and reports only the missing point', () => {
   const { c, element, fire, files } = setupEditor();
+  c.videoFileIdentity.side = 'front-source';
   c.crossViewCorrectionData = { version: 2, workflow: 'frame-pairs', references: {}, entries: {}, backswingEntries: {}, sources: {} };
   for (const view of ['front', 'side']) {
     const types = c.CROSS_CORRECTION_POINTS.frame1[view].filter(type => type !== 'clubHead');
@@ -492,14 +617,14 @@ test('editor restores saved analysis landmarks and reports only the missing poin
   element('crossCorrectionSetup').open = true;
   fire('Setup', 'toggle');
   assert.match(element('crossCorrectionStatus').textContent, /정면 5\/6: 클럽헤드/);
-  assert.match(element('crossCorrectionStatus').textContent, /측면 5\/6: 클럽헤드/);
+  assert.match(element('crossCorrectionStatus').textContent, /측면 0\/6:/);
   for (const view of ['Front', 'Side']) {
     element(`crossCorrection${view}PointType`).value = 'clubHead';
   }
   fire('FrontCanvas', 'click', { clientX: 240, clientY: 240 });
   assert.match(element('crossCorrectionStatus').textContent, /정면 6\/6: 필요 점 확인 완료/);
   fire('SideCanvas', 'click', { clientX: 240, clientY: 240 });
-  assert.match(element('crossCorrectionStatus').textContent, /측면 6\/6: 필요 점 확인 완료/);
+  assert.match(element('crossCorrectionStatus').textContent, /측면 1\/6:/);
 });
 
 test('editor can select a later visible landmark and save a partial frame without guessing occluded points', () => {
@@ -523,7 +648,7 @@ test('editor can select a later visible landmark and save a partial frame withou
   assert.equal(element('crossCorrectionFrame').value, 'frame2');
 });
 
-test('side frame is not forced to a backswing checkpoint and requires front-matched points', () => {
+test('side frame reuses the same-source top checkpoint, not address, but requires its own landmarks', () => {
   const { c, element, fire, files } = setupEditor();
   const sideSource = 'backswing-side-source';
   c.videoFileIdentity.side = 'comparison-side-source';
@@ -552,7 +677,7 @@ test('side frame is not forced to a backswing checkpoint and requires front-matc
   element('crossCorrectionFrame').value = 'frame1';
   element('crossCorrectionSideVideo').currentTime = 0;
   fire('Frame', 'change');
-  assert.equal(element('crossCorrectionSideVideo').currentTime, 0);
+  assert.equal(element('crossCorrectionSideVideo').currentTime, 1.25);
   fire('SideVideo', 'seeked');
   assert.match(element('crossCorrectionStatus').textContent, /측면 0\/6:/);
   assert.equal(element('crossCorrectionFrame').options.length, 6);
@@ -572,14 +697,78 @@ test('saved legacy F1 pairs are cleared when the new F1-F6 alignment signature d
   assert.equal(c.crossViewCorrectionData.entries.frame1, undefined);
   assert.equal(c.crossViewCorrectionData.analysisSignature, c.getCrossCorrectionAnalysisSignature());
   assert.equal(element('crossCorrectionFrame').options.length, 6);
+  assert.match(element('crossCorrectionStatus').textContent, /분석 프레임 자료가 변경/);
+  assert.equal(c.crossCorrectionMode, 'roll');
 });
 
 test('calculate identifies unsaved frames and tells the user to save selected landmarks', () => {
-  const { c, element, fire } = setupEditor();
+  const { c, element, fire, updates } = setupEditor();
   c.crossViewCorrectionData.entries = {};
+  c.crossCorrectionMode = 'cross';
+  const before = updates();
   fire('Calculate', 'click');
   assert.match(element('crossCorrectionStatus').textContent, /저장되지 않은 분석 프레임: F1, F2, F3, F4, F5, F6/);
   assert.match(element('crossCorrectionStatus').textContent, /정면·측면 프레임 저장/);
+  assert.equal(c.crossCorrectionMode, 'roll');
+  assert.equal(updates(), before + 1);
+});
+
+test('calculate preserves stale inputs and withholds cross mode until the pairs are saved again', () => {
+  const { c, element, fire } = setupEditor();
+  const entries = c.crossViewCorrectionData.entries;
+  const signature = c.crossViewCorrectionData.analysisSignature;
+  c.frameStateHistory.front.frame1.points[0].x += 0.01;
+  c.crossCorrectionMode = 'cross';
+  fire('Calculate', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /기존 분석이 변경/);
+  assert.equal(c.crossCorrectionMode, 'roll');
+  assert.equal(c.crossViewCorrectionData.entries, entries);
+  assert.equal(c.crossViewCorrectionData.analysisSignature, signature);
+});
+
+test('saving after analysis changes resets the signature once and retains calibration for retry', () => {
+  const { c, element, fire, files } = setupEditor();
+  files.front = { id: 'front-source', name: 'front.mp4' };
+  files.side = { id: 'independent-side-source', name: 'side.mp4' };
+  element('crossCorrectionSetup').open = true;
+  fire('Setup', 'toggle');
+  const references = c.crossViewCorrectionData.references;
+  const stance = c.stanceReferenceLineFront;
+  c.frameStateHistory.front.frame1.points[0].x += 0.01;
+  fire('Points', 'click');
+  for (const view of ['Front', 'Side']) {
+    element(`crossCorrection${view}PointType`).value = 'clubHead';
+    fire(`${view}Canvas`, 'click', { clientX: 240, clientY: 240 });
+  }
+  fire('Capture', 'click');
+  assert.match(element('crossCorrectionStatus').textContent, /보정 기준은 유지/);
+  assert.equal(c.crossViewCorrectionData.analysisSignature, c.getCrossCorrectionAnalysisSignature());
+  assert.equal(c.crossViewCorrectionData.references, references);
+  assert.equal(c.crossViewCorrectionData.calibration, 'shaft-ground-v1');
+  assert.equal(c.stanceReferenceLineFront, stance);
+  assert.equal(Object.keys(c.crossViewCorrectionData.entries).length, 0);
+
+  fire('Points', 'click');
+  for (const view of ['Front', 'Side']) {
+    element(`crossCorrection${view}PointType`).value = 'clubHead';
+    fire(`${view}Canvas`, 'click', { clientX: 240, clientY: 240 });
+  }
+  fire('Capture', 'click');
+  assert.ok(c.crossViewCorrectionData.entries.frame1);
+  assert.equal(element('crossCorrectionFrame').value, 'frame2');
+  assert.equal(c.crossViewCorrectionData.references, references);
+  for (const frame of frames.slice(1)) {
+    fire('Points', 'click');
+    for (const view of ['Front', 'Side']) {
+      element(`crossCorrection${view}PointType`).value = c.CROSS_CORRECTION_POINTS[frame][view.toLowerCase()][0];
+      fire(`${view}Canvas`, 'click', { clientX: 240, clientY: 240 });
+    }
+    fire('Capture', 'click');
+    assert.ok(c.crossViewCorrectionData.entries[frame]);
+  }
+  fire('Calculate', 'click');
+  assert.equal(c.crossCorrectionMode, 'cross');
+  assert.equal(c.getCrossCorrectionScenario().unavailable, undefined);
 });
 
 test('opening correction reuses both analysis files, preserves same-source inputs and respects manual overrides', () => {

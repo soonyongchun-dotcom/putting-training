@@ -1907,7 +1907,7 @@
 </div>
 
 <div class="top-bar">
-  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span>   <span class="version">ver 26.1103-f-ad</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span>   <span class="version">ver 26.1105-f1-ad</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <label class="language-select" for="languageSelect">언어
     <select id="languageSelect" aria-label="언어">
       <option value="ko">한국어</option>
@@ -2449,7 +2449,7 @@
             <button type="button" id="crossCorrectionRollOnly">양발선 보정만 보기</button>
             <button type="button" id="crossCorrectionClear">교차 입력 초기화</button>
           </div>
-          <small>같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. F1–F6에서는 두 영상의 시점이 서로 달라도 괜찮지만, 같은 동작의 관절·물체 위치를 선택해야 합니다. 보이지 않는 점을 억지로 추정하지 마세요. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.</small>
+          <small>같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. 보정할 자세는 F1 백스윙 탑, F2·F5 다운스윙 중기(양손 허리 높이), F3 임팩트 직전, F4·F6 임팩트입니다. F2/F5와 F4/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요. 정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다. 측면은 같은 원본의 저장 동작이 있을 때만 연결합니다. 저장 동작이 없으면 안내된 자세로 직접 이동하세요. 각 F에서 초 단위 시간이 아니라 실제 동작이 일치하는지 확인하세요. 보이지 않는 점을 억지로 추정하지 마세요. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.</small>
         </details>
         <p class="analysis-2d-diagnostics-note">선택한 보정 방식으로 재계산한 비교값이며 공식 결과는 유지됩니다.</p>
       </div>
@@ -2498,13 +2498,17 @@
       <summary>모션 채점·동력지수·스윙엔진</summary>
       <div id="analysisPowerComparisonReference"></div>
       <div id="analysisProfileWarningsReference"></div>
-      <div id="analysisTypeReference"></div>
       <details class="analysis-reference-detail">
         <summary>프레임 채점·보완점수 상세</summary>
         <div id="analysisBonusReference" class="analysis-summary"></div>
         <div id="analysisThreePointSpread" class="analysis-summary" style="white-space:pre-wrap;text-align:left;"></div>
         <div class="analysis-summary" style="text-align:left;">잠정 점수 구성 (세부 지표는 각 항목의 도움말 참고): F2 래깅 40%·압축 20%·골반/C7 이동 40%, F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐이 참고 범위를 벗어날 때만 F3/F4에서 감점하고, 범위 안의 보완도 동일 영상·순서 근거가 있을 때만 적용합니다. F4 어드레스→임팩트 분리 감점은 최대 3점, F3/F4 측면 경로 보완은 10%입니다. F6는 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. 시간차와 Release Index는 미검증 관측값으로 점수에서 제외하며, 누락 항목은 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 범위는 소표본 잠정 기준이며 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.</div>
       </details>
+    </details>
+    <details class="analysis-reference-detail" data-workflow-for="swingtype">
+      <summary>스윙유형 산출 기준·상세 근거</summary>
+      <p>ATE·LSE·VEE 지수의 산출 입력, 상대 적합도와 유형 판정 규칙을 표시합니다. 백분율은 파워 비중이나 판정 확률이 아니며, 필요한 관측 자료가 부족하면 판정을 보류합니다.</p>
+      <div id="analysisTypeReference"></div>
     </details>
     </details>
     <div class="analysis-swing-type" id="analysisSwingType"></div>
@@ -2795,9 +2799,13 @@
     'Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)': 'Frame 2 data missing (mark hand center and pelvis center)',
     'Frame 2 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요': 'Analyze Frame 1 top (six B-panel grip/clubhead landmarks) first',
     '참고 안내 — 결과 해석·선수 비교·상세 근거': 'Reference Guide — Interpretation, Player Comparison and Details',
+    '참고 안내 — 스윙유형 추정 근거': 'Reference Guide — Swing-Type Estimation Evidence',
     '체격 기준·활용추정효율·잠재 거리': 'Body Reference, Estimated Utilization and Potential Distance',
     '선수 비교·거리 실현율': 'Player Comparison and Distance Realization',
     '모션 채점·동력지수·스윙엔진': 'Motion Scoring, Power Indices and Swing Engine',
+    '스윙유형 산출 기준·상세 근거': 'Swing-Type Calculation Rules and Detailed Evidence',
+    'ATE·LSE·VEE 지수의 산출 입력, 상대 적합도와 유형 판정 규칙을 표시합니다. 백분율은 파워 비중이나 판정 확률이 아니며, 필요한 관측 자료가 부족하면 판정을 보류합니다.': 'Shows the ATE, LSE and VEE inputs, relative fits and type decision rules. Percentages are not power shares or probabilities; classification is withheld when required observations are missing.',
+    '같은 스윙을 촬영한 고정 카메라 영상을 사용하세요. 기준 저장은 각 영상의 지면선 2점과 샤프트 양 끝점을 지정합니다. 보정할 자세는 F1 백스윙 탑, F2·F5 다운스윙 중기(양손 허리 높이), F3 임팩트 직전, F4·F6 임팩트입니다. F2/F5와 F4/F6은 서로 다른 지표의 점 구성이므로 각각 저장하세요. 정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다. 측면은 같은 원본의 저장 동작이 있을 때만 연결합니다. 저장 동작이 없으면 안내된 자세로 직접 이동하세요. 각 F에서 초 단위 시간이 아니라 실제 동작이 일치하는지 확인하세요. 보이지 않는 점을 억지로 추정하지 마세요. 양쪽 영상에서 보이는 점만 저장하면 해당 프레임은 보정하지 않고 기존 분석값을 유지합니다. 실제 3D 복원이나 힘 측정이 아닌 2D 투영 왜곡 감소용 비교입니다.': 'Use fixed-camera videos of the same swing. Save two ground-line points and both shaft endpoints for each video. Target poses are F1 top of backswing, F2/F5 mid-downswing (hands at waist), F3 just before impact, and F4/F6 impact. F2/F5 and F4/F6 use different metric landmark sets, so save each separately. The front view uses saved analysis 2 B actions, not analysis A address times. The side view links saved actions only from the same source. If no action is saved, seek to the indicated pose manually. Confirm the actual motion for each F, not matching timestamps. Do not guess occluded landmarks. If required points are not visible in both views, that frame remains uncorrected and its original analysis values are retained. This comparison reduces 2D projection distortion; it does not reconstruct 3D motion or measure force.',
     '잠재 최대 총거리 추정 산식': 'Potential Maximum Total-Distance Formula',
     '잠정 점수 구성 (세부 지표는 각 항목의 도움말 참고): F2 래깅 40%·압축 20%·골반/C7 이동 40%, F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐이 참고 범위를 벗어날 때만 F3/F4에서 감점하고, 범위 안의 보완도 동일 영상·순서 근거가 있을 때만 적용합니다. F4 어드레스→임팩트 분리 감점은 최대 3점, F3/F4 측면 경로 보완은 10%입니다. F6는 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. 시간차와 Release Index는 미검증 관측값으로 점수에서 제외하며, 누락 항목은 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 범위는 소표본 잠정 기준이며 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.': 'Provisional weights (see each metric tooltip for details): F2 lag 40%, compression 20%, pelvis/C7 shift 40%; F3 extension 35%, axis stability 25%, posture transition 40%; F4 alignment 70%, C7 X/Y 15% each. F3/F4 deductions for the ordered F1–F4 B-point spread apply only when same-video timing evidence is available; in-range adjustments require the same evidence. F4 address-to-impact separation deduction is capped at 3 points; F3/F4 side-path adjustment is 10%. F6 uses relative displacement alone, or 90% displacement and 10% path when available. Unvalidated time and Release Index observations are excluded from scoring, and missing components are renormalized. The distance-motion average is the mean of F1–F4 scores. Ranges are provisional and based on small samples; 2D geometry does not measure force, ground reaction force, or speed.',
     '비교자료 불러오기·조건 설정': 'Load Reference Data and Set Conditions',
@@ -4194,6 +4202,33 @@
     if (view === 'side' && ['frame2', 'frame5'].includes(frameId)) return ['frame2', 'frame5'];
     if (view === 'side' && ['frame4', 'frame6'].includes(frameId)) return ['frame4', 'frame6'];
     return [];
+  }
+  function getBackswingPhaseForAnalysisFrame(frameId, view) {
+    const phases = {
+      frame1: { front: 'address', side: 'top' },
+      frame2: { front: 'address', side: 'downP6' },
+      frame4: { front: 'address', side: 'impact' },
+      frame5: { front: 'address', side: 'downP6' },
+      frame6: { front: 'downP6', side: 'impact' },
+    };
+    return phases[frameId]?.[view] || null;
+  }
+  function getAnalysisFrameMotionCheckpoint(frameId, view) {
+    const phase = getBackswingPhaseForAnalysisFrame(frameId, view);
+    if (!phase || !backswingSourceIdentity || videoFileIdentity[view] !== backswingSourceIdentity) return null;
+    const time = backswingFrames[phase]?.time;
+    const video = view === 'front' ? frontVideo : sideVideo;
+    if (!video.src || !hasMetric(time) || time < 0
+      || (hasMetric(video.duration) && video.duration > 0 && time > video.duration)) return null;
+    return { phase, time };
+  }
+  function applySavedBackswingMotion(frameId, view) {
+    if (frameStateHistory[view]?.[frameId]) return null;
+    const checkpoint = getAnalysisFrameMotionCheckpoint(frameId, view);
+    if (!checkpoint) return null;
+    const video = view === 'front' ? frontVideo : sideVideo;
+    video.currentTime = checkpoint.time;
+    return checkpoint.phase;
   }
   function getDiagnosticSemanticPoint(view, frameId, semantic) {
     const saved = frameStateHistory[view]?.[frameId];
@@ -6578,10 +6613,6 @@
       fm,
     };
     deltaResult.segmentScore = computeSegmentScore(deltaResult, segment);
-    deltaResult.segmentScores = Object.fromEntries(
-      ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6'].map(frame => [
-        frame, computeSegmentScore({ ...deltaResult, fm: segment === frame ? fm : {} }, frame),
-      ]));
     deltaResult.segmentName = segment;
     deltaResult.summary = '';
     deltaResult.bMetrics = {
@@ -7380,6 +7411,7 @@
     const hasLegDriveEvidence = hasMetric(f3.hipDropPercent)
       || hasMetric(f3.kneeExtDelta) || hasMetric(f3.leadLegBraceRatioB);
 
+    const sameVideo = areVideoSourcesSame();
     const shiftRatio = getLinearEngineEvidence(f2, null, null).shiftRatio;
     const hasReleaseEvidence = hasMetric(getImpactAlignment(f4));
     const missing = [];
@@ -7387,7 +7419,9 @@
     if (!hasAxisEvidence) missing.push(getSwingUiText('축 안정성: F1 C7 X/Y 변위 또는 F3 C7 Sway/Rise 지표가 필요합니다. 기준선과 해당 포인트를 확인하세요.', 'Axis stability: F1 C7 X/Y displacement or F3 C7 sway/rise data is missing. Check the reference line and relevant points.'));
     if (!hasUpperTurnEvidence) missing.push(getSwingUiText('상체 회전: F1 어깨 회전(X-Factor) 지표가 없습니다. F1 A/B 분석을 다시 확인하세요.', 'Upper-body rotation: F1 shoulder rotation (X-Factor) data is missing. Check the F1 A/B analysis.'));
     if (!hasLegDriveEvidence) missing.push(getSwingUiText('하체 구동: F3 고관절 하강·무릎 신전·리드레그 브레이싱 지표가 없습니다. F3 B패널 포인트를 확인하세요.', 'Leg drive: F3 hip drop, knee extension, or lead-leg bracing data is missing. Check the F3 B-panel points.'));
-    if (areVideoSourcesSame() && !hasMetric(shiftRatio)) missing.push(getSwingUiText('골반 이동: 같은 영상 F2 코어 이동 지표가 없습니다. F2 A/B 포인트를 확인하세요. F5는 다른 척도여서 대체하지 않습니다.', 'Pelvis shift: same-video F2 core movement is missing. Check F2 A/B points; F5 uses a different denominator and cannot substitute.'));
+    if (!hasMetric(shiftRatio)) missing.push(sameVideo
+      ? getSwingUiText('골반 이동: 같은 영상 F2 코어 이동 지표가 없습니다. F2 A/B 포인트를 확인하세요. F5는 다른 척도여서 대체하지 않습니다.', 'Pelvis shift: same-video F2 core movement is missing. Check F2 A/B points; F5 uses a different denominator and cannot substitute.')
+      : getSwingUiText('골반 이동: A/B 영상이 같은 원본으로 확인되지 않아 LSE를 측정할 수 없습니다. 두 패널에 같은 영상을 불러오고 F2 A/B 포인트를 분석하세요. 측정 불가를 0%로 해석하지 마세요.', 'Pelvis shift: A/B sources are not confirmed as the same video, so LSE cannot be measured. Load the same video in both panels and analyze F2 A/B points. Do not interpret unavailable evidence as 0%.'));
     if (!hasReleaseEvidence) missing.push(getSwingUiText('임팩트 정렬: F4 B 팔–샤프트 절대각이 없습니다. F4 B 포인트를 확인하세요.', 'Impact alignment: F4 B arm–shaft angle is missing. Check the F4 B points.'));
     return { ready: missing.length === 0, missing };
   }
@@ -7400,7 +7434,6 @@
       if (segment === 'frame5') fm._consistency = computeConsistencyReport(fm);
       if (segment === 'frame6') fm._tempo = computeTempoSequenceReport(fm);
       deltaResult.segmentScore = computeSegmentScore(deltaResult, segment);
-      deltaResult.segmentScores = { ...(deltaResult.segmentScores || {}), [segment]: deltaResult.segmentScore };
       segmentScoreHistory[segment] = deltaResult.segmentScore;
       updateSegmentComparisonCard(segment, deltaResult);
     });
@@ -8105,6 +8138,15 @@
     return result.segmentScore;
   }
 
+  function syncSegmentScoreSnapshots() {
+    const scores = Object.fromEntries(ANALYSIS_FRAME_IDS.map(frame => [
+      frame, hasMetric(segmentScoreHistory[frame]) ? segmentScoreHistory[frame] : null,
+    ]));
+    for (const result of Object.values(segmentDeltaHistory)) {
+      if (result) result.segmentScores = { ...scores };
+    }
+  }
+
   var playerReferenceRows = [];
   var playerReferenceLoadVersion = 0;
   const referenceFieldIds = {
@@ -8730,6 +8772,7 @@
         updateSegmentComparisonCard(frame, segmentDeltaHistory[frame]);
       }
     });
+    syncSegmentScoreSnapshots();
     if (computing2dCorrectionScenario) return;
     refreshSwingClassificationViews();
     const scoreLabel = (frame, scale = 1) => hasMetric(getStoredSegmentScore(frame))
@@ -13345,10 +13388,12 @@
       frontPoints = savedFront ? JSON.parse(JSON.stringify(savedFront.points)) : [];
       frontLines  = savedFront ? JSON.parse(JSON.stringify(savedFront.lines))  : [];
       if (savedFront && Number.isFinite(savedFront.videoTime)) frontVideo.currentTime = savedFront.videoTime;
+      else applySavedBackswingMotion(segment, 'front');
       const savedSide = frameStateHistory.side[segment];
       sidePoints = savedSide ? JSON.parse(JSON.stringify(savedSide.points)) : [];
       sideLines  = savedSide ? JSON.parse(JSON.stringify(savedSide.lines))  : [];
       if (savedSide && Number.isFinite(savedSide.videoTime)) sideVideo.currentTime = savedSide.videoTime;
+      else applySavedBackswingMotion(segment, 'side');
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
     }
@@ -13534,16 +13579,48 @@
       } else {
         sidePoints = []; sideLines = [];
       }
+      const restoredBackswingMotions = [];
+      if (!savedFront) {
+        const phase = applySavedBackswingMotion(selectedSegment, 'front');
+        if (phase) restoredBackswingMotions.push(`A ${phase}`);
+      }
+      if (!savedSide) {
+        const phase = applySavedBackswingMotion(selectedSegment, 'side');
+        if (phase) restoredBackswingMotions.push(`B ${phase}`);
+      }
       const frontReuse = reuseSharedFramePoints(selectedSegment, 'front');
       const sideReuse = reuseSharedFramePoints(selectedSegment, 'side');
       const reuseCount = frontReuse.count + sideReuse.count;
       if (analysisPointReuseStatus) {
         const reusedSources = [...new Set([...frontReuse.sources, ...sideReuse.sources])];
         const frameNames = { frame1: 'F1', frame2: 'F2', frame3: 'F3', frame4: 'F4', frame5: 'F5', frame6: 'F6' };
-        analysisPointReuseStatus.hidden = reuseCount === 0;
-        analysisPointReuseStatus.textContent = reuseCount
-          ? `${reusedSources.map(frame => frameNames[frame]).join(', ')}에서 공통 포인트 ${reuseCount}개를 자동 적용했습니다. 위치를 확인하고 나머지만 선택하세요.`
-          : '';
+        const notices = [];
+        if (reuseCount) notices.push(`${reusedSources.map(frame => frameNames[frame]).join(', ')}에서 공통 포인트 ${reuseCount}개를 자동 적용했습니다. 위치를 확인하고 나머지만 선택하세요.`);
+        if (restoredBackswingMotions.length) notices.push(
+          getSwingUiText(
+            `이전 백스윙 분석에서 저장한 모션을 적용했습니다: ${restoredBackswingMotions.join(', ')}.`,
+            `Restored saved motion checkpoints from the earlier swing analysis: ${restoredBackswingMotions.join(', ')}.`)
+          + getSwingUiText(' 동일 원본 영상 시점만 연결했습니다. 랜드마크 포인트는 새 프레임에서 다시 선택하세요.',
+            ' Only times from the identical source video were linked. Select landmarks again at the restored frame.'));
+        const unavailableMotions = ['front', 'side'].filter(view => {
+          const saved = view === 'front' ? savedFront : savedSide;
+          return !saved && !restoredBackswingMotions.some(motion => motion.startsWith(view === 'front' ? 'A ' : 'B '));
+        }).map(view => {
+          const phase = getBackswingPhaseForAnalysisFrame(selectedSegment, view);
+          const label = view === 'front' ? 'A' : 'B';
+          if (!phase) return `${label}: ${getSwingUiText('이전 분석에 같은 동작 시점이 없음', 'no matching saved checkpoint')}`;
+          if (!backswingSourceIdentity || videoFileIdentity[view] !== backswingSourceIdentity) {
+            return `${label}: ${getSwingUiText('영상 원본 불일치', 'source video differs')}`;
+          }
+          return `${label}: ${getSwingUiText('저장된 시점 없음', 'checkpoint time not saved')}`;
+        });
+        if (unavailableMotions.length) {
+          notices.push(getSwingUiText(
+            `이전 분석 모션 자동 연결 보류(${unavailableMotions.join(', ')}). 안내에 따라 해당 영상에서 직접 시점을 맞추세요.`,
+            `Motion auto-linking skipped (${unavailableMotions.join(', ')}). Seek to the indicated pose manually.`));
+        }
+        analysisPointReuseStatus.hidden = notices.length === 0;
+        analysisPointReuseStatus.textContent = notices.join(' ');
       }
       drawOverlay(frontCtx, frontPoints, frontLines, frontCanvas, frontVideo, frontZoom);
       drawOverlay(sideCtx,  sidePoints,  sideLines,  sideCanvas,  sideVideo,  sideZoom);
@@ -15693,6 +15770,11 @@
     const state = analysisWorkflowState;
     const current = ANALYSIS_WORKFLOW_STEPS[state.index];
     const label = step => getSwingUiText(step.ko, step.en);
+    const referenceSummary = document.querySelector?.('#analysisReferenceGuide > summary');
+    if (referenceSummary) referenceSummary.textContent = current.id === 'swingtype'
+      ? getSwingUiText('참고 안내 — 스윙유형 추정 근거', 'Reference Guide — Swing-Type Estimation Evidence')
+      : getSwingUiText('참고 안내 — 결과 해석·선수 비교·상세 근거',
+        'Reference Guide — Interpretation, Player Comparison and Details');
     const results = new Map(ANALYSIS_WORKFLOW_STEPS.filter(step => state.choices[step.id] === 'yes')
       .map(step => [step.id, getAnalysisWorkflowResult(step.id)]));
     const progress = document.getElementById('analysisWorkflowProgress');

@@ -110,6 +110,8 @@ test('compact bar replaces duplicate workflow navigation and question', () => {
   assert.match(html, /<summary>2D 왜곡 보정 분석<\/summary>/);
   assert.match(html, /body\[data-workflow-stage="correction"\] #analysisPanelBody > :not\(#analysis2dDiagnostics\)/);
   assert.match(html, /body\[data-workflow-stage="swingtype"\] #analysisSwingType > \.analysis-power-summary/);
+  assert.match(html, /current\.id === 'swingtype'[\s\S]*스윙유형 추정 근거/);
+  assert.match(html, /data-workflow-for="swingtype">[\s\S]*?id="analysisTypeReference"/);
   assert.match(html, /data-workflow-for="engine swingtype distance r10 correction"/);
   assert.doesNotMatch(html, /id="analysisWorkflow(?:Start|Yes|Skip|Open|Check|Next|Back|Return|Question|Prerequisites|Results)"/);
   assert.match(html, /ver 26\.1103-f-ad/);

@@ -278,6 +278,17 @@ function applyCrossCorrectionMetrics(metrics, model, frame, panel) {
 }
 
 function getCrossCorrectionScenario() {
+  const missingFrames = CROSS_CORRECTION_FRAMES
+    .filter(frame => !crossViewCorrectionData.entries?.[frame])
+    .map(frame => frame.replace('frame', 'F'));
+  if (missingFrames.length) return { unavailable: getSwingUiText(
+    `교차 보정 보류: 저장되지 않은 분석 프레임 ${missingFrames.join(', ')}. 각 프레임의 정면·측면 대응점을 저장하세요.`,
+    `Cross correction withheld: unsaved analysis frames ${missingFrames.join(', ')}. Save the matched front/side points for each frame.`) };
+  if (crossViewCorrectionData.analysisSignature !== getCrossCorrectionAnalysisSignature()) {
+    return { unavailable: getSwingUiText(
+      '교차 보정 보류: 기존 분석이 변경되었습니다. 보정 입력을 다시 열고 F1–F6 대응점을 확인한 뒤 다시 저장하세요. 원본 분석은 유지됩니다.',
+      'Cross correction withheld: the original analysis changed. Reopen correction inputs, recheck and save the F1–F6 pairs. Original analysis is preserved.') };
+  }
   try {
     return get2dVirtualCorrectionScenario(getCrossCorrectionModel());
   } catch (error) {
@@ -352,14 +363,15 @@ function validateCrossCorrectionData(data) {
   let referenceDraft = { front: { stancePoints: [], shaftPoints: [] }, side: { stancePoints: [], shaftPoints: [] } };
   let referenceDraftTimes = { front: null, side: null };
   let draft = { front: [], side: [] };
+  const realignedFrames = new Set();
   const selector = el('Frame');
   const frameLabels = [
-    ['정면 기준 동작에 측면 맞춤', 'Match side to front reference motion'],
-    ['정면 기준 동작에 측면 맞춤', 'Match side to front reference motion'],
-    ['정면 기준 동작에 측면 맞춤', 'Match side to front reference motion'],
-    ['정면 기준 동작에 측면 맞춤', 'Match side to front reference motion'],
-    ['정면 기준 동작에 측면 맞춤', 'Match side to front reference motion'],
-    ['정면 기준 동작에 측면 맞춤', 'Match side to front reference motion'],
+    ['백스윙 탑 (P4)', 'Top of backswing (P4)'],
+    ['다운스윙 중기 — 양손 허리 높이', 'Mid-downswing — hands at waist'],
+    ['임팩트 직전 (다운스윙 4/5)', 'Just before impact (late downswing)'],
+    ['임팩트 (P7)', 'Impact (P7)'],
+    ['다운스윙 중기 — 양손 허리 높이 (일관성)', 'Mid-downswing — hands at waist (consistency)'],
+    ['임팩트 (P7, P6→P7 시퀀스)', 'Impact (P7, P6→P7 sequence)'],
   ];
   for (const [index, frame] of CROSS_CORRECTION_FRAMES.entries()) {
       const option = document.createElement('option');
@@ -418,18 +430,51 @@ function validateCrossCorrectionData(data) {
       : [videoFileIdentity.side, typeof backswingSourceIdentity === 'undefined' ? null : backswingSourceIdentity];
     return !expected.some(Boolean) || expected.includes(crossViewCorrectionData.sources[view]);
   };
+  function getAnalysisMotion(view, key) {
+    const identity = crossViewCorrectionData.sources[view];
+    // Analysis A/B are reference/action panels, not front/side cameras.
+    const history = view === 'front' && identity && identity === videoFileIdentity.side
+      ? frameStateHistory.side?.[key] : null;
+    if (Number.isFinite(history?.videoTime) && history.videoTime >= 0) {
+      return { time: history.videoTime, points: history.points };
+    }
+    const phase = getBackswingPhaseForAnalysisFrame(key, 'side');
+    const time = phase && typeof backswingSourceIdentity !== 'undefined'
+      && identity && identity === backswingSourceIdentity ? backswingFrames[phase]?.time : null;
+    return Number.isFinite(time) && time >= 0 ? { time, points: [] } : null;
+  }
+  function resetReferencePanelPairs() {
+    if (crossViewCorrectionData.sources.front !== videoFileIdentity.front
+      || crossViewCorrectionData.sources.front !== videoFileIdentity.side) return false;
+    let changed = false;
+    for (const key of CROSS_CORRECTION_FRAMES) {
+      if (key === 'frame3') continue;
+      const saved = crossViewCorrectionData.entries?.[key];
+      const referenceTime = frameStateHistory.front?.[key]?.videoTime;
+      const motionTime = frameStateHistory.side?.[key]?.videoTime;
+      if (!Number.isFinite(saved?.frontTime) || !Number.isFinite(referenceTime) || !Number.isFinite(motionTime)
+        || Math.abs(referenceTime - motionTime) <= 0.05
+        || Math.abs(saved.frontTime - referenceTime) > 0.002) continue;
+      delete crossViewCorrectionData.entries[key];
+      realignedFrames.add(key);
+      crossCorrectionMode = 'roll';
+      changed = true;
+    }
+    return changed;
+  }
   function restoreDraft(view, key) {
     const saved = crossViewCorrectionData.entries?.[key];
     const time = videos[view].currentTime;
     const required = requiredTypes(key, view);
     if (!analysisSourceMatches(view)) return [];
     if (saved && Math.abs(time - saved[`${view}Time`]) <= 0.002) return structuredClone(saved[`${view}Points`]);
-    if (crossViewCorrectionData.sources[view] !== videoFileIdentity[view]) return [];
-    const history = frameStateHistory[view]?.[key];
-    if (!history || !Number.isFinite(history.videoTime) || Math.abs(time - history.videoTime) > 0.05
-      || !Array.isArray(history.points)) return [];
-    return required.map(type => history.points.find(point => point.type === type))
-      .filter(point => point && isProjectCoordinate(point)).map(point => structuredClone(point));
+    const motion = getAnalysisMotion(view, key);
+    if (!motion || Math.abs(time - motion.time) > 0.05 || !Array.isArray(motion.points)) return [];
+    return required.map(type => {
+      const originalType = key === 'frame1' && type === 'clubHead' ? 'clubHeadTop' : type;
+      const point = motion.points.find(point => point.type === originalType);
+      return point && isProjectCoordinate(point) ? { ...structuredClone(point), type } : null;
+    }).filter(Boolean);
   }
   function loadSource(view, file, automatic = false) {
     const identity = getVideoFileIdentity(file);
@@ -444,6 +489,7 @@ function validateCrossCorrectionData(data) {
         sources: { ...activeSources(), [view]: identity },
       };
       if (view === 'front') stanceReferenceLineFront = null;
+      realignedFrames.clear();
       draft = { front: [], side: [] };
     }
     urls[view] = URL.createObjectURL(file);
@@ -526,8 +572,12 @@ function validateCrossCorrectionData(data) {
         const types = requiredTypes(frame, view);
         const missing = types.find(type => !draft[view].some(point => point.type === type));
         const count = types.filter(type => draft[view].some(point => point.type === type)).length;
-        return `${view === 'front' ? text('정면', 'Front') : text('측면', 'Side')} ${count}/${types.length}: ${missing
-          ? pointLabel(frame, missing) : text('필요 점 확인 완료', 'Required landmarks ready')}`;
+        const label = view === 'front' ? text('정면', 'Front') : text('측면', 'Side');
+        const unlinked = !crossViewCorrectionData.entries[frame] && !getAnalysisMotion(view, frame);
+        return `${label} ${count}/${types.length}: ${missing
+          ? pointLabel(frame, missing) : text('필요 점 확인 완료', 'Required landmarks ready')}${unlinked
+            ? text(' · 같은 원본의 저장 동작 없음: 안내된 자세로 직접 이동하세요.',
+              ' · No saved motion from this source: seek to the indicated pose manually.') : ''}`;
       }).join('\n') + `\n${text('저장 입력', 'Saved inputs')}: ${
         CROSS_CORRECTION_FRAMES.map((item, index) => {
           const entry = crossViewCorrectionData.entries[item];
@@ -543,6 +593,9 @@ function validateCrossCorrectionData(data) {
                   Number.isFinite(getReferenceTiltDegrees(view))
                     ? ` (${getReferenceTiltDegrees(view).toFixed(1)}°)` : ''}`).join(' · ')}`
             : text('미지정', 'Not set')}`;
+    if (realignedFrames.size) el('Status').textContent += '\n' + text(
+      `기존 A 기준 시점으로 저장된 ${Array.from(realignedFrames, frame => frame.replace('frame', 'F')).join('·')} 대응점은 초기화했습니다. 분석2 B의 동작 시점에서 다시 확인·저장하세요. 영상과 보정 기준은 유지됩니다.`,
+      `Pairs saved at analysis A reference times (${Array.from(realignedFrames, frame => frame.replace('frame', 'F')).join(', ')}) were reset. Recheck and save at the analysis 2 B action times. Videos and calibration are retained.`);
     draw('front'); draw('side');
   }
   function getReferenceTiltDegrees(view, reference = crossViewCorrectionData.references?.[view]) {
@@ -555,13 +608,12 @@ function validateCrossCorrectionData(data) {
   }
   function loadFrame() {
     referenceMode = false;
+    const resetPairs = resetReferencePanelPairs();
     const frame = selected(), saved = crossViewCorrectionData.entries?.[frame];
     draft = { front: [], side: [] };
     for (const view of ['front', 'side']) {
       if (!loadedSources[view]) continue;
-      const historyTime = crossViewCorrectionData.sources[view] === videoFileIdentity[view]
-        ? frameStateHistory[view]?.[frame]?.videoTime : null;
-      const time = saved?.[`${view}Time`] ?? historyTime;
+      const time = saved?.[`${view}Time`] ?? getAnalysisMotion(view, frame)?.time;
       if (Number.isFinite(time) && videos[view].readyState >= 1) {
         videos[view].pause();
         if (Math.abs(videos[view].currentTime - time) > 0.002) videos[view].currentTime = time;
@@ -569,6 +621,7 @@ function validateCrossCorrectionData(data) {
       }
     }
     notice();
+    if (resetPairs) update2dCorrectionDiagnostics();
   }
   for (const view of ['front', 'side']) {
     canvases[view].addEventListener('click', event => {
@@ -689,27 +742,34 @@ function validateCrossCorrectionData(data) {
     if (el('Setup').open) {
       syncAnalysisSources();
       const signature = getCrossCorrectionAnalysisSignature();
-      if (crossViewCorrectionData.analysisSignature && crossViewCorrectionData.analysisSignature !== signature) {
+      const analysisChanged = crossViewCorrectionData.analysisSignature
+        && crossViewCorrectionData.analysisSignature !== signature;
+      if (analysisChanged) {
         crossViewCorrectionData.entries = {};
         crossViewCorrectionData.backswingEntries = {};
         crossViewCorrectionData.analysisSignature = signature;
+        crossCorrectionMode = 'roll';
+      }
+      loadFrame();
+      if (analysisChanged) {
+        update2dCorrectionDiagnostics();
         el('Status').textContent = text(
           '분석 프레임 자료가 변경되어 기존 F1–F6 대응점은 지웠습니다. 기준은 유지되며 각 프레임 점을 다시 저장하세요.',
           'Analysis frame data changed, so the saved F1–F6 pairs were cleared. Calibration is retained; save the points again for each frame.');
       }
-      loadFrame();
     }
   });
   el('Reference').addEventListener('click', () => {
     selector.value = 'frame1';
     videos.front.pause(); videos.side.pause();
     const savedFrame = crossViewCorrectionData.entries?.frame1;
-    const addressTimes = {
-      front: savedFrame?.frontTime ?? frameStateHistory.front?.frame1?.videoTime,
-      side: savedFrame?.sideTime ?? crossViewCorrectionData.references?.side?.time,
+    const referenceTimes = {
+      front: savedFrame?.frontTime ?? getAnalysisMotion('front', 'frame1')?.time,
+      side: savedFrame?.sideTime ?? crossViewCorrectionData.references?.side?.time
+        ?? getAnalysisMotion('side', 'frame1')?.time,
     };
     for (const view of ['front', 'side']) {
-      const time = addressTimes[view];
+      const time = referenceTimes[view];
       if (Number.isFinite(time) && videos[view].readyState >= 1
         && Math.abs(videos[view].currentTime - time) > 0.002) videos[view].currentTime = time;
     }
@@ -780,10 +840,13 @@ function validateCrossCorrectionData(data) {
     if (crossViewCorrectionData.analysisSignature && crossViewCorrectionData.analysisSignature !== signature) {
       crossViewCorrectionData.entries = {};
       crossViewCorrectionData.backswingEntries = {};
-      crossViewCorrectionData.references = {};
-      stanceReferenceLineFront = null;
-      el('Status').textContent = text('기존 분석이 바뀌어 저장된 점을 지웠습니다. F1 기준점부터 다시 지정하세요.',
-        'The existing analysis changed, so saved landmarks were cleared. Re-mark the F1 references.');
+      crossViewCorrectionData.analysisSignature = signature;
+      crossCorrectionMode = 'roll';
+      selector.value = 'frame1';
+      loadFrame();
+      update2dCorrectionDiagnostics();
+      el('Status').textContent = text('기존 분석이 바뀌어 F1–F6 대응점을 초기화했습니다. 보정 기준은 유지했습니다. 각 프레임의 모션과 점을 확인하고 다시 저장하세요.',
+        'The original analysis changed, so the F1–F6 pairs were reset. Calibration was retained. Check each motion and its landmarks, then save again.');
       return;
     }
     crossViewCorrectionData.version = 2;
@@ -796,6 +859,7 @@ function validateCrossCorrectionData(data) {
       frontAspect: getAnalysisAspect(videos.front), sideAspect: getAnalysisAspect(videos.side),
     };
     crossViewCorrectionData.entries[frame] = entry;
+    realignedFrames.delete(frame);
     crossCorrectionMode = 'roll';
     update2dCorrectionDiagnostics();
     const next = CROSS_CORRECTION_FRAMES[CROSS_CORRECTION_FRAMES.indexOf(frame) + 1];
@@ -806,9 +870,20 @@ function validateCrossCorrectionData(data) {
       .filter(frame => !crossViewCorrectionData.entries[frame])
       .map(frame => frame.replace('frame', 'F'));
     if (missingFrames.length) {
+      crossCorrectionMode = 'roll';
+      update2dCorrectionDiagnostics();
       el('Status').textContent = text(
         `저장되지 않은 분석 프레임: ${missingFrames.join(', ')}. 각 프레임에서 점을 선택한 뒤 ‘정면·측면 프레임 저장’을 누르세요. 현재 선택점은 아직 저장된 입력이 아닙니다.`,
         `Unsaved analysis frames: ${missingFrames.join(', ')}. Mark the points for each frame, then click “Save matched front/side frame”. Current selections are not saved yet.`);
+      return;
+    }
+    if (crossViewCorrectionData.analysisSignature !== getCrossCorrectionAnalysisSignature()) {
+      crossCorrectionMode = 'roll';
+      update2dCorrectionDiagnostics();
+      el('Status').textContent = text(
+        '기존 분석이 변경되어 교차 보정을 보류했습니다. 보정 입력을 다시 열고 F1–F6 대응점을 확인한 뒤 다시 저장하세요. 원본 분석과 현재 입력은 유지했습니다.',
+        'Cross correction was withheld because the original analysis changed. Reopen correction inputs, recheck and save the F1–F6 pairs. Original analysis and current inputs were preserved.');
+      return;
     }
     crossCorrectionMode = 'cross';
     update2dCorrectionDiagnostics();
@@ -822,6 +897,7 @@ function validateCrossCorrectionData(data) {
     };
     stanceReferenceLineFront = null;
     crossCorrectionMode = 'roll';
+    realignedFrames.clear();
     draft = { front: [], side: [] };
     update2dCorrectionDiagnostics(); notice();
   });

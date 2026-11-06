@@ -112,6 +112,7 @@ function sandbox() {
     'renderBackswingClassification',
     'computeBackswingDeliveryObservations', 'createBackswingDeliveryCard',
     'getBackswingHandPathPoints', 'getBackswingHandCurve', 'createHandPathFigure', 'createBackswingHandPath',
+    'getBackswingPhaseForAnalysisFrame', 'getAnalysisFrameMotionCheckpoint', 'applySavedBackswingMotion',
     'getEngineHandPathData', 'createEngineHandPath', 'saveFrameInputState',
     'createCollapsibleGraph', 'getEngineVerticalMotionData', 'createGraphSvgElement', 'createEngineVerticalMotion', 'createEngineMotionFigure',
     'getXYGraphLayout', 'createEngineXYMotionFigure',
@@ -137,6 +138,32 @@ function sandbox() {
   ]) load(context, name);
   return context;
 }
+
+test('analysis frames reuse only exact same-source backswing checkpoints', () => {
+  const c = sandbox();
+  assert.equal(c.getBackswingPhaseForAnalysisFrame('frame1', 'front'), 'address');
+  assert.equal(c.getBackswingPhaseForAnalysisFrame('frame2', 'side'), 'downP6');
+  assert.equal(c.getBackswingPhaseForAnalysisFrame('frame3', 'front'), null);
+  assert.equal(c.getBackswingPhaseForAnalysisFrame('frame4', 'side'), 'impact');
+  assert.equal(c.getBackswingPhaseForAnalysisFrame('frame5', 'side'), 'downP6');
+  assert.equal(c.getBackswingPhaseForAnalysisFrame('frame6', 'front'), 'downP6');
+  assert.deepEqual({ ...c.getAnalysisFrameMotionCheckpoint('frame6', 'front') },
+    { phase: 'downP6', time: c.backswingFrames.downP6.time });
+
+  assert.equal(c.applySavedBackswingMotion('frame1', 'front'), 'address');
+  assert.equal(c.frontVideo.currentTime, c.backswingFrames.address.time);
+  assert.equal(c.applySavedBackswingMotion('frame1', 'side'), null,
+    'do not reuse a checkpoint from a different video source');
+  c.videoFileIdentity.side = c.backswingSourceIdentity;
+  assert.equal(c.applySavedBackswingMotion('frame1', 'side'), 'top');
+  assert.equal(c.sideVideo.currentTime, c.backswingFrames.top.time);
+
+  c.frameStateHistory.front.frame6 = { points: [], videoTime: 2 };
+  c.frontVideo.currentTime = 3;
+  assert.equal(c.applySavedBackswingMotion('frame6', 'front'), null,
+    'preserve an existing analysis frame and its annotations');
+  assert.equal(c.frontVideo.currentTime, 3);
+});
 
 test('backswing-first survives engine A/B video loading with original checkpoints and classification', async () => {
   const c = sandbox();
