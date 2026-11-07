@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2026 시드전 대비 훈련 스케줄 관리 시스템</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%26%239973%3B%3C/text%3E%3C/svg%3E">
 
   <!-- Tailwind CSS, FontAwesome & SheetJS (완벽 엑셀 바이너리 파서) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -85,8 +86,8 @@
         <button class="coach-only px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="addNewRow()" hidden>
           <i class="fa-solid fa-clock-plus"></i> 시간대 추가
         </button>
-        <button class="coach-only px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="saveData()" hidden>
-          <i class="fa-solid fa-floppy-disk"></i> 저장하기
+        <button class="coach-only schedule-save-button px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="saveData()" hidden>
+          <i class="fa-solid fa-floppy-disk"></i> 훈련 일정 저장
         </button>
         <button onclick="exportToCSV()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition">
           <i class="fa-solid fa-download"></i> CSV/엑셀 내보내기
@@ -173,6 +174,13 @@
       </table>
     </div>
 
+    <div class="coach-only flex flex-wrap items-center justify-end gap-3" hidden>
+      <span id="schedule-save-state" class="text-sm text-slate-600" role="status" aria-live="polite">내용을 수정한 뒤 훈련 일정 저장을 눌러 주세요.</span>
+      <button type="button" class="schedule-save-button px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm" onclick="saveData()">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> 훈련 일정 저장
+      </button>
+    </div>
+
   </div>
 
   <!-- Notification Toast -->
@@ -254,6 +262,10 @@
 
     let activeTabKey = '';
     let appData = {};
+    let hasUnsavedChanges=false;
+    let editRevision=0;
+    let schedulesLoading=false;
+    let schedulesSaving=false;
     const SESSION_STORAGE_KEY = 'sytpt_session';
     const ACTIVE_SCHEDULE_STORAGE_KEY = 'golfSeedActiveScheduleV5';
     let approvedPlayersCache=[];
@@ -270,6 +282,13 @@
       status.hidden=!message;
       status.classList.toggle('error',Boolean(isError));
       status.setAttribute('role',isError?'alert':'status');
+    }
+
+    function markScheduleChanged(){
+      hasUnsavedChanges=true;
+      editRevision++;
+      document.getElementById('schedule-save-state').textContent='저장하지 않은 변경사항이 있습니다. 훈련 일정 저장을 눌러 주세요.';
+      if(schedulesLoading&&!schedulesSaving) setScheduleDataStatus('');
     }
 
     function toScheduleRecord(scheduleId,schedule){
@@ -301,6 +320,9 @@
     }
 
     async function loadCloudSchedules(){
+      if(hasUnsavedChanges||schedulesLoading||schedulesSaving) return;
+      schedulesLoading=true;
+      const loadRevision=editRevision;
       setScheduleDataStatus('훈련 일정을 불러오는 중입니다.');
       try{
         const {data:authData,error:authError}=await scheduleSupabase.auth.getSession();
@@ -311,6 +333,7 @@
           .select('schedule_id,player_id,player_name,player_ids,schedule_payload')
           .order('schedule_id');
         if(error) throw error;
+        if(loadRevision!==editRevision) return;
 
         let records=data||[];
         if(hasCoachEditAccess()&&records.length===0){
@@ -326,6 +349,7 @@
           }
         }
 
+        if(loadRevision!==editRevision) return;
         appData=scheduleRecordsToData(records);
         localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
         setScheduleDataStatus('');
@@ -333,10 +357,14 @@
         renderApp();
       }catch(error){
         console.error('Unable to load training schedules from Supabase.',error);
-        appData={};
-        updateEditAccess();
-        renderApp();
+        if(loadRevision===editRevision){
+          appData={};
+          updateEditAccess();
+          renderApp();
+        }
         setScheduleDataStatus('훈련 일정을 불러오지 못했습니다. Supabase의 sql/12_training_schedules.sql 및 sql/13_training_schedule_multiple_players.sql 적용 여부와 로그인 권한을 확인해 주세요. '+(error.message||''),true);
+      }finally{
+        schedulesLoading=false;
       }
     }
 
@@ -589,6 +617,7 @@
       }
       document.getElementById('meta-start-date').dataset.lastValid=document.getElementById('meta-start-date').value;
       document.getElementById('meta-end-date').dataset.lastValid=document.getElementById('meta-end-date').value;
+      markScheduleChanged();
       renderTabs();
     }
 
@@ -596,6 +625,7 @@
       if (!requireCoachEditAccess()) return;
       if (appData[activeTabKey]) {
         appData[activeTabKey][field] = value;
+        markScheduleChanged();
         renderTabs();
       }
     }
@@ -716,7 +746,10 @@
     function updateRowData(index, field, value) {
       if (!requireCoachEditAccess()) return;
       if (appData[activeTabKey] && appData[activeTabKey].rows[index]) {
-        appData[activeTabKey].rows[index][field] = value.trim();
+        const nextValue=value.trim();
+        if(appData[activeTabKey].rows[index][field]===nextValue) return;
+        appData[activeTabKey].rows[index][field] = nextValue;
+        markScheduleChanged();
       }
     }
 
@@ -724,6 +757,7 @@
       if (!requireCoachEditAccess()) return;
       const newRow = { date: "", day: "", time: "09:00-10:00", category: "새 소제목/주제", detail: "세부 훈련 내용 입력", location: "연습장", note: "-" };
       appData[activeTabKey].rows.push(newRow);
+      markScheduleChanged();
       renderApp();
       showToast("새 시간대 항목이 추가되었습니다.");
     }
@@ -742,6 +776,7 @@
         note: "-"
       };
       appData[activeTabKey].rows.splice(index + 1, 0, newRow);
+      markScheduleChanged();
       renderApp();
       showToast("선택한 항목 아래에 새 시간대가 추가되었습니다.");
     }
@@ -750,6 +785,7 @@
       if (!requireCoachEditAccess()) return;
       if (confirm("해당 시간대 훈련 항목을 삭제하시겠습니까?")) {
         appData[activeTabKey].rows.splice(index, 1);
+        markScheduleChanged();
         renderApp();
         showToast("시간대 항목이 삭제되었습니다.");
       }
@@ -796,6 +832,7 @@
 
         if (Object.keys(newAppData).length > 0) {
           appData = Object.assign({},appData,newAppData);
+          markScheduleChanged();
           activeTabKey = Object.keys(newAppData)[0];
           renderApp();
           showToast("엑셀 훈련 일정이 목록에 추가 또는 업데이트되었습니다.");
@@ -877,23 +914,41 @@
     }
 
     async function saveData() {
-      if (!requireCoachEditAccess()) return;
-      const records=Object.entries(appData).map(([key,schedule])=>toScheduleRecord(key,schedule));
+      if (!requireCoachEditAccess()||schedulesSaving) return;
+      const focused=document.activeElement;
+      if(focused&&focused.isContentEditable) focused.blur();
+      const savedRevision=editRevision;
+      const snapshot=JSON.parse(JSON.stringify(appData));
+      const records=Object.entries(snapshot).map(([key,schedule])=>toScheduleRecord(key,schedule));
+      schedulesSaving=true;
+      document.querySelectorAll('.schedule-save-button').forEach((button)=>{button.disabled=true;});
+      setScheduleDataStatus('훈련 일정을 클라우드에 저장하는 중입니다.');
       try{
         if(records.length){
-          const {error}=await scheduleSupabase
+          const {data,error}=await scheduleSupabase
             .from('sytpt_training_schedules')
-            .upsert(records,{onConflict:'schedule_id'});
+            .upsert(records,{onConflict:'schedule_id'})
+            .select('schedule_id,schedule_payload');
           if(error) throw error;
+          if(!data||data.length!==records.length||records.some((record)=>!data.some((saved)=>saved.schedule_id===record.schedule_id))){
+            throw new Error('서버에서 저장된 훈련 일정을 확인하지 못했습니다. 로그인 권한을 확인한 뒤 다시 저장해 주세요.');
+          }
         }
-        localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
+        localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(snapshot));
         localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,activeTabKey);
+        if(savedRevision===editRevision){
+          hasUnsavedChanges=false;
+          document.getElementById('schedule-save-state').textContent='훈련 일정이 클라우드에 저장되었습니다.';
+        }
         setScheduleDataStatus('');
-        showToast('모든 수정사항을 Supabase 클라우드에 저장했습니다.');
+        showToast(hasUnsavedChanges?'저장 중 추가로 수정한 내용이 있습니다. 다시 저장해 주세요.':'모든 수정사항을 Supabase 클라우드에 저장했습니다.');
       }catch(error){
         console.error('Unable to save training schedules to Supabase.',error);
         setScheduleDataStatus('훈련 일정을 클라우드에 저장하지 못했습니다. '+(error.message||''),true);
         showToast('클라우드 저장에 실패했습니다. 오류 안내를 확인해 주세요.');
+      }finally{
+        schedulesSaving=false;
+        document.querySelectorAll('.schedule-save-button').forEach((button)=>{button.disabled=false;});
       }
     }
 
@@ -905,6 +960,9 @@
           const {error}=await scheduleSupabase.rpc('reset_sytpt_training_schedules',{p_schedules:records});
           if(error) throw error;
           appData=JSON.parse(JSON.stringify(defaultData));
+          hasUnsavedChanges=false;
+          editRevision++;
+          document.getElementById('schedule-save-state').textContent='기본 훈련 일정이 클라우드에 저장되었습니다.';
           localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
           activeTabKey=Object.keys(appData)[0];
           localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,activeTabKey);
@@ -975,9 +1033,28 @@
       document.getElementById('schedule-create-dialog').close();
     });
 
+    document.getElementById('table-body').addEventListener('input',(event)=>{
+      const cell=event.target.closest('td[contenteditable="true"]');
+      if(!cell) return;
+      const row=cell.parentElement;
+      const fields=['date','day','time','category','detail','location','note'];
+      const field=fields[cell.cellIndex];
+      if(field) updateRowData(row.sectionRowIndex,field,cell.innerText);
+    });
+
+    window.addEventListener('beforeunload',(event)=>{
+      if(!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue='';
+    });
+
     window.addEventListener('storage', (event) => {
       if (event.key === SESSION_STORAGE_KEY || event.key === null) {
+        hasUnsavedChanges=false;
+        editRevision++;
+        appData={};
         updateEditAccess();
+        renderApp();
         loadCloudSchedules();
       }
     });

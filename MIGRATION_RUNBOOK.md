@@ -30,6 +30,8 @@ Optional:
 
 Training schedule data is migrated from the browser's existing `golfSeedAppConfigV5` cache the first time a coach opens the schedule page while the cloud schedule table is empty. Later loads use Supabase as the source of truth; player accounts receive shared schedules and schedules assigned to them.
 
+Creating a schedule saves an empty schedule immediately. Coaches must click **훈련 일정 저장** above or below the table after editing the title, dates, location, rows, or importing Excel data. Edits are not automatically saved. Unsaved edits block background reloads when returning to the tab, and leaving/reloading the page prompts for confirmation. Save errors remain visible and edits are retained for retry. Verify persistence by saving and then refreshing the page.
+
 ## If coach sees no existing data
 1. Run sql/04_rls_hotfix_jwt_helpers.sql
 2. Logout/login again and refresh
