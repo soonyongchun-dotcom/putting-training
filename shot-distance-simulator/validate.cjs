@@ -92,6 +92,23 @@ for (const unit of ['yd', 'm']) {
   }
 }
 const appMarkup = renderToStaticMarkup(React.createElement(result.exports.default));
+check(appMarkup.includes('ver26.1107-1f-ad'), 'app version is displayed');
+const windGuideTitle = appMarkup.indexOf('실전 바람 판단 가이드');
+const windGuideDetails = appMarkup.slice(appMarkup.lastIndexOf('<details', windGuideTitle), windGuideTitle);
+check(windGuideTitle !== -1 && !/\sopen(?:=""|(?=[\s>]))/.test(windGuideDetails),
+  'practical wind guide is collapsed by default');
+check(appMarkup.includes('Beaufort Wind Scale') && appMarkup.includes('The Normalization feature explained'),
+  'practical wind guide cites wind observation and golf-shot references');
+for (const windBand of ['0~2 m/s', '2~4 m/s', '4~6 m/s', '6~8 m/s', '8~10 m/s', '10~12 m/s', '12~14 m/s', '14~16 m/s', '16~18 m/s']) {
+  check(appMarkup.includes(windBand), `practical wind guide includes ${windBand} Beaufort observation band`);
+}
+check(appMarkup.includes('골프 현장 공통 기준 · 잔디 드리프트 기록법')
+  && appMarkup.includes('비슷한 양의 마른 잔디') && appMarkup.includes('0.5m 미만')
+  && appMarkup.includes('2m 초과 / 공중에 뜸')
+  && appMarkup.includes('특정 m/s나 보포트 계급으로 환산하는 실험 기준은 아닙니다'),
+  'grass toss has a repeatable qualitative protocol without unsupported speed conversion');
+check(!appMarkup.includes('30° 이하: 약 1~2 m/s') && !appMarkup.includes('5 m/s에서 150야드 샷 기준 약 7~10야드'),
+  'practical wind guide avoids unsupported precise flag-angle and crosswind conversions');
 check(/data-testid="play-as"[^>]*>[\d.]+yd</.test(appMarkup), 'main expected carry uses default yards');
 check(/data-testid="recommendation"[^>]*>환경반영예상캐리 <strong>[\d.]+yd<\/strong>/.test(appMarkup),
   'analysis expected carry has no tour prefix');
@@ -320,6 +337,19 @@ for (const windDirDeg of [0, 90, 180, 270]) {
   const flight = calculateTrajectory(clubLaunch(sample), { ...REFERENCE_ENV, windSpeedMs: 10, windDirDeg });
   const full = projectTopView(flight, 140, 1);
   const start = projectTopView(flight, 140, 0);
+  close(full.landingZoom.target.x, 125, 1e-8, 'landing zoom anchors target lateral position');
+  close(full.landingZoom.target.y, 83, 1e-8, 'landing zoom anchors target forward position');
+  close(full.landingZoom.landing.x - full.landingZoom.target.x,
+    flight.sideOffsetYds * 0.9144 * full.scale * full.landingZoom.factor, 1e-8,
+    'landing zoom magnifies lateral miss relative to target');
+  close(full.landingZoom.target.y - full.landingZoom.landing.y,
+    (flight.carryYds - 140) * 0.9144 * full.scale * full.landingZoom.factor, 1e-8,
+    'landing zoom magnifies forward miss relative to target');
+  check(full.landingZoom.factor > 1 && !/NaN|Infinity/.test(full.landingZoom.path), 'landing zoom magnifies finite path');
+  close(Number(full.landingZoom.path.trim().split(/\s+/).slice(-2)[0]), full.landingZoom.landing.x, 1e-8,
+    'zoom path ends at landing point');
+  close(Number(full.landingZoom.path.trim().split(/\s+/).slice(-1)[0]), full.landingZoom.landing.y, 1e-8,
+    'zoom path ends at landing point');
   close(start.ball.x, 400, 1e-8, 'top view launch centered');
   close(start.ball.y, start.originY, 1e-8, 'top view launch at bottom');
   close(full.ball.x, full.landing.x, 1e-8, 'top view ends at landing');

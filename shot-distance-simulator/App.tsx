@@ -631,6 +631,17 @@ function projectTopView(trajectory: Trajectory, targetYds: number, progress: num
   const maxLateral = Math.max(...trajectory.path.map(p => Math.abs(p.x)), 1);
   const minForward = Math.min(0, ...trajectory.path.map(p => p.z));
   const scale = Math.min(260 / (maxForward - minForward), 290 / maxLateral);
+  const landingZoomFactor = 4;
+  const targetSource = { x: 0, z: targetYds * YDS_TO_M };
+  const targetOverview = {
+    x: 400 + targetSource.x * scale,
+    y: 310 + minForward * scale - targetSource.z * scale,
+  };
+  const zoomTarget = { x: 125, y: 83 };
+  const projectTargetZoom = (point: { x: number; z: number }) => ({
+    x: zoomTarget.x + (400 + point.x * scale - targetOverview.x) * landingZoomFactor,
+    y: zoomTarget.y + (310 + minForward * scale - point.z * scale - targetOverview.y) * landingZoomFactor,
+  });
   const tickStep = distanceToYards([5, 10, 20, 40, 80, 160, 320, 640]
     .find(value => distanceToYards(value, unit) * YDS_TO_M * scale >= 48) ?? 1280, unit);
   const tickCount = Math.floor(330 / (tickStep * YDS_TO_M * scale));
@@ -642,12 +653,19 @@ function projectTopView(trajectory: Trajectory, targetYds: number, progress: num
   });
   const count = Math.max(1, Math.min(trajectory.path.length, Math.floor(trajectory.path.length * progress)));
   const points = trajectory.path.slice(0, count).map(project);
+  const zoomPoints = trajectory.path.slice(0, count).map(projectTargetZoom);
   return {
     scale, originY, lateralTicks,
     path: points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '),
     ball: points[points.length - 1],
     landing: project(trajectory.path[trajectory.path.length - 1]),
     target: project({ x: 0, z: targetYds * YDS_TO_M }),
+    landingZoom: {
+      factor: landingZoomFactor,
+      landing: projectTargetZoom(trajectory.path[trajectory.path.length - 1]),
+      target: zoomTarget,
+      path: zoomPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '),
+    },
   };
 }
 
@@ -947,7 +965,7 @@ export default function App() {
             SY-Shot Distance Estamater
           </span>
           <span className="text-xs sm:text-sm font-mono font-normal italic tracking-normal text-slate-300">
-            ver26.1104-1f-ad
+            ver26.1107-1f-ad
           </span>
         </h1>
         <div role="group" aria-label="거리 단위 선택" className="mt-2 flex items-center gap-2 text-xs">
@@ -1072,6 +1090,30 @@ export default function App() {
               <text x="400" y="360" textAnchor="middle" fill="#cbd5e1" fontSize="11">
                 {displayWarning ? '입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)' : '수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준'}
               </text>
+              <svg x="535" y="48" width="245" height="160" viewBox="0 0 250 160" aria-label="착지점 확대 보기">
+                <rect x="1" y="1" width="248" height="158" rx="12" fill="#020617" fillOpacity="0.94" stroke="#f472b6" strokeWidth="2" />
+                <text x="125" y="17" textAnchor="middle" fill="#f9a8d4" fontSize="11" fontWeight="700">
+                  목표 기준 착지 확대 · {topView.landingZoom.factor}×
+                </text>
+                <line x1="20" y1={topView.landingZoom.target.y} x2="230" y2={topView.landingZoom.target.y}
+                  stroke="#065f46" strokeDasharray="3 4" />
+                <line x1={topView.landingZoom.target.x} y1="26" x2={topView.landingZoom.target.x} y2="140"
+                  stroke="#065f46" strokeDasharray="3 4" />
+                <path d={topView.landingZoom.path} fill="none" stroke="#38bdf8" strokeWidth="2.5" />
+                <line x1={topView.landingZoom.target.x} y1={topView.landingZoom.target.y}
+                  x2={topView.landingZoom.landing.x} y2={topView.landingZoom.target.y}
+                  stroke="#f472b6" strokeDasharray="3 2" />
+                <line x1={topView.landingZoom.landing.x} y1={topView.landingZoom.target.y}
+                  x2={topView.landingZoom.landing.x} y2={topView.landingZoom.landing.y}
+                  stroke="#f472b6" strokeDasharray="3 2" />
+                <circle cx={topView.landingZoom.target.x} cy={topView.landingZoom.target.y} r="5"
+                  fill="#059669" stroke="#fbbf24" strokeWidth="2" />
+                <circle cx={topView.landingZoom.landing.x} cy={topView.landingZoom.landing.y} r="5"
+                  fill="#f472b6" stroke="#fff" strokeWidth="1.5" />
+                <text x="125" y="153" textAnchor="middle" fill="#cbd5e1" fontSize="9">
+                  목표 대비 {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '좌우 중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`} · 분홍 점: 착지
+                </text>
+              </svg>
             </svg>
           ) : (
           <svg aria-label="측면 비행 궤적" viewBox="0 0 800 380" className="w-full h-full max-h-[520px] rounded-2xl border border-slate-800 shadow-2xl">
@@ -1400,6 +1442,140 @@ export default function App() {
               className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
           </div>
+
+          <details className="rounded-xl border border-sky-500/30 bg-slate-900/70 p-3 text-xs text-slate-300">
+            <summary className="cursor-pointer list-none font-black text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
+              실전 바람 판단 가이드 <span className="ml-1 font-normal text-slate-400">· 풍속표, 추정법, A/B/C 시퀀스</span>
+            </summary>
+            <div className="mt-3 space-y-3 leading-relaxed">
+              <p className="text-[11px] text-amber-200">
+                아래 수치는 현장 판단을 위한 대략적인 참고값입니다. 코스 지형·깃발 형태·돌풍에 따라 달라지며, 앱의 물리 시뮬레이션 입력이나 결과를 자동 변경하지 않습니다.
+              </p>
+              <p className="text-[11px] text-amber-200">
+                비거리 보정은 샷별 편차가 큰 참고값입니다. 시뮬레이터는 볼 속도·발사각·스핀과 상대풍속에 따른 비행을 계산하므로, 현재 샷 비교에는 캐디 분석 결과를 참고하되 실측 예측으로 간주하지 마세요.
+              </p>
+
+              <section aria-labelledby="wind-feel-title">
+                <h3 id="wind-feel-title" className="mb-1 font-bold text-white">풍속별 관찰 단서 (보포트 풍력 계급의 지상 관측 참고)</h3>
+                <p className="mb-1 text-[10px] text-slate-400">
+                  0~18 m/s를 2 m/s 간격으로 나눴습니다. 보포트 계급 경계는 이 구간과 일치하지 않아 경계 구간에는 두 계급을 함께 표기합니다. 지상 관측 단서이며 골프공의 상공 풍속·비거리를 직접 뜻하지 않습니다.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-slate-700">
+                  <table className="min-w-[620px] w-full text-left text-[10px]">
+                    <thead className="bg-slate-800 text-slate-300">
+                      <tr>
+                        <th className="p-2">풍속</th><th className="p-2">바람 종류 (보포트)</th><th className="p-2">지상 관찰 단서</th><th className="p-2">골프 현장 참고</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">0~2 m/s</td><td className="p-2">고요~남실바람 (B0~B2 일부)</td><td className="p-2">연기가 거의 곧게 오르거나 약하게 흐름. 잎 움직임은 거의 없거나 약함.</td><td className="p-2">깃발은 늘어지거나 가볍게 움직일 수 있음. 미풍이라도 방향을 확인.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">2~4 m/s</td><td className="p-2">남실바람~산들바람 (B2~B3)</td><td className="p-2">얼굴에 바람이 느껴지기 시작하고 잎이 바스락거리거나 작은 잔가지가 움직임.</td><td className="p-2">얼굴에 느껴지는 바람과 주변 잎의 움직임으로 대략적인 풍향을 살피고, 한 지점의 깃발만으로 풍속을 단정하지 않음.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">4~6 m/s</td><td className="p-2">산들바람~건들바람 (B3~B4)</td><td className="p-2">잎과 작은 잔가지가 계속 움직이며, 윗구간에서는 먼지·가벼운 종이가 날릴 수 있음.</td><td className="p-2">깃발이 펴지는지 관찰하고 맞바람·뒷바람·옆바람 방향을 구분.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">6~8 m/s</td><td className="p-2">건들바람~흔들바람 (B4~B5 일부)</td><td className="p-2">먼지와 종이가 날고 작은 가지가 움직임. 상단 구간에서 작은 나무가 흔들리기 시작할 수 있음.</td><td className="p-2">깃발의 지속적인 펄럭임과 돌풍을 함께 확인하고 탄도·체공시간을 고려.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">8~10 m/s</td><td className="p-2">흔들바람 (B5)</td><td className="p-2">잎이 있는 작은 나무가 흔들리기 시작함.</td><td className="p-2">평균과 순간 돌풍을 나눠 관찰하고, 안전한 타깃 여유를 고려.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">10~12 m/s</td><td className="p-2">흔들바람~된바람 (B5~B6)</td><td className="p-2">작은 나무가 흔들리고 큰 가지가 움직이기 시작할 수 있음.</td><td className="p-2">샷 간 바람 변동이 커질 수 있으므로 돌풍과 목표 주변의 흐름을 재확인.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">12~14 m/s</td><td className="p-2">된바람~센바람 (B6~B7 일부)</td><td className="p-2">큰 가지가 움직이며, 윗구간에서는 나무 전체가 흔들리기 시작할 수 있음.</td><td className="p-2">클럽 선택뿐 아니라 좌우 위험 구역과 균형 유지도 함께 고려.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">14~16 m/s</td><td className="p-2">센바람 (B7)</td><td className="p-2">나무가 크게 흔들리고 바람을 거슬러 걷기 불편할 수 있음.</td><td className="p-2">깃발만 믿지 말고 코스의 강풍·플레이 중단 안내를 확인.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">16~18 m/s</td><td className="p-2">센바람~큰바람 (B7~B8 일부)</td><td className="p-2">큰바람 구간에선 잔가지가 부러질 수 있고 보행이 매우 불편할 수 있음.</td><td className="p-2">샷 판단보다 안전이 우선. 코스 운영 및 기상 안전 지침을 따름.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  보포트 계급의 영문 등급과 지상 영향 설명은 <a href="https://www.canada.ca/en/environment-climate-change/services/general-marine-weather-information/understanding-forecasts/beaufort-wind-scale-table.html" target="_blank" rel="noreferrer" className="text-sky-300 underline">Environment and Climate Change Canada</a> 자료를 참고했습니다. m/s 구간은 2 m/s 단위로 보기 쉽게 묶은 값입니다.
+                </p>
+                <div className="mt-2 rounded-lg border border-sky-500/20 bg-slate-950/80 p-2">
+                  <h4 className="font-bold text-sky-300">골프 현장 공통 기준 · 잔디 드리프트 기록법</h4>
+                  <p className="mt-1 text-[10px]">
+                    비슷한 양의 마른 잔디를 어깨·얼굴 높이(약 1.5m)에서 던지지 말고 놓습니다. 놓은 지점부터 처음 닿은 곳까지의 옆 이동을 같은 방식으로 3회 관찰하고, 2회 이상 비슷한 결과일 때만 대표 경향으로 기록합니다.
+                  </p>
+                  <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] sm:grid-cols-4">
+                    <span className="rounded bg-slate-900 p-1">근거리 · 0.5m 미만</span>
+                    <span className="rounded bg-slate-900 p-1">짧은 이동 · 0.5~1m</span>
+                    <span className="rounded bg-slate-900 p-1">뚜렷한 이동 · 1~2m</span>
+                    <span className="rounded bg-slate-900 p-1">긴 이동 · 2m 초과 / 공중에 뜸</span>
+                  </div>
+                  <p className="mt-1 text-[10px] text-amber-200">
+                    이 구간은 관찰 결과를 일관되게 기록하기 위한 편의상 분류이지, 특정 m/s나 보포트 계급으로 환산하는 실험 기준은 아닙니다. 잔디의 크기·수분·낙하 시간과 지면 난류가 달라지므로 풍속 수치나 비거리 보정에는 쓰지 말고, 풍향·돌풍 여부를 깃발·주변 자연물과 함께 판단하세요. 강풍에는 잔디를 놓는 시험을 생략하고 안전 지침을 우선합니다.
+                  </p>
+                </div>
+              </section>
+
+              <section aria-labelledby="wind-methods-title">
+                <h3 id="wind-methods-title" className="mb-1 font-bold text-white">시합 현장 4단계 바람 추정법</h3>
+                <ol className="space-y-2">
+                  <li className="rounded-lg bg-slate-950/80 p-2">
+                    <strong className="text-sky-300">① 핀 깃발 관찰 (정량계가 아닌 방향·지속성 단서)</strong>
+                    <p>깃발이 처지는지, 간헐적으로 펴지는지, 계속 펴져 있는지 관찰합니다. 깃발의 크기·재질·설치 방식·돌풍에 따라 모양이 달라지므로 각도를 특정 m/s로 환산하지 말고, 다른 지표와 함께 보세요.</p>
+                  </li>
+                  <li className="rounded-lg bg-slate-950/80 p-2">
+                    <strong className="text-sky-300">② 잔디 날리기 (Grass Toss, 방향 확인)</strong>
+                    <p>위 공통 기준대로 같은 높이에서 마른 잔디를 3회 놓고, 이동 거리 구간과 반복되는 방향만 기록합니다. 이동 거리로 풍속을 환산하지 마세요. 잔디 조각의 크기·수분·낙하 시간과 지형 난류가 결과를 크게 바꿉니다.</p>
+                  </li>
+                  <li className="rounded-lg bg-slate-950/80 p-2">
+                    <strong className="text-sky-300">③ 높이에 따른 바람 변화 확인</strong>
+                    <p>티잉 지점·페어웨이·그린의 깃발과 나무 윗부분, 구름의 이동이 서로 다르면 고도별 풍향·풍속이 다를 수 있습니다. 나무나 구름의 움직임만으로 공의 Apex 풍속을 수치로 추정할 수는 없습니다.</p>
+                  </li>
+                  <li className="rounded-lg bg-slate-950/80 p-2">
+                    <strong className="text-sky-300">④ 얼굴 감각과 계측값 교차 확인</strong>
+                    <p>얼굴에 느껴지는 바람과 소리는 순간 변화나 대략적인 방향을 알아차리는 보조 단서입니다. 풍속 수치가 필요하면 타격 지점의 노출된 곳에서 휴대용 풍속계를 여러 번 읽고 평균과 돌풍을 따로 기록하세요. 지면 계측값이 상공 바람과 같다고 가정하지 않습니다.</p>
+                  </li>
+                </ol>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  지상 풍속 관찰표: <a href="https://www.canada.ca/en/environment-climate-change/services/general-marine-weather-information/understanding-forecasts/beaufort-wind-scale-table.html" target="_blank" rel="noreferrer" className="text-sky-300 underline">Environment and Climate Change Canada · Beaufort Wind Scale</a>
+                </p>
+              </section>
+
+              <section aria-labelledby="wind-patterns-title">
+                <h3 id="wind-patterns-title" className="mb-1 font-bold text-white">선수별 바람 결정 시퀀스</h3>
+                <div className="space-y-2">
+                  <article className="rounded-lg border border-indigo-500/30 bg-indigo-950/30 p-2">
+                    <h4 className="font-bold text-indigo-200">Pattern A · 분석적 지표 시퀀스 (정밀 수치형)</h4>
+                    <p className="text-[10px] text-slate-400">트랙맨 데이터와 수치 기반 계산을 선호하는 골퍼</p>
+                    <ol className="mt-1 list-inside list-decimal space-y-0.5">
+                      <li>풍층 비교: 티잉 지점·그린의 깃발과 나무 윗부분을 비교해 높이에 따른 변화 가능성을 파악하며, 관찰만으로 Apex 풍속을 단정하지 않음.</li>
+                      <li>타깃 구역 관찰: 그린 주변 깃발을 여러 순간 관찰해 평균적인 흐름과 돌풍을 구분.</li>
+                      <li>수치 합산: 레이저 거리 + 고도 보정에 바람 영향을 더해 Play-As 거리를 판단. m/s당 고정 야드 환산은 샷마다 달라지는 참고값으로만 사용.</li>
+                      <li>클럽 결정: 템포를 바꾸기보다 클럽 번호로 조절. 필요한 클럽 수는 바람만으로 고정하지 말고 샷 탄도와 클럽 간 거리 차이를 함께 고려.</li>
+                    </ol>
+                  </article>
+                  <article className="rounded-lg border border-emerald-500/30 bg-emerald-950/30 p-2">
+                    <h4 className="font-bold text-emerald-200">Pattern B · 직관·감각적 시퀀스 (구질 컨트롤형)</h4>
+                    <p className="text-[10px] text-slate-400">구질과 탄도 조절로 바람을 이용하거나 이기려는 골퍼</p>
+                    <ol className="mt-1 list-inside list-decimal space-y-0.5">
+                      <li>체감 센싱: 어드레스에서 얼굴과 귀에 닿는 바람으로 순간 변화를 감지.</li>
+                      <li>잔디 날리기: 공 주변의 순간적인 풍향과 돌풍 여부를 확인하되, 이동 거리나 잔디만으로 공의 초반 궤적·풍속을 확정하지 않음.</li>
+                      <li>구질 매칭: 맞바람은 한 클럽 크게 잡고 3/4 스윙의 낮은 펀치샷으로 백스핀을 억제. 옆바람은 바람을 태우는 Wind-Rider와 바람을 이기는 Wind-Cheater 중 선택.</li>
+                      <li>에이밍 확정: 나무나 벙커 가장자리 등 그린 주변 시각화 지점을 조준선으로 선택.</li>
+                    </ol>
+                  </article>
+                  <article className="rounded-lg border border-amber-500/30 bg-amber-950/30 p-2">
+                    <h4 className="font-bold text-amber-200">Pattern C · 위협 관리 시퀀스 (코스 매니지먼트형)</h4>
+                    <p className="text-[10px] text-slate-400">6 m/s 이상이거나 돌풍이 심해 실수를 줄여야 하는 상황</p>
+                    <ol className="mt-1 list-inside list-decimal space-y-0.5">
+                      <li>위험 요소 스캔: 바람에 밀릴 때의 해저드, OB, 벙커 등 징벌 구역을 확인.</li>
+                      <li>돌풍 주기 측정: 10~15초간 깃발을 관찰해 평균 풍속과 최대 돌풍의 차이를 파악.</li>
+                      <li>최악 조건 설정: 맞바람이 가장 강한 순간을 기준으로 거리와 클럽을 결정.</li>
+                      <li>안전 구역 타깃팅: 핀 대신 그린 중앙을 겨냥해 빗나가도 안전하게 안착할 여지를 확보.</li>
+                    </ol>
+                  </article>
+                </div>
+              </section>
+
+              <section aria-labelledby="wind-distance-title">
+                <h3 id="wind-distance-title" className="mb-1 font-bold text-white">실전 비거리 보정 참고</h3>
+                <ul className="space-y-1 rounded-lg bg-slate-950/80 p-2">
+                  <li><strong className="text-sky-300">맞바람·뒷바람:</strong> TrackMan 투어 6번 아이언의 일정 풍속 사례에서 20 mph 맞바람 캐리 손실은 같은 세기 뒷바람 캐리 증가보다 거의 두 배 컸습니다. 이는 해당 샷 조건의 비교이며, 풍향 효과는 비선형이고 탄도·스핀·체공시간에 따라 달라 단일한 m/s당 야드 공식으로 일반화하지 마세요.</li>
+                  <li><strong className="text-sky-300">옆바람:</strong> 보편적으로 신뢰할 수 있는 고정 야드 환산값을 제시하기 어렵습니다. 목표선 대비 착지 편차는 풍속뿐 아니라 공의 체공시간, 스핀축, 높이에 따른 풍속 변화에 좌우됩니다.</li>
+                  <li><strong className="text-sky-300">현장 적용:</strong> 풍속 1 m/s는 약 2.24 mph입니다. 이 환산은 단위 변환일 뿐, 비거리 변화가 풍속에 정비례한다는 뜻은 아닙니다. 런은 별도이며 이 기준은 캐리 참고입니다.</li>
+                </ul>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  샷 자료: <a href="https://www.trackman.com/blog/normalization-feature-explained" target="_blank" rel="noreferrer" className="text-sky-300 underline">TrackMan · The Normalization feature explained</a>
+                  {' · '}
+                  실측 궤적 연구: <a href="https://link.springer.com/content/pdf/10.1007/978-0-387-46050-5_27.pdf" target="_blank" rel="noreferrer" className="text-sky-300 underline">Naruo &amp; Mizota · Experimental Verification of Trajectory Analysis of Golf Ball under Atmospheric Boundary Layer</a>
+                </p>
+              </section>
+            </div>
+          </details>
 
           <div className="space-y-2">
             <label className="block text-xs text-slate-300">
