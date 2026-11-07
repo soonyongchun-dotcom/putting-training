@@ -9,6 +9,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="./supabase.min.js"></script>
+  <script src="./sytpt-auth.js"></script>
 
   <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -19,7 +21,43 @@
       background-color: #eff6ff;
     }
     .access-notice{padding:10px 14px;border:1px solid #fbbf24;border-radius:10px;background:#fffbeb;color:#92400e;font-size:14px}
+    .schedule-data-status{padding:10px 14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:14px}
+    .schedule-data-status.error{border-color:#fecaca;background:#fef2f2;color:#991b1b}
     .coach-only[hidden],.view-only[hidden]{display:none!important}
+    .schedule-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px;padding:12px}
+    .schedule-card{
+      display:flex;align-items:stretch;gap:8px;width:100%;min-height:84px;
+      padding:8px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;color:#475569;
+      transition:border-color .15s,background .15s,box-shadow .15s;
+    }
+    .schedule-card:hover{border-color:#93c5fd;background:#f8fbff}
+    .schedule-card.active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 1px #2563eb}
+    .schedule-card-select{
+      display:flex;flex:1;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;min-width:0;
+      padding:6px 8px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;
+    }
+    .schedule-card-select:focus-visible,.delete-schedule:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}
+    .schedule-card-title{font-size:14px;font-weight:700;line-height:1.4}
+    .schedule-card-period{font-size:12px;color:#64748b}
+    .delete-schedule{align-self:center;flex:none;padding:9px 10px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#b91c1c;cursor:pointer}
+    .delete-schedule:hover{background:#fef2f2}
+    .date-range-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .date-range-fields input{width:100%;min-height:42px}
+    @media(max-width:520px){.date-range-fields{grid-template-columns:1fr}}
+    .schedule-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .schedule-list-heading h2{margin:0;font-size:16px;font-weight:700;color:#1e293b}
+    .empty-schedule{padding:28px 16px;text-align:center;color:#64748b;font-size:14px}
+    .schedule-card-main{display:flex;flex:1;align-items:stretch;gap:8px;min-width:0}
+    .schedule-card-player{font-size:11px;color:#0f766e}
+    .schedule-create-dialog{width:min(440px,calc(100vw - 32px));border:0;border-radius:14px;padding:0;box-shadow:0 20px 60px rgba(15,23,42,.28)}
+    .schedule-create-dialog::backdrop{background:rgba(15,23,42,.45)}
+    .schedule-create-dialog-inner{padding:22px}
+    .schedule-create-dialog h2{margin:0 0 6px;font-size:18px}
+    .schedule-create-dialog p{margin:0 0 16px;color:#64748b;font-size:13px}
+    .schedule-create-dialog label{display:block;margin-bottom:6px;font-size:13px;font-weight:600}
+    .schedule-create-dialog select{width:100%;min-height:44px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+    .schedule-create-dialog-error{min-height:20px;margin-top:8px;color:#b91c1c;font-size:13px}
+    .schedule-create-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
   </style>
 </head>
 <body class="p-4 md:p-8 text-slate-800">
@@ -60,11 +98,35 @@
     </header>
 
     <div id="edit-access-notice" class="access-notice view-only" role="status" hidden></div>
+    <div id="schedule-data-status" class="schedule-data-status" role="status" aria-live="polite" hidden></div>
 
-    <!-- Tab Navigation (시트별 탭 자동 생성) -->
-    <div id="tab-container" class="flex border-b border-slate-200 bg-white rounded-t-xl px-4 pt-3 gap-2 shadow-sm overflow-x-auto">
-      <!-- Dynamic Tabs -->
-    </div>
+    <!-- Saved schedule list -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" aria-labelledby="schedule-list-title">
+      <div class="schedule-list-heading px-4 py-3 border-b border-slate-200">
+        <h2 id="schedule-list-title">저장된 훈련 일정</h2>
+        <button id="add-schedule-button" class="coach-only px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" type="button" onclick="openNewScheduleDialog()" hidden>
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> 새 훈련 추가
+        </button>
+      </div>
+      <div id="tab-container" class="schedule-list" role="group" aria-label="훈련 일정 목록">
+        <!-- Saved schedules -->
+      </div>
+    </section>
+    <dialog id="schedule-create-dialog" class="schedule-create-dialog" aria-labelledby="schedule-create-title">
+      <form method="dialog" id="schedule-create-form" class="schedule-create-dialog-inner">
+        <h2 id="schedule-create-title">새 훈련 추가</h2>
+        <p>선수를 선택하지 않으면 전체 공지로 등록됩니다. 여러 선수는 Ctrl 또는 Command 키를 누르고 선택하세요.</p>
+        <label for="schedule-player-select">훈련 대상 선수 (선택사항, 복수 선택 가능)</label>
+        <select id="schedule-player-select" multiple size="7" aria-describedby="schedule-player-help">
+        </select>
+        <span id="schedule-player-help" class="sr-only">선택하지 않으면 전체 공지입니다. 여러 선수 선택은 Ctrl 또는 Command 키를 함께 누르세요.</span>
+        <div id="schedule-create-error" class="schedule-create-dialog-error" role="alert"></div>
+        <div class="schedule-create-dialog-actions">
+          <button type="button" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700" id="cancel-create-schedule">취소</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">추가</button>
+        </div>
+      </form>
+    </dialog>
 
     <!-- Editable Header Card -->
     <div class="bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 text-white p-6 rounded-xl shadow-md space-y-4">
@@ -78,7 +140,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/10">
         <div>
           <label class="block text-xs font-semibold text-blue-200 mb-1"><i class="fa-regular fa-calendar-days mr-1"></i> 훈련 기간</label>
-          <input type="text" id="meta-period" oninput="updateMeta('period', this.value)" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium" placeholder="예: 2026.10.19 ~ 2026.10.23">
+          <div class="date-range-fields">
+            <div><label for="meta-start-date" class="block text-xs text-blue-100 mb-1">시작일</label><input type="date" id="meta-start-date" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium"></div>
+            <div><label for="meta-end-date" class="block text-xs text-blue-100 mb-1">종료일</label><input type="date" id="meta-end-date" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium"></div>
+          </div>
         </div>
         <div>
           <label class="block text-xs font-semibold text-blue-200 mb-1"><i class="fa-solid fa-location-dot mr-1"></i> 주요 훈련 장소</label>
@@ -188,17 +253,104 @@
     };
 
     let activeTabKey = '';
-    let appData = JSON.parse(localStorage.getItem('golfSeedAppConfigV5')) || defaultData;
+    let appData = {};
     const SESSION_STORAGE_KEY = 'sytpt_session';
+    const ACTIVE_SCHEDULE_STORAGE_KEY = 'golfSeedActiveScheduleV5';
+    let approvedPlayersCache=[];
+    let approvedPlayersLoaded=false;
+    const SUPABASE_URL = 'https://ksdmivjqgxdycupdbyrr.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_RPLhNqRWB6fVCtUTbQHx7g_4tao4VV_';
+    const scheduleSupabase = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+      auth:{storage:SytptAuth.storage,storageKey:SytptAuth.storageKey,autoRefreshToken:true,persistSession:true,detectSessionInUrl:false}
+    });
+
+    function setScheduleDataStatus(message,isError){
+      const status=document.getElementById('schedule-data-status');
+      status.textContent=message;
+      status.hidden=!message;
+      status.classList.toggle('error',Boolean(isError));
+      status.setAttribute('role',isError?'alert':'status');
+    }
+
+    function toScheduleRecord(scheduleId,schedule){
+      const playerIds=Array.isArray(schedule.playerIds)
+        ?schedule.playerIds
+        :(schedule.playerId?[schedule.playerId]:[]);
+      return {
+        schedule_id:scheduleId,
+        player_id:playerIds.length===1?playerIds[0]:(schedule.playerId||null),
+        player_name:schedule.playerName||null,
+        player_ids:playerIds,
+        schedule_payload:schedule
+      };
+    }
+
+    function scheduleRecordsToData(records){
+      return Object.fromEntries(records.map((record)=>{
+        const schedule=record.schedule_payload||{};
+        const payloadPlayerIds=Array.isArray(schedule.playerIds)?schedule.playerIds:[];
+        const playerIds=Array.isArray(record.player_ids)&&record.player_ids.length
+          ?record.player_ids
+          :(payloadPlayerIds.length?payloadPlayerIds:(record.player_id?[record.player_id]:[]));
+        return [record.schedule_id,{
+          ...schedule,
+          playerIds,
+          playerNames:Array.isArray(schedule.playerNames)?schedule.playerNames:(record.player_name?[record.player_name]:[])
+        }];
+      }));
+    }
+
+    async function loadCloudSchedules(){
+      setScheduleDataStatus('훈련 일정을 불러오는 중입니다.');
+      try{
+        const {data:authData,error:authError}=await scheduleSupabase.auth.getSession();
+        if(authError) throw authError;
+        if(!authData.session) throw new Error('로그인 세션이 없습니다. 다시 로그인한 뒤 새로고침해 주세요.');
+        const {data,error}=await scheduleSupabase
+          .from('sytpt_training_schedules')
+          .select('schedule_id,player_id,player_name,player_ids,schedule_payload')
+          .order('schedule_id');
+        if(error) throw error;
+
+        let records=data||[];
+        if(hasCoachEditAccess()&&records.length===0){
+          const cached=localStorage.getItem('golfSeedAppConfigV5');
+          const legacyData=cached?JSON.parse(cached):defaultData;
+          const initialRecords=Object.entries(legacyData).map(([key,schedule])=>toScheduleRecord(key,schedule));
+          if(initialRecords.length){
+            const {error:seedError}=await scheduleSupabase
+              .from('sytpt_training_schedules')
+              .insert(initialRecords);
+            if(seedError) throw seedError;
+            records=initialRecords;
+          }
+        }
+
+        appData=scheduleRecordsToData(records);
+        localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
+        setScheduleDataStatus('');
+        updateEditAccess();
+        renderApp();
+      }catch(error){
+        console.error('Unable to load training schedules from Supabase.',error);
+        appData={};
+        updateEditAccess();
+        renderApp();
+        setScheduleDataStatus('훈련 일정을 불러오지 못했습니다. Supabase의 sql/12_training_schedules.sql 및 sql/13_training_schedule_multiple_players.sql 적용 여부와 로그인 권한을 확인해 주세요. '+(error.message||''),true);
+      }
+    }
+
+    function getCurrentUser(){
+      try{return JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY)||'null');}
+      catch(error){
+        console.error('Unable to read portal session; personalized schedules are unavailable.',error);
+        return null;
+      }
+    }
 
     function hasCoachEditAccess() {
-      try {
-        const session = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || 'null');
-        return Boolean(session && session.role === 'coach' && session.id);
-      } catch (error) {
-        console.error('Unable to read portal session; schedule editing is disabled.', error);
-        return false;
-      }
+      const session=getCurrentUser();
+      return Boolean(session&&session.role==='coach'&&session.id);
     }
 
     function requireCoachEditAccess() {
@@ -217,52 +369,133 @@
       notice.textContent = localStorage.getItem(SESSION_STORAGE_KEY)
         ? '선수 계정은 훈련 스케줄을 볼 수만 있습니다. 추가·수정·삭제는 코치 계정으로 로그인해 주세요.'
         : '훈련 스케줄을 수정하려면 선수 포탈에서 코치 계정으로 로그인해 주세요.';
+      document.getElementById('add-schedule-button').hidden=!canEdit;
+    }
+
+    function getVisibleScheduleKeys(){
+      const session=getCurrentUser();
+      const keys=Object.keys(appData);
+      if(session&&session.role==='coach') return keys;
+      if(session&&session.role==='player'){
+        return keys.filter((key)=>{
+          const schedule=appData[key]||{};
+          const playerIds=Array.isArray(schedule.playerIds)?schedule.playerIds:(schedule.playerId?[schedule.playerId]:[]);
+          return playerIds.length===0||playerIds.some((playerId)=>String(playerId)===String(session.id));
+        });
+      }
+      return keys.filter((key)=>{
+        const schedule=appData[key]||{};
+        return !(Array.isArray(schedule.playerIds)&&schedule.playerIds.length)&&!schedule.playerId;
+      });
     }
 
     function renderTabs() {
       const tabContainer = document.getElementById('tab-container');
       tabContainer.innerHTML = '';
 
-      const keys = Object.keys(appData);
-      if (keys.length === 0) return;
+      const keys = getVisibleScheduleKeys();
+      if (keys.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-schedule';
+        empty.textContent = hasCoachEditAccess()
+          ?'등록된 훈련 일정이 없습니다. 새 훈련을 추가해 주세요.'
+          :'현재 계정에 표시할 훈련 일정이 없습니다.';
+        tabContainer.appendChild(empty);
+        return;
+      }
 
-      if (!activeTabKey || !appData[activeTabKey]) {
-        activeTabKey = keys[0];
+      if (!keys.includes(activeTabKey)) {
+        const savedKey = localStorage.getItem(ACTIVE_SCHEDULE_STORAGE_KEY);
+        activeTabKey = keys.includes(savedKey) ? savedKey : (keys[0]||'');
       }
 
       keys.forEach((key) => {
         const camp = appData[key];
-        const btn = document.createElement('button');
+        const card = document.createElement('div');
         const isActive = (key === activeTabKey);
-
-        btn.className = isActive
-          ? "px-5 py-3 font-semibold text-sm rounded-t-lg transition border-b-2 border-blue-600 text-blue-600 bg-blue-50/50 whitespace-nowrap"
-          : "px-5 py-3 font-semibold text-sm rounded-t-lg transition text-slate-500 hover:text-slate-800 whitespace-nowrap";
-
-        btn.innerHTML = `<i class="fa-solid fa-list-check mr-2"></i>${key}`;
-        btn.onclick = () => switchTab(key);
-        tabContainer.appendChild(btn);
+        card.className = 'schedule-card'+(isActive?' active':'');
+        const main = document.createElement('span');
+        main.className='schedule-card-main';
+        const title = document.createElement('span');
+        title.className = 'schedule-card-title';
+        title.textContent = camp.title || key;
+        const period = document.createElement('span');
+        period.className = 'schedule-card-period';
+        period.textContent = camp.period || '훈련 기간 미등록';
+        main.append(title,period);
+        const assignedNames=Array.isArray(camp.playerNames)?camp.playerNames:(camp.playerName?[camp.playerName]:[]);
+        if(assignedNames.length){
+          const player=document.createElement('span');
+          player.className='schedule-card-player';
+          player.textContent=assignedNames.length===1
+            ?assignedNames[0]+' 선수 전용'
+            :assignedNames.join(', ')+' 선수 전용';
+          main.appendChild(player);
+        }
+        const select = document.createElement('button');
+        select.type = 'button';
+        select.className = 'schedule-card-select';
+        select.setAttribute('aria-current',isActive?'true':'false');
+        select.appendChild(main);
+        select.onclick = () => switchTab(key);
+        card.appendChild(select);
+        if(hasCoachEditAccess()){
+          const remove = document.createElement('button');
+          remove.type='button';
+          remove.className='delete-schedule';
+          remove.setAttribute('aria-label',(camp.title||key)+' 훈련 삭제');
+          remove.title='이 훈련 일정 삭제';
+          remove.innerHTML='<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+          remove.onclick=(event)=>{event.stopPropagation();deleteSchedule(key);};
+          card.appendChild(remove);
+        }
+        tabContainer.appendChild(card);
       });
     }
 
     function renderApp() {
+      const visibleKeys=getVisibleScheduleKeys();
+      if(!visibleKeys.includes(activeTabKey)){
+        const savedKey=localStorage.getItem(ACTIVE_SCHEDULE_STORAGE_KEY);
+        activeTabKey=visibleKeys.includes(savedKey)?savedKey:(visibleKeys[0]||'');
+      }
       renderTabs();
 
       const camp = appData[activeTabKey];
-      if (!camp) return;
-      
-      document.getElementById('meta-title').value = camp.title || '';
-      document.getElementById('meta-period').value = camp.period || '';
-      document.getElementById('meta-location').value = camp.location || '';
       const canEdit = hasCoachEditAccess();
-      ['meta-title', 'meta-period', 'meta-location'].forEach((id) => {
+      ['meta-title', 'meta-start-date', 'meta-end-date', 'meta-location'].forEach((id) => {
         document.getElementById(id).readOnly = !canEdit;
       });
+      document.getElementById('meta-start-date').disabled=!canEdit;
+      document.getElementById('meta-end-date').disabled=!canEdit;
 
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '';
+      if(!camp){
+        document.getElementById('meta-title').value='';
+        document.getElementById('meta-start-date').value='';
+        document.getElementById('meta-end-date').value='';
+        document.getElementById('meta-location').value='';
+        const tr=document.createElement('tr');
+        const td=document.createElement('td');
+        td.colSpan=canEdit?8:7;
+        td.className='empty-schedule';
+        td.textContent=canEdit?'저장된 훈련이 없습니다. “새 훈련 추가”를 눌러 새 일정을 만들어 주세요.':'저장된 훈련 일정이 없습니다.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
 
-      camp.rows.forEach((row, index) => {
+      document.getElementById('meta-title').value = camp.title || '';
+      const dates=parseSchedulePeriod(camp.period||'');
+      document.getElementById('meta-start-date').value=dates.start;
+      document.getElementById('meta-end-date').value=dates.end;
+      document.getElementById('meta-start-date').dataset.lastValid=dates.start;
+      document.getElementById('meta-end-date').dataset.lastValid=dates.end;
+      document.getElementById('meta-location').value = camp.location || '';
+      syncDateRangeLimits();
+
+      (camp.rows||[]).forEach((row, index) => {
         const tr = document.createElement('tr');
         tr.className = index % 2 === 0 ? 'bg-white hover:bg-slate-50 transition' : 'bg-slate-50/60 hover:bg-slate-100 transition';
 
@@ -290,18 +523,194 @@
         `;
         tbody.appendChild(tr);
       });
+      if(!camp.rows||camp.rows.length===0){
+        const tr=document.createElement('tr');
+        const td=document.createElement('td');
+        td.colSpan=canEdit?8:7;
+        td.className='empty-schedule';
+        td.textContent=canEdit
+          ?'아직 등록된 훈련 항목이 없습니다. 위의 “시간대 추가”를 눌러 일정을 작성하세요.'
+          :'등록된 훈련 항목이 없습니다.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
     }
 
     function switchTab(tabKey) {
       activeTabKey = tabKey;
+      localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,tabKey);
       renderApp();
+    }
+
+    function parseSchedulePeriod(period){
+      const matches=String(period||'').match(/\b(\d{4})[./-](\d{1,2})[./-](\d{1,2})\b/g)||[];
+      if(matches.length<2) return {start:'',end:''};
+      function toInputDate(value){
+        const parts=value.split(/[./-]/).map(Number);
+        const date=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+        if(date.getUTCFullYear()!==parts[0]||date.getUTCMonth()!==parts[1]-1||date.getUTCDate()!==parts[2]) return '';
+        return String(parts[0]).padStart(4,'0')+'-'+String(parts[1]).padStart(2,'0')+'-'+String(parts[2]).padStart(2,'0');
+      }
+      return {start:toInputDate(matches[0]),end:toInputDate(matches[1])};
+    }
+
+    function formatSchedulePeriod(start,end){
+      const startParts=start.split('-').map(Number);
+      const endParts=end.split('-').map(Number);
+      const days=Math.round((Date.UTC(endParts[0],endParts[1]-1,endParts[2])-Date.UTC(startParts[0],startParts[1]-1,startParts[2]))/86400000)+1;
+      return startParts[0]+'.'+startParts[1]+'.'+startParts[2]+' ~ '+endParts[0]+'.'+endParts[1]+'.'+endParts[2]+' ('+days+'일간)';
+    }
+
+    function syncDateRangeLimits(){
+      const start=document.getElementById('meta-start-date');
+      const end=document.getElementById('meta-end-date');
+      start.max=end.value||'';
+      end.min=start.value||'';
+    }
+
+    function updateSchedulePeriod(){
+      if(!requireCoachEditAccess()) return;
+      const camp=appData[activeTabKey];
+      if(!camp) return;
+      const start=document.getElementById('meta-start-date').value;
+      const end=document.getElementById('meta-end-date').value;
+      if(start&&end&&start>end){
+        const changed=document.activeElement;
+        if(changed&&changed.type==='date') changed.value=changed.dataset.lastValid||'';
+        showToast('종료일은 시작일보다 빠를 수 없습니다.');
+        syncDateRangeLimits();
+        return;
+      }
+      syncDateRangeLimits();
+      if(start&&end){
+        camp.period=formatSchedulePeriod(start,end);
+      }else{
+        camp.period='';
+      }
+      document.getElementById('meta-start-date').dataset.lastValid=document.getElementById('meta-start-date').value;
+      document.getElementById('meta-end-date').dataset.lastValid=document.getElementById('meta-end-date').value;
+      renderTabs();
     }
 
     function updateMeta(field, value) {
       if (!requireCoachEditAccess()) return;
       if (appData[activeTabKey]) {
         appData[activeTabKey][field] = value;
+        renderTabs();
       }
+    }
+
+    async function openNewScheduleDialog(){
+      if(!requireCoachEditAccess()) return;
+      const error=document.getElementById('schedule-create-error');
+      const select=document.getElementById('schedule-player-select');
+      error.textContent='선수 목록을 불러오는 중입니다.';
+      approvedPlayersLoaded=false;
+      approvedPlayersCache=[];
+      select.replaceChildren();
+      document.getElementById('schedule-create-dialog').showModal();
+      try{
+        const {data,error:queryError}=await scheduleSupabase
+          .from('sytpt_users')
+          .select('id,name,role,approval_status')
+          .eq('role','player')
+          .order('name');
+        if(queryError) throw queryError;
+        approvedPlayersCache=(data||[]).filter((player)=>String(player.approval_status||'').toLowerCase()==='approved');
+        approvedPlayersLoaded=true;
+        approvedPlayersCache.forEach((player)=>select.add(new Option(player.name+' ('+player.id+')',player.id)));
+        if(!approvedPlayersCache.length){
+          error.textContent='훈련을 배정할 승인된 선수가 없습니다.';
+          return;
+        }
+        error.textContent='';
+        select.focus();
+      }catch(errorValue){
+        console.error('Unable to load players for an individual schedule.',errorValue);
+        error.textContent='선수 목록을 불러오지 못했습니다. 로그인 상태와 권한을 확인한 뒤 다시 시도해 주세요.';
+      }
+    }
+
+    async function addNewSchedule(selectedPlayerIds) {
+      if(!requireCoachEditAccess()) return;
+      if(!approvedPlayersLoaded){
+        document.getElementById('schedule-create-error').textContent='선수 목록을 확인하지 못했습니다. 다시 불러온 뒤 저장해 주세요.';
+        return;
+      }
+      const selectedIds=Array.isArray(selectedPlayerIds)?selectedPlayerIds:[];
+      const players=selectedIds.map((playerId)=>approvedPlayersCache.find((item)=>String(item.id)===String(playerId)));
+      if(players.some((player)=>!player)){
+        document.getElementById('schedule-create-error').textContent='선택한 선수 목록을 확인할 수 없습니다. 목록을 다시 불러와 주세요.';
+        return;
+      }
+      const baseKey='training_'+crypto.randomUUID();
+      let key=baseKey;
+      let suffix=1;
+      while(appData[key]) key=baseKey+'_'+suffix++;
+      const schedule={
+        title:'새 훈련 일정',
+        period:'',
+        location:'',
+        rows:[],
+        playerIds:players.map((player)=>player.id),
+        playerNames:players.map((player)=>player.name)
+      };
+      const createButton=document.querySelector('#schedule-create-form button[type="submit"]');
+      createButton.disabled=true;
+      document.getElementById('schedule-create-error').textContent='Supabase에 저장하는 중입니다.';
+      try{
+        const {error}=await scheduleSupabase
+          .from('sytpt_training_schedules')
+          .insert(toScheduleRecord(key,schedule));
+        if(error) throw error;
+        appData[key]=schedule;
+        activeTabKey=key;
+        localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
+        localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,key);
+        renderApp();
+        document.getElementById('meta-title').focus();
+        document.getElementById('meta-title').select();
+        document.getElementById('schedule-create-dialog').close();
+        setScheduleDataStatus('');
+        showToast(players.length
+          ?players.length+'명 선수 전용 훈련을 클라우드에 추가했습니다.'
+          :'전체 공지 훈련을 클라우드에 추가했습니다.');
+      }catch(error){
+        console.error('Unable to create a player training schedule.',error);
+        document.getElementById('schedule-create-error').textContent='훈련을 저장하지 못했습니다. '+(error.message||'Supabase 권한과 연결을 확인해 주세요.');
+      }finally{
+        createButton.disabled=false;
+      }
+    }
+
+    async function deleteSchedule(key){
+      if(!requireCoachEditAccess()||!appData[key]) return;
+      const title=appData[key].title||key;
+      if(!confirm('"'+title+'" 훈련 일정을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
+      try{
+        const {data,error}=await scheduleSupabase
+          .from('sytpt_training_schedules')
+          .delete()
+          .eq('schedule_id',key)
+          .select('schedule_id');
+        if(error) throw error;
+        if(!data||!data.length) throw new Error('일정이 서버에 없거나 삭제 권한이 없습니다.');
+      }catch(error){
+        console.error('Unable to delete a training schedule.',error);
+        setScheduleDataStatus('훈련 일정을 삭제하지 못했습니다. '+(error.message||''),true);
+        return;
+      }
+      const keys=Object.keys(appData);
+      const deletedIndex=keys.indexOf(key);
+      delete appData[key];
+      const remaining=Object.keys(appData);
+      activeTabKey=key===activeTabKey?(remaining[Math.min(deletedIndex,remaining.length-1)]||''):activeTabKey;
+      if(activeTabKey) localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,activeTabKey);
+      else localStorage.removeItem(ACTIVE_SCHEDULE_STORAGE_KEY);
+      localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
+      renderApp();
+      setScheduleDataStatus('');
+      showToast('훈련 일정이 삭제되었습니다.');
     }
 
     function updateRowData(index, field, value) {
@@ -370,16 +779,26 @@
           if (jsonSheet && jsonSheet.length > 0) {
             const parsedCamp = parseMatrixData(jsonSheet, sheetName);
             if (parsedCamp.rows.length > 0) {
-              newAppData[sheetName] = parsedCamp;
+              const existing=appData[sheetName];
+              const hasPlayerAssignment=existing&&(existing.playerId||(Array.isArray(existing.playerIds)&&existing.playerIds.length));
+              newAppData[sheetName]=hasPlayerAssignment
+                ?{
+                  ...parsedCamp,
+                  playerId:existing.playerId,
+                  playerName:existing.playerName,
+                  playerIds:existing.playerIds,
+                  playerNames:existing.playerNames
+                }
+                :parsedCamp;
             }
           }
         });
 
         if (Object.keys(newAppData).length > 0) {
-          appData = newAppData;
+          appData = Object.assign({},appData,newAppData);
           activeTabKey = Object.keys(newAppData)[0];
           renderApp();
-          showToast("엑셀 파일의 모든 시트가 깨짐 없이 완벽하게 변환되었습니다!");
+          showToast("엑셀 훈련 일정이 목록에 추가 또는 업데이트되었습니다.");
         } else {
           alert("엑셀 파일 내 유효한 데이터가 없습니다.");
         }
@@ -457,20 +876,45 @@
       };
     }
 
-    function saveData() {
+    async function saveData() {
       if (!requireCoachEditAccess()) return;
-      localStorage.setItem('golfSeedAppConfigV5', JSON.stringify(appData));
-      showToast("모든 수정사항이 웹 브라우저에 안전하게 저장되었습니다.");
+      const records=Object.entries(appData).map(([key,schedule])=>toScheduleRecord(key,schedule));
+      try{
+        if(records.length){
+          const {error}=await scheduleSupabase
+            .from('sytpt_training_schedules')
+            .upsert(records,{onConflict:'schedule_id'});
+          if(error) throw error;
+        }
+        localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
+        localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,activeTabKey);
+        setScheduleDataStatus('');
+        showToast('모든 수정사항을 Supabase 클라우드에 저장했습니다.');
+      }catch(error){
+        console.error('Unable to save training schedules to Supabase.',error);
+        setScheduleDataStatus('훈련 일정을 클라우드에 저장하지 못했습니다. '+(error.message||''),true);
+        showToast('클라우드 저장에 실패했습니다. 오류 안내를 확인해 주세요.');
+      }
     }
 
-    function resetData() {
+    async function resetData() {
       if (!requireCoachEditAccess()) return;
       if (confirm("초기 스케줄 데이터로 리셋하시겠습니까?")) {
-        appData = JSON.parse(JSON.stringify(defaultData));
-        localStorage.removeItem('golfSeedAppConfigV5');
-        activeTabKey = Object.keys(appData)[0];
-        renderApp();
-        showToast("기본 스케줄로 초기화되었습니다.");
+        const records=Object.entries(defaultData).map(([key,schedule])=>toScheduleRecord(key,schedule));
+        try{
+          const {error}=await scheduleSupabase.rpc('reset_sytpt_training_schedules',{p_schedules:records});
+          if(error) throw error;
+          appData=JSON.parse(JSON.stringify(defaultData));
+          localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
+          activeTabKey=Object.keys(appData)[0];
+          localStorage.setItem(ACTIVE_SCHEDULE_STORAGE_KEY,activeTabKey);
+          renderApp();
+          setScheduleDataStatus('');
+          showToast("기본 스케줄로 초기화하여 클라우드에 저장했습니다.");
+        }catch(error){
+          console.error('Unable to reset training schedules in Supabase.',error);
+          setScheduleDataStatus('훈련 일정을 초기화하지 못했습니다. '+(error.message||''),true);
+        }
       }
     }
 
@@ -515,20 +959,33 @@
 
     window.onload = function() {
       updateEditAccess();
-      renderApp();
+      loadCloudSchedules();
     };
+
+    ['meta-start-date','meta-end-date'].forEach((id)=>{
+      document.getElementById(id).addEventListener('change',updateSchedulePeriod);
+    });
+    document.getElementById('schedule-create-form').addEventListener('submit',async(event)=>{
+      event.preventDefault();
+      const selectedPlayerIds=Array.from(document.getElementById('schedule-player-select').selectedOptions)
+        .map((option)=>option.value);
+      await addNewSchedule(selectedPlayerIds);
+    });
+    document.getElementById('cancel-create-schedule').addEventListener('click',()=>{
+      document.getElementById('schedule-create-dialog').close();
+    });
 
     window.addEventListener('storage', (event) => {
       if (event.key === SESSION_STORAGE_KEY || event.key === null) {
         updateEditAccess();
-        renderApp();
+        loadCloudSchedules();
       }
     });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         updateEditAccess();
-        renderApp();
+        loadCloudSchedules();
       }
     });
   </script>

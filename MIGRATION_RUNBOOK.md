@@ -25,6 +25,10 @@ Optional:
 2. Run sql/03_rls_apply_and_verify_packet.sql
 3. Verify coach/player login
 4. Run sql/01_password_column_deprecation.sql
+5. Run sql/12_training_schedules.sql to enable cloud-backed training schedules and player/coach RLS.
+6. Run sql/13_training_schedule_multiple_players.sql to enable optional all-player announcements and multi-player assignments.
+
+Training schedule data is migrated from the browser's existing `golfSeedAppConfigV5` cache the first time a coach opens the schedule page while the cloud schedule table is empty. Later loads use Supabase as the source of truth; player accounts receive shared schedules and schedules assigned to them.
 
 ## If coach sees no existing data
 1. Run sql/04_rls_hotfix_jwt_helpers.sql
