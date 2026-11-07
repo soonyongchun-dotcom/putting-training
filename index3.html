@@ -391,6 +391,18 @@
       #coachPortal .coach-kpi-row .kpi .label{white-space:normal}
       #coachPortal .table-scroll-3{overflow-x:auto!important}
       #coachPortal .table{min-width:620px}
+      #selfeval .self-eval-history-wrap{max-width:100%;overflow-x:auto}
+      #selfeval .self-eval-history-table{min-width:720px;table-layout:fixed}
+      #selfeval .self-eval-history-table th:nth-child(1),
+      #selfeval .self-eval-history-table td:nth-child(1){width:12%}
+      #selfeval .self-eval-history-table th:nth-child(2),
+      #selfeval .self-eval-history-table td:nth-child(2){width:8%}
+      #selfeval .self-eval-history-table th:nth-child(3),
+      #selfeval .self-eval-history-table td:nth-child(3){width:18%}
+      #selfeval .self-eval-history-table th:nth-child(4),
+      #selfeval .self-eval-history-table td:nth-child(4){width:27%}
+      #selfeval .self-eval-history-table th:nth-child(5),
+      #selfeval .self-eval-history-table td:nth-child(5){width:35%}
     }
     @media (max-width:480px){
       .app{padding:10px}
@@ -2445,7 +2457,7 @@
         var stamDisplay = (r.staminaStatuses && r.staminaStatuses.length) ? r.staminaStatuses.join(', ') : (r.staminaStatus||'-');
         return '<tr><td>'+escapeHtml(r.date||'-')+'</td><td>'+escapeHtml(String(r.focus||'-'))+'</td><td>'+escapeHtml(mindDisplay)+'</td><td>'+escapeHtml(stamDisplay)+'</td><td>'+escapeHtml(r.note||'-')+'</td></tr>';
       }).join('');
-      root.innerHTML='<table class="table"><thead><tr><th>일자</th><th>집중도</th><th>심리상태</th><th>체력상태</th><th>오늘훈련특이사항</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      root.innerHTML='<div class="self-eval-history-wrap"><table class="table self-eval-history-table"><thead><tr><th>일자</th><th>집중도</th><th>심리상태</th><th>체력상태</th><th>오늘훈련특이사항</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
     }
     async function renderDashboardCoachMessages(){
       const renderSeq=++dashboardCoachRenderSeq;
