@@ -167,8 +167,10 @@ test('virtual analysis does not render cards, narratives, summary or analysis se
 test('duplicate stance and diagnostic refresh controls are removed from the correction header', () => {
   assert.doesNotMatch(html, /id="(?:stanceReferenceBtn|refresh2dDiagnostics)"/);
   assert.doesNotMatch(html, /정면 P1에서 양발 기준선을 지정하세요\./);
+  assert.doesNotMatch(html, /지면선·샤프트 기준 선택 시 양쪽 영상의 저장된 어드레스로 이동합니다/);
+  assert.doesNotMatch(html, /교차 보정은 B 동작의 반경·래깅·임팩트 정렬 등에 실험적 결합 기하를 적용합니다/);
   assert.match(html, /id="crossCorrectionReference"/);
-  assert.match(html, /id="crossCorrectionReferenceSave"/);
+  assert.doesNotMatch(html, /id="crossCorrectionReferenceSave"/);
 });
 
 test('diagnostic wrapper exposes errors instead of preserving stale success content', () => {

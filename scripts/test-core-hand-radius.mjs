@@ -21,6 +21,8 @@ const context = vm.createContext({
   segmentScoreHistory: {},
   frameSideMetricsHistory: {},
   frameStateHistory: { front: {}, side: {} },
+  recordFramePointUndo() {},
+  updateFramePointUndoButton() {},
   updateSegmentComparisonCard: () => {},
   showGuide: () => {},
 });
@@ -1083,8 +1085,8 @@ test('F4 impact-separation tooltip and reference explain the scored displacement
     assert.match(translatedTooltip, /Top→impact C7\/pelvis coupling/);
     assert.doesNotMatch(translatedTooltip, /[가-힣]/);
     assert.match(context.translateUiText(
-      'F4 임팩트 분리 추가감점: 같은 영상에서 주소→임팩트 각 X 이동의 절댓값을 비교하며 좌우 방향은 무시합니다. C7과 골반의 이동 크기 차이가 작고 다운스윙 중 함께 움직일수록 감점이 커집니다. 두 근거를 50:50으로 반영해 최대 3점 감점합니다.',
-      'en'), /F4 additional impact-separation deduction/);
+      'F4 임팩트 분리 추가감점: 같은 영상에서 주소→임팩트 각 X 이동의 절댓값을 비교하며 좌우 방향은 무시합니다. C7과 골반의 이동 크기 차이가 작고 다운스윙 중 함께 움직일수록 감점이 커집니다. 두 근거를 50:50으로 반영하며, 3점 궤적 감점을 포함한 F4 실험적 감점 합계는 최대 3점입니다.',
+      'en'), /total F4 experimental deductions.*capped at 3 points/);
   } finally {
     context.uiLanguage = oldLanguage;
   }

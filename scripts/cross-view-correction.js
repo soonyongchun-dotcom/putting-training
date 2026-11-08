@@ -598,6 +598,9 @@ function validateCrossCorrectionData(data) {
   }
   function notice() {
     el('Undo').disabled = pointUndoHistory.length === 0;
+    el('Reference').textContent = referenceMode
+      ? text('기준점 선택 취소', 'Cancel Reference Selection')
+      : text('보정 기준 선택·저장', 'Select / Save Calibration');
     updatePointSelectors();
     for (const view of ['front', 'side']) {
       el(`${view === 'front' ? 'Front' : 'Side'}Hidden`).disabled = referenceMode || !pointSelectors[view].value;
@@ -611,7 +614,7 @@ function validateCrossCorrectionData(data) {
     const frame = selected();
     el('Status').textContent = referenceMode
       ? text('양쪽 영상의 어드레스에서 지면선 2점 → 샤프트의 그립 끝·클럽헤드 2점을 차례로 선택하세요. 보정 기준을 저장하면 F1부터 표시합니다.',
-        'At address in both videos, mark 2 ground-line points, then the shaft grip end and clubhead. Saving calibration returns to F1.')
+        'At address in both videos, mark 2 ground-line points, then the shaft grip end and clubhead. Calibration saves automatically when all references are marked.')
         + '\n' + ['front', 'side'].map(view => {
           const label = view === 'front' ? text('정면', 'Front') : text('측면', 'Side');
           const ref = referenceDraft[view];
@@ -732,6 +735,16 @@ function validateCrossCorrectionData(data) {
         selectNextUnmarkedPoint(view);
       }
       if (crossCorrectionMode === 'cross') update2dCorrectionDiagnostics();
+      if (referenceMode && ['front', 'side'].every(referenceView =>
+        referenceDraft[referenceView].stancePoints.length === 2
+        && referenceDraft[referenceView].shaftPoints.length === 2)) {
+        if (!saveReferenceCalibration()) {
+          const errorMessage = el('Status').textContent;
+          notice();
+          el('Status').textContent += '\n' + errorMessage;
+        }
+        return;
+      }
       notice();
     });
     videos[view].addEventListener('seeked', () => {
@@ -857,15 +870,7 @@ function validateCrossCorrectionData(data) {
       }
     }
   });
-  el('Reference').addEventListener('click', () => {
-    pointUndoHistory = [];
-    referenceDraft = { front: { stancePoints: [], shaftPoints: [] }, side: { stancePoints: [], shaftPoints: [] } };
-    referenceMode = true;
-    for (const view of ['front', 'side']) seekAddress(view);
-    referenceDraftTimes = { front: videos.front.currentTime, side: videos.side.currentTime };
-    notice();
-  });
-  el('ReferenceSave').addEventListener('click', () => {
+  function saveReferenceCalibration() {
     if (!referenceMode || ['front', 'side'].some(view => !loadedSources[view]
       || videos[view].readyState < 2 || videos[view].seeking || !videos[view].paused
       || loadedSources[view] !== crossViewCorrectionData.sources[view]
@@ -873,9 +878,9 @@ function validateCrossCorrectionData(data) {
       || !Number.isFinite(referenceDraftTimes[view])
       || Math.abs(referenceDraftTimes[view] - videos[view].currentTime) > 0.002)) {
       el('Status').textContent = text(
-        '양쪽 영상에서 지면/양발선 2점과 샤프트의 그립 끝·클럽헤드 2점을 모두 선택한 뒤 저장하세요.',
-        'Mark both ground/stance-line points and both shaft endpoints (grip end and clubhead) in each paused video, then save.');
-      return;
+        '양쪽 영상의 기준점을 모두 선택해야 저장할 수 있습니다. 빠진 점을 선택하거나 ‘기준점 선택 취소’로 종료하세요.',
+        'Mark all reference points in both videos. Select the missing points or cancel reference selection.');
+      return false;
     }
     for (const view of ['front', 'side']) {
       const angle = getStanceCorrectionAngle({
@@ -886,7 +891,7 @@ function validateCrossCorrectionData(data) {
         el('Status').textContent = text(
           `${label} 지면 기준선 기울기 ${Math.abs(angle * 180 / Math.PI).toFixed(1)}°입니다. 허용 범위는 수평 기준 ±30° 이내이므로 바닥의 수평에 가까운 두 점을 다시 선택하세요.`,
           `${label} ground-line tilt is ${Math.abs(angle * 180 / Math.PI).toFixed(1)}°. The allowed range is within ±30° of horizontal; reselect two points along the floor.`);
-        return;
+        return false;
       }
     }
     for (const view of ['front', 'side']) {
@@ -902,10 +907,28 @@ function validateCrossCorrectionData(data) {
     };
     crossViewCorrectionData.calibration = 'shaft-ground-v1';
     referenceMode = false;
+    pointUndoHistory = [];
     crossCorrectionMode = 'roll';
     selector.value = 'frame1';
     loadFrame();
     update2dCorrectionDiagnostics();
+    notice();
+    el('Status').textContent += '\n' + text('보정 기준을 저장했습니다. F1 프레임으로 이동했습니다.',
+      'Calibration references saved. Moved to F1.');
+    return true;
+  }
+  el('Reference').addEventListener('click', () => {
+    pointUndoHistory = [];
+    if (referenceMode) {
+      referenceMode = false;
+      referenceDraft = { front: { stancePoints: [], shaftPoints: [] }, side: { stancePoints: [], shaftPoints: [] } };
+      referenceDraftTimes = { front: null, side: null };
+    } else {
+      referenceDraft = { front: { stancePoints: [], shaftPoints: [] }, side: { stancePoints: [], shaftPoints: [] } };
+      referenceMode = true;
+      for (const view of ['front', 'side']) seekAddress(view);
+      referenceDraftTimes = { front: videos.front.currentTime, side: videos.side.currentTime };
+    }
     notice();
   });
   el('Points').addEventListener('click', () => {

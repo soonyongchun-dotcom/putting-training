@@ -632,6 +632,8 @@ test('correction selector names the target motion and directs side alignment to 
   assert.match(html, /정면은 분석2 B의 저장 동작을 연결하며 A의 어드레스 시점은 사용하지 않습니다/);
   assert.match(html, /두 영상의 시점은 별도로 맞추며 같은 초를 의미하지 않습니다/);
   assert.doesNotMatch(html, /이 화면을 열면 1번 측면·2번 정면 영상을 자동으로 가져옵니다/);
+  assert.match(html, /id="crossCorrectionReference">보정 기준 선택·저장<\/button>/);
+  assert.doesNotMatch(html, /id="crossCorrectionReferenceSave"/);
 });
 
 test('undo removes only the most recent point across views and restores the selected landmark', () => {
@@ -857,7 +859,6 @@ test('editor reuses and saves per-frame front/side landmarks without changing an
       fire(`${view}Canvas`, 'click', { clientX: 80 + index * 30, clientY: y });
     }
   }
-  fire('ReferenceSave', 'click');
   assert.equal(c.crossViewCorrectionData.calibration, 'shaft-ground-v1');
   assert.deepEqual({ ...c.stanceReferenceLineFront }, {
     start: c.crossViewCorrectionData.references.front.stancePoints[0],
@@ -904,7 +905,6 @@ test('reference save rejects steep floor lines with measured angle before storin
     }
   }
   assert.match(element('crossCorrectionStatus').textContent, /지면선 2\/2/);
-  fire('ReferenceSave', 'click');
   assert.equal(c.crossViewCorrectionData.calibration, null);
   assert.match(element('crossCorrectionStatus').textContent, /정면 지면 기준선 기울기 59\.0°/);
   assert.match(element('crossCorrectionStatus').textContent, /허용 범위는 수평 기준 ±30° 이내/);
@@ -934,7 +934,6 @@ test('reference selection seeks both addresses and saving calibration returns bo
       fire(`${view}Canvas`, 'click', { clientX: x, clientY: y });
     }
   }
-  fire('ReferenceSave', 'click');
   assert.equal(c.crossViewCorrectionData.references.front.time, 0.15);
   assert.equal(c.crossViewCorrectionData.references.side.time, 0.35);
   assert.equal(c.crossViewCorrectionData.references.front.shaftPoints.length, 2);
@@ -1000,9 +999,8 @@ test('reference mode survives metadata loading and reports missing same-source a
   fire('FrontCanvas', 'click', { clientX: 80, clientY: 400 });
   assert.match(element('crossCorrectionStatus').textContent, /정면: 지면선 1\/2/);
   const references = structuredClone(c.crossViewCorrectionData.references);
-  fire('ReferenceSave', 'click');
   assert.deepEqual(structuredClone(c.crossViewCorrectionData.references), references);
-  assert.match(element('crossCorrectionStatus').textContent, /모두 선택한 뒤 저장/);
+  assert.match(element('crossCorrectionStatus').textContent, /양쪽 영상의 어드레스에서 지면선 2점/);
 });
 
 test('new calibration returns to unsaved F1 using B top and same-source side top', () => {
@@ -1026,7 +1024,6 @@ test('new calibration returns to unsaved F1 using B top and same-source side top
       fire(`${view}Canvas`, 'click', { clientX: x, clientY: y });
     }
   }
-  fire('ReferenceSave', 'click');
   assert.equal(element('crossCorrectionFrame').value, 'frame1');
   assert.equal(element('crossCorrectionFrontVideo').currentTime, 2);
   assert.equal(element('crossCorrectionSideVideo').currentTime, 2.5);
