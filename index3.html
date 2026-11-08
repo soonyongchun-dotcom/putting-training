@@ -1557,6 +1557,43 @@
     function getPhaseSelectionStorageKey(playerId){
       return PHASE_SELECTION_STORAGE_PREFIX + String(playerId || '');
     }
+    const phaseMessageSaveQueues=new Map();
+    function enqueuePhaseMessageSave(playerId,messageType,operation){
+      var queueKey=String(playerId)+'\u0000'+messageType;
+      var previous=phaseMessageSaveQueues.get(queueKey)||Promise.resolve();
+      var current=previous.then(operation,operation);
+      var tail=current.then(function(){},function(){});
+      phaseMessageSaveQueues.set(queueKey,tail);
+      return current.finally(function(){
+        if(phaseMessageSaveQueues.get(queueKey)===tail) phaseMessageSaveQueues.delete(queueKey);
+      });
+    }
+    async function insertPhaseMessageAndRemoveOlder(playerId,author,messageType,text){
+      var latest=await sb.from('sytpt_messages').select('created_at')
+        .eq('player_id',playerId).eq('message_type',messageType)
+        .order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if(latest.error) throw latest.error;
+      var latestTime=latest.data&&latest.data.created_at?new Date(latest.data.created_at).getTime():0;
+      var createdAt=new Date(Math.max(Date.now(),isNaN(latestTime)?0:latestTime+1)).toISOString();
+      var inserted=await sb.from('sytpt_messages').insert({
+        player_id:playerId,author:author,text:text,message_type:messageType,created_at:createdAt
+      }).select('id').single();
+      if(inserted.error) throw inserted.error;
+      if(!inserted.data||inserted.data.id==null) throw new Error('저장 결과에서 새 기록 ID를 확인하지 못했습니다.');
+      var cleanup=await sb.from('sytpt_messages').delete()
+        .eq('player_id',playerId).eq('message_type',messageType).neq('id',inserted.data.id);
+      if(cleanup.error){
+        console.error('Previous phase message cleanup failed',messageType,playerId,cleanup.error);
+        return {saved:true,cleanupFailed:true};
+      }
+      return {saved:true,cleanupFailed:false};
+    }
+    function setPhaseSaveStatus(elementId,message,isError){
+      var status=document.getElementById(elementId);
+      if(!status) return;
+      status.textContent=message;
+      status.style.color=isError?'#b91c1c':'#526171';
+    }
     async function clearPhaseSelectionsForPlayer(playerId){
       if(!playerId) return;
       localStorage.removeItem(getPhaseSelectionStorageKey(playerId));
@@ -4157,15 +4194,38 @@
       }catch(e){return base;}
     }
     async function savePhaseConfig(playerId,config){
-      // 저장 전 잠금 항목 보호
-      ['pre','in','post'].forEach(function(k){
-        LOCKED_PHASE_ITEMS[k].forEach(function(locked){
-          if(!config[k]) config[k]=[];
-          if(config[k].findIndex(function(x){return getItemText(x)===locked;})===-1) config[k].unshift(locked);
+      return enqueuePhaseMessageSave(playerId,'phase_config',async function(){
+        var nextConfig=typeof config==='function'?await config(await getPhaseConfigForSave(playerId)):config;
+        if(!nextConfig) return {saved:false,duplicate:true};
+        // 저장 전 잠금 항목 보호
+        ['pre','in','post'].forEach(function(k){
+          LOCKED_PHASE_ITEMS[k].forEach(function(locked){
+            if(!nextConfig[k]) nextConfig[k]=[];
+            if(nextConfig[k].findIndex(function(x){return getItemText(x)===locked;})===-1) nextConfig[k].unshift(locked);
+          });
+        });
+        return insertPhaseMessageAndRemoveOlder(playerId,'coach','phase_config',JSON.stringify(nextConfig));
+      });
+    }
+    async function getPhaseConfigForSave(playerId){
+      var result=await sb.from('sytpt_messages').select('text,created_at')
+        .eq('player_id',playerId).eq('message_type','phase_config')
+        .order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if(result.error) throw result.error;
+      var base={pre:[...LOCKED_PHASE_ITEMS.pre],in:[...LOCKED_PHASE_ITEMS.in],post:[...LOCKED_PHASE_ITEMS.post]};
+      if(!result.data) return base;
+      var parsed;
+      try{parsed=JSON.parse(result.data.text);}
+      catch(error){throw new Error('기존 경기 단계 설정을 읽지 못했습니다. 설정을 덮어쓰지 않았습니다.');}
+      if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)) throw new Error('기존 경기 단계 설정 형식이 올바르지 않습니다. 설정을 덮어쓰지 않았습니다.');
+      ['pre','in','post'].forEach(function(key){
+        if(parsed[key]==null) parsed[key]=[];
+        if(!Array.isArray(parsed[key])) throw new Error('기존 경기 단계 설정 형식이 올바르지 않습니다. 설정을 덮어쓰지 않았습니다.');
+        LOCKED_PHASE_ITEMS[key].forEach(function(locked){
+          if(parsed[key].findIndex(function(item){return getItemText(item)===locked;})===-1) parsed[key].unshift(locked);
         });
       });
-      await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_config');
-      await sb.from('sytpt_messages').insert({player_id:playerId,author:'coach',text:JSON.stringify(config),message_type:'phase_config',created_at:new Date().toISOString()});
+      return parsed;
     }
     function getPhaseSelections(playerId){return JSON.parse(localStorage.getItem(getPhaseSelectionStorageKey(playerId))||'{}');}
     function setPhaseSelections(playerId,sel){localStorage.setItem(getPhaseSelectionStorageKey(playerId),JSON.stringify(sel));}
@@ -4178,10 +4238,12 @@
     }
     async function savePhaseSelectionsToServer(playerId,sel){
       try{
-        await sb.from('sytpt_messages').delete().eq('player_id',playerId).eq('message_type','phase_selections');
-        await sb.from('sytpt_messages').insert({player_id:playerId,author:'player',text:JSON.stringify(sel),message_type:'phase_selections',created_at:new Date().toISOString()});
+        var result=await enqueuePhaseMessageSave(playerId,'phase_selections',function(){
+          return insertPhaseMessageAndRemoveOlder(playerId,'player','phase_selections',JSON.stringify(sel));
+        });
         // 코치 배지 갱신
         updateCoachMatchBadge();
+        return result;
       }catch(e){console.warn('savePhaseSelectionsToServer failed',e);}
     }
     async function renderPhaseBoard(){
@@ -4200,7 +4262,7 @@
         {key:'in',label:'🟢 In-Match (경기 중)',color:'#16a34a'},
         {key:'post',label:'🔵 Post-Match (경기 후)',color:'#2563eb'}
       ];
-      root.innerHTML=phases.map(function(ph){
+      root.innerHTML='<p id="phaseBoardStatus" role="status" aria-live="polite" class="muted" style="min-height:1em;margin:0 0 6px"></p>'+phases.map(function(ph){
         var items=config[ph.key]||[];
         var itemsHtml=items.map(function(item,i){
           var checked=sel[ph.key+'_'+i]?'checked':'';
@@ -4231,7 +4293,15 @@
             var newSel=getPhaseSelections(player.id);
             newSel[key]=cb.checked;
             setPhaseSelections(player.id,newSel);
-            savePhaseSelectionsToServer(player.id,newSel);
+            savePhaseSelectionsToServer(player.id,newSel).then(function(result){
+              if(!result){
+                setPhaseSaveStatus('phaseBoardStatus','서버 저장에 실패했습니다. 이 기기에만 변경 내용이 저장되어 다른 기기에는 반영되지 않을 수 있습니다.',true);
+              }else if(result.cleanupFailed){
+                setPhaseSaveStatus('phaseBoardStatus','저장은 완료됐지만 이전 기록 정리에 실패했습니다.',true);
+              }else{
+                setPhaseSaveStatus('phaseBoardStatus','저장되었습니다.',false);
+              }
+            });
             var span=cb.closest('label').querySelector('.phase-item-text');
             if(span){span.style.textDecoration=cb.checked?'line-through':'none';span.style.color=cb.checked?'#9ca3af':'var(--sub)';}
           });
@@ -4259,10 +4329,16 @@
               '<textarea id="phaseDesc_'+ph.key+'" placeholder="상세 설명 (선택 — 선수 화면에서 ▼ 누르면 펼쳐집니다)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;resize:vertical;min-height:52px;box-sizing:border-box"></textarea>'+
             '</div></div>';
         }).join('')+
-        '</div><div id="phaseEditorPreview"></div>';
+        '</div><p id="phaseEditorStatus" role="status" aria-live="polite" class="muted" style="min-height:1em;margin:8px 0 0"></p><div id="phaseEditorPreview"></div>';
       async function loadPreview(){
         var pid=document.getElementById('phaseEditorPlayer').value;
-        var cfg=await getPhaseConfig(pid);
+        var cfg;
+        try{cfg=await getPhaseConfig(pid);}
+        catch(error){
+          console.error('load phase configuration failed',error);
+          setPhaseSaveStatus('phaseEditorStatus','경기 단계 설정을 불러오지 못했습니다. '+(error.message||''),true);
+          return;
+        }
         var preview=document.getElementById('phaseEditorPreview'); if(!preview) return;
         preview.innerHTML='<div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
           phDefs.map(function(ph){
@@ -4284,12 +4360,25 @@
         preview.querySelectorAll('.phase-del-btn').forEach(function(btn){
           btn.addEventListener('click',async function(){
             var pid2=document.getElementById('phaseEditorPlayer').value;
-            var cfg2=await getPhaseConfig(pid2);
             var ph=btn.dataset.phase; var idx=Number(btn.dataset.idx);
-            if(isLockedItem(ph,cfg2[ph][idx])) return;
-            cfg2[ph].splice(idx,1);
-            await savePhaseConfig(pid2,cfg2);
-            await loadPreview(); renderPhaseBoard();
+            try{
+              var previewItems=await getPhaseConfig(pid2);
+              var targetItem=(previewItems[ph]||[])[idx];
+              var targetText=getItemText(targetItem);
+              if(!targetText||isLockedItem(ph,targetItem)) return;
+              var result=await savePhaseConfig(pid2,function(cfg2){
+                var targetIndex=(cfg2[ph]||[]).findIndex(function(item){return getItemText(item)===targetText;});
+                if(targetIndex<0||isLockedItem(ph,cfg2[ph][targetIndex])) return null;
+                cfg2[ph].splice(targetIndex,1);
+                return cfg2;
+              });
+              if(result.duplicate) return;
+              setPhaseSaveStatus('phaseEditorStatus',result.cleanupFailed?'저장은 완료됐지만 이전 기록 정리에 실패했습니다.':'저장되었습니다.',result.cleanupFailed);
+              await loadPreview(); renderPhaseBoard();
+            }catch(error){
+              console.error('savePhaseConfig failed',error);
+              setPhaseSaveStatus('phaseEditorStatus','저장에 실패했습니다. 기존 설정은 유지되었습니다. '+(error.message||''),true);
+            }
           });
         });
       }
@@ -4297,24 +4386,42 @@
         text=(text||'').trim(); if(!text) return;
         desc=(desc||'').trim();
         var pid=document.getElementById('phaseEditorPlayer').value;
-        var cfg=await getPhaseConfig(pid);
-        if(!cfg[phKey]) cfg[phKey]=[...LOCKED_PHASE_ITEMS[phKey]||[]];
-        if(cfg[phKey].findIndex(function(x){return getItemText(x)===text;})!==-1) return; // 중복 방지
-        cfg[phKey].push(desc?{text:text,desc:desc}:text);
-        await savePhaseConfig(pid,cfg);
+        var result=await savePhaseConfig(pid,function(cfg){
+          if(!cfg[phKey]) cfg[phKey]=[...LOCKED_PHASE_ITEMS[phKey]||[]];
+          if(cfg[phKey].findIndex(function(x){return getItemText(x)===text;})!==-1) return null;
+          cfg[phKey].push(desc?{text:text,desc:desc}:text);
+          return cfg;
+        });
+        if(result.duplicate){
+          setPhaseSaveStatus('phaseEditorStatus','이미 등록된 항목입니다.',true);
+          return false;
+        }
+        setPhaseSaveStatus('phaseEditorStatus',result.cleanupFailed?'저장은 완료됐지만 이전 기록 정리에 실패했습니다.':'저장되었습니다.',result.cleanupFailed);
         await loadPreview(); renderPhaseBoard();
+        return true;
       }
       document.getElementById('phaseEditorPlayer').addEventListener('change',loadPreview);
       root.querySelectorAll('.phase-add-btn').forEach(function(btn){
         btn.addEventListener('click',async function(){
           var inp=document.getElementById('phaseInput_'+btn.dataset.phase);
           var descInp=document.getElementById('phaseDesc_'+btn.dataset.phase);
-          await addItem(btn.dataset.phase,inp.value,descInp?descInp.value:'');
-          inp.value=''; if(descInp) descInp.value='';
+          try{
+            var saved=await addItem(btn.dataset.phase,inp.value,descInp?descInp.value:'');
+            if(saved){inp.value=''; if(descInp) descInp.value='';}
+          }catch(error){
+            console.error('savePhaseConfig failed',error);
+            setPhaseSaveStatus('phaseEditorStatus','저장에 실패했습니다. 기존 설정은 유지되었습니다. '+(error.message||''),true);
+          }
         });
       });
       root.querySelectorAll('.phase-sugg-btn').forEach(function(btn){
-        btn.addEventListener('click',async function(){await addItem(btn.dataset.phase,btn.dataset.text);});
+        btn.addEventListener('click',async function(){
+          try{await addItem(btn.dataset.phase,btn.dataset.text);}
+          catch(error){
+            console.error('savePhaseConfig failed',error);
+            setPhaseSaveStatus('phaseEditorStatus','저장에 실패했습니다. 기존 설정은 유지되었습니다. '+(error.message||''),true);
+          }
+        });
       });
       await loadPreview();
     }
