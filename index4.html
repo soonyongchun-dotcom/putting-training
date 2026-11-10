@@ -35,6 +35,23 @@
     align-items: center;
     margin-bottom: 15px;
   }
+  .manual-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 7px;
+    background: rgba(0,0,0,0.3);
+    color: #e7f3f2;
+    text-decoration: none;
+  }
+  .manual-link svg { width: 18px; height: 18px; }
+  .manual-link:hover { background: rgba(255,255,255,0.12); }
+  .manual-link:focus-visible { outline: 2px solid #69d8ba; outline-offset: 3px; }
   h1 {
     margin: 0;
     color: green;
@@ -1918,6 +1935,11 @@
       <option value="en">English</option>
     </select>
   </label>
+  <a id="swingManualBtn" class="manual-link" href="./SY-GSAP_간편_사용설명서.html" target="_blank" rel="noopener noreferrer" title="간편 사용설명서" aria-label="간편 사용설명서">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 7v14M12 7C9.8 5.2 6.7 4.5 3 5.5v13c3.7-1 6.8-.3 9 1.5m0-13c2.2-1.8 5.3-2.5 9-1.5v13c-3.7-1-6.8-.3-9 1.5"/>
+    </svg>
+  </a>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
 </div>
 
@@ -2093,12 +2115,12 @@
     <ul>
       <li><strong><span class="backswing-type-code">OPA</span> <span class="backswing-type-ko">(온플레인 패턴)</span>:</strong> 어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적</li>
       <li><strong><span class="backswing-type-code">USP</span> <span class="backswing-type-ko">(업라이트-샬로잉 패턴)</span>:</strong> 높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적</li>
-      <li><strong><span class="backswing-type-code">OFP</span> <span class="backswing-type-ko">(아웃사이드 페이스 제어 패턴)</span>:</strong> P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적</li>
-      <li><strong><span class="backswing-type-code">HAP-A</span> <span class="backswing-type-ko">(하이브리드 A 패턴)</span>:</strong> 테이크어웨이는 아웃사이드 페이스 제어로, 탑 및 다운스윙은 업라이트-샬로잉으로 파워를 극대화하는 복합 궤적</li>
-      <li><strong><span class="backswing-type-code">HAP-B</span> <span class="backswing-type-ko">(하이브리드 B 패턴)</span>:</strong> 정석적인 온플레인 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉을 가미하는 복합 궤적</li>
+      <li><strong><span class="backswing-type-code">OFP</span> <span class="backswing-type-ko">(P2 아웃사이드 전방 위치 패턴)</span>:</strong> OFP는 Outside-Forward Position의 약자입니다. P2 클럽헤드-손 전방 위치를 몸통 기준 길이 대비 5% 기준으로 점수화하고 P1 헤드 경로의 안쪽 편차를 보조 반영하는 2D 후보입니다. 페이스 각도나 스퀘어 유지는 측정하지 않습니다.</li>
+      <li><strong><span class="backswing-type-code">HAP-A</span> <span class="backswing-type-ko">(높이·각도·경로 A 복합 패턴)</span>:</strong> HAP는 Height-Angle-Path의 약자입니다. P2 헤드-손 위치와 P1 경로, 탑 손 높이, P4→P5·P5→P6 샤프트 각도 변화, 다운스윙 경로 적합도를 조합한 2D 후보입니다. 페이스 제어나 파워 우위를 뜻하지 않습니다.</li>
+      <li><strong><span class="backswing-type-code">HAP-B</span> <span class="backswing-type-ko">(높이·각도·경로 B 복합 패턴)</span>:</strong> 공·어드레스 손·탑 C7을 잇는 2D 통로와 P1 경로, 몸통 기준 길이 대비 탑 손 높이(0.45 기준), P4→P5·P5→P6 샤프트 각도 변화, P3 손 복귀 편차를 조합한 후보입니다. 실제 3D 샤프트 면·수직 신전·지면반력은 측정하지 않습니다.</li>
     </ul>
   </details>
-  <small class="backswing-reference">※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.</small>
+  <small class="backswing-reference">※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. P2 아웃사이드 위치·온플레인 통로·샬로잉은 화면상 대리지표이며, 실제 페이스 각도·3D 궤적·힘을 확정하지 않습니다.</small>
 </section>
 
 <nav id="analysisWorkflowNav" aria-label="분석 진행 단계" hidden>
@@ -2884,7 +2906,7 @@
     'F3는 로딩 지표이며, F3→F4 변화와 F4 지수는 2D 참고값으로 실제 지면반력·선속도를 측정하지 않습니다.': 'F3 is a loading proxy; F3→F4 changes and the F4 index are 2D references, not measured ground force or linear speed.',
     '양수 값은 팔-샤프트 직선화 참고값이며 코어-손 반경 전개나 실제 헤드스피드 증가를 직접 입증하지 않습니다.': 'Positive values indicate arm-shaft straightening, not direct evidence of core-hand radius expansion or increased clubhead speed.',
     '반경은 골반·양손 중심 기준입니다. 같은 카메라·배율로 F1 A 어드레스부터 분석하세요. 기존 점수 기준은 경험적 참고값이며 새 반경 정의에 대한 검증 기준은 아닙니다.': 'Radius uses the pelvis and both-hands centers. Start with the F1 A address using the same camera and scale. Existing score thresholds remain heuristic references, not validated thresholds for this new radius definition.',
-    '언어': 'Language', '한국어': 'Korean', '정면 A': 'Front A', '정면 B': 'Front B',
+    '언어': 'Language', '한국어': 'Korean', '간편 사용설명서': 'Quick User Guide', '정면 A': 'Front A', '정면 B': 'Front B',
     '로그인 아이디': 'Login ID', 'SY-GSAP 계정으로 로그인하세요.': 'Sign in with your SY-GSAP account.',
     '로그인 아이디와 비밀번호를 입력하세요.': 'Enter your login ID and password.',
     '로그인 중...': 'Signing in...', '아이디 또는 비밀번호가 올바르지 않습니다.': 'Invalid login ID or password.',
@@ -2979,25 +3001,21 @@
     '유형 판정': 'Classify Type', '백스윙 유형별 특징': 'Backswing Type Guide',
     '(온플레인 패턴)': '(On-Plane Alignment Pattern)',
     '(업라이트-샬로잉 패턴)': '(Upright-Shallowing Loop Pattern)',
-    '(아웃사이드 페이스 제어 패턴)': '(Outside-Takeaway Face-Control Pattern)',
-    '(하이브리드 A 패턴)': '(Dual-Phase Outside-Shallowing Pattern)',
-    '(하이브리드 B 패턴)': '(Dual-Phase On-Plane Shallowing Pattern)',
+    '(P2 아웃사이드 전방 위치 패턴)': '(P2 Outside-Forward Position Pattern)',
+    '(높이·각도·경로 A 복합 패턴)': '(Height-Angle-Path Composite A Pattern)',
+    '(높이·각도·경로 B 복합 패턴)': '(Height-Angle-Path Composite B Pattern)',
     '어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적': 'A classic path where the hand-and-arm plane at the top matches the address shaft plane.',
     '높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적': 'Builds position at a high, steep top, then shallows the shaft during transition.',
-    'P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적': 'At P2, the clubhead stays outside the hands to help prevent the face from opening.',
-    '테이크어웨이는 아웃사이드 페이스 제어로, 탑 및 다운스윙은 업라이트-샬로잉으로 파워를 극대화하는 복합 궤적': 'Combines an outside face-control takeaway with an upright top and a shallowing transition to maximize power.',
-    '정석적인 온플레인 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉을 가미하는 복합 궤적': 'Combines a classic on-plane arc with strong vertical extension and shallowing during the downswing.',
+    'P2 클럽헤드-손 전방 위치를 몸통 기준 길이 대비 5% 기준으로 점수화하고 P1 헤드 경로의 안쪽 편차를 보조 반영하는 2D 후보입니다. 페이스 각도나 스퀘어 유지는 측정하지 않습니다.': 'OFP means Outside-Forward Position. This 2D candidate scores the P2 clubhead-to-hand forward position against a 5% torso-reference threshold, with P1 inward clubhead-path deviation as a secondary factor. Face angle and face squareness are not measured.',
+    'P2 헤드-손 위치와 P1 경로, 탑 손 높이, P4→P5 및 P5→P6 샤프트 각도 변화가 함께 나타나는지를 평가하는 2D 후보입니다. 페이스 제어나 파워 우위를 뜻하지 않습니다.': 'HAP means Height-Angle-Path. This 2D candidate combines P2 head-to-hand position and P1 path with top hand height, P4→P5 and P5→P6 shaft-angle changes, and downswing path fit. It does not indicate face control or a power advantage.',
+    '공·어드레스 손·탑 C7을 잇는 2D 통로와 P1 경로, 몸통 기준 길이 대비 탑 손 높이(0.45 기준), P4→P5·P5→P6 샤프트 각도 변화, P3 손 복귀 편차를 조합한 후보입니다. 실제 3D 샤프트 면·수직 신전·지면반력은 측정하지 않습니다.': 'A candidate combining a 2D corridor through the ball, address hands and top C7; the P1 path; top hand height relative to the torso reference (0.45 threshold); P4→P5 and P5→P6 shaft-angle changes; and P3 hand-return deviation. Actual 3D shaft plane, vertical extension and ground reaction force are not measured.',
     '1. 온플레인 패턴 (On-Plane):': '1. On-Plane: ',
     '어드레스 샤프트 면과 백스윙 탑의 손·팔 경사가 완벽히 일치하여 보정 동작 없이 동일 평면을 유지하는 정석 궤적': 'A classic path where the hand-and-arm plane at the top matches the address shaft plane.',
     '2. 업라이트-샬로잉 패턴 (Upright-Shallowing):': '2. Upright-Shallowing: ',
     '높은 상공의 가파른 탑에서 위치 에너지를 확보한 후, 전환(Transition) 시 샤프트를 완만하게 떨어뜨리는 궤적': 'Builds position at a high, steep top, then shallows the shaft during transition.',
-    '3. 아웃사이드 페이스 제어 패턴 (Outside-Takeaway Face-Control Pattern):': '3. Outside-Takeaway Face-Control Pattern: ',
-    'P2 테이크어웨이 구간에서 헤드가 손보다 바깥쪽에 위치해 페이스 열림(Panning)을 원천 차단하는 궤적': 'At P2, the clubhead stays outside the hands to help prevent the face from opening.',
-    '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern):': '4. Dual-Phase Outside-Shallowing Pattern: ',
-    '테이크어웨이는 아웃사이드(3번)로 페이스를 제어하고, 탑 및 다운스윙은 업라이트-샬로잉(2번)으로 파워를 극대화하는 복합 궤적': 'Combines an outside takeaway with an upright top and a shallowing transition.',
-    '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern):': '5. Dual-Phase On-Plane Shallowing Pattern: ',
-    '정석적인 온플레인(1번) 아크를 그리면서도, 다운스윙 시 강한 수직 신전과 샬로잉(2번)을 가미하는 복합 궤적': 'Combines an on-plane arc with vertical extension and a shallowing move in the downswing.',
-    '※ 참고: 2D 측면 영상은 클럽의 깊이 방향과 지면반력을 측정할 수 없습니다. 아웃사이드 및 온플레인은 화면상 대리지표로 추정하며, 역학적 결합 유형이나 실제 페이스 각도를 확정하지 않습니다.': 'Note: 2D side-view video cannot measure club depth or ground reaction force. Outside and on-plane patterns are visual estimates, not definitive measurements of force coupling or face angle.',
+    '3. P2 아웃사이드 전방 위치 패턴 (P2 Outside-Forward Position Pattern):': '3. P2 Outside-Forward Position Pattern: ',
+    '4. 높이·각도·경로 A 복합 패턴 (Height-Angle-Path Composite A Pattern):': '4. Height-Angle-Path Composite A Pattern: ',
+    '5. 높이·각도·경로 B 복합 패턴 (Height-Angle-Path Composite B Pattern):': '5. Height-Angle-Path Composite B Pattern: ',
     'Frame 1 — 백스윙 탑·축 고정/꼬임 [A: 어드레스 → B: 백스윙 최정점]': 'Frame 1 — Top of Backswing / Axis Stability and Coil [A: Address → B: Top of Backswing]',
     'Frame 2 — 래깅·코어 이동 [A: 어드레스 → B: 다운스윙 3/5, 양손 허리 높이]': 'Frame 2 — Lag and Core Shift [A: Address → B: Downswing 3/5, Hands at Waist Height]',
     'Frame 3 — 다운스윙 후기·지면반력 [A: 다운스윙 4/5 → B: 임팩트 직전]': 'Frame 3 — Late Downswing / Ground-Force Phase [A: Downswing 4/5 → B: Just Before Impact]',
@@ -3242,9 +3260,9 @@
     '통과': 'passed', '이탈': 'deviated', '해당': 'observed', '미해당': 'not observed',
     '스윙 유형 상대 적합도:': 'Swing-type relative fit: ', '축회전 중심 스윙': 'Axis-Rotation-Driven Swing',
     '하체이동 중심 스윙': 'Lower-Body-Shift-Driven Swing', '코어압축팽창 중심 스윙': 'Core Compression-Extension-Driven Swing',
-    '5. 하이브리드 B (온플레인 + 업라이트-샬로잉)': '5. Hybrid B (On-Plane + Upright-Shallowing)',
-    '4. 하이브리드 A (아웃사이드 + 업라이트-샬로잉)': '4. Hybrid A (Outside + Upright-Shallowing)',
-    '3. 아웃사이드 페이스 제어 패턴': '3. Outside Takeaway Pattern',
+    '5. 높이·각도·경로 B 복합 패턴': '5. Height-Angle-Path Composite B Pattern',
+    '4. 높이·각도·경로 A 복합 패턴': '4. Height-Angle-Path Composite A Pattern',
+    '3. P2 아웃사이드 전방 위치 패턴': '3. P2 Outside-Forward Position Pattern',
     '2. 업라이트-샬로잉 패턴': '2. Upright-Shallowing Pattern', '1. 온플레인 패턴': '1. On-Plane Pattern',
     '판정 보류 (등록된 다섯 패턴 조건에 부합하지 않음)': 'Undetermined (does not match the five defined patterns)',
     'F1 백스윙 탑: 축 고정과 어깨 회전': 'F1 Top of Backswing: Axis Stability and Shoulder Turn',
@@ -3638,9 +3656,9 @@
   const SWING_BACKSWING_CODES = [
     { code: 'OPA', ko: '온플레인 패턴', en: 'On-Plane Alignment Pattern' },
     { code: 'USP', ko: '업라이트-샬로잉 패턴', en: 'Upright-Shallowing Loop Pattern' },
-    { code: 'OFP', ko: '아웃사이드 페이스 제어 패턴', en: 'Outside-Takeaway Face-Control Pattern' },
-    { code: 'HAP-A', ko: '하이브리드 A 패턴', en: 'Dual-Phase Outside-Shallowing Pattern' },
-    { code: 'HAP-B', ko: '하이브리드 B 패턴', en: 'Dual-Phase On-Plane Shallowing Pattern' },
+    { code: 'OFP', ko: 'P2 아웃사이드 전방 위치 패턴', en: 'P2 Outside-Forward Position Pattern' },
+    { code: 'HAP-A', ko: '높이·각도·경로 A 복합 패턴', en: 'Height-Angle-Path Composite A Pattern' },
+    { code: 'HAP-B', ko: '높이·각도·경로 B 복합 패턴', en: 'Height-Angle-Path Composite B Pattern' },
   ];
   const SWING_POWER_ENGINES = [
     { code: 'ATE', ko: '축회전 중심형', en: 'Axial-Torque Engine' },
@@ -3654,9 +3672,9 @@
   const SWING_PROFILE_GROUPS = [
     { code: 'OPA', ko: '온플레인 패턴 프로필', en: 'On-Plane Alignment Pattern Profiles' },
     { code: 'USP', ko: '업라이트-샬로잉 패턴 프로필', en: 'Upright-Shallowing Loop Pattern Profiles' },
-    { code: 'OFP', ko: '아웃사이드 페이스 제어 패턴 프로필', en: 'Outside-Takeaway Face-Control Pattern Profiles' },
-    { code: 'HAP-A', ko: '하이브리드 A 패턴 프로필', en: 'Dual-Phase Outside-Shallowing Pattern Profiles' },
-    { code: 'HAP-B', ko: '하이브리드 B 패턴 프로필', en: 'Dual-Phase On-Plane Shallowing Pattern Profiles' },
+    { code: 'OFP', ko: 'P2 아웃사이드 전방 위치 패턴 프로필', en: 'P2 Outside-Forward Position Pattern Profiles' },
+    { code: 'HAP-A', ko: '높이·각도·경로 A 복합 패턴 프로필', en: 'Height-Angle-Path Composite A Pattern Profiles' },
+    { code: 'HAP-B', ko: '높이·각도·경로 B 복합 패턴 프로필', en: 'Height-Angle-Path Composite B Pattern Profiles' },
   ];
   const SWING_PROFILE_DATA = [
     { n: 1, g: 'OPA', e: 'ATE', ko: ['축회전 중심 스윙', '어드레스 샤프트면을 따라 플레인 아크를 그리며, C7 경추축을 고정한 상태에서 수평 회전 토크로 클럽을 가속합니다. 예: 리디아 고, 전인지.', '복귀 재현성(F5)과 정타율이 높고 좌우 오차가 작아 구질 일관성이 뛰어납니다.', '하체 체중 이동과 수직 지면반력 활용이 낮아 클럽 헤드스피드의 상한이 생길 수 있습니다.'], en: ['Pure On-Plane Axial-Torque Swing', 'Follows the address shaft plane while keeping the C7 axis stable and accelerating the club mainly through horizontal rotational torque. Examples: Lydia Ko and Chun In-gee.', 'Offers highly repeatable return positions, strong centered contact, tight left-right dispersion, and consistent shot shape.', 'Limited lower-body shift and vertical ground-force use can cap maximum clubhead speed.'] },
@@ -3705,7 +3723,39 @@
       : `${backswing.ko} × ${engine.ko}`;
   }
 
+  function getSwingProfileDetail(profile, detailIndex, language = uiLanguage) {
+    const english = language === 'en';
+    const text = (ko, en) => english ? en : ko;
+    if (profile?.g === 'OFP' && detailIndex === 1) return text(
+      'P2에서 클럽헤드가 손보다 앞선 정도(몸통 기준 길이 대비)를 5% 기준으로 점수화하고, P1 클럽헤드 경로의 안쪽 편차를 보조 반영한 2D 후보입니다. 페이스 각도나 스퀘어 유지는 측정하지 않습니다.',
+      'A 2D candidate scoring how far the clubhead is ahead of the hands at P2 relative to the torso reference, using a 5% threshold, with P1 inward clubhead-path deviation as a secondary factor. Face angle and face squareness are not measured.',
+    );
+    if (profile?.g === 'HAP-A' && detailIndex === 1) return text(
+      'OFP의 P2 헤드-손 위치와 P1 경로에 더해, 탑 손 높이·P4→P5 및 P5→P6 샤프트 각도 변화·다운스윙 경로 적합도를 결합한 2D 후보입니다. 페이스 제어나 파워 우위를 뜻하지 않습니다.',
+      'A 2D candidate combining the OFP P2 head-to-hand position and P1 path with top hand height, P4→P5 and P5→P6 shaft-angle changes, and downswing path fit. It does not indicate face control or a power advantage.',
+    );
+    if (profile?.g === 'HAP-B' && detailIndex === 1) return text(
+      '공·어드레스 손·탑 C7을 잇는 2D 기준 통로와 P1 경로, 탑 손 높이, P4→P5·P5→P6 샤프트 각도 변화, P3 손 복귀 편차를 조합한 후보입니다. 수직 신전이나 지면반력은 이 백스윙 분류에서 측정하지 않습니다.',
+      'A candidate combining a 2D corridor through the ball, address hands and top C7; the P1 path; top hand height; P4→P5 and P5→P6 shaft-angle changes; and P3 hand-return deviation. This backswing classification does not measure vertical extension or ground reaction force.',
+    );
+    if (['OFP', 'HAP-A', 'HAP-B'].includes(profile?.g) && detailIndex === 2) return text(
+      '이 백스윙 후보만으로 페이스 제어, 방향성, 비거리 또는 성능 우위가 입증되지는 않습니다. 엔진 지표와 실제 타구 자료를 별도로 확인하세요.',
+      'This backswing candidate alone does not establish face control, direction, distance, or a performance advantage. Review engine indicators and actual shot data separately.',
+    );
+    if (['OFP', 'HAP-A', 'HAP-B'].includes(profile?.g) && detailIndex === 3) return text(
+      '2D 투영은 카메라 정렬과 포인트 입력에 영향을 받습니다. 실제 클럽 깊이·페이스 각도·3D 궤적·힘은 측정하지 않으므로, 이 프로필만으로 교정 원인이나 부상 위험을 단정하지 마세요.',
+      '2D projection depends on camera alignment and checkpoint placement. Actual club depth, face angle, 3D path and force are not measured; do not infer a correction cause or injury risk from this profile alone.',
+    );
+    return profile?.[english ? 'en' : 'ko']?.[detailIndex] || '';
+  }
+
   SWING_PROFILE_DATA.forEach(profile => {
+    if (['OFP', 'HAP-A', 'HAP-B'].includes(profile.g)) {
+      [1, 2, 3].forEach(index => {
+        profile.ko[index] = getSwingProfileDetail(profile, index, 'ko');
+        profile.en[index] = getSwingProfileDetail(profile, index, 'en');
+      });
+    }
     profile.ko[0] = getCanonicalSwingProfileName(profile, 'ko');
     profile.en[0] = getCanonicalSwingProfileName(profile, 'en');
   });
@@ -3739,8 +3789,8 @@
       closeButton.title = text('소개 닫기', 'Close introduction');
     }
     formula.innerHTML = isEnglish
-      ? '<strong>Profile number.</strong> [Backswing pattern code :: Power engine code] (official combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Dual-Phase Outside-Shallowing Pattern × Tri-Kinematic Apex Engine)<br><strong>Mechanics:</strong> The backswing code describes the observed 2D path; the engine code summarizes relative fit across rotation/axis, pelvis shift/lower-body drive, and arc compression-expansion proxies. Their combination is a motion hypothesis, not a direct force measurement or proof of shot cause.'
-      : '<strong>프로필 번호.</strong> [백스윙 패턴 코드 :: 파워 엔진 코드] (공식 조합 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (하이브리드 A 패턴 × 트라이-키네매틱 융합형)<br><strong>역학 해석:</strong> 백스윙 코드는 관찰된 2D 궤적, 엔진 코드는 회전·축 안정성, 골반 이동·하체 구동, 반경 압축·확장 proxy의 상대 적합도를 요약합니다. 두 코드의 조합은 모션 가설이며 실제 힘 측정이나 샷 원인의 증거가 아닙니다.';
+      ? '<strong>Profile number.</strong> [Backswing pattern code :: Power engine code] (combined profile name)<br><strong>Example:</strong> 28. [HAP-A :: TKE] (Height-Angle-Path Composite A Pattern × Tri-Kinematic Apex Engine)<br><strong>Code notes:</strong> OFP = Outside-Forward Position; HAP = Height-Angle-Path, with A/B marking different metric combinations.<br><strong>Mechanics:</strong> The backswing code describes the observed 2D path; the engine code summarizes relative fit across rotation/axis, pelvis shift/lower-body drive, and arc compression-expansion proxies. Their combination is a motion hypothesis, not a direct force measurement or proof of shot cause.'
+      : '<strong>프로필 번호.</strong> [백스윙 패턴 코드 :: 파워 엔진 코드] (조합 프로필 명칭)<br><strong>예:</strong> 28. [HAP-A :: TKE] (높이·각도·경로 A 복합 패턴 × 트라이-키네매틱 융합형)<br><strong>약자:</strong> OFP = Outside-Forward Position(아웃사이드 전방 위치), HAP = Height-Angle-Path(높이·각도·경로)이며 A/B는 서로 다른 지표 조합을 구분합니다.<br><strong>역학 해석:</strong> 백스윙 코드는 관찰된 2D 궤적, 엔진 코드는 회전·축 안정성, 골반 이동·하체 구동, 반경 압축·확장 proxy의 상대 적합도를 요약합니다. 두 코드의 조합은 모션 가설이며 실제 힘 측정이나 샷 원인의 증거가 아닙니다.';
     backswingList.innerHTML = SWING_BACKSWING_CODES.map(item =>
       `<div class="app-code-row"><span class="app-code-tag">${item.code}</span><span class="app-code-name">${text(item.ko, item.en)}</span></div>`
     ).join('');
@@ -3769,7 +3819,8 @@
     profileList.innerHTML = groupProfiles.map(profile => {
       const engine = SWING_POWER_ENGINES.find(item => item.code === profile.e);
       const name = getCanonicalSwingProfileName(profile, uiLanguage);
-      return `<details class="app-profile-item"><summary><span class="app-profile-number">${String(profile.n).padStart(2, '0')}</span><span class="app-profile-title">${name}</span><span class="app-profile-engine">${profile.g} :: ${profile.e}</span></summary><div class="app-profile-details"><p><strong>${text('영문명', 'English name')}:</strong> ${profile.en[0]}</p><p><strong>${text('특징', 'Profile')}:</strong> ${text(profile.ko[1], profile.en[1])}</p><p><strong>${text('장점', 'Strengths')}:</strong> ${text(profile.ko[2], profile.en[2])}</p><p><strong>${text('단점/리스크', 'Trade-offs / Risks')}:</strong> ${text(profile.ko[3], profile.en[3])}</p><p><strong>${text('파워 엔진', 'Power engine')}:</strong> ${text(engine.ko, engine.en)}</p></div></details>`;
+      const evidenceLimited = ['OFP', 'HAP-A', 'HAP-B'].includes(profile.g);
+      return `<details class="app-profile-item"><summary><span class="app-profile-number">${String(profile.n).padStart(2, '0')}</span><span class="app-profile-title">${name}</span><span class="app-profile-engine">${profile.g} :: ${profile.e}</span></summary><div class="app-profile-details"><p><strong>${text('영문명', 'English name')}:</strong> ${profile.en[0]}</p><p><strong>${text('특징', 'Profile')}:</strong> ${getSwingProfileDetail(profile, 1)}</p><p><strong>${text(evidenceLimited ? '성능 가설 · 미검증' : '장점', evidenceLimited ? 'Potential benefit · unverified' : 'Strengths')}:</strong> ${getSwingProfileDetail(profile, 2)}</p><p><strong>${text(evidenceLimited ? '측정 한계' : '단점/리스크', evidenceLimited ? 'Measurement limits' : 'Trade-offs / Risks')}:</strong> ${getSwingProfileDetail(profile, 3)}</p><p><strong>${text('파워 엔진', 'Power engine')}:</strong> ${text(engine.ko, engine.en)}</p></div></details>`;
     }).join('');
   }
 
@@ -8119,9 +8170,15 @@
     const warnings = [];
     const backswingCode = getBackswingProfileCode(backResult);
     let engineDecision = null;
-    if (['OFP', 'HAP-A'].includes(backswingCode)) warnings.push(getSwingUiText(
-      'OFP/HAP-A는 영상 경로 후보입니다. 클럽 페이스 각도·스퀘어 유지·슬라이스 억제는 이 포인트로 측정하지 않습니다.',
-      'OFP/HAP-A are video-path candidates. These landmarks do not measure clubface angle, square-face retention or slice prevention.'));
+    if (backswingCode === 'OFP') warnings.push(getSwingUiText(
+      'OFP(Outside-Forward Position)는 P2 헤드-손 전방 위치(몸통 기준 5% 점수)와 P1 안쪽 헤드 경로 편차를 보조 반영한 2D 후보입니다. 페이스 각도와 스퀘어 유지는 측정하지 않습니다.',
+      'OFP (Outside-Forward Position) is a 2D candidate based on P2 clubhead-to-hand forward position (5% torso-reference score) with P1 inward path deviation as a secondary factor. Face angle and face squareness are not measured.'));
+    if (backswingCode === 'HAP-A') warnings.push(getSwingUiText(
+      'HAP-A(Height-Angle-Path A)는 P2 위치·P1 경로·탑 손 높이·P4→P5/P5→P6 샤프트 각도 변화·다운스윙 경로 적합도를 조합한 2D 후보입니다. 페이스 제어나 파워 우위를 뜻하지 않습니다.',
+      'HAP-A (Height-Angle-Path A) is a 2D candidate combining P2 position, P1 path, top hand height, P4→P5/P5→P6 shaft-angle changes, and downswing-path fit. It does not indicate face control or a power advantage.'));
+    if (backswingCode === 'HAP-B') warnings.push(getSwingUiText(
+      'HAP-B(Height-Angle-Path B)는 공·어드레스 손·탑 C7의 2D 통로, P1 경로, 탑 손 높이(0.45 기준), 샤프트 각도 변화, P3 손 복귀 편차를 조합합니다. 실제 3D 샤프트 면·수직 신전·지면반력은 측정하지 않습니다.',
+      'HAP-B (Height-Angle-Path B) combines a 2D corridor through the ball, address hands and top C7; P1 path; top hand height (0.45 threshold); shaft-angle changes; and P3 hand-return deviation. Actual 3D shaft plane, vertical extension and ground reaction force are not measured.'));
 
     if (backResult && backResult.nearMatch) {
       warnings.push(getSwingUiText(
@@ -9784,9 +9841,9 @@
     const candidates = [
       { code: 'OPA', type: '1. 온플레인 패턴', fit: onePlaneFit },
       { code: 'USP', type: '2. 업라이트-샬로잉 패턴', fit: uprightLoopFit },
-      { code: 'OFP', type: '3. 아웃사이드 페이스 제어 패턴', fit: outsideTakeawayFit },
-      { code: 'HAP-A', type: '4. 하이브리드 A 패턴 (Dual-Phase Outside-Shallowing Pattern)', fit: Math.min(outsideTakeawayFit, uprightFit, shallowFit, 0.75 + (downPlaneChecks[1] ? 1 : 0) * 0.25, p3ReturnFit) },
-      { code: 'HAP-B', type: '5. 하이브리드 B 패턴 (Dual-Phase On-Plane Shallowing Pattern)', fit: Math.min(planeFit, earlyPlaneFit, 0.75 + p1InsideFit * 0.25, uprightFit, shallowFit, p3ReturnFit) },
+      { code: 'OFP', type: '3. P2 아웃사이드 전방 위치 패턴', fit: outsideTakeawayFit },
+      { code: 'HAP-A', type: '4. 높이·각도·경로 A 복합 패턴', fit: Math.min(outsideTakeawayFit, uprightFit, shallowFit, 0.75 + (downPlaneChecks[1] ? 1 : 0) * 0.25, p3ReturnFit) },
+      { code: 'HAP-B', type: '5. 높이·각도·경로 B 복합 패턴', fit: Math.min(planeFit, earlyPlaneFit, 0.75 + p1InsideFit * 0.25, uprightFit, shallowFit, p3ReturnFit) },
     ].sort((a, b) => b.fit - a.fit);
     const bestCandidate = candidates[0];
     const runnerUpCandidate = candidates[1];
@@ -10569,8 +10626,8 @@
       const resultKo = document.createElement('span');
       resultKo.className = 'backswing-result-ko';
       const hybridComponents = {
-        'HAP-A': 'OFP + USP',
-        'HAP-B': 'OPA + USP',
+        'HAP-A': uiLanguage === 'en' ? 'Height-Angle-Path Composite A' : '높이·각도·경로 A 복합 패턴',
+        'HAP-B': uiLanguage === 'en' ? 'Height-Angle-Path Composite B' : '높이·각도·경로 B 복합 패턴',
       };
       resultKo.textContent = `(${hybridComponents[resultCodeItem.code] || (uiLanguage === 'en' ? resultCodeItem.en : resultCodeItem.ko)})`;
       title.append(resultPrefix, resultCode, resultKo);
@@ -14829,7 +14886,7 @@
   }
 
   function getR10ProfileDescription(profile, detailIndex) {
-    return profile && profile[uiLanguage === 'en' ? 'en' : 'ko'][detailIndex] || '';
+    return getSwingProfileDetail(profile, detailIndex, uiLanguage);
   }
 
   function r10FieldColumns(header) {
@@ -15222,16 +15279,16 @@
         'A path with a high hand position and observed shaft shallowing through transition',
       ],
       OFP: [
-        'P2에서 클럽헤드가 손보다 바깥에 위치하는 테이크어웨이',
-        'A takeaway with the clubhead outside the hands at P2',
+        'P2 헤드-손 전방 위치(몸통 기준 5% 점수 기준)와 P1 안쪽 경로 편차로 산출한 2D 테이크어웨이 후보; 페이스 각도는 미측정',
+        'A 2D takeaway candidate from P2 head-to-hand forward position (5% torso-reference scoring threshold) and P1 inward-path deviation; face angle is not measured',
       ],
       'HAP-A': [
-        'P2 아웃사이드 테이크어웨이와 업라이트·샬로잉 특성이 함께 분류되는 조합',
-        'A combination classified by an outside P2 takeaway plus upright and shallowing traits',
+        'P2 헤드-손 위치·P1 경로와 탑 손 높이·샤프트 각도 변화·다운스윙 통로가 함께 분류되는 2D 후보',
+        'A 2D candidate combining P2 head-to-hand position and P1 path with top hand height, shaft-angle changes and downswing corridor',
       ],
       'HAP-B': [
-        '온플레인 통로와 업라이트·샬로잉 전환 특성이 함께 분류되는 조합',
-        'A combination classified by an on-plane corridor plus upright and shallowing transition traits',
+        '공·어드레스 손·탑 C7 기준 통로, P1 경로, 탑 손 높이, P4→P5/P5→P6 샤프트 각도 변화의 2D 후보',
+        'A 2D candidate from the ball/address-hands/top-C7 corridor, P1 path, top hand height and P4→P5/P5→P6 shaft-angle changes',
       ],
     };
     const engineMechanics = {
@@ -15358,7 +15415,8 @@
     const observedProfile = observedBackswing && observedEngine
       ? SWING_PROFILE_DATA.find(item => item.g === observedBackswing && item.e === observedEngine) || null
       : null;
-    const videoProfileMatches = observedBackswing && observedEngine
+    const backswingIsNearCandidate = Boolean(backswingClassification?.nearMatch);
+    const videoProfileMatches = observedBackswing && observedEngine && !backswingIsNearCandidate
       ? observedBackswing === profile.g && observedEngine === profile.e : null;
     const mechanicsProfile = videoProfileMatches === false ? observedProfile : profile;
     const mechanicsDescription = mechanicsProfile ? getR10ProfileMechanics(mechanicsProfile) : null;
@@ -15366,7 +15424,7 @@
       ? `<p><strong>${r10Text('연결할 프로필 역학', 'Profile mechanics reference')}:</strong> ${escapeR10ReportText(mechanicsDescription.backswing)} · ${escapeR10ReportText(mechanicsDescription.engine)}${videoProfileMatches === false ? ` (${r10Text('관측 분류 기준', 'based on observed classification')})` : videoProfileMatches === true ? ` (${r10Text('영상 분류 일치', 'matches video classification')})` : ` (${r10Text('영상 확인 전 가설', 'hypothesis pending video confirmation')})`}</p>`
       : `<p>${r10Text('영상 분류가 없어 프로필 역학을 이번 스윙에 연결하지 않았습니다.', 'No video classification is available; profile mechanics are not linked to this swing.')}</p>`;
     const motionEvidence = [];
-    if (observedBackswing) motionEvidence.push(`${r10Text('영상 백스윙 분류', 'Video backswing classification')}: ${observedBackswing} (${observedBackswing === profile.g ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
+    if (observedBackswing) motionEvidence.push(`${r10Text(backswingIsNearCandidate ? '영상 백스윙 근접 후보' : '영상 백스윙 분류', backswingIsNearCandidate ? 'Video backswing nearest candidate' : 'Video backswing classification')}: ${observedBackswing} (${backswingIsNearCandidate ? r10Text('확정 분류 아님', 'not a confirmed classification') : observedBackswing === profile.g ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
     if (observedEngine) motionEvidence.push(`${r10Text('영상 엔진 분류', 'Video engine classification')}: ${observedEngine} (${observedEngine === profile.e ? r10Text('선택 프로필 일치', 'matches selected profile') : r10Text('선택 프로필과 다름', 'differs from selected profile')})`);
     if (hasMetric(f2.laggingAngleDelta)) motionEvidence.push(`${r10Text('F2 래깅각 변화', 'F2 lag-angle change')}: ${f2.laggingAngleDelta.toFixed(1)}°`);
     if (hasMetric(f3.c7RisePercent)) motionEvidence.push(`${r10Text('F3 C7 상하 변위', 'F3 C7 vertical displacement')}: ${f3.c7RisePercent.toFixed(1)}%`);
@@ -15476,7 +15534,9 @@
       ? r10Text('여러 클럽이 섞여 있어 클럽별 임계 진단은 보류했습니다.', 'Mixed clubs detected; club-specific thresholds were not applied.')
       : driverSession ? '' : r10Text('드라이버 전용 비거리 임계값은 적용하지 않았습니다.', 'Driver-only distance thresholds were not applied.');
     const profileMatchText = videoProfileMatches == null
-      ? r10Text('영상 백스윙·엔진 분류가 완료되지 않았습니다. 입력 프로필 번호의 유형 정보는 자동 연결되지만, 실제 영상과의 일치 여부는 확인되지 않았습니다.', 'Video backswing/engine classification is incomplete. The profile number supplies its type codes automatically, but a match to the observed motion is unverified.')
+      ? backswingIsNearCandidate
+        ? r10Text('백스윙은 근접 후보 상태이므로 선택 프로필과의 일치 여부를 확정하지 않았습니다. 입력 프로필은 참고 기준으로 유지합니다.', 'The backswing is only a nearest candidate, so a match to the selected profile is not confirmed. The selected profile remains a reference.')
+        : r10Text('영상 백스윙·엔진 분류가 완료되지 않았습니다. 입력 프로필 번호의 유형 정보는 자동 연결되지만, 실제 영상과의 일치 여부는 확인되지 않았습니다.', 'Video backswing/engine classification is incomplete. The profile number supplies its type codes automatically, but a match to the observed motion is unverified.')
       : videoProfileMatches
         ? r10Text('완료된 영상 분류가 입력 프로필과 일치합니다.', 'Completed video classification matches the entered profile.')
         : `${r10Text('완료된 영상 분류가 입력 프로필과 다릅니다. 입력값은 확정 프로필 기준으로 유지하고, 실제 동작은 관측 분류와 R10 근거로 해석합니다.', 'Completed video classification differs from the entered profile. Keep the confirmed profile as the reference; interpret the observed swing using its classification and R10 evidence.')} (${observedBackswing || '—'}::${observedEngine || '—'})`;
@@ -15485,7 +15545,9 @@
       ? `<p><strong>${r10Text('백스윙 궤적 가설', 'Backswing-path hypothesis')}:</strong> ${escapeR10ReportText(profileMechanics.backswing)}</p>`
         + `<p><strong>${r10Text('파워 엔진 지표 가설', 'Power-engine metric hypothesis')}:</strong> ${escapeR10ReportText(profileMechanics.engine)}</p>`
         + `<p><strong>${r10Text('이번 영상과의 관계', 'Relation to this video')}: </strong>${escapeR10ReportText(videoProfileMatches == null
-          ? r10Text('영상 분류 미완료 — 프로필 설명은 가설이며 이번 동작에서 확인되지 않았습니다.', 'Video classification incomplete — this remains a profile hypothesis, not a confirmed motion in this swing.')
+          ? backswingIsNearCandidate
+            ? r10Text('백스윙 근접 후보 — 유형 조합과 선택 프로필의 일치는 미확정입니다.', 'Backswing nearest candidate — the type combination and selected-profile match are unconfirmed.')
+            : r10Text('영상 분류 미완료 — 프로필 설명은 가설이며 이번 동작에서 확인되지 않았습니다.', 'Video classification incomplete — this remains a profile hypothesis, not a confirmed motion in this swing.')
           : videoProfileMatches
             ? r10Text('분류 코드가 일치합니다. 코드 일치는 지표 기반 유형 일치이며 실제 힘·토크 또는 샷 원인을 입증하지 않습니다.', 'Classification codes match. This is a metric-based type match, not proof of forces, torque, or shot cause.')
             : r10Text('분류 코드가 일치하지 않습니다. 이번 훈련은 선택 프로필이 아닌 R10 관측 패턴과 실제 영상 지표를 우선합니다.', 'Classification codes differ. Prioritize the R10 pattern and measured video metrics over the selected profile for this practice plan.'))}</p>`
@@ -15557,7 +15619,7 @@
         <div class="r10-report-grid">
           <section class="r10-report-section"><h3>${r10Text('방향성 보완', 'Directional review')}</h3><strong>${escapeR10ReportText(directionTitle)}</strong><p>${escapeR10ReportText(directionInterpretation)}</p><ul>${metric(r10Text('Club Path 평균', 'Mean Club Path'), clubPath, '°')}${metric(r10Text('Face to Path 평균', 'Mean Face to Path'), faceToPath, '°')}${metric(r10Text('Spin Axis 원형 평균', 'Circular mean Spin Axis'), spinAxis, '°')}${metric(r10Text('클럽 페이스 평균', 'Mean Face Angle'), faceAngle, '°')}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(directionCorrection)}</p><small class="r10-report-evidence">${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(directionEvidenceCount)} (${directionEvidenceCount}/3 ${r10Text('지표,', 'metrics,')} ${shots.length} ${r10Text('샷; 인과 모션은 영상 확인 필요', 'shots; causal motion requires video verification')})</small></section>
           <section class="r10-report-section"><h3>${r10Text('비거리·에너지 전달', 'Distance and energy transfer')}</h3><strong>${escapeR10ReportText(distanceTitle)}</strong><p>${escapeR10ReportText(distanceInterpretation)}</p><ul>${metric(r10Text('Attack Angle 평균', 'Mean Attack Angle'), attackAngle, '°')}${metric(r10Text('Smash Factor 평균', 'Smash Factor'), smash, '', 3)}${metric(r10Text('Launch Angle 평균', 'Mean Launch Angle'), launchAngle, '°')}${metric(r10Text('Ball Speed 평균', 'Mean Ball Speed'), ballSpeed, getR10DisplayUnit('ballSpeed'))}</ul><p><strong>${r10Text('보완 큐', 'Correction cue')}:</strong> ${escapeR10ReportText(distanceCorrection)}</p><small class="r10-report-evidence">${escapeR10ReportText(clubGate || `${r10Text('근거 충분도', 'Evidence sufficiency')}: ${evidenceLevel(distanceEvidenceCount)} (${distanceEvidenceCount}/4 ${r10Text('지표', 'metrics')})`)}</small></section>
-          <section class="r10-report-section"><h3>${r10Text('프로필 역학 가설', 'Profile mechanics hypotheses')}</h3>${profileMechanicsHtml}<p><strong>${r10Text('참고 강점', 'Reference strength')}:</strong> ${escapeR10ReportText(getR10ProfileDescription(profile, 2))}</p><p><strong>${r10Text('참고 위험', 'Reference risk')}:</strong> ${escapeR10ReportText(getR10ProfileDescription(profile, 3))}</p><small class="r10-report-evidence">${r10Text('백스윙 코드는 화면상 위치·궤적, 엔진 코드는 2D 영상 proxy의 상대 적합도를 요약합니다. 실제 지면반력·관절 모멘트·3D 힘 벡터를 측정하지 않으며, 이 프로필만으로 교정 원인을 확정하지 않습니다.', 'Backswing codes summarize image-based positions and paths; engine codes summarize relative fit from 2D video proxies. They do not measure ground forces, joint moments, or 3D force vectors, and the profile alone does not establish a correction cause.')}</small></section>
+          <section class="r10-report-section"><h3>${r10Text('프로필 역학 가설', 'Profile mechanics hypotheses')}</h3>${profileMechanicsHtml}<p><strong>${r10Text(['OFP', 'HAP-A', 'HAP-B'].includes(profile.g) ? '성능 가설 · 미검증' : '참고 강점', ['OFP', 'HAP-A', 'HAP-B'].includes(profile.g) ? 'Potential benefit · unverified' : 'Reference strength')}:</strong> ${escapeR10ReportText(getR10ProfileDescription(profile, 2))}</p><p><strong>${r10Text(['OFP', 'HAP-A', 'HAP-B'].includes(profile.g) ? '측정 한계' : '참고 위험', ['OFP', 'HAP-A', 'HAP-B'].includes(profile.g) ? 'Measurement limits' : 'Reference risk')}:</strong> ${escapeR10ReportText(getR10ProfileDescription(profile, 3))}</p><small class="r10-report-evidence">${r10Text('백스윙 코드는 화면상 위치·궤적, 엔진 코드는 2D 영상 proxy의 상대 적합도를 요약합니다. 실제 지면반력·관절 모멘트·3D 힘 벡터를 측정하지 않으며, 이 프로필만으로 교정 원인을 확정하지 않습니다.', 'Backswing codes summarize image-based positions and paths; engine codes summarize relative fit from 2D video proxies. They do not measure ground forces, joint moments, or 3D force vectors, and the profile alone does not establish a correction cause.')}</small></section>
           <section class="r10-report-section"><h3>${r10Text('일관성·아웃라이어', 'Consistency and outliers')}</h3><div class="r10-report-score">${consistencyText}</div><p>${shots.length - r10Analysis.outlierCount}/${shots.length} ${r10Text('샷이', 'shots are')} ${r10Analysis.k}σ ${r10Text('중심 타원 안에 포함됩니다.', 'inside the center ellipse.')}</p>${outlierHtml}<small class="r10-report-evidence">${r10Text('중심 포함 비율은 세션 내 상대 분산입니다. 샷 위치만으로 타격 위치(Duff/Thin)는 판정할 수 없습니다.', 'Center inclusion is within-session dispersion. Strike location (duff/thin) cannot be determined from shot coordinates.')}</small></section>
           <section class="r10-report-section"><h3>${r10Text('영상 모션 교차 확인', 'Video motion cross-check')}</h3>${videoHtml}<small class="r10-report-evidence">${r10Text('실제 영상 입력 지표만 측정 근거로 표기합니다.', 'Only measured video-input metrics are treated as motion evidence.')}</small></section>
           <section class="r10-report-section"><h3>${r10Text('교정 드릴', 'Practice prescriptions')}</h3>${drillHtml}</section>
