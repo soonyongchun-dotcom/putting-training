@@ -16,6 +16,7 @@ function setup(id) {
     geminiReportLanguage: 'ko', geminiReportBlock: control(),
     analysisWorkflowState: { index: 0 }, ANALYSIS_WORKFLOW_STEPS: [{ id }],
     analysisGeneration: 0, distanceEstimateMuscleAnchor: { old: true },
+    cached2dCorrectionScenarioKey: 'old-key', cached2dCorrectionScenario: { old: true },
     getSwingUiText: (ko, en) => en, confirm: () => true,
     analysisKnownDistanceInput: control(), analysisBodyMassInput: control(),
     geminiAnalysisBtn: control(), languageSelect: control(),
@@ -30,6 +31,7 @@ function setup(id) {
     motionAnalysisFrame: null, frameStateHistory: { front: { old: true }, side: { old: true } },
     analysisSegmentSelect: control(), distanceReferenceBtn: control(), distanceMeasureBtn: control(),
     stanceReferenceBtn: control(), translateUiText: text => text,
+    clearFramePointUndoHistory() {},
     frontVideo: {}, sideVideo: {}, frontCanvas: {}, sideCanvas: {}, frontCtx: {}, sideCtx: {},
     frontZoom: 1, sideZoom: 1,
     clearDerivedAnalysisState: () => calls.push('derived'),
@@ -39,7 +41,7 @@ function setup(id) {
   vm.runInContext(html.slice(begin, end), c);
   return { c, calls };
 }
-for (const id of ['backswing', 'engine', 'swingtype', 'distance', 'r10']) {
+for (const id of ['backswing', 'engine', 'swingtype', 'distance', 'r10', 'correction']) {
   test(`${id} reset clears only its inputs and invalidates linked outputs`, () => {
     const { c, calls } = setup(id);
     c.resetCurrentAnalysisStage();
@@ -58,6 +60,10 @@ for (const id of ['backswing', 'engine', 'swingtype', 'distance', 'r10']) {
     }
     if (id === 'distance') assert.equal(c.analysisKnownDistanceInput.value, '');
     if (id === 'r10') assert.ok(calls.includes('clear-r10'));
+    if (id === 'correction') {
+      assert.equal(c.cached2dCorrectionScenarioKey, null);
+      assert.equal(c.cached2dCorrectionScenario, null);
+    }
   });
 }
 test('cancelled reset leaves input and report untouched', () => {
