@@ -959,15 +959,42 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen lg:h-screen w-full bg-slate-950 text-slate-100 font-sans lg:overflow-hidden">
-      <header className="shrink-0 border-b border-amber-400/30 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-4 py-3">
-        <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-lg sm:text-2xl font-black tracking-wide text-amber-300 drop-shadow-lg">
-            SY-Shot Distance Estamater
-          </span>
-          <span className="text-xs sm:text-sm font-mono font-normal italic tracking-normal text-slate-300">
-            ver26.1107-1f-ad
-          </span>
-        </h1>
+      <header className="relative z-30 shrink-0 border-b border-amber-400/30 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-lg sm:text-2xl font-black tracking-wide text-amber-300 drop-shadow-lg">
+              SY-Shot Distance Estamater
+            </span>
+            <span className="text-xs sm:text-sm font-mono font-normal italic tracking-normal text-slate-300">
+              ver26.1107-1f-ad
+            </span>
+          </h1>
+          <details className="relative shrink-0">
+            <summary
+              aria-label="샷거리 시뮬레이터 사용설명서"
+              title="샷거리 시뮬레이터 사용설명서"
+              className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-sky-400/40 bg-slate-950/70 text-sky-300 hover:bg-sky-500/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden"
+            >
+              <HelpCircleIcon size={20} />
+            </summary>
+            <section
+              role="region"
+              aria-label="샷거리 시뮬레이터 사용설명서"
+              className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-sky-400/40 bg-slate-900 p-4 text-left text-xs text-slate-200 shadow-2xl"
+            >
+              <h2 className="mb-2 text-sm font-black text-sky-300">사용 안내</h2>
+              <ol className="list-decimal space-y-2 pl-4 leading-relaxed">
+                <li><strong className="text-white">시뮬레이션 선택:</strong> 투어 기준은 투어·클럽 평균 샷을, 선수 개별 맞춤은 선택한 클럽의 기준 캐리와 볼속도·발사각·스핀 입력값을 사용합니다. 개인 입력은 이 기기에 저장됩니다.</li>
+                <li><strong className="text-white">목표 설정:</strong> 레이저 거리를 입력하고 거리 단위를 선택합니다. 투어 기준 자동 추천은 현재 환경에서 도달 가능한 클럽을 선택하며, 샷의 발사 조건이나 조준을 목표에 맞춰 바꾸지 않습니다.</li>
+                <li><strong className="text-white">환경 설정:</strong> 풍속·풍향, 기온, 그린 고도 차이, 강우, 잔디·라이를 입력합니다. 풍향계는 화살표 키로도 조정할 수 있습니다.</li>
+                <li><strong className="text-white">결과 확인:</strong> 환경 반영 예상 캐리는 런을 제외한 수평 거리입니다. 측면 보기에서 높이·비행을, 위에서 보기에서 좌우 편차를 확인하고 “샷 실행”으로 궤적을 재생합니다.</li>
+              </ol>
+              <p className="mt-3 border-t border-slate-700 pt-2 leading-relaxed text-amber-200">
+                결과는 기준 자료와 모델 가정에 따른 추정치이며 실측 보장값이 아닙니다. 상세 가정과 한계는 화면 아래 “산출 방식과 한계”에서 확인하세요.
+              </p>
+            </section>
+          </details>
+        </div>
         <div role="group" aria-label="거리 단위 선택" className="mt-2 flex items-center gap-2 text-xs">
           <span className="text-slate-300">거리 단위</span>
           {([{ id: 'm', label: '미터 (m)' }, { id: 'yd', label: '야드 (yd)' }] as const).map(({ id, label }) => (
