@@ -1325,7 +1325,13 @@ export default function App() {
             <select aria-label="클럽 선택" value={selectedClubId}
               onChange={(e) => setSelectedClubId(e.target.value)}
               className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
-              <option value="AUTO">{calcMode === 'GENERAL' ? '자동 추천 (현재 환경에서 도달 가능한 클럽)' : '7번 아이언 기준 모델'}</option>
+              <option value="AUTO">
+                {calcMode === 'GENERAL'
+                  ? recommendation.warning
+                    ? `자동 추천 (범위 초과 · 최장 클럽: ${recommendation.club.name})`
+                    : `자동 추천 (현재 환경에서 도달 가능한 클럽: ${recommendation.club.name}${recommendation.club.estimated ? ' · 추정' : ''})`
+                  : '7번 아이언 기준 모델'}
+              </option>
               {tourClubs.map((c) => <option key={c.id} value={c.id}>{c.name} · {formatDistance(c.carry, distanceUnit)}{c.estimated ? ' (추정)' : ''}</option>)}
             </select>
           </label>
