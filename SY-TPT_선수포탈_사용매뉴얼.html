@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="SY-TPT 선수 포탈의 모든 메인 화면 버튼과 훈련·시합·소통 화면을 안내하는 사용자 매뉴얼">
+<title>SY-TPT 선수 포탈 사용매뉴얼</title>
+<style>
+  :root { color-scheme:light; --ink:#1c292b; --muted:#536365; --green:#176b58; --mint:#e8f3ed; --gold:#a36e19; --line:#d6e0dc; --dark:#12352d; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; color:var(--ink); background:#edf2ef; font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif; line-height:1.8; }
+  .toolbar { position:sticky; top:0; z-index:2; display:flex; justify-content:flex-end; padding:12px max(20px,calc((100% - 900px)/2)); background:rgba(237,242,239,.94); border-bottom:1px solid var(--line); }
+  .toolbar-controls { display:flex; align-items:center; gap:10px; }
+  .toolbar label { color:var(--ink); font-size:.9rem; font-weight:700; }
+  .toolbar select { min-height:40px; padding:6px 28px 6px 10px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--ink); font:inherit; }
+  button { border:0; border-radius:5px; padding:10px 16px; background:var(--green); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+  button:focus-visible, a:focus-visible, select:focus-visible { outline:3px solid #d4b36b; outline-offset:2px; }
+  main { max-width:1000px; margin:36px auto 72px; padding:64px 72px; background:#fff; box-shadow:0 8px 28px rgba(25,52,46,.09); }
+  .eyebrow { margin:0; color:var(--green); font-size:.82rem; font-weight:800; letter-spacing:.08em; }
+  h1 { margin:5px 0 10px; font-size:2.25rem; line-height:1.3; }
+  .subtitle { margin:0 0 30px; color:var(--muted); }
+  h2 { margin:44px 0 14px; padding-bottom:10px; border-bottom:2px solid var(--green); font-size:1.38rem; line-height:1.45; }
+  h3 { margin:26px 0 9px; font-size:1.08rem; line-height:1.5; }
+  p { margin:12px 0; }
+  ul, ol { margin:12px 0; padding-left:1.45rem; }
+  li { margin:8px 0; }
+  table { width:100%; margin:18px 0; border-collapse:collapse; font-size:.96rem; line-height:1.7; }
+  th, td { padding:11px 12px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { background:#edf5f0; }
+  .callout { margin:20px 0; padding:16px 18px; border-left:4px solid var(--green); background:var(--mint); }
+  .warning { border-color:var(--gold); background:#fbf4e8; }
+  .small { color:var(--muted); font-size:.92rem; }
+  .cover { min-height:680px; display:flex; flex-direction:column; justify-content:space-between; margin:-54px -64px 36px; padding:64px; color:#f7fbf8; background:linear-gradient(145deg,#12352d 0%,#1c5143 58%,#8b6b35 150%); break-after:page; page-break-after:always; }
+  .cover .eyebrow { color:#c3d9c8; }
+  .cover-stamp { display:inline-block; margin-top:12px; padding:6px 10px; border:1px solid rgba(212,179,107,.75); color:#f2d99c; font-size:.76rem; font-weight:800; }
+  .cover h1 { max-width:650px; margin-top:90px; color:#fff; font-family:Georgia,"Batang",serif; font-size:3.2rem; line-height:1.2; }
+  .cover-revision-label { display:inline-block; margin-bottom:8px; padding:3px 8px; border:1px solid rgba(212,179,107,.65); color:#f2d99c; font-size:.7rem; font-weight:800; }
+  .cover-rights-row { display:flex; align-items:center; gap:18px; max-width:700px; margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.25); }
+  .cover-portrait { flex:0 0 auto; width:82px; height:110px; object-fit:cover; object-position:center 35%; opacity:.7; filter:saturate(.82); border-radius:2px; box-shadow:0 8px 18px rgba(0,0,0,.14); }
+  .cover .subtitle { max-width:570px; margin:18px 0 50px; color:#d8e6dc; font-size:1.1rem; }
+  .cover-mark { width:62px; height:4px; margin:24px 0; background:#d4b36b; }
+  .cover-meta { color:#d8e6dc; font-size:.88rem; line-height:1.55; }
+  .cover-copyright { min-width:0; flex:1; margin:0; color:#e7eee8; font-size:.76rem; line-height:1.55; }
+  .website-page { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:48px 24px; text-align:center; border-bottom:1px solid var(--line); break-after:page; page-break-after:always; }
+  .website-page .eyebrow { color:var(--gold); }
+  .website-page h2 { margin:0; padding:0; border:0; color:var(--dark); font-family:Georgia,"Batang",serif; font-size:2rem; }
+  .website-url { max-width:100%; color:var(--green); font-size:1.15rem; font-weight:700; overflow-wrap:anywhere; }
+  .website-caption { margin:0; color:var(--muted); }
+  .toc { min-height:80vh; display:flex; flex-direction:column; justify-content:center; margin-bottom:64px; padding:22px 26px; border:1px solid var(--line); background:#f6f8f6; break-after:page; page-break-after:always; }
+  .toc h2 { margin-top:0; }
+  .toc ol { columns:2; column-gap:40px; }
+  .toc li { break-inside:avoid; padding:2px 0; }
+  .toc a { color:var(--dark); text-decoration-color:#aabeb2; text-underline-offset:3px; }
+  .toc a:hover { color:var(--green); }
+  .chapter-page { min-height:85vh; margin-top:0; padding:44px 0 64px; border-top:1px solid var(--line); scroll-margin-top:18px; break-before:page; page-break-before:always; }
+  .chapter-page > h2 { margin-top:3px; }
+  .chapter-kicker { margin:0; color:var(--gold); font-size:.78rem; font-weight:800; }
+  .badge { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px solid #bdd1c5; color:var(--green); font-size:.78rem; font-weight:700; }
+  .screen-capture { margin:20px 0 24px; padding:12px; border:1px solid var(--line); border-radius:8px; background:#f7faf8; break-inside:avoid; page-break-inside:avoid; }
+  .screen-capture figcaption { margin-bottom:10px; color:var(--dark); font-weight:800; }
+  .portal-mock { overflow:hidden; border:1px solid #c5d0ca; border-radius:6px; background:#edf2ef; color:#24352e; font-size:.78rem; line-height:1.5; }
+  .mock-browser { padding:5px 10px; background:#e1e8e4; color:#536365; font-size:.72rem; }
+  .mock-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:#15231e; color:#f4faf6; }
+  .mock-brand { color:#83c4a1; font-weight:800; }
+  .mock-actions, .mock-menu, .mock-tools, .mock-stat-row, .mock-phase-grid, .mock-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .mock-actions { justify-content:flex-end; }
+  .mock-btn, .mock-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 8px; border:1px solid #cbd6d0; border-radius:4px; background:#fff; color:#263b34; font-size:.73rem; }
+  .mock-btn.active { border-color:#176b58; background:#176b58; color:#fff; }
+  .mock-btn.external { border-color:#a6c8b7; background:#edf7f0; }
+  .mock-body { display:grid; gap:8px; padding:10px; }
+  .mock-card { min-width:0; padding:10px; border:1px solid #d6e0dc; border-radius:5px; background:#fff; }
+  .mock-card h4 { margin:0 0 6px; color:var(--dark); font-size:.83rem; }
+  .mock-stat-row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .mock-stat { padding:7px; background:#f4f7f4; text-align:center; }
+  .mock-phase-grid { align-items:stretch; }
+  .mock-phase { flex:1 1 150px; padding:8px; border:1px solid var(--line); background:#f8faf8; }
+  .mock-phase strong { display:block; margin-bottom:5px; color:var(--green); }
+  .mock-item { padding:3px 0; }
+  .mock-notice { padding:7px 9px; border-left:3px solid var(--gold); background:#fbf4e8; }
+  .mock-message { margin:5px 0; padding:8px; border:1px solid #e1e8e4; background:#f8faf8; }
+  .mock-field { min-width:110px; flex:1; padding:7px; border:1px solid #d6e0dc; background:#fff; color:#536365; }
+  .screen-key { display:flex; flex-wrap:wrap; gap:6px 14px; padding:10px 2px 0; color:var(--muted); font-size:.82rem; }
+  .screen-key span { display:inline-flex; align-items:center; gap:5px; }
+  .marker { display:inline-grid; flex:0 0 auto; width:19px; height:19px; place-items:center; border-radius:50%; background:var(--gold); color:#fff; font-size:.68rem; font-weight:800; }
+  .button-guide td:first-child { width:28%; font-weight:700; }
+  footer { margin-top:42px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.86rem; }
+  @media (max-width:700px) {
+    main { margin:12px auto 32px; padding:38px 22px; }
+    .cover { min-height:650px; margin:-30px -14px 28px; padding:30px 22px; }
+    .cover h1 { margin-top:70px; font-size:2.6rem; }
+    .cover-rights-row { align-items:flex-start; gap:10px; }
+    .cover-portrait { width:62px; height:84px; }
+    .toc ol { columns:1; }
+    table { font-size:.88rem; }
+    th, td { padding:8px; }
+    .toolbar { padding:8px 12px; }
+    .mock-stat-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media print {
+    @page { size:A4; margin:16mm 14mm; }
+    body { background:#fff; font-size:10.5pt; line-height:1.7; }
+    .toolbar { display:none; }
+    main { max-width:none; margin:0; padding:0; box-shadow:none; }
+    .cover { min-height:255mm; margin:-16mm -14mm 0; padding:22mm 19mm; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    .cover h1 { font-size:36pt; }
+    .website-page { min-height:265mm; padding:0; border:0; break-after:page; page-break-after:always; }
+    .website-url { font-size:12pt; }
+    .toc { min-height:0; margin-bottom:0; }
+    .chapter-page { min-height:0; margin-top:0; padding:0; border:0; }
+    h2, h3 { break-after:avoid; }
+    table, .callout, .screen-capture { break-inside:avoid; }
+    .chapter-page { break-before:page; page-break-before:always; }
+    .portal-mock, .mock-header, .mock-btn.active, .mock-phase, .mock-notice { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    a { color:inherit; text-decoration:none; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <div class="toolbar-controls">
+    <label id="languageLabel" for="manualLanguage">언어</label>
+    <select id="manualLanguage" aria-label="언어">
+      <option value="ko" selected>한국어</option>
+      <option value="en">English</option>
+    </select>
+    <button type="button" id="printManualBtn" onclick="window.print()">인쇄 / PDF로 저장</button>
+  </div>
+</div>
+
+<main id="koManual" lang="ko">
+  <header class="cover">
+    <div><p class="eyebrow">SY-TPT · ELIT GOLF TRAINING PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">선수 안내 · PLAYER EDITION</span></div>
+    <div><h1>SY-TPT<br>선수 포탈 사용매뉴얼</h1><span class="cover-revision-label">초판 · 2026.11</span><p class="subtitle">로그인 후 메인 화면의 버튼과 선택 아이콘, 각 메뉴에서 열리는 화면과 실제 사용 순서를 안내하는 선수용 가이드</p></div>
+    <div class="cover-meta">제작자: S.Y. Chun<br>초판 제작일: 2026년 11월 10일<br>앱 기준 버전: 26.1107-f-ad
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y. Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. SY-TPT 및 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="매뉴얼 제작자 S.Y. Chun"></div>
+    </div>
+  </header>
+
+  <section class="website-page" aria-label="SY-TPT 선수 포탈 웹사이트">
+    <p class="eyebrow">SY-TPT · PLAYER PORTAL</p>
+    <h2>선수 포탈 웹사이트</h2>
+    <a class="website-url" href="https://soonyongchun-dotcom.github.io/putting-training/index3.html" target="_blank" rel="noopener noreferrer">https://soonyongchun-dotcom.github.io/putting-training/index3.html</a>
+    <p class="website-caption">선수 로그인 후 훈련 미션·시합 준비·자기평가·코치 소통을 이용합니다.</p>
+  </section>
+
+  <nav class="toc" aria-label="목차">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#ko-purpose">매뉴얼의 목적과 화면 구성</a></li>
+      <li><a href="#ko-access">로그인·가입과 상단 아이콘</a></li>
+      <li><a href="#ko-home">메인 화면 모든 선택 아이콘</a></li>
+      <li><a href="#ko-dashboard">Player Dashboard와 미션 화면</a></li>
+      <li><a href="#ko-selfeval">Self Evaluation 입력·저장 화면</a></li>
+      <li><a href="#ko-comm">Coach Communication 화면</a></li>
+      <li><a href="#ko-tools">연결 도구가 여는 화면과 문제 해결</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter-page" id="ko-purpose">
+    <p class="chapter-kicker">SY-TPT · PLAYER USER GUIDE</p>
+    <h2>매뉴얼의 목적과 화면 구성</h2>
+    <p><strong>SY-TPT 선수 포탈</strong>은 선수 계정으로 로그인해 코치가 배정한 미션을 확인하고, 경기 준비 체크리스트를 관리하고, 훈련 후 자기평가를 저장하고, 코치와 메시지를 주고받는 웹 앱입니다. 선수 포탈에서 연결되는 시합 기록·훈련 일정·퍼팅·리듬 훈련은 각각 별도 화면 또는 서비스로 열립니다.</p>
+    <div class="callout"><strong>이 매뉴얼의 범위:</strong> 로그인 직후 선수에게 표시되는 메인 화면과 그 안에서 선택할 수 있는 모든 탭·버튼·아이콘을 설명합니다. 코치 전용 선수 관리·미션 배정·체크리스트 편집 기능은 선수 화면에서 사용할 수 없습니다.</div>
+    <figure class="screen-capture">
+      <figcaption>그림 1. 로그인 후 Player Portal 메인 화면 구성도</figcaption>
+      <p class="small">실제 화면의 버튼 위치를 알아보기 쉽게 단순화한 구성도입니다. 로그인 역할, 화면 폭, 등록된 데이터에 따라 일부 내용은 달라질 수 있습니다.</p>
+      <div class="portal-mock">
+        <div class="mock-browser">SY-TPT · Player Portal</div>
+        <div class="mock-header"><span class="mock-brand">⛳ SY-EGTP · 선수 이름 (선수)</span><div class="mock-actions"><span class="mock-btn">뒤로가기</span><span class="mock-btn active">🏌 Player</span><span class="mock-btn">한국어⌄</span><span class="mock-btn">로그아웃</span></div></div>
+        <div class="mock-body">
+          <div class="mock-card"><h4>현재 관련 선수 현황</h4><div class="mock-stat-row"><span class="mock-stat">선수 이름</span><span class="mock-stat">미션 완료율</span><span class="mock-stat">경기력 수준</span><span class="mock-stat">상태</span></div></div>
+          <div class="mock-card"><h4>시합준비 · 경기명 · 시작일~종료일 · 📅 훈련 스케줄</h4><div class="mock-tools"><span class="mock-btn">📈 샷거리시뮬레이터</span><span class="mock-btn">오늘경기데이터 입력</span><span class="mock-btn">지난경기</span></div><div class="mock-phase-grid"><div class="mock-phase"><strong>🟡 Pre-Match</strong><div class="mock-item">□ 경기 전 항목 · ▼ 설명</div></div><div class="mock-phase"><strong>🟢 In-Match</strong><div class="mock-item">□ 경기 중 항목 · ▼ 설명</div></div><div class="mock-phase"><strong>🔵 Post-Match</strong><div class="mock-item">□ 경기 후 항목 · ▼ 설명</div></div></div></div>
+          <div class="mock-menu"><span class="mock-btn active">Player Dashboard</span><span class="mock-btn">Self Evaluation</span><span class="mock-btn">Coach Communication</span><span class="mock-btn external">Mission Dashboard ↗</span><span class="mock-btn external">Putting Training ↗</span><span class="mock-btn external">Putting Evaluation ↗</span><span class="mock-btn external">Rhythm_Tempo Training ↗</span></div>
+          <div class="mock-card"><h4>Player Dashboard · 오늘 날짜 · 오늘 미션 수 · 오늘 수행할 미션 · 코치 메시지</h4></div>
+        </div>
+      </div>
+      <div class="screen-key"><span><b class="marker">1</b>계정·역할과 공통 상단 메뉴</span><span><b class="marker">2</b>선수 현황 요약</span><span><b class="marker">3</b>시합 일정·체크리스트와 빠른 실행 버튼</span><span><b class="marker">4</b>내부 화면 탭과 외부 연결 서비스</span><span><b class="marker">5</b>선택한 탭의 상세 화면</span></div>
+    </figure>
+    <table class="button-guide">
+      <thead><tr><th>화면 영역</th><th>선택 후 표시되는 화면 / 용도</th></tr></thead>
+      <tbody>
+        <tr><td>상단 바</td><td>현재 로그인 계정·역할을 표시합니다. 뒤로가기, 포탈 선택(역할 허용 시), 언어 변경, 로그아웃을 제공합니다.</td></tr>
+        <tr><td>현재 관련 선수 현황</td><td>선수명, 미션 완료율, 경기력 수준, 계정 상태를 요약합니다. 별도의 상세 화면으로 이동하는 메뉴는 아닙니다.</td></tr>
+        <tr><td>시합준비</td><td>현재 경기명과 기간, 경기 전·중·후 체크리스트, 일정·경기 기록 도구를 한곳에서 이용합니다.</td></tr>
+        <tr><td>Player Dashboard / Self Evaluation / Coach Communication</td><td>선수 포탈 안에서 대시보드, 자기평가, 코치 메시지 화면을 전환합니다. 활성 탭을 다시 선택하면 해당 패널을 접습니다.</td></tr>
+        <tr><td>Mission Dashboard / Putting Training / Putting Evaluation / Rhythm_Tempo Training</td><td>별도 훈련 서비스 또는 웹 화면을 엽니다. 현재 포탈의 내부 탭은 유지됩니다.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-page" id="ko-access">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>로그인·가입과 상단 아이콘</h2>
+    <figure class="screen-capture">
+      <figcaption>그림 2. 로그인과 승인 대기 화면</figcaption>
+      <div class="portal-mock">
+        <div class="mock-header"><span class="mock-brand">⛳ SY-TPT 시작화면</span><span class="mock-btn">뒤로가기</span></div>
+        <div class="mock-body">
+          <div class="mock-menu"><span class="mock-btn active">로그인</span><span class="mock-btn">선수 가입</span></div>
+          <div class="mock-card"><h4>로그인 패널</h4><div class="mock-row"><span class="mock-field">아이디 (코치이름 또는 선수ID)</span><span class="mock-field">비밀번호</span></div><p><span class="mock-btn active">로그인</span></p></div>
+          <div class="mock-card"><h4>선수 가입 패널</h4><div class="mock-row"><span class="mock-field">선수 이름</span><span class="mock-field">선수 ID</span><span class="mock-field">비밀번호 (8자 이상)</span></div><p><span class="mock-btn">선수 가입 완료</span></p></div>
+          <div class="mock-notice">승인 대기 중 · 지도자 승인 후 접속 가능합니다.</div>
+        </div>
+      </div>
+      <p class="small">입력한 탭에 해당하는 패널만 사용합니다. 선수 가입 신청은 코치 승인 후 로그인할 수 있습니다.</p>
+    </figure>
+    <h3>기존 계정 로그인</h3>
+    <ol>
+      <li><strong>로그인</strong> 탭에서 코치가 발급한 선수 ID와 비밀번호를 입력합니다.</li>
+      <li><strong>로그인</strong>을 선택하고, 로그인 후 상단에 표시되는 이름과 역할이 본인 정보인지 확인합니다.</li>
+      <li>승인 대기 메시지가 표시되면 <strong>로그인 화면으로</strong> 돌아가거나 코치에게 승인 상태를 문의합니다.</li>
+    </ol>
+    <h3>선수 가입 신청</h3>
+    <ol>
+      <li><strong>선수 가입</strong> 탭을 선택합니다.</li>
+      <li>선수 이름, 사용할 선수 ID, 비밀번호(화면 안내 기준 8자 이상)를 입력합니다.</li>
+      <li><strong>선수 가입 완료</strong>를 선택하고 승인 대기 안내를 확인합니다.</li>
+    </ol>
+    <table class="button-guide">
+      <thead><tr><th>아이콘 / 선택 항목</th><th>선택하면 보이는 화면과 사용법</th></tr></thead>
+      <tbody>
+        <tr><td>뒤로가기 (시작 화면)</td><td>가입 또는 승인 대기 패널에서 로그인 패널로 돌아갑니다. 시작 화면 밖으로 임의 이동하는 대신 앱의 안내된 화면을 전환합니다.</td></tr>
+        <tr><td>뒤로가기 (로그인 후)</td><td>내부 탭이 열려 있으면 Player Dashboard로 돌아갑니다. 코치 계정은 코치 포탈에서 Player 포탈로 돌아갑니다.</td></tr>
+        <tr><td>🏌 Player</td><td>Player Portal을 표시합니다. 선수 로그인 시 기본 포탈이며, 코치 계정은 선수 화면 보기로 전환할 때 사용할 수 있습니다.</td></tr>
+        <tr><td>🎯 Coach</td><td>코치 계정에만 표시되는 포탈 선택입니다. 선수 계정에는 표시되지 않습니다.</td></tr>
+        <tr><td>언어 선택</td><td>한국어/English를 선택하면 포탈 UI 언어가 바뀝니다. 체크리스트 항목에 저장된 언어와 설명은 항목 설정에 따라 다르게 보일 수 있습니다.</td></tr>
+        <tr><td>로그아웃</td><td>현재 인증 세션을 종료하고 로그인 화면으로 돌아갑니다. 공용 기기에서는 사용 후 로그아웃하세요.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warning"><strong>계정 보호:</strong> 비밀번호를 다른 사람과 공유하지 마세요. 선수 ID·비밀번호 분실, 승인 대기 또는 계정 비활성화는 코치에게 문의합니다.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-home">
+    <p class="chapter-kicker">CHAPTER 02</p><h2>메인 화면 모든 선택 아이콘</h2>
+    <p>아래 표는 선수 로그인 후 메인 화면에서 직접 선택할 수 있는 버튼·아이콘을 모았습니다. 날짜 버튼과 경기명은 눌러 편집하고, 단계 체크박스는 수행 상태를 기록합니다.</p>
+    <table class="button-guide">
+      <thead><tr><th>아이콘 / 버튼</th><th>선택 후 표시되는 화면</th><th>사용 순서</th></tr></thead>
+      <tbody>
+        <tr><td>경기명</td><td>경기명을 편집하는 입력 UI가 열립니다.</td><td>현재 대회 이름을 확인하고 수정한 뒤 저장합니다. 새 시합 일정으로 바꾸면 이전 체크 항목은 새 일정에 맞게 초기화될 수 있습니다.</td></tr>
+        <tr><td>기간 표시 / 📅 달력 아이콘</td><td>경기 날짜 선택 창이 열리고 시작일·종료일 입력란, 취소·저장 버튼이 보입니다.</td><td>시작일과 종료일을 모두 선택하고 저장합니다. 종료일은 시작일보다 빠를 수 없습니다. 취소 또는 Esc를 누르면 저장하지 않고 닫습니다.</td></tr>
+        <tr><td>🗓 훈련 스케줄</td><td>훈련 일정 관리 화면을 새 탭으로 엽니다.</td><td>저장된 훈련 일정에서 항목을 선택해 기간, 장소, 시간대, 세부 훈련 내용을 확인합니다. 선수 화면은 조회 전용이며 파일 내보내기는 필요할 때 사용할 수 있습니다.</td></tr>
+        <tr><td>📈 샷거리시뮬레이터</td><td>샷 궤적·거리 계산 도구를 새 탭으로 엽니다.</td><td>투어 기준 또는 개인 입력을 선택하고 클럽·출발 조건·환경을 확인한 뒤 실행합니다. 바람, 라이, 시점 보기 등은 각 설정 영역에서 바꾸고 결과는 모의 추정치로 해석합니다.</td></tr>
+        <tr><td>오늘경기데이터 입력</td><td>골프 라운드 간편 기록 화면을 새 탭으로 열고 현재 세션을 전달합니다.</td><td>선수·날짜·코스 정보와 단위를 확인하고 라운드를 시작합니다. 홀마다 샷 종류를 선택해 결과를 기록·저장하고 이전/다음 홀로 이동합니다.</td></tr>
+        <tr><td>지난경기</td><td>조회할 경기 이력을 번호로 고르는 창을 표시하고, 선택한 경기의 히스토리를 Dashboard에 엽니다.</td><td>목록의 번호를 입력합니다. 기록이 없으면 안내가 표시됩니다. 히스토리 패널의 닫기를 선택하면 현재 대시보드로 돌아갑니다.</td></tr>
+        <tr><td>Pre-Match / In-Match / Post-Match 체크박스</td><td>선택한 항목의 완료 표시가 켜지거나 꺼지고, 저장 상태 문구가 보입니다.</td><td>경기 전·중·후 단계별로 실제 수행한 항목만 체크합니다. 완료한 항목은 취소선으로 표시됩니다. 항목 설명의 ▼/▲를 선택하면 설명을 펼치거나 접습니다.</td></tr>
+        <tr><td>Player Dashboard</td><td>오늘 날짜·미션 수, 수행 미션, 완료 미션, 코치 알림과 지난경기 패널을 보여줍니다.</td><td>오늘 할 미션을 확인하고 제목을 선택해 상세를 엽니다.</td></tr>
+        <tr><td>Self Evaluation</td><td>집중도·심리상태·체력상태·특이사항 입력과 최근 7일 이력이 있는 화면을 엽니다.</td><td>하루 훈련 후 값을 선택·기록하고 자기 인지 데이터를 저장합니다.</td></tr>
+        <tr><td>Coach Communication</td><td>코치 지시/대화 목록, 질문 작성·첨부, 답변 상태 화면을 엽니다.</td><td>전달사항을 읽고 필요한 질문을 작성한 뒤 첨부를 선택하고 전송합니다.</td></tr>
+        <tr><td>Mission Dashboard ↗</td><td>외부 Mission Dashboard를 새 탭으로 엽니다.</td><td>열린 미션 서비스에서 화면 안내를 따릅니다. 포탈 탭 화면 자체는 이동하지 않습니다.</td></tr>
+        <tr><td>Putting Training ↗</td><td>Putting Training 서비스를 새 탭으로 엽니다.</td><td>열린 서비스의 훈련 화면에서 안내대로 연습합니다.</td></tr>
+        <tr><td>Putting Evaluation ↗</td><td>Putting Evaluation 사이트를 새 탭으로 엽니다.</td><td>평가 사이트로 이동해 제공되는 평가 절차를 따릅니다.</td></tr>
+        <tr><td>Rhythm_Tempo Training</td><td>리듬·템포 훈련 앱을 실행합니다.</td><td>열리는 훈련 화면의 샘플·재생 컨트롤을 이용해 리듬을 연습합니다.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warning"><strong>저장 상태를 꼭 확인:</strong> 단계 항목을 체크하면 서버에 저장됩니다. “저장되었습니다.”는 서버 저장 완료, 서버 저장 실패 안내는 다른 기기에 반영되지 않을 수 있음을 뜻합니다. 실패하면 네트워크를 확인하고 다시 접속해 상태를 확인하거나 코치에게 알리세요.</div>
+    <h3>선택 후 열리는 팝업 예시: 시합 날짜</h3>
+    <figure class="screen-capture">
+      <figcaption>그림 3. 📅 경기 날짜 아이콘 선택</figcaption>
+      <div class="portal-mock"><div class="mock-body"><div class="mock-card"><h4>경기 날짜 선택</h4><div class="mock-row"><span class="mock-field">시작일 · YYYY-MM-DD</span><span class="mock-field">종료일 · YYYY-MM-DD</span></div><p><span class="mock-btn">취소</span> <span class="mock-btn active">저장</span></p></div></div></div>
+      <p class="small">저장된 경기 기간이 바뀌면 새 일정으로 처리되어 이전 경기 준비 체크가 초기화될 수 있습니다. 새 기간을 저장하기 전에 경기명과 날짜를 확인하세요.</p>
+    </figure>
+    <h3>선택 후 열리는 화면 예시: 지난 경기</h3>
+    <figure class="screen-capture">
+      <figcaption>그림 4. 지난경기 선택 후 Dashboard 히스토리</figcaption>
+      <div class="portal-mock"><div class="mock-body"><div class="mock-card"><h4>지난 경기 번호 선택</h4><div class="mock-notice">1. 경기명 (시작일~종료일) · 보관 시각</div></div><div class="mock-card"><h4>📅 경기명 · 기간 · 미션 완료 수</h4><div class="mock-phase-grid"><div class="mock-phase"><strong>Pre-Match</strong><div class="mock-item">완료 체크와 항목</div></div><div class="mock-phase"><strong>In-Match</strong><div class="mock-item">완료 체크와 항목</div></div><div class="mock-phase"><strong>Post-Match</strong><div class="mock-item">완료 체크와 항목</div></div></div><p><span class="mock-btn">닫기</span></p></div></div></div>
+    </figure>
+  </section>
+
+  <section class="chapter-page" id="ko-dashboard">
+    <p class="chapter-kicker">CHAPTER 03</p><h2>Player Dashboard와 미션 화면</h2>
+    <figure class="screen-capture">
+      <figcaption>그림 5. Player Dashboard 화면과 미션 상세</figcaption>
+      <div class="portal-mock"><div class="mock-body">
+        <div class="mock-stat-row"><span class="mock-stat">오늘 날짜</span><span class="mock-stat">오늘 미션 수</span></div>
+        <div class="mock-card"><div class="mock-row"><h4 style="flex:1">오늘 수행할 미션</h4><span class="mock-btn">완료 미션 보기</span></div><div class="mock-message"><strong>M-### · Technical</strong><br>난이도 · 예상 소요시간 · 출처<br><span class="mock-btn">▶ 제목을 누르면 상세</span></div><div class="mock-notice">미션 상세 · 코치 피드백 · 📎 첨부파일 · 수행 상태 · ✅ 미션 종료</div></div>
+        <div class="mock-card"><h4>코치 메시지</h4><div class="mock-message">새 코치 메시지 수 안내 · Coach Communication에서 확인</div></div>
+      </div></div>
+    </figure>
+    <table class="button-guide">
+      <thead><tr><th>화면 / 선택 항목</th><th>선택하면 표시되는 화면</th><th>사용 순서</th></tr></thead>
+      <tbody>
+        <tr><td>오늘 날짜 / 오늘 미션 수</td><td>현재 날짜와 오늘의 미션 수를 상단 요약 카드에 표시합니다.</td><td>정보 요약이므로 선택 입력은 없습니다. 미션 수는 오늘 수행할 항목과 오늘 새로 배정된 완료 항목을 기준으로 계산됩니다.</td></tr>
+        <tr><td>미션 제목 버튼</td><td>선택한 미션의 코치 피드백, 첨부파일, 수행 상태와 종료 버튼을 상세 영역에 펼칩니다.</td><td>미션 코드를 눌러 상세를 확인합니다. 첨부 파일 이름을 선택하면 파일을 엽니다/다운로드합니다.</td></tr>
+        <tr><td>✅ 미션 종료</td><td>미션의 수행 상태를 완료로 변경합니다.</td><td>지시된 수행을 마친 뒤 선택합니다. 실제 입력 상태가 바뀐 것을 확인하고, 잘못 완료한 경우 완료 미션 목록에서 “완료 취소 (재개)”를 사용합니다.</td></tr>
+        <tr><td>완료 미션 보기 / 접기</td><td>완료된 미션 카드와 상세 패널을 아래에 펼치거나 접습니다.</td><td>완료한 미션 제목을 눌러 피드백·결과 첨부를 확인합니다. 다시 수행해야 하면 상세의 “완료 취소 (재개)”를 선택합니다.</td></tr>
+        <tr><td>코치 메시지 알림</td><td>새 코치 지시·메시지가 있음을 알리는 요약을 표시합니다.</td><td>메시지 내용은 Coach Communication 탭을 열어 읽습니다.</td></tr>
+        <tr><td>지난경기 패널 닫기</td><td>현재 열려 있는 과거 경기 기록 패널을 닫습니다.</td><td>닫기 후 오늘 미션과 코치 메시지가 있는 기본 Dashboard로 돌아옵니다.</td></tr>
+      </tbody>
+    </table>
+    <ol>
+      <li>오늘 날짜와 상단의 선수 이름을 확인합니다.</li>
+      <li>오늘 수행할 미션에서 제목을 눌러 상세 지시와 첨부 결과 파일을 확인합니다.</li>
+      <li>미션을 수행한 뒤 <strong>미션 종료</strong>를 선택하고, 완료 상태를 확인합니다.</li>
+      <li>이전 완료 기록은 <strong>완료 미션 보기</strong>에서 확인합니다. 재수행이 필요할 때만 완료 취소를 선택합니다.</li>
+    </ol>
+    <div class="callout warning">미션 종료는 수행 상태를 변경합니다. 미션을 시작하거나 수행 내용을 제출하는 별도 양식으로 오인하지 말고, 코치가 요청한 절차를 먼저 완료한 후 사용하세요.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-selfeval">
+    <p class="chapter-kicker">CHAPTER 04</p><h2>Self Evaluation 입력·저장 화면</h2>
+    <figure class="screen-capture">
+      <figcaption>그림 6. Self Evaluation 입력과 이력</figcaption>
+      <div class="portal-mock"><div class="mock-body">
+        <div class="mock-card"><h4>Self Evaluation Panel</h4><div class="mock-row"><span class="mock-field">오늘 집중도 (1~5) ⌄</span><span class="mock-field">심리상태 · 복수 선택</span><span class="mock-field">체력상태 · 복수 선택</span></div><div class="mock-field" style="margin-top:8px">오늘훈련특이사항</div><p><span class="mock-btn active">자기 인지 데이터 저장</span></p></div>
+        <div class="mock-card"><h4>최근 7일 자기평가 저장이력</h4><div class="mock-message">일자 · 집중도 · 심리상태 · 체력상태 · 특이사항</div></div>
+      </div></div>
+    </figure>
+    <table class="button-guide">
+      <thead><tr><th>입력 항목 / 버튼</th><th>화면 동작과 사용법</th></tr></thead>
+      <tbody>
+        <tr><td>오늘 집중도</td><td>1~5 중 하나를 선택합니다. 오늘 훈련 후 본인의 실제 집중 정도를 기록합니다.</td></tr>
+        <tr><td>심리상태</td><td>복수 체크 항목에서 해당하는 감정·상태를 선택합니다. 선택한 값은 입력란 아래에 요약 표시됩니다.</td></tr>
+        <tr><td>체력상태</td><td>복수 체크 항목에서 현재 신체 컨디션을 선택합니다. 체크 결과가 입력란 아래에 표시됩니다.</td></tr>
+        <tr><td>오늘훈련특이사항</td><td>오늘 훈련에서 기억해야 할 내용을 글로 입력합니다. 필요한 범위에서 구체적으로 기록합니다.</td></tr>
+        <tr><td>자기 인지 데이터 저장</td><td>선택한 집중도, 심리·체력 상태, 메모를 오늘 날짜 기록으로 저장합니다. 완료 안내를 확인한 뒤 최근 7일 이력을 확인합니다.</td></tr>
+        <tr><td>최근 7일 저장이력</td><td>최근 날짜순으로 일자, 집중도, 심리·체력 상태와 특이사항을 보여줍니다. 이 영역은 조회용 표입니다.</td></tr>
+      </tbody>
+    </table>
+    <ol>
+      <li>훈련을 마친 뒤 Self Evaluation 탭을 선택합니다.</li>
+      <li>집중도를 선택하고 심리·체력 상태를 해당하는 만큼 체크합니다.</li>
+      <li>특이사항을 입력하고 <strong>자기 인지 데이터 저장</strong>을 누릅니다.</li>
+      <li>저장 완료 안내가 표시되면 최근 7일 이력에서 기록을 확인합니다. 같은 날짜에 다시 저장하면 해당 일자 기록이 갱신됩니다.</li>
+    </ol>
+    <div class="callout">저장된 자기평가는 이후 PDI 분석에 활용됩니다. 상태를 과장하거나 추측하기보다 실제 훈련 후 본인이 느낀 내용을 기록하세요.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-comm">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>Coach Communication 화면</h2>
+    <figure class="screen-capture">
+      <figcaption>그림 7. 코치 메시지·질문 작성 화면</figcaption>
+      <div class="portal-mock"><div class="mock-body">
+        <div class="mock-phase-grid"><div class="mock-phase"><strong>코치 지시사항 열람</strong><div class="mock-message">코치 전달 내용 · 첨부파일 다운로드</div><div class="mock-field">질문 / 답변 요청 입력</div><div class="mock-field">첨부: PDF / Word / Excel / PNG</div><p><span class="mock-btn active">전송</span></p></div><div class="mock-phase"><strong>답변 상태</strong><div class="mock-item">코치 메시지 수</div><div class="mock-item">내 질문 수</div><div class="mock-item">답변 대기중</div></div></div>
+      </div></div>
+    </figure>
+    <table class="button-guide">
+      <thead><tr><th>화면 / 선택 항목</th><th>선택하면 표시되는 내용</th><th>사용 순서</th></tr></thead>
+      <tbody>
+        <tr><td>코치 지시사항 열람</td><td>코치가 보낸 지시와 대화 메시지를 시간순으로 표시합니다. 메시지 첨부파일은 다운로드 링크로 보입니다.</td><td>먼저 코치의 요청을 읽고 필요한 파일 링크를 선택해 확인합니다.</td></tr>
+        <tr><td>코치에게 질문 / 답변 요청</td><td>질문을 작성하는 텍스트 입력란을 제공합니다.</td><td>질문 또는 수행 관련 문의를 입력합니다. 빈 메시지는 전송되지 않습니다.</td></tr>
+        <tr><td>첨부 파일 선택</td><td>기기 파일 선택기가 열립니다.</td><td>PDF, Word, Excel, PNG 파일을 선택합니다. 각 파일은 5MB 이하로 첨부합니다.</td></tr>
+        <tr><td>전송</td><td>질문과 선택한 첨부파일을 코치에게 보냅니다. 대화와 답변 상태가 갱신됩니다.</td><td>수신인에게 전달할 내용을 확인한 뒤 한 번 선택합니다. 전송 오류 안내가 나오면 네트워크와 파일 형식·크기를 확인하고 다시 시도합니다.</td></tr>
+        <tr><td>답변 상태</td><td>코치 메시지 수, 선수 질문 수, 답변 대기 수를 요약합니다.</td><td>답변 대기 숫자가 남아 있으면 대화 목록을 확인하고, 새 답변이 보이지 않으면 화면을 다시 열거나 새로고침합니다.</td></tr>
+        <tr><td>미확인 메시지 배지</td><td>Coach Communication 탭에 읽지 않은 메시지 수가 표시될 수 있습니다.</td><td>탭을 열어 코치 지시와 답변을 확인합니다.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warning">파일 업로드 중 오류가 표시되면 지원 형식과 파일당 5MB 제한을 확인하세요. 오류가 계속되면 첨부 없이 메시지를 보내고 코치에게 파일을 전달할 다른 방법을 문의합니다.</div>
+  </section>
+
+  <section class="chapter-page" id="ko-tools">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>연결 도구가 여는 화면과 문제 해결</h2>
+    <h3>훈련 스케줄 · 일정 조회 화면</h3>
+    <p>시합준비 제목 옆의 <strong>훈련 스케줄</strong> 달력 아이콘을 선택하면 별도 탭에 저장된 훈련 일정 목록이 열립니다. 일정을 선택해 메인 훈련 제목, 기간, 장소, 날짜별 시간대와 세부 훈련 내용을 확인합니다. 선수에게는 조회 권한만 표시되며, 엑셀 업로드·일정 추가·편집·저장·초기화는 코치 전용입니다. <strong>CSV/엑셀 내보내기</strong>는 현재 표시된 일정 데이터를 파일로 저장합니다.</p>
+    <figure class="screen-capture">
+      <figcaption>그림 8. 훈련 스케줄 화면 구성</figcaption>
+      <div class="portal-mock"><div class="mock-header"><span class="mock-brand">2026 시드전 대비 훈련 스케줄</span><span class="mock-btn">CSV/엑셀 내보내기</span></div><div class="mock-body"><div class="mock-card"><h4>저장된 훈련 일정 · 선택 가능한 일정 목록</h4><div class="mock-menu"><span class="mock-btn active">훈련 일정</span><span class="mock-btn">다른 훈련 일정</span></div></div><div class="mock-card"><h4>메인 훈련 제목 · 훈련 기간 · 주요 훈련 장소</h4><div class="mock-message">날짜 | 요일 | 시간대 | 소제목/구분 | 세부 훈련 내용 및 평가 미션 | 장소 | 비고</div></div><div class="mock-notice">선수 화면은 일정 조회 중심입니다. 편집 컨트롤은 코치 권한에서만 표시됩니다.</div></div></div>
+    </figure>
+    <h3>샷거리시뮬레이터 화면</h3>
+    <p><strong>샷거리시뮬레이터</strong>는 선수 포탈에서 새 탭으로 여는 별도 도구입니다. 투어 기준 또는 개인 입력을 선택하고, 클럽과 볼 출발 조건을 확인한 뒤 환경 설정을 조절해 샷을 실행합니다. 측면/위에서 보기, 실행·리셋을 이용해 궤적을 살펴봅니다. 개인 기준 샷과 바람·라이 보정 등은 모델 기반 추정이므로 실제 샷의 보장값으로 사용하지 마세요. 개인 입력은 현재 브라우저 도메인에 저장되며 다른 기기·도메인 또는 선수 계정으로 자동 동기화되지 않습니다.</p>
+    <figure class="screen-capture">
+      <figcaption>그림 9. 샷거리시뮬레이터 결과 화면 구성</figcaption>
+      <div class="portal-mock"><div class="mock-body">
+        <div class="mock-card"><h4>데이터 기준</h4><div class="mock-menu"><span class="mock-btn active">투어 기준</span><span class="mock-btn">개인 입력</span></div></div>
+        <div class="mock-phase-grid"><div class="mock-phase"><strong>샷 출발 조건</strong><div class="mock-item">클럽 · 볼 속도 · 발사각 · 스핀</div></div><div class="mock-phase"><strong>환경 설정</strong><div class="mock-item">바람 · 라이 · 강우 등</div></div></div>
+        <div class="mock-card"><h4>샷 결과 보기</h4><div class="mock-menu"><span class="mock-btn active">측면</span><span class="mock-btn">위에서 보기</span><span class="mock-btn">샷 실행</span><span class="mock-btn">리셋</span></div><div class="mock-notice">궤적 · 캐리/거리 추정 · 설정된 환경 조건</div></div>
+      </div></div>
+      <p class="small">개인 입력과 환경 설명은 각 설정 영역에서 바꿉니다. 결과는 입력한 가정에 따른 시뮬레이션입니다.</p>
+    </figure>
+    <h3>오늘경기데이터 입력 화면</h3>
+    <figure class="screen-capture">
+      <figcaption>그림 10. 골프 라운드 간편 기록 화면</figcaption>
+      <div class="portal-mock"><div class="mock-body">
+        <div class="mock-card"><h4>라운드 정보</h4><div class="mock-row"><span class="mock-field">선수 이름</span><span class="mock-field">날짜</span><span class="mock-field">코스 이름</span><span class="mock-field">코스 전장 · 파 · 거리 단위</span></div><p><span class="mock-btn active">라운드 시작</span></p></div>
+        <div class="mock-stat-row"><span class="mock-stat">현재 홀</span><span class="mock-stat">총 샷</span><span class="mock-stat">완료 홀</span><span class="mock-stat">Par · 홀 거리</span></div>
+        <div class="mock-menu"><span class="mock-btn active">🏌️ 티샷</span><span class="mock-btn">🎯 세컨/서드</span><span class="mock-btn">🌿 어프로치</span><span class="mock-btn">⛳ 퍼팅</span><span class="mock-btn">↩️ 레이업</span></div>
+        <div class="mock-card"><h4>선택한 샷 입력</h4><div class="mock-row"><span class="mock-field">클럽 · 결과 · 거리</span><span class="mock-field">페널티 · 메모</span></div><p><span class="mock-btn active">저장/수정</span> <span class="mock-btn">◀ 이전</span> <span class="mock-btn">다음 ▶</span></p></div>
+      </div></div>
+    </figure>
+    <ol>
+      <li>선수 이름, 라운드 날짜, 코스명, 코스 전장, 코스 파와 거리 단위를 확인합니다.</li>
+      <li><strong>라운드 시작</strong>을 눌러 홀 기록 화면으로 이동합니다. 현재 홀, 총 샷 수와 완료 홀 수가 표시됩니다.</li>
+      <li>홀의 Par·거리를 확인하고 필요하면 거리 단위 변환 버튼(⇄)을 사용합니다.</li>
+      <li>샷 종류 탭에서 티샷, 세컨/서드, 어프로치, 퍼팅 또는 레이업을 선택해 해당 입력 양식을 작성한 뒤 저장/수정을 누릅니다.</li>
+      <li>이전/다음으로 홀을 이동해 기록을 이어갑니다. 잘못된 샷은 해당 기록을 수정하고, 진행 중에는 메인으로 돌아가기 전에 저장 상태를 확인합니다.</li>
+    </ol>
+    <h3>외부 훈련 서비스</h3>
+    <table class="button-guide">
+      <thead><tr><th>메인 화면 선택</th><th>열리는 화면 / 사용 방법</th></tr></thead>
+      <tbody>
+        <tr><td>Mission Dashboard</td><td>미션 대시보드를 새 탭으로 엽니다. 미션 선택 후 그 서비스의 수행·제출 화면 안내를 따릅니다.</td></tr>
+        <tr><td>Putting Training</td><td>퍼팅 연습 서비스를 새 탭으로 엽니다. 해당 서비스의 훈련 세션을 선택해 사용합니다.</td></tr>
+        <tr><td>Putting Evaluation</td><td>퍼팅 평가 사이트를 새 탭으로 엽니다. 평가 화면의 입력을 완료한 뒤 결과 안내를 확인합니다.</td></tr>
+        <tr><td>Rhythm_Tempo Training</td><td>리듬·템포 훈련 도구를 실행합니다. 샘플을 선택해 듣거나 재생하고, 화면에 제공되는 리듬 연습 컨트롤을 사용합니다.</td></tr>
+      </tbody>
+    </table>
+    <h3>문제 해결</h3>
+    <table class="button-guide">
+      <thead><tr><th>증상</th><th>확인 방법</th></tr></thead>
+      <tbody>
+        <tr><td>로그인할 수 없거나 승인 대기 표시</td><td>선수 ID를 확인하고 승인 여부를 코치에게 문의합니다. 승인 전에는 로그인할 수 없습니다.</td></tr>
+        <tr><td>체크리스트가 다른 기기에 반영되지 않음</td><td>체크 직후 저장 상태 메시지를 확인합니다. 서버 저장 실패 안내가 있으면 네트워크 연결을 확인하고 재시도합니다.</td></tr>
+        <tr><td>지난경기 목록이 비어 있음</td><td>등록·보관된 경기 기록이 없을 수 있습니다. 현재 시합 기간을 확인하고 코치에게 확인합니다.</td></tr>
+        <tr><td>코치 메시지나 첨부가 보이지 않음</td><td>Coach Communication 화면을 다시 열고 연결 상태를 확인합니다. 파일당 5MB 및 지원 형식을 확인합니다.</td></tr>
+        <tr><td>외부 도구가 열리지 않음</td><td>새 탭이 차단되지 않았는지 브라우저 설정을 확인합니다. 도구의 입력 데이터는 서비스별로 저장되며 포탈에 자동 전송된다고 가정하지 마세요.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warning"><strong>개인정보·기록 보호:</strong> 공용 기기에서 로그아웃하고, 경기나 자기평가 입력 후 저장 완료 여부를 확인하세요. 시합 날짜를 새 일정으로 바꾸기 전에 체크리스트 초기화 안내를 주의 깊게 읽으세요.</div>
+    <footer>© 2026 S.Y. Chun. All rights reserved. · SY-TPT ver 26.1107-f-ad 기준 · 매뉴얼 초판: 2026년 11월 10일</footer>
+  </section>
+</main>
+
+<main id="enManual" lang="en" hidden>
+  <header class="cover">
+    <div><p class="eyebrow">SY-TPT · ELIT GOLF TRAINING PLATFORM</p><div class="cover-mark"></div><span class="cover-stamp">PLAYER GUIDE · USER EDITION</span></div>
+    <div><h1>SY-TPT<br>Player Portal User Manual</h1><span class="cover-revision-label">FIRST EDITION · NOV 2026</span><p class="subtitle">A player guide to every selectable control on the signed-in home screen, the screens each control opens, and the steps for using them.</p></div>
+    <div class="cover-meta">Created by: S.Y. Chun<br>First edition: November 10, 2026<br>App version: 26.1107-f-ad
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>Intellectual Property Notice</strong><br>© 2026 S.Y. Chun. All rights reserved. The text, structure, and editorial design of this manual are protected works. Reproduction, modification, distribution, publication, or commercial use, in whole or in part, requires prior written permission from the rights holder. SY-TPT and third-party marks and data remain the property of their respective owners.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="S.Y. Chun, manual author"></div>
+    </div>
+  </header>
+  <section class="website-page" aria-label="SY-TPT Player Portal website">
+    <p class="eyebrow">SY-TPT · PLAYER PORTAL</p><h2>Player Portal Website</h2>
+    <a class="website-url" href="https://soonyongchun-dotcom.github.io/putting-training/index3.html" target="_blank" rel="noopener noreferrer">https://soonyongchun-dotcom.github.io/putting-training/index3.html</a>
+    <p class="website-caption">Sign in to access practice missions, match preparation, self-evaluation, and coach communication.</p>
+  </section>
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#en-purpose">About this manual and the screen</a></li>
+      <li><a href="#en-access">Sign-in, registration, and header controls</a></li>
+      <li><a href="#en-home">Every selectable home-screen control</a></li>
+      <li><a href="#en-dashboard">Player Dashboard and mission details</a></li>
+      <li><a href="#en-selfeval">Self Evaluation</a></li>
+      <li><a href="#en-comm">Coach Communication</a></li>
+      <li><a href="#en-tools">Linked tools and troubleshooting</a></li>
+    </ol>
+  </nav>
+  <section class="chapter-page" id="en-purpose">
+    <p class="chapter-kicker">SY-TPT · PLAYER USER GUIDE</p><h2>About This Manual and the Screen</h2>
+    <p><strong>SY-TPT Player Portal</strong> lets players sign in to review coach-assigned missions, manage match-preparation checklists, save post-practice self-evaluations, and exchange messages with a coach. Round entry, training schedules, putting, and rhythm practice open as separate pages or services.</p>
+    <div class="callout"><strong>Scope:</strong> This manual covers every selectable player-facing tab, button, and icon on the home screen and explains the screen shown after selection. Coach-only athlete management, mission assignment, and checklist editing are not available in a player account.</div>
+    <figure class="screen-capture">
+      <figcaption>Figure 1. Player Portal Home Screen Overview</figcaption>
+      <p class="small">A simplified layout guide; some details vary with the role, viewport, and available data.</p>
+      <div class="portal-mock">
+        <div class="mock-browser">SY-TPT · Player Portal</div>
+        <div class="mock-header"><span class="mock-brand">⛳ SY-EGTP · Player name (Player)</span><div class="mock-actions"><span class="mock-btn">Back</span><span class="mock-btn active">🏌 Player</span><span class="mock-btn">English⌄</span><span class="mock-btn">Log out</span></div></div>
+        <div class="mock-body">
+          <div class="mock-card"><h4>Current Player Summary</h4><div class="mock-stat-row"><span class="mock-stat">Player</span><span class="mock-stat">Mission completion</span><span class="mock-stat">Performance level</span><span class="mock-stat">Status</span></div></div>
+          <div class="mock-card"><h4>Match Preparation · Match · Dates · 📅 Training Schedule</h4><div class="mock-tools"><span class="mock-btn">📈 Shot Distance Simulator</span><span class="mock-btn">Enter Today’s Round Data</span><span class="mock-btn">Past Rounds</span></div><div class="mock-phase-grid"><div class="mock-phase"><strong>🟡 Pre-Match</strong><div class="mock-item">□ Checklist item · ▼ details</div></div><div class="mock-phase"><strong>🟢 In-Match</strong><div class="mock-item">□ Checklist item · ▼ details</div></div><div class="mock-phase"><strong>🔵 Post-Match</strong><div class="mock-item">□ Checklist item · ▼ details</div></div></div></div>
+          <div class="mock-menu"><span class="mock-btn active">Player Dashboard</span><span class="mock-btn">Self Evaluation</span><span class="mock-btn">Coach Communication</span><span class="mock-btn external">Mission Dashboard ↗</span><span class="mock-btn external">Putting Training ↗</span><span class="mock-btn external">Putting Evaluation ↗</span><span class="mock-btn external">Rhythm_Tempo Training ↗</span></div>
+          <div class="mock-card"><h4>Player Dashboard · Today · Mission count · Missions · Coach messages</h4></div>
+        </div>
+      </div>
+      <div class="screen-key"><span><b class="marker">1</b>Account, role, and shared header controls</span><span><b class="marker">2</b>Player summary</span><span><b class="marker">3</b>Match checklist and quick actions</span><span><b class="marker">4</b>In-portal tabs and linked services</span><span><b class="marker">5</b>Selected tab content</span></div>
+    </figure>
+    <table class="button-guide"><thead><tr><th>Area</th><th>Screen shown / purpose</th></tr></thead><tbody>
+      <tr><td>Header</td><td>Shows the signed-in account and role. Provides Back, role-permitted portal selection, language, and Log out.</td></tr>
+      <tr><td>Current Player Summary</td><td>Summarizes player name, mission completion, performance level, and account status. It is not a separate navigation menu.</td></tr>
+      <tr><td>Match Preparation</td><td>Groups the current match name/dates, Pre/In/Post-Match checklists, schedule, and round tools.</td></tr>
+      <tr><td>Player Dashboard / Self Evaluation / Coach Communication</td><td>Switches between the dashboard, self-evaluation, and coach-message panels within the portal. Selecting the active tab again collapses its panel.</td></tr>
+      <tr><td>Mission Dashboard / Putting Training / Putting Evaluation / Rhythm_Tempo Training</td><td>Opens a separate training service or page; the portal tab itself remains in place.</td></tr>
+    </tbody></table>
+  </section>
+  <section class="chapter-page" id="en-access">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>Sign-in, Registration, and Header Controls</h2>
+    <figure class="screen-capture"><figcaption>Figure 2. Sign-in, registration, and pending approval</figcaption>
+      <div class="portal-mock"><div class="mock-header"><span class="mock-brand">⛳ SY-TPT Start</span><span class="mock-btn">Back</span></div><div class="mock-body">
+        <div class="mock-menu"><span class="mock-btn active">Log in</span><span class="mock-btn">Player signup</span></div>
+        <div class="mock-card"><h4>Login panel</h4><div class="mock-row"><span class="mock-field">ID (coach name or player ID)</span><span class="mock-field">Password</span></div><p><span class="mock-btn active">Log in</span></p></div>
+        <div class="mock-card"><h4>Player signup panel</h4><div class="mock-row"><span class="mock-field">Player name</span><span class="mock-field">Player ID</span><span class="mock-field">Password (8+ characters)</span></div><p><span class="mock-btn">Complete signup</span></p></div>
+        <div class="mock-notice">Pending approval · Sign in after coach approval.</div>
+      </div></div>
+      <p class="small">Only the selected tab’s panel is used. A player signup request requires coach approval before sign-in.</p>
+    </figure>
+    <h3>Existing account</h3><ol><li>Select <strong>Log in</strong>, enter the player ID and password issued by the coach, and select <strong>Log in</strong>.</li><li>Confirm that the signed-in name and role in the header are yours.</li><li>If approval is pending, return to the login panel or ask the coach about the approval status.</li></ol>
+    <h3>Player signup</h3><ol><li>Select <strong>Player signup</strong>.</li><li>Enter the player name, a player ID, and a password of at least eight characters as requested on screen.</li><li>Select <strong>Complete signup</strong> and wait for coach approval.</li></ol>
+    <table class="button-guide"><thead><tr><th>Icon / control</th><th>Screen shown and how to use it</th></tr></thead><tbody>
+      <tr><td>Back (start screen)</td><td>Returns from signup or pending approval to the login panel.</td></tr>
+      <tr><td>Back (after sign-in)</td><td>Returns an open in-portal panel to Player Dashboard. A coach can return from Coach Portal to Player Portal.</td></tr>
+      <tr><td>🏌 Player</td><td>Shows Player Portal. It is the default for player accounts; coaches can switch to the player view.</td></tr>
+      <tr><td>🎯 Coach</td><td>Portal selector shown only to coach accounts; it is not shown to players.</td></tr>
+      <tr><td>Language</td><td>Switches the portal interface between Korean and English. Saved checklist text may depend on the language entered for that item.</td></tr>
+      <tr><td>Log out</td><td>Ends the current authentication session and returns to the login screen. Always log out on a shared device.</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>Account help:</strong> Contact the coach about a forgotten ID/password, pending approval, or a deactivated account. Do not share passwords.</div>
+  </section>
+  <section class="chapter-page" id="en-home">
+    <p class="chapter-kicker">CHAPTER 02</p><h2>Every Selectable Home-Screen Control</h2>
+    <p>This table inventories the buttons and icons available to a signed-in player. The match name and date controls open editors; checklist boxes record completion.</p>
+    <table class="button-guide"><thead><tr><th>Icon / control</th><th>Screen shown after selection</th><th>How to use it</th></tr></thead><tbody>
+      <tr><td>Match name</td><td>Opens the match-name editor.</td><td>Review the event name, make a change, and save. Changing to a new match schedule may reset the previous checklist.</td></tr>
+      <tr><td>Date range / 📅 calendar</td><td>Opens a date dialog with start/end dates, Cancel, and Save.</td><td>Select both dates and save. The end date cannot be earlier than the start date. Cancel or Esc closes without saving.</td></tr>
+      <tr><td>🗓 Training Schedule</td><td>Opens the schedule page in a new tab.</td><td>Select a saved schedule to review its period, location, time slots, and training details. Player view is read-only; export is available if needed.</td></tr>
+      <tr><td>📈 Shot Distance Simulator</td><td>Opens the shot-flight and distance simulator in a new tab.</td><td>Choose tour baseline or personal data, review the club and launch conditions, adjust environment settings, and run a shot. Use side/top views and reset as needed. Treat model results as estimates, not guaranteed distances.</td></tr>
+      <tr><td>Enter Today’s Round Data</td><td>Opens the round-record page in a new tab with the current session passed along.</td><td>Confirm player/date/course/units, start the round, select a shot type on each hole, enter and save the result, and move between holes.</td></tr>
+      <tr><td>Past Rounds</td><td>Prompts for a round-history number, then displays the selected history in Dashboard.</td><td>Enter a listed number. If none exist, the app displays a notice. Select Close in the history panel to return to the dashboard.</td></tr>
+      <tr><td>Pre-/In-/Post-Match checkboxes</td><td>Checks or unchecks the item and displays a save-status message.</td><td>Check items only after completing them. Completed items are struck through. Select ▼/▲ to expand or collapse an item description.</td></tr>
+      <tr><td>Player Dashboard</td><td>Shows the date, mission count, assigned missions, completed missions, coach notice, and past-round panel.</td><td>Review today’s missions and select a title to expand its details.</td></tr>
+      <tr><td>Self Evaluation</td><td>Shows focus, mindset, stamina, notes, save control, and the last seven days of entries.</td><td>Record how you felt after practice and save the entry.</td></tr>
+      <tr><td>Coach Communication</td><td>Shows coach instructions and messages, question/attachment entry, and reply status.</td><td>Read instructions, compose a question, attach a file if needed, and send.</td></tr>
+      <tr><td>Mission Dashboard ↗</td><td>Opens the external Mission Dashboard in a new tab.</td><td>Follow the mission service’s own steps; the portal tab does not navigate away.</td></tr>
+      <tr><td>Putting Training ↗</td><td>Opens the Putting Training service in a new tab.</td><td>Use the practice flow provided by that service.</td></tr>
+      <tr><td>Putting Evaluation ↗</td><td>Opens the Putting Evaluation website in a new tab.</td><td>Complete the evaluation steps shown on that website.</td></tr>
+      <tr><td>Rhythm_Tempo Training</td><td>Launches the rhythm/tempo practice tool.</td><td>Select or play a sample and use the practice controls on the training screen.</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>Confirm save status:</strong> “Saved” means the checklist update reached the server. A server-save failure notice means another device may not receive the change. Check the connection, retry, and tell the coach if it continues.</div>
+    <h3>Screen opened by the calendar control</h3>
+    <figure class="screen-capture"><figcaption>Figure 3. Match date dialog</figcaption><div class="portal-mock"><div class="mock-body"><div class="mock-card"><h4>Select Match Dates</h4><div class="mock-row"><span class="mock-field">Start date · YYYY-MM-DD</span><span class="mock-field">End date · YYYY-MM-DD</span></div><p><span class="mock-btn">Cancel</span> <span class="mock-btn active">Save</span></p></div></div></div><p class="small">Saving a new match period may reset previous preparation items. Confirm the event and dates before saving.</p></figure>
+    <h3>Screen opened by Past Rounds</h3>
+    <figure class="screen-capture"><figcaption>Figure 4. Past-round picker and selected history</figcaption><div class="portal-mock"><div class="mock-body"><div class="mock-card"><h4>Choose a past round number</h4><div class="mock-notice">1. Event name (start–end date) · archived time</div></div><div class="mock-card"><h4>📅 Event · dates · mission summary</h4><div class="mock-phase-grid"><div class="mock-phase"><strong>Pre-Match</strong>Completed items</div><div class="mock-phase"><strong>In-Match</strong>Completed items</div><div class="mock-phase"><strong>Post-Match</strong>Completed items</div></div><p><span class="mock-btn">Close</span></p></div></div></div></figure>
+  </section>
+  <section class="chapter-page" id="en-dashboard">
+    <p class="chapter-kicker">CHAPTER 03</p><h2>Player Dashboard and Mission Details</h2>
+    <figure class="screen-capture"><figcaption>Figure 5. Dashboard and expanded mission</figcaption><div class="portal-mock"><div class="mock-body">
+      <div class="mock-stat-row"><span class="mock-stat">Today</span><span class="mock-stat">Today’s missions</span></div>
+      <div class="mock-card"><div class="mock-row"><h4 style="flex:1">Today’s missions</h4><span class="mock-btn">View completed missions</span></div><div class="mock-message"><strong>M-### · Technical</strong><br>Difficulty · Estimated duration · Source<br><span class="mock-btn">Select title for details</span></div><div class="mock-notice">Mission details · Coach feedback · 📎 Attachments · Status · ✅ Complete Mission</div></div>
+      <div class="mock-card"><h4>Coach messages</h4><div class="mock-message">New coach-message notice · review in Coach Communication</div></div>
+    </div></div></figure>
+    <table class="button-guide"><thead><tr><th>Screen / control</th><th>Screen shown</th><th>How to use it</th></tr></thead><tbody>
+      <tr><td>Today / Today’s missions</td><td>Summary cards show the current date and the mission count for today.</td><td>These are informational. The count includes pending missions and completed missions assigned today.</td></tr>
+      <tr><td>Mission title</td><td>Expands coach feedback, attachments, completion status, and the completion control.</td><td>Select the mission code to read details. Select an attachment link to open/download its file.</td></tr>
+      <tr><td>✅ Complete Mission</td><td>Changes the mission status to complete.</td><td>Select after completing the coach’s requested activity. If marked by mistake, open completed missions and select “Cancel Completion (Resume).”</td></tr>
+      <tr><td>View / Hide completed missions</td><td>Expands or collapses the completed-mission list.</td><td>Select a completed mission title to review feedback and files. Resume it only when you need to continue the activity.</td></tr>
+      <tr><td>Coach message notice</td><td>Summarizes that new coach instructions or messages are available.</td><td>Open Coach Communication to read the actual messages.</td></tr>
+      <tr><td>Close past-round panel</td><td>Closes the currently displayed archived match history.</td><td>Returns to the standard dashboard.</td></tr>
+    </tbody></table>
+    <ol><li>Confirm the player name and today’s date.</li><li>Select a mission title and read the instruction and attachments.</li><li>After completing the requested activity, select <strong>Complete Mission</strong> and verify the status.</li><li>Use <strong>View completed missions</strong> to review prior entries; resume only when needed.</li></ol>
+    <div class="callout warning">“Complete Mission” changes status; it is not a separate activity form or a submission of results. Follow the coach’s requested procedure before marking it complete.</div>
+  </section>
+  <section class="chapter-page" id="en-selfeval">
+    <p class="chapter-kicker">CHAPTER 04</p><h2>Self Evaluation Entry and Save Screen</h2>
+    <figure class="screen-capture"><figcaption>Figure 6. Self-evaluation form and history</figcaption><div class="portal-mock"><div class="mock-body">
+      <div class="mock-card"><h4>Self Evaluation Panel</h4><div class="mock-row"><span class="mock-field">Focus (1–5) ⌄</span><span class="mock-field">Mindset · multiple choice</span><span class="mock-field">Stamina · multiple choice</span></div><div class="mock-field" style="margin-top:8px">Notes about today’s practice</div><p><span class="mock-btn active">Save Self-awareness Data</span></p></div>
+      <div class="mock-card"><h4>Last 7 days of saved self-evaluations</h4><div class="mock-message">Date · focus · mindset · stamina · notes</div></div>
+    </div></div></figure>
+    <table class="button-guide"><thead><tr><th>Field / control</th><th>Screen behavior and use</th></tr></thead><tbody>
+      <tr><td>Today’s Focus</td><td>Select one value from 1–5 that reflects your focus after practice.</td></tr>
+      <tr><td>Mindset</td><td>Select all applicable checkboxes. A summary of selected items appears below.</td></tr>
+      <tr><td>Stamina</td><td>Select all applicable physical-condition checkboxes. The selected items are summarized below.</td></tr>
+      <tr><td>Today’s practice notes</td><td>Enter useful notes about the session.</td></tr>
+      <tr><td>Save Self-awareness Data</td><td>Saves focus, mindset, stamina, and notes for today. Confirm the success notice and review the recent-history table.</td></tr>
+      <tr><td>Last 7 days history</td><td>Displays recent dates, focus, mindset, stamina, and notes. This table is for review.</td></tr>
+    </tbody></table>
+    <ol><li>Open Self Evaluation after practice.</li><li>Choose focus and check the applicable mindset and stamina options.</li><li>Enter notes and select <strong>Save Self-awareness Data</strong>.</li><li>Confirm the save notice and verify the entry in the history. Saving again on the same date updates that date’s record.</li></ol>
+    <div class="callout">Saved self-evaluations may be used in later PDI analysis. Record what you actually experienced rather than guessing.</div>
+  </section>
+  <section class="chapter-page" id="en-comm">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>Coach Communication Screen</h2>
+    <figure class="screen-capture"><figcaption>Figure 7. Coach messages and question form</figcaption><div class="portal-mock"><div class="mock-body">
+      <div class="mock-phase-grid"><div class="mock-phase"><strong>Read Coach Instructions</strong><div class="mock-message">Coach message · attachment download</div><div class="mock-field">Question / request for a reply</div><div class="mock-field">Attach: PDF / Word / Excel / PNG</div><p><span class="mock-btn active">Send</span></p></div><div class="mock-phase"><strong>Reply Status</strong><div class="mock-item">Coach messages</div><div class="mock-item">My questions</div><div class="mock-item">Awaiting reply</div></div></div>
+    </div></div></figure>
+    <table class="button-guide"><thead><tr><th>Screen / control</th><th>Screen content</th><th>How to use it</th></tr></thead><tbody>
+      <tr><td>Read Coach Instructions</td><td>Shows coach directions and conversation messages in time order; attachments appear as download links.</td><td>Read the instruction first and select any required attachment.</td></tr>
+      <tr><td>Question / request a reply</td><td>Provides a text field for your question.</td><td>Enter a question or activity-related request. Empty messages are not sent.</td></tr>
+      <tr><td>Choose attachment</td><td>Opens the device file picker.</td><td>Select PDF, Word, Excel, or PNG files up to 5 MB each.</td></tr>
+      <tr><td>Send</td><td>Sends the question and selected attachments to the coach; the thread and reply counters refresh.</td><td>Review the message and select Send once. If an error appears, check the connection, file type, and size before retrying.</td></tr>
+      <tr><td>Reply Status</td><td>Summarizes coach-message count, player-question count, and questions awaiting a reply.</td><td>If a reply is pending, revisit the thread. Reopen or refresh if a new reply does not appear.</td></tr>
+      <tr><td>Unread-message badge</td><td>May show a count on the Coach Communication tab.</td><td>Open the tab to read new coach instructions and replies.</td></tr>
+    </tbody></table>
+    <div class="callout warning">If an upload fails, confirm the supported type and 5 MB per-file limit. If it continues to fail, send the message without the attachment and ask the coach how to share the file.</div>
+  </section>
+  <section class="chapter-page" id="en-tools">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>Linked Tools and Troubleshooting</h2>
+    <h3>Training Schedule · read-only schedule view</h3>
+    <p>Select the <strong>Training Schedule</strong> calendar icon beside Match Preparation to open saved training schedules in a separate tab. Select a schedule to review its title, date range, location, time slots, and daily training details. Player access is read-only; Excel upload, adding/editing schedules, saving, and reset controls are coach-only. <strong>CSV/Excel Export</strong> downloads the currently displayed schedule data.</p>
+    <figure class="screen-capture"><figcaption>Figure 8. Training Schedule page</figcaption><div class="portal-mock"><div class="mock-header"><span class="mock-brand">2026 Qualifying Training Schedule</span><span class="mock-btn">CSV/Excel Export</span></div><div class="mock-body"><div class="mock-card"><h4>Saved Training Schedules · select a schedule</h4><div class="mock-menu"><span class="mock-btn active">Training schedule</span><span class="mock-btn">Another schedule</span></div></div><div class="mock-card"><h4>Main title · dates · primary location</h4><div class="mock-message">Date | Day | Time | Topic | Training and evaluation details | Location | Notes</div></div><div class="mock-notice">Player view is for reviewing schedules. Editing controls require coach access.</div></div></div></figure>
+    <h3>Shot Distance Simulator</h3>
+    <p>The <strong>Shot Distance Simulator</strong> opens in a new tab from the player portal. Select tour baseline or personal data, confirm the club and launch conditions, adjust environmental settings, and run the shot. Use side/top views and reset to inspect the trajectory. The model provides estimates, not guaranteed real-shot results. Personal inputs are stored for the current browser origin and are not automatically synchronized across devices, domains, or player accounts.</p>
+    <figure class="screen-capture"><figcaption>Figure 9. Shot Distance Simulator result screen</figcaption><div class="portal-mock"><div class="mock-body">
+      <div class="mock-card"><h4>Data source</h4><div class="mock-menu"><span class="mock-btn active">Tour baseline</span><span class="mock-btn">Personal data</span></div></div>
+      <div class="mock-phase-grid"><div class="mock-phase"><strong>Launch conditions</strong><div class="mock-item">Club · ball speed · launch angle · spin</div></div><div class="mock-phase"><strong>Environment</strong><div class="mock-item">Wind · lie · rain and other settings</div></div></div>
+      <div class="mock-card"><h4>Shot result</h4><div class="mock-menu"><span class="mock-btn active">Side view</span><span class="mock-btn">Top view</span><span class="mock-btn">Run shot</span><span class="mock-btn">Reset</span></div><div class="mock-notice">Trajectory · carry/distance estimates · selected conditions</div></div>
+    </div></div><p class="small">Change personal data and environmental assumptions in their settings. Results are simulations based on entered assumptions.</p></figure>
+    <h3>Enter Today’s Round Data</h3>
+    <figure class="screen-capture"><figcaption>Figure 10. Quick Golf Round Record screen</figcaption><div class="portal-mock"><div class="mock-body">
+      <div class="mock-card"><h4>Round information</h4><div class="mock-row"><span class="mock-field">Player</span><span class="mock-field">Date</span><span class="mock-field">Course</span><span class="mock-field">Length · par · unit</span></div><p><span class="mock-btn active">Start Round</span></p></div>
+      <div class="mock-stat-row"><span class="mock-stat">Current hole</span><span class="mock-stat">Total shots</span><span class="mock-stat">Holes complete</span><span class="mock-stat">Par · hole distance</span></div>
+      <div class="mock-menu"><span class="mock-btn active">🏌️ Tee Shot</span><span class="mock-btn">🎯 Second/Third</span><span class="mock-btn">🌿 Approach</span><span class="mock-btn">⛳ Putt</span><span class="mock-btn">↩️ Layup</span></div>
+      <div class="mock-card"><h4>Selected shot entry</h4><div class="mock-row"><span class="mock-field">Club · result · distance</span><span class="mock-field">Penalty · notes</span></div><p><span class="mock-btn active">Save/Update</span> <span class="mock-btn">◀ Previous</span> <span class="mock-btn">Next ▶</span></p></div>
+    </div></div></figure>
+    <ol><li>Confirm player, round date, course, course length, par, and distance unit.</li><li>Select <strong>Start Round</strong> to open the hole-record screen, which shows the current hole, total shots, and completed holes.</li><li>Confirm each hole’s par and distance; use the unit-conversion (⇄) control if needed.</li><li>Select Tee Shot, Second/Third, Approach, Putt, or Layup, complete the corresponding fields, and save/update the shot.</li><li>Move between holes with Previous/Next and verify records before returning to the portal.</li></ol>
+    <h3>Other linked training services</h3>
+    <table class="button-guide"><thead><tr><th>Home-screen control</th><th>Screen opened / how to use it</th></tr></thead><tbody>
+      <tr><td>Mission Dashboard</td><td>Opens a separate mission dashboard. Select a mission and follow its activity/submission instructions.</td></tr>
+      <tr><td>Putting Training</td><td>Opens the putting practice service in a new tab; use its session workflow.</td></tr>
+      <tr><td>Putting Evaluation</td><td>Opens the putting evaluation site; complete the inputs shown there and review its result.</td></tr>
+      <tr><td>Rhythm_Tempo Training</td><td>Launches the rhythm/tempo practice tool. Select or play a sample and use its practice controls.</td></tr>
+    </tbody></table>
+    <h3>Troubleshooting</h3>
+    <table class="button-guide"><thead><tr><th>Issue</th><th>What to check</th></tr></thead><tbody>
+      <tr><td>Cannot sign in / pending approval</td><td>Check the player ID and ask the coach whether the account is approved. Players cannot sign in before approval.</td></tr>
+      <tr><td>Checklist differs across devices</td><td>Check the save-status notice after changing an item. On server-save failure, reconnect and retry.</td></tr>
+      <tr><td>No past-round history</td><td>There may be no archived match record yet. Confirm the current match dates and ask the coach.</td></tr>
+      <tr><td>Coach message or attachment missing</td><td>Reopen Coach Communication and check the connection, supported file type, and 5 MB limit.</td></tr>
+      <tr><td>A linked tool does not open</td><td>Check whether the browser blocked a new tab. Do not assume a tool’s personal inputs automatically transfer to the portal.</td></tr>
+    </tbody></table>
+    <div class="callout warning"><strong>Protect your data:</strong> Log out on shared devices and verify that round and self-evaluation entries are saved. Read reset notices carefully before saving a new match period.</div>
+    <footer>© 2026 S.Y. Chun. All rights reserved. · Based on SY-TPT ver 26.1107-f-ad · First edition: November 10, 2026</footer>
+  </section>
+</main>
+<script>
+  const manualLanguage = document.getElementById('manualLanguage');
+  const languageLabel = document.getElementById('languageLabel');
+  const printManualBtn = document.getElementById('printManualBtn');
+  const koreanManual = document.getElementById('koManual');
+  const englishManual = document.getElementById('enManual');
+
+  manualLanguage.addEventListener('change', () => {
+    const isEnglish = manualLanguage.value === 'en';
+    koreanManual.hidden = isEnglish;
+    englishManual.hidden = !isEnglish;
+    document.documentElement.lang = isEnglish ? 'en' : 'ko';
+    document.title = isEnglish ? 'SY-TPT Player Portal User Manual' : 'SY-TPT 선수 포탈 사용매뉴얼';
+    languageLabel.textContent = isEnglish ? 'Language' : '언어';
+    manualLanguage.setAttribute('aria-label', languageLabel.textContent);
+    printManualBtn.textContent = isEnglish ? 'Print / Save as PDF' : '인쇄 / PDF로 저장';
+    document.body.dataset.language = isEnglish ? 'en' : 'ko';
+  });
+</script>
+</body>
+</html>

@@ -79,10 +79,19 @@
       justify-content:flex-end;
       grid-column:3;
     }
+    .topbar-actions>button,.topbar-actions>a,.topbar-actions>select{
+      box-sizing:border-box;height:42px;min-height:42px;
+      font:600 13px Arial,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+      line-height:1.2;
+    }
+    .topbar-actions>a{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:8px 14px;text-decoration:none;white-space:nowrap;
+    }
     .language-select{
-      min-height:40px;padding:8px 10px;border:1px solid rgba(255,255,255,.4);
+      padding:8px 10px;border:1px solid rgba(255,255,255,.4);
       border-radius:8px;background:rgba(255,255,255,.12);color:#fff;
-      font:600 13px Arial,"Malgun Gothic",sans-serif;cursor:pointer;
+      cursor:pointer;
     }
     .language-select option{background:#fff;color:#17212b}
     .visually-hidden{
@@ -388,6 +397,7 @@
       .topbar{gap:12px;padding:16px}
       .topbar-actions{width:100%;gap:7px}
       .topbar .portal-tabs button{flex:1 0 auto}
+      .topbar-actions>button,.topbar-actions>a,.topbar-actions>select{height:44px;min-height:44px}
       #coachPortal .coach-kpi-row{flex-wrap:wrap}
       #coachPortal .coach-kpi-row .kpi{flex:1 1 calc(50% - 8px);min-width:140px}
       #coachPortal .coach-kpi-row .kpi .label{white-space:normal}
@@ -499,6 +509,7 @@
         <button id="globalBackBtn" class="ghost-btn">뒤로가기</button>
         <button class="active" data-portal="player" aria-pressed="true">🏌 Player</button>
         <button data-portal="coach" aria-pressed="false">🎯 Coach</button>
+        <a id="playerManualBtn" class="ghost-btn" href="./SY-TPT_선수포탈_사용매뉴얼.html" target="_blank" rel="noopener noreferrer" style="display:none">사용자 매뉴얼</a>
         <label for="languageSelect" class="visually-hidden">Language</label>
         <select id="languageSelect" class="language-select" aria-label="언어 선택">
           <option value="ko">한국어</option>
@@ -3200,6 +3211,9 @@
         b.classList.toggle('active',selected);
         b.setAttribute('aria-pressed',String(selected));
       });
+      var manualBtn=document.getElementById('playerManualBtn');
+      var signedIn=document.getElementById('authScreen').style.display==='none';
+      if(manualBtn) manualBtn.style.display=signedIn&&portal==='player'?'inline-flex':'none';
       document.getElementById('playerPortal').style.display=portal==='player'?'block':'none';
       document.getElementById('coachPortal').style.display=portal==='coach'?'block':'none';
       if(portal==='player') renderPlayerViewContext();
@@ -4438,6 +4452,7 @@
       '승인 대기 중':'Awaiting Approval','지도자 승인 후 접속 가능합니다.':'You can sign in after your coach approves your account.',
       '로그인 화면으로':'Back to Sign-in','로그인 전':'Signed out','포탈 선택':'Select Portal','선수 포탈':'Player Portal',
       '코치 포탈':'Coach Portal','선수 메뉴':'Player Menu','코치 관리 메뉴':'Coach Menu','언어 선택':'Language',
+      '사용자 매뉴얼':'User Manual',
       '현재 관련 선수 현황':'Player Overview','선수 선택:':'Select Player:','선수 선택':'Select Player',
       '선수':'Player','코치':'Coach','미션 완료율':'Mission Completion','경기력 수준':'Performance Level',
       '(오늘 운동을 마친후 집중도,심리상태,체력상태를 기록)':'(Record your focus, mood, and energy after today’s training)',
