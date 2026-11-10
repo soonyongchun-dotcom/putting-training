@@ -4448,6 +4448,17 @@
         format(hasMetric(segmentScoreHistory[frameId]) ? segmentScoreHistory[frameId] * scale : null),
         format(available && hasMetric(correctionScenario.scores?.[frameId]) ? correctionScenario.scores[frameId] * scale : null)];
     });
+    const appendAverageRow = (label, frames, scale) => {
+      const average = scores => {
+        const values = frames.map(frame => scores?.[frame]).filter(hasMetric);
+        return values.length
+          ? `${format(values.reduce((sum, score) => sum + score * scale, 0) / values.length)} /${scale === 10 ? 100 : 10} (${values.length}/${frames.length})`
+          : '—';
+      };
+      rows.push([label, average(segmentScoreHistory), average(available ? correctionScenario.scores : null)]);
+    };
+    appendAverageRow(text('F1–F4 비거리 평균', 'F1–F4 distance average'), frameIds.slice(0, 4), 1);
+    appendAverageRow(text('F5–F6 일관성 평균', 'F5–F6 consistency average'), frameIds.slice(4), 10);
     const engineShareLabels = uiLanguage === 'en'
       ? { type1: 'ATE fit share', type2: 'LSE fit share', type3: 'VEE fit share' }
       : { type1: 'ATE 적합도 비중', type2: 'LSE 적합도 비중', type3: 'VEE 적합도 비중' };

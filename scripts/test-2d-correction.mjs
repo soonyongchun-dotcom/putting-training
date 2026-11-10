@@ -357,14 +357,25 @@ test('compact comparison includes F1-F6, three shares, engine and profile number
   assert.deepEqual(values().slice(0, 2), [['F1 /10', '5.0', '7.0'], ['F2 /10', '5.5', '7.0']]);
   assert.deepEqual(values()[4], ['F5 /100', '70.0', '70.0']);
   assert.deepEqual(values()[5], ['F6 /100', '75.0', '70.0']);
-  assert.deepEqual(values()[6], ['ATE fit share', '33.0%', '50.0%']);
-  assert.deepEqual(values()[9], ['Engine type', 'TKE', 'ATE']);
-  assert.deepEqual(values()[10], ['Backswing type', 'Undetermined', 'Undetermined']);
-  assert.deepEqual(values()[11], ['Swing profile number', '07', '08']);
-  assert.equal(values().length, 12);
+  assert.deepEqual(values()[6], ['F1–F4 distance average', '5.8 /10 (4/4)', '7.0 /10 (4/4)']);
+  assert.deepEqual(values()[7], ['F5–F6 consistency average', '72.5 /100 (2/2)', '70.0 /100 (2/2)']);
+  assert.deepEqual(values()[8], ['ATE fit share', '33.0%', '50.0%']);
+  assert.deepEqual(values()[11], ['Engine type', 'TKE', 'ATE']);
+  assert.deepEqual(values()[12], ['Backswing type', 'Undetermined', 'Undetermined']);
+  assert.deepEqual(values()[13], ['Swing profile number', '07', '08']);
+  assert.equal(values().length, 14);
   assert.match(result.children[0].textContent, /-1.6°/);
   assert.equal(result.children[1].children[1].children[0].children[2].className, 'analysis-2d-changed');
   assert.equal(result.children[1].children[1].children[4].children[2].className, undefined);
+});
+
+test('2D correction averages use available frames and expose coverage', () => {
+  const scenario = { scores: { frame1: 8, frame5: 6 } };
+  const { c, values } = comparisonSetup(scenario);
+  c.segmentScoreHistory = { frame1: 6, frame4: 10, frame5: 8 };
+  c.render2dCorrectionDiagnostics();
+  assert.deepEqual(values()[6], ['F1–F4 distance average', '8.0 /10 (2/4)', '8.0 /10 (1/4)']);
+  assert.deepEqual(values()[7], ['F5–F6 consistency average', '80.0 /100 (1/2)', '60.0 /100 (1/2)']);
 });
 
 test('missing or failed correction does not leave stale corrected values in the comparison', () => {
