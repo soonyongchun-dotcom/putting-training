@@ -87,9 +87,11 @@ const TRACKMAN_SOURCE = 'https://www.trackman.media/tour-averages';
 const GREEN_STIMP_M = 3;
 const GREEN_STIMP_OPTIONS = [2, 2.5, 3, 3.5, 4] as const;
 const STIMP_TEST_SPEED_MS = 1.83;
-const LANDING_SPEED_TRANSFER = 0.10;
+const LANDING_SPEED_TRANSFER = 0.23;
+const LANDING_ANGLE_EXPONENT = 1.5;
 const SPIN_ROLLOUT_REFERENCE_RPM = 6000;
-const SPIN_ROLLOUT_SENSITIVITY = 0.35;
+const SPIN_ROLLOUT_SENSITIVITY = 0.5;
+const SPIN_ROLLOUT_EXPONENT = 3;
 const DEFAULT_GREEN_DIMENSIONS = { widthYds: 40, lengthYds: 24 };
 const GREEN_MAP_SIZE = { width: 440, height: 360, centerX: 220, centerY: 180, padding: 20, labelSpace: 20 };
 
@@ -117,23 +119,29 @@ function DistanceInput({ value, unit, min, max, reference, label, onChange, clas
   value: string; unit: DistanceUnit; min: number; max: number; reference?: number;
   label: string; onChange: (yards: string) => void; className: string;
 }) {
-  const [draft, setDraft] = useState<{ source: string; unit: DistanceUnit; text: string } | null>(null);
+  const [draft, setDraft] = useState<{ unit: DistanceUnit; text: string } | null>(null);
   const convertedValue = distanceFromYards(Number(value), unit);
   const roundedValue = Number(convertedValue.toFixed(1));
   const displayValue = roundedValue < distanceFromYards(min, unit) || roundedValue > distanceFromYards(max, unit)
     ? convertedValue : roundedValue;
   const converted = value.trim() && Number.isFinite(Number(value))
     ? String(displayValue) : value;
-  const shown = draft?.source === value && draft.unit === unit ? draft.text : converted;
+  const shown = draft?.unit === unit ? draft.text : converted;
   return (
-    <input type="number" aria-label={label} min={distanceFromYards(min, unit)} max={distanceFromYards(max, unit)} step="any"
+    <input type="text" inputMode="decimal" aria-label={label}
+      data-min={distanceFromYards(min, unit)} data-max={distanceFromYards(max, unit)}
       value={shown} placeholder={reference === undefined ? undefined : String(Number(distanceFromYards(reference, unit).toFixed(1)))}
+      onFocus={() => setDraft({ unit, text: converted })}
       onChange={(event) => {
         const text = event.target.value;
-        const yards = text.trim() ? String(distanceToYards(Number(text), unit)) : '';
-        setDraft({ source: yards, unit, text });
-        onChange(yards);
-      }} className={className} />
+        setDraft({ unit, text });
+        if (!text.trim()) onChange('');
+        else {
+          const parsed = Number(text.trim().replace(',', '.'));
+          if (Number.isFinite(parsed)) onChange(String(distanceToYards(parsed, unit)));
+        }
+      }}
+      onBlur={() => setDraft(null)} className={className} />
   );
 }
 
@@ -780,8 +788,9 @@ function simulateGreenRoll(
   let x = start.lateralYds * YDS_TO_M, z = start.forwardYds * YDS_TO_M;
   const landingAngle = Number.isFinite(trajectory.landingAngleDeg) ? trajectory.landingAngleDeg : 45;
   const appliedSpin = trajectory.appliedLaunch?.spinRateRpm ?? 0;
-  const angleTransfer = Math.max(0.35, Math.cos(landingAngle * Math.PI / 180));
-  const spinTransfer = 1 / (1 + Math.max(0, appliedSpin) / SPIN_ROLLOUT_REFERENCE_RPM * SPIN_ROLLOUT_SENSITIVITY);
+  const angleTransfer = Math.max(0.15, Math.max(0, Math.cos(landingAngle * Math.PI / 180)) ** LANDING_ANGLE_EXPONENT);
+  const spinRatio = Math.max(0, appliedSpin) / SPIN_ROLLOUT_REFERENCE_RPM;
+  const spinTransfer = 1 / (1 + SPIN_ROLLOUT_SENSITIVITY * spinRatio ** SPIN_ROLLOUT_EXPONENT);
   const landingSpeedTransfer = LANDING_SPEED_TRANSFER * angleTransfer * spinTransfer;
   let vx = trajectory.landingVxMs * landingSpeedTransfer;
   let vz = trajectory.landingVzMs * landingSpeedTransfer;
@@ -934,6 +943,11 @@ function projectTopView(
 
 function aimAngleForOffset(aimOffsetYds: number, targetYds: number) {
   return Math.atan2(aimOffsetYds, targetYds) * 180 / Math.PI;
+}
+
+function stepAimOffset(currentYds: number, direction: -1 | 1, unit: DistanceUnit) {
+  const current = Number.isFinite(currentYds) ? currentYds : 0;
+  return Math.max(-50, Math.min(50, current + direction * distanceToYards(1, unit)));
 }
 
 type Recommendation = {
@@ -1110,6 +1124,10 @@ export default function App() {
   const activeClub = isCustom ? personal.club : recommendation.club;
   const aimOffsetYds = Number(aimOffsetInput);
   const safeAimOffsetYds = Number.isFinite(aimOffsetYds) ? aimOffsetYds : 0;
+  const aimOffsetStepLabel = formatDistance(distanceToYards(1, distanceUnit), distanceUnit);
+  const updateAimOffsetByStep = (direction: -1 | 1) => {
+    setAimOffsetInput((current) => String(stepAimOffset(Number(current), direction, distanceUnit)));
+  };
   const aimAngleDeg = aimAngleForOffset(
     greenTarget.targetLateralYds + safeAimOffsetYds, greenTarget.targetForwardYds,
   );
@@ -1323,7 +1341,7 @@ export default function App() {
               SY-Shot Distance Estamater
             </span>
             <span className="text-xs sm:text-sm font-mono font-normal italic tracking-normal text-slate-300">
-              ver26.1107-1f-ad
+              ver26.1112-1f-ad
             </span>
           </h1>
           <details className="relative shrink-0">
@@ -1342,7 +1360,7 @@ export default function App() {
               <h2 className="mb-2 text-sm font-black text-sky-300">사용 안내</h2>
               <ol className="list-decimal space-y-2 pl-4 leading-relaxed">
                 <li><strong className="text-white">시뮬레이션 선택:</strong> 투어 기준은 투어·클럽 평균 샷을, 선수 개별 맞춤은 선택한 클럽의 기준 캐리와 볼속도·발사각·스핀 입력값을 사용합니다. 개인 입력은 이 기기에 저장됩니다.</li>
-                <li><strong className="text-white">목표·조준 설정:</strong> 레이저 거리와 좌우 조준점 이동을 입력합니다. 좌측은 음수, 우측은 양수이며 조준점 이동은 핀 기준 좌우 거리입니다. 핀 위치·높낮이와 선택한 조준점이 실제 궤적에 반영됩니다.</li>
+                <li><strong className="text-white">목표·조준 설정:</strong> 레이저 거리와 좌우 조준점 이동을 입력합니다. 좌측은 음수, 우측은 양수이며 조준점 이동은 핀 기준 좌우 거리입니다. 키보드에 음수 기호가 없으면 − 좌측 / + 우측 버튼으로 1단위 조절할 수 있습니다. 핀 위치·높낮이와 선택한 조준점이 실제 궤적에 반영됩니다.</li>
                 <li><strong className="text-white">환경 설정:</strong> 풍속·풍향, 기온, 그린 고도 차이, 강우, 잔디·라이를 입력합니다. 풍향계는 화살표 키로도 조정할 수 있습니다.</li>
                 <li><strong className="text-white">결과 확인:</strong> 상단 환경반영 권장거리는 목표를 맞추기 위한 평지 기준 캐리(맞바람이면 증가, 뒷바람이면 감소)입니다. 아래 상세 결과의 예상 캐리는 선택 클럽 풀샷 궤적의 수평 거리입니다. 측면 보기에서 높이·비행을, 위에서 보기에서 좌우 편차를 확인하고 “샷 실행”으로 궤적을 재생합니다.</li>
               </ol>
@@ -1406,6 +1424,20 @@ export default function App() {
                 <button type="button" onClick={() => setAimOffsetInput('0')}
                   className="rounded border border-slate-700 px-1.5 py-1 text-[9px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
                   중앙
+                </button>
+              </div>
+              <div className="mt-1 flex justify-end gap-1">
+                <button type="button" data-testid="aim-step-left"
+                  aria-label={`조준점을 좌측으로 ${aimOffsetStepLabel} 이동`}
+                  onClick={() => updateAimOffsetByStep(-1)}
+                  className="rounded border border-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
+                  − 좌측
+                </button>
+                <button type="button" data-testid="aim-step-right"
+                  aria-label={`조준점을 우측으로 ${aimOffsetStepLabel} 이동`}
+                  onClick={() => updateAimOffsetByStep(1)}
+                  className="rounded border border-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
+                  + 우측
                 </button>
               </div>
             </div>
@@ -1696,7 +1728,7 @@ export default function App() {
               <details className="mt-1 text-[10px] text-slate-500">
                 <summary className="cursor-pointer">굴림 모델 안내</summary>
                 <p className="mt-1" data-testid="green-model-note">
-                  등고선 간격은 4cm(선 사이 높이 차)입니다. 클럽별 착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영합니다. 충돌·스핀 감쇠는 실측 보정 전 추정값이며 바운스·잔디결은 생략합니다. 모식 지형은 실측 그린이 아닙니다.
+                  등고선 간격은 4cm(선 사이 높이 차)입니다. 클럽별 착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영합니다. 스핀 제동은 비선형 보정이며, 발사각·최고 높이는 비행 계산으로 구한 착지 상태에 간접 반영합니다. 실제 바운스 실험에서도 착지 후 미끄럼과 스핀 변화가 관찰되어, 충돌·스핀 감쇠는 실측 그린 보정 전 추정값이고 바운스·잔디결은 생략합니다. 모식 지형은 실측 그린이 아닙니다.
                 </p>
                 <p className="mt-1">핀 위치와 높낮이가 샷의 조준 목표와 착지 조건에 반영됩니다. 위치를 옮기면 지형에 따라 굴림 거리도 달라질 수 있습니다.</p>
               </details>

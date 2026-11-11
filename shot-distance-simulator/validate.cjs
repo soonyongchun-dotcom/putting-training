@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const filename = path.join(__dirname, 'App.tsx');
 const source = fs.readFileSync(filename, 'utf8');
+const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const options = {
   strict: true, noEmit: true, noUnusedLocals: true, noUnusedParameters: true,
   jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2020,
@@ -21,7 +22,7 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, aimAngleForOffset, clampPinPosition, greenMapPoint, greenMapGeometry, greenMapCoordinates, greenPinTarget, greenCenterLaserFromPinDistance, greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity, GREEN_STIMP_OPTIONS };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, aimAngleForOffset, stepAimOffset, clampPinPosition, greenMapPoint, greenMapGeometry, greenMapCoordinates, greenPinTarget, greenCenterLaserFromPinDistance, greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity, GREEN_STIMP_OPTIONS };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
@@ -29,6 +30,7 @@ const { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTraj
 const { resolvePersonalClub, readPersonalProfiles } = result.exports.engine;
 const { projectTopView } = result.exports.engine;
 const { aimAngleForOffset } = result.exports.engine;
+const { stepAimOffset } = result.exports.engine;
 const { clampPinPosition, greenMapPoint } = result.exports.engine;
 const { greenMapGeometry, greenMapCoordinates, greenPinTarget, greenCenterLaserFromPinDistance } = result.exports.engine;
 const { greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath } = result.exports.engine;
@@ -73,8 +75,9 @@ for (const unit of ['yd', 'm']) {
   const input = renderToStaticMarkup(React.createElement(DistanceInput, {
     value: '100', unit, min: 20, max: 400, label: 'distance', onChange: () => {}, className: '',
   }));
-  check(input.includes(`min="${distanceFromYards(20, unit)}"`) && input.includes(`max="${distanceFromYards(400, unit)}"`),
-    'distance input physical bounds are converted');
+  check(input.includes(`data-min="${distanceFromYards(20, unit)}"`) && input.includes(`data-max="${distanceFromYards(400, unit)}"`)
+    && input.includes('type="text"') && input.includes('inputMode="decimal"'),
+    'distance input uses a stable editable text field with unit-aware bounds');
   const invalidDistance = resolvePersonalClub(editorBase, { carry: '401', apex: '81' }, unit);
   check(invalidDistance.errors.some(error => error.includes(`${formatDistance(20, unit, 4)}–${formatDistance(400, unit, 4)}`)),
     'carry validation range uses selected unit');
@@ -97,7 +100,9 @@ for (const unit of ['yd', 'm']) {
   }
 }
 const appMarkup = renderToStaticMarkup(React.createElement(result.exports.default));
-check(appMarkup.includes('ver26.1107-1f-ad'), 'app version is displayed');
+check(appMarkup.includes('ver26.1112-1f-ad'), 'app version is displayed');
+check(html.includes('<title>SY-Shot Distance Estamater ver26.1112-1f-ad</title>'),
+  'browser tab title matches app version');
 const windGuideTitle = appMarkup.indexOf('실전 바람 판단 가이드');
 const windGuideDetails = appMarkup.slice(appMarkup.lastIndexOf('<details', windGuideTitle), windGuideTitle);
 check(windGuideTitle !== -1 && !/\sopen(?:=""|(?=[\s>]))/.test(windGuideDetails),
@@ -120,6 +125,11 @@ check(defaultPlayAsMatch !== null && Number(defaultPlayAsMatch[1]) > 150
   'main recommendation shows the wind-adjusted play-as distance instead of full-club carry');
 check(appMarkup.includes('조준점 좌우 이동') && appMarkup.includes('좌측은 음수, 우측은 양수'),
   'aim-point control explains signed lateral offsets');
+check(appMarkup.includes('data-testid="aim-step-left"') && appMarkup.includes('조준점을 좌측으로 1yd 이동')
+  && appMarkup.includes('data-testid="aim-step-right"') && appMarkup.includes('조준점을 우측으로 1yd 이동'),
+  'aim-point direction buttons provide left and right input without relying on a minus key');
+check(appMarkup.includes('− 좌측') && appMarkup.includes('+ 우측') && appMarkup.includes('키보드에 음수 기호가 없으면'),
+  'aim-point direction is visible and explained on mobile');
 check(!source.includes('그린 확대 · 핀 위치 설정')
   && source.includes('data-testid="green-map"')
   && source.includes('data-testid="green-pin"')
@@ -368,6 +378,8 @@ const highSpinRoll = simulateGreenRoll({ ...rollFixture, appliedLaunch: { spinRa
   { lateralYds: 0, forwardYds: 0 }, 3);
 check(lowSpinRoll.rollDistanceYds > highSpinRoll.rollDistanceYds,
   'higher club backspin checks more rollout at the same landing speed');
+check(lowSpinRoll.rollDistanceYds > highSpinRoll.rollDistanceYds * 2.5,
+  'backspin materially changes rollout at the same landing speed and angle');
 const shallowLandingRoll = simulateGreenRoll({ ...rollFixture, landingAngleDeg: 25 }, 100,
   { lateralYds: 0, forwardYds: 0 }, 3);
 const steepLandingRoll = simulateGreenRoll({ ...rollFixture, landingAngleDeg: 65 }, 100,
@@ -390,8 +402,10 @@ check(wedgeUphillRoll.rollDistanceYds <= 1,
   'high-spin wedge landing uphill rolls no more than one yard at Stimp 3');
 check(wedgeDownhillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds,
   'the same wedge rolls farther when landing downhill');
-check(sevenIronUphillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds,
-  'a lower-spin seven iron can roll farther than the uphill wedge');
+check(wedgeDownhillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds * 1.3,
+  'downhill slope materially extends the high-spin wedge rollout');
+check(sevenIronUphillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds * 2,
+  'a lower-spin seven iron rolls substantially farther than the uphill wedge');
 const wetRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3,
   undefined, { ...REFERENCE_ENV, rainLevel: 'HEAVY' });
 check(wetRoll.rollDistanceYds < baselineRoll.rollDistanceYds,
@@ -456,13 +470,15 @@ close(smallGreenRoll.path.at(-1).lateralYds, smallGreenRoll.finalPoint.lateralYd
 close(smallGreenRoll.path.reduce((sum, point, index, path) => index === 0 ? sum
   : sum + Math.hypot(point.lateralYds - path[index - 1].lateralYds, point.forwardYds - path[index - 1].forwardYds), 0),
 smallGreenRoll.rollDistanceYds, 1e-8, 'reported edge-out distance matches displayed roll path');
-const clubRollDistances = ['D', '7I', 'PW'].map(id => {
+const clubRollDistances = ['D', '7I', '5I', 'PW'].map(id => {
   const club = bags.LPGA.find(value => value.id === id);
   const flight = calculateTrajectory(clubLaunch(club));
   return simulateGreenRoll(flight, club.carry, { lateralYds: 0, forwardYds: 0 }).rollDistanceYds;
 });
 check(new Set(clubRollDistances.map(value => value.toFixed(2))).size > 1,
   'different club launch and backspin inputs produce different landing roll estimates');
+check(clubRollDistances[2] > clubRollDistances[1] * 2,
+  'a representative long iron rolls materially farther than a mid iron');
 const clampedPin = clampPinPosition(24, 11);
 close(Math.hypot(clampedPin.lateralYds / 20, clampedPin.forwardYds / 12), 1, 1e-10,
   'pin remains inside the playable green boundary');
@@ -643,8 +659,14 @@ close(leftAimView.aimTarget.x, 400 - 11 * 0.9144 * leftAimView.scale, 1e-8,
 const negativeAimInput = renderToStaticMarkup(React.createElement(DistanceInput, {
   value: '-11', unit: 'yd', min: -50, max: 50, label: 'aim', onChange: () => {}, className: '',
 }));
-check(negativeAimInput.includes('min="-50"') && negativeAimInput.includes('max="50"') && negativeAimInput.includes('value="-11"'),
-  'aim input accepts a signed lateral distance');
+check(negativeAimInput.includes('type="text"') && negativeAimInput.includes('inputMode="decimal"')
+  && negativeAimInput.includes('data-min="-50"') && negativeAimInput.includes('data-max="50"')
+  && negativeAimInput.includes('value="-11"'),
+  'aim input accepts a signed lateral distance on decimal text keyboards');
+close(stepAimOffset(0, -1, 'yd'), -1, 1e-10, 'left step creates a negative yard offset');
+close(stepAimOffset(0, 1, 'yd'), 1, 1e-10, 'right step creates a positive yard offset');
+close(stepAimOffset(0, -1, 'm'), -distanceToYards(1, 'm'), 1e-10, 'left step follows the selected metric unit');
+close(stepAimOffset(49.5, 1, 'yd'), 50, 1e-10, 'right step respects the maximum aim offset');
 const lieCoefficients = {
   FAIRWAY: [1, 1, 0],
   DOWNGRAIN: [1, 0.8, 0],
