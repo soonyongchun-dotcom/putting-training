@@ -21,18 +21,22 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, aimAngleForOffset, clampPinPosition, greenMapPoint, greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity, GREEN_STIMP_OPTIONS };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
 const { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot } = result.exports.engine;
 const { resolvePersonalClub, readPersonalProfiles } = result.exports.engine;
 const { projectTopView } = result.exports.engine;
+const { aimAngleForOffset } = result.exports.engine;
+const { clampPinPosition, greenMapPoint } = result.exports.engine;
+const { greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath } = result.exports.engine;
 const { impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel } = result.exports.engine;
 const { toggleWindDirection, isWindSelected } = result.exports.engine;
 const { windDirectionFromPoint, WindDirectionControl } = result.exports.engine;
 const { formatDistance, DistanceTick, PersonalClubEditor } = result.exports.engine;
 const { DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity } = result.exports.engine;
+const { GREEN_STIMP_OPTIONS } = result.exports.engine;
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 let assertions = 0;
@@ -110,6 +114,31 @@ check(appMarkup.includes('골프 현장 공통 기준 · 잔디 드리프트 기
 check(!appMarkup.includes('30° 이하: 약 1~2 m/s') && !appMarkup.includes('5 m/s에서 150야드 샷 기준 약 7~10야드'),
   'practical wind guide avoids unsupported precise flag-angle and crosswind conversions');
 check(/data-testid="play-as"[^>]*>[\d.]+yd</.test(appMarkup), 'main expected carry uses default yards');
+check(appMarkup.includes('조준점 좌우 이동') && appMarkup.includes('좌측은 음수, 우측은 양수'),
+  'aim-point control explains signed lateral offsets');
+check(source.includes('그린 확대 · 핀 위치 설정')
+  && source.includes('data-testid="green-map"')
+  && source.includes('data-testid="green-pin"')
+  && source.includes('data-testid="pin-distance-label"'),
+  'green view provides a movable pin and post-shot distance display');
+check(source.includes('data-testid="green-stimp"')
+  && source.includes('GREEN_STIMP_OPTIONS.map')
+  && source.includes('등고선 간격은 4cm')
+  && source.includes('착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영'),
+  'green roll UI explains contour, club, environment and Stimp effects');
+check(source.includes('aria-label="그린 스피드 (Stimp)"')
+  && GREEN_STIMP_OPTIONS.join(',') === '2,2.5,3,3.5,4'
+  && source.includes('useState<number>(GREEN_STIMP_M)'),
+  'green speed selector offers multiple Stimp settings and defaults to 3m');
+check(source.includes('data-testid="green-width"')
+  && source.includes('data-testid="green-length"')
+  && source.includes("updateGreenDimension('widthYds'")
+  && source.includes("updateGreenDimension('lengthYds'")
+  && source.includes('widthYds: 40, lengthYds: 24')
+  && source.includes('field === \'widthYds\' ? [20, 60] : [12, 40]')
+  && source.includes('<ellipse cx="180" cy="110" rx="100" ry="53"')
+  && source.includes('data-testid="green-roll-inputs"'),
+  'tour-size green dimensions control the rendered and calculated ellipse');
 check(/data-testid="recommendation"[^>]*>환경반영예상캐리 <strong>[\d.]+yd<\/strong>/.test(appMarkup),
   'analysis expected carry has no tour prefix');
 check(appMarkup.includes('투어기준시뮬레이션') && !appMarkup.includes('투어·클럽 시뮬레이션'), 'tour mode title updated');
@@ -263,6 +292,102 @@ for (const id of TOUR_IDS) {
   }
 }
 const sample = bags.LPGA.find(c => c.id === '7I');
+const relief = buildGreenRelief();
+check(relief.contours.length === 9 && relief.contours.some(contour => contour.path.length > 0),
+  'green elevation produces visible contour lines');
+check(relief.high.heightM > relief.low.heightM
+  && greenElevationM(relief.high.lateralYds, relief.high.forwardYds) > greenElevationM(relief.low.lateralYds, relief.low.forwardYds),
+  'high and low contour markers match modeled terrain');
+const rollFixture = {
+  landed: true, carryYds: 100, sideOffsetYds: 0,
+  landingVxMs: 0, landingVzMs: 15, landingAngleDeg: 45,
+  appliedLaunch: { spinRateRpm: 6000 },
+};
+const baselineRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3);
+const slowGreenRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 2);
+const fastGreenRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 4);
+const relocatedPinRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 5, forwardYds: 0 }, 3);
+check(baselineRoll.simulated && baselineRoll.path.length > 1 && baselineRoll.rollDistanceYds > 0,
+  'landed ball rolls across the modeled green');
+check(fastGreenRoll.rollDistanceYds > slowGreenRoll.rollDistanceYds,
+  'higher Stimp distance yields less rolling resistance and farther roll');
+const lowSpinRoll = simulateGreenRoll({ ...rollFixture, appliedLaunch: { spinRateRpm: 2000 } }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+const highSpinRoll = simulateGreenRoll({ ...rollFixture, appliedLaunch: { spinRateRpm: 9000 } }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+check(lowSpinRoll.rollDistanceYds > highSpinRoll.rollDistanceYds,
+  'higher club backspin checks more rollout at the same landing speed');
+const shallowLandingRoll = simulateGreenRoll({ ...rollFixture, landingAngleDeg: 25 }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+const steepLandingRoll = simulateGreenRoll({ ...rollFixture, landingAngleDeg: 65 }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+check(shallowLandingRoll.rollDistanceYds > steepLandingRoll.rollDistanceYds,
+  'landing angle changes post-landing rollout');
+const wetRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3,
+  undefined, { ...REFERENCE_ENV, rainLevel: 'HEAVY' });
+check(wetRoll.rollDistanceYds < baselineRoll.rollDistanceYds,
+  'rain increases modeled green resistance and reduces rollout');
+const clubShot = clubLaunch(sample);
+const calmFlight = calculateTrajectory(clubShot, REFERENCE_ENV);
+const windEnv = { ...REFERENCE_ENV, windSpeedMs: 6, windDirDeg: 0 };
+const windFlight = calculateTrajectory(clubShot, windEnv);
+const calmRoll = simulateGreenRoll(calmFlight, calmFlight.carryYds, { lateralYds: 0, forwardYds: 0 }, 3,
+  undefined, REFERENCE_ENV);
+const windRoll = simulateGreenRoll(windFlight, windFlight.carryYds, { lateralYds: 0, forwardYds: 0 }, 3,
+  undefined, windEnv);
+check(Math.abs(calmRoll.rollDistanceYds - windRoll.rollDistanceYds) > 0.01,
+  'wind changes flight landing speed and therefore the resulting green roll');
+close(relocatedPinRoll.rollDistanceYds, baselineRoll.rollDistanceYds, 0,
+  'moving only the pin does not alter the same ball path or roll');
+check(relocatedPinRoll.distanceToPinYds !== baselineRoll.distanceToPinYds,
+  'moving the pin changes the remaining distance, not the roll path');
+const terrainRolls = [-3, 0, 3].map(forwardOffset =>
+  simulateGreenRoll({ ...rollFixture, carryYds: 100 + forwardOffset }, 100,
+    { lateralYds: 0, forwardYds: 0 }, 3).rollDistanceYds);
+check(Math.max(...terrainRolls) - Math.min(...terrainRolls) > 0.01,
+  'rolling distance responds to landing on different modeled terrain');
+check(baselineRoll.distanceToPinYds > 0
+  && baselineRoll.distanceToPinYds === Math.hypot(baselineRoll.finalPoint.lateralYds, baselineRoll.finalPoint.forwardYds),
+  'post-roll remaining distance is measured directly from the pin');
+check(greenRollSvgPath(baselineRoll.path).startsWith('M ')
+  && greenRollSvgPath(baselineRoll.path).includes(' L '),
+  'roll path can be drawn on the green');
+const outsideGreenRoll = simulateGreenRoll({ ...rollFixture, sideOffsetYds: 30 }, 100,
+  { lateralYds: 0, forwardYds: 0 });
+check(!outsideGreenRoll.simulated && outsideGreenRoll.rollDistanceYds === 0,
+  'roll is not simulated for a shot landing outside the green');
+const smallGreenRoll = simulateGreenRoll({ ...rollFixture, sideOffsetYds: 9, landingVxMs: 10, landingVzMs: 0 }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3, { widthYds: 20, lengthYds: 10 });
+check(smallGreenRoll.leftGreen && smallGreenRoll.rollDistanceYds < baselineRoll.rollDistanceYds,
+  'configured green dimensions change edge-out and roll distance');
+close(
+  (smallGreenRoll.finalPoint.lateralYds / 10) ** 2 + (smallGreenRoll.finalPoint.forwardYds / 5) ** 2,
+  1, 1e-8, 'roll exit point is on the configured green boundary');
+close(smallGreenRoll.path.at(-1).lateralYds, smallGreenRoll.finalPoint.lateralYds, 0,
+  'roll path includes exact boundary exit point');
+close(smallGreenRoll.path.reduce((sum, point, index, path) => index === 0 ? sum
+  : sum + Math.hypot(point.lateralYds - path[index - 1].lateralYds, point.forwardYds - path[index - 1].forwardYds), 0),
+smallGreenRoll.rollDistanceYds, 1e-8, 'reported edge-out distance matches displayed roll path');
+const clubRollDistances = ['D', '7I', 'PW'].map(id => {
+  const club = bags.LPGA.find(value => value.id === id);
+  const flight = calculateTrajectory(clubLaunch(club));
+  return simulateGreenRoll(flight, club.carry, { lateralYds: 0, forwardYds: 0 }).rollDistanceYds;
+});
+check(new Set(clubRollDistances.map(value => value.toFixed(2))).size > 1,
+  'different club launch and backspin inputs produce different landing roll estimates');
+const clampedPin = clampPinPosition(24, 11);
+close(Math.hypot(clampedPin.lateralYds / 20, clampedPin.forwardYds / 12), 1, 1e-10,
+  'pin remains inside the playable green boundary');
+check(clampPinPosition(Number.NaN, Number.POSITIVE_INFINITY).lateralYds === 0
+  && clampPinPosition(Number.NaN, Number.POSITIVE_INFINITY).forwardYds === 0,
+  'pin coordinates recover safely from nonfinite input');
+const mapPoint = greenMapPoint(-3, 2);
+close(mapPoint.x, 165, 1e-10, 'left pin maps left on green');
+close(mapPoint.y, 101.16666666666667, 1e-10, 'forward pin maps toward the far side of green');
+close(aimAngleForOffset(-11, 140), Math.atan2(-11, 140) * 180 / Math.PI, 1e-10,
+  'left aim offset converts to leftward launch angle');
+check(aimAngleForOffset(11, 140) > 0 && aimAngleForOffset(-11, 140) < 0,
+  'aim offset signs map to the matching side');
 for (const axis of [-30, 30]) {
   const reference = calculateTrajectory({ ...clubLaunch(sample), spinAxisDeg: axis });
   const profile = resolvePersonalClub(sample, { carry: String(reference.carryYds), apex: String(reference.apexYds), axis: String(axis) });
@@ -365,6 +490,23 @@ for (const windDirDeg of [0, 90, 180, 270]) {
     check(x >= 100 && x <= 700 && y >= 49 && y <= 311, 'top flight inside plot');
   }
 }
+const crosswindEnv = { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: 90 };
+const straightShot = calculateTrajectory(clubLaunch(sample), crosswindEnv, false);
+const correctedShot = calculateTrajectory({
+  ...clubLaunch(sample),
+  aimAngleDeg: aimAngleForOffset(-straightShot.sideOffsetYds, 140),
+}, crosswindEnv, false);
+check(straightShot.sideOffsetYds > 0, 'rightward crosswind drifts right without aim correction');
+check(Math.abs(correctedShot.sideOffsetYds) < Math.abs(straightShot.sideOffsetYds),
+  'aiming against lateral drift reduces landing deviation');
+const leftAimView = projectTopView(calculateTrajectory(clubLaunch(sample)), 140, 1, 'yd', -11);
+close(leftAimView.aimTarget.x, 400 - 11 * 0.9144 * leftAimView.scale, 1e-8,
+  'top view displays left aim point at the target distance');
+const negativeAimInput = renderToStaticMarkup(React.createElement(DistanceInput, {
+  value: '-11', unit: 'yd', min: -50, max: 50, label: 'aim', onChange: () => {}, className: '',
+}));
+check(negativeAimInput.includes('min="-50"') && negativeAimInput.includes('max="50"') && negativeAimInput.includes('value="-11"'),
+  'aim input accepts a signed lateral distance');
 const lieCoefficients = {
   FAIRWAY: [1, 1, 0],
   DOWNGRAIN: [1, 0.8, 0],

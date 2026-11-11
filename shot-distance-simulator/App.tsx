@@ -84,8 +84,16 @@ const M_TO_YDS = 1 / YDS_TO_M;
 const MPH_TO_MS = 0.44704;
 const KMH_TO_MS = 1 / 3.6;
 const TRACKMAN_SOURCE = 'https://www.trackman.media/tour-averages';
+const GREEN_STIMP_M = 3;
+const GREEN_STIMP_OPTIONS = [2, 2.5, 3, 3.5, 4] as const;
+const STIMP_TEST_SPEED_MS = 1.83;
+const LANDING_SPEED_TRANSFER = 0.28;
+const SPIN_ROLLOUT_REFERENCE_RPM = 6000;
+const SPIN_ROLLOUT_SENSITIVITY = 0.35;
+const DEFAULT_GREEN_DIMENSIONS = { widthYds: 40, lengthYds: 24 };
 
 type DistanceUnit = 'yd' | 'm';
+type GreenDimensions = { widthYds: number; lengthYds: number };
 
 function distanceFromYards(yards: number, unit: DistanceUnit) {
   return unit === 'm' ? yards * YDS_TO_M : yards;
@@ -576,6 +584,7 @@ function calculateTrajectory(shot: Launch, env: Environment = REFERENCE_ENV, rec
   }
   return {
     path, landed, appliedLaunch, carryYds: z * M_TO_YDS, sideOffsetYds: x * M_TO_YDS,
+    landingVxMs: vx, landingVzMs: vz,
     apexYds: maxApex * M_TO_YDS, flightTimeSec: t,
     landingAngleDeg: Math.abs(Math.atan2(vy, Math.hypot(vx, vz)) * 180 / Math.PI),
   };
@@ -626,9 +635,203 @@ function calibrateClub(club: ClubData, spinAxisDeg = 0): CalibratedClub {
 
 type Trajectory = ReturnType<typeof calculateTrajectory>;
 
-function projectTopView(trajectory: Trajectory, targetYds: number, progress: number, unit: DistanceUnit = 'yd') {
+type PinPosition = { lateralYds: number; forwardYds: number };
+type GreenPoint = { lateralYds: number; forwardYds: number };
+type GreenRollResult = {
+  path: GreenPoint[];
+  finalPoint: GreenPoint;
+  rollDistanceYds: number;
+  distanceToPinYds: number;
+  simulated: boolean;
+  leftGreen: boolean;
+};
+
+function greenElevationM(lateralYds: number, forwardYds: number) {
+  const x = lateralYds * YDS_TO_M;
+  const z = forwardYds * YDS_TO_M;
+  return 0.11 * Math.sin((x + z * 0.35) * Math.PI / 7.5)
+    + 0.07 * Math.cos((z - x * 0.45) * Math.PI / 5.5)
+    + 0.035 * Math.sin((x - z) * Math.PI / 3.5);
+}
+
+function isInsideGreen(lateralYds: number, forwardYds: number, dimensions = DEFAULT_GREEN_DIMENSIONS) {
+  return (lateralYds / (dimensions.widthYds / 2)) ** 2
+    + (forwardYds / (dimensions.lengthYds / 2)) ** 2 <= 1;
+}
+
+function buildGreenRelief(dimensions = DEFAULT_GREEN_DIMENSIONS) {
+  const xStep = 0.5, zStep = 0.25;
+  const xCount = Math.ceil(dimensions.widthYds / xStep);
+  const zCount = Math.ceil(dimensions.lengthYds / zStep);
+  const xStart = -dimensions.widthYds / 2, zStart = -dimensions.lengthYds / 2;
+  const levels = [-0.16, -0.12, -0.08, -0.04, 0, 0.04, 0.08, 0.12, 0.16];
+  const contours: { level: number; path: string; major: boolean }[] = [];
+  let high = { lateralYds: 0, forwardYds: 0, heightM: -Infinity };
+  let low = { lateralYds: 0, forwardYds: 0, heightM: Infinity };
+  for (let ix = 0; ix <= xCount; ix++){
+    for (let iz = 0; iz <= zCount; iz++){
+      const lateralYds = xStart + ix * xStep;
+      const forwardYds = zStart + iz * zStep;
+      if (!isInsideGreen(lateralYds, forwardYds, dimensions)) continue;
+      const heightM = greenElevationM(lateralYds, forwardYds);
+      if (heightM > high.heightM) high = { lateralYds, forwardYds, heightM };
+      if (heightM < low.heightM) low = { lateralYds, forwardYds, heightM };
+    }
+  }
+  const intersections = (points: GreenPoint[], values: number[], level: number) => {
+    const result: GreenPoint[] = [];
+    for (let edge = 0; edge < 4; edge++){
+      const next = (edge + 1) % 4;
+      const a = values[edge], b = values[next];
+      if ((a < level && b >= level) || (b < level && a >= level)){
+        const ratio = (level - a) / (b - a);
+        result.push({
+          lateralYds: points[edge].lateralYds + (points[next].lateralYds - points[edge].lateralYds) * ratio,
+          forwardYds: points[edge].forwardYds + (points[next].forwardYds - points[edge].forwardYds) * ratio,
+        });
+      }
+    }
+    return result;
+  };
+  for (const level of levels){
+    const segments: string[] = [];
+    for (let ix = 0; ix < xCount; ix++){
+      for (let iz = 0; iz < zCount; iz++){
+        const x = xStart + ix * xStep, z = zStart + iz * zStep;
+        const points = [
+          { lateralYds: x, forwardYds: z },
+          { lateralYds: x + xStep, forwardYds: z },
+          { lateralYds: x + xStep, forwardYds: z + zStep },
+          { lateralYds: x, forwardYds: z + zStep },
+        ];
+        if (!points.every(point => isInsideGreen(point.lateralYds, point.forwardYds, dimensions))) continue;
+        const values = points.map(point => greenElevationM(point.lateralYds, point.forwardYds));
+        const crosses = intersections(points, values, level);
+        for (let i = 0; i + 1 < crosses.length; i += 2){
+          const a = greenMapPoint(crosses[i].lateralYds, crosses[i].forwardYds, dimensions);
+          const b = greenMapPoint(crosses[i + 1].lateralYds, crosses[i + 1].forwardYds, dimensions);
+          segments.push(`M ${a.x.toFixed(1)} ${a.y.toFixed(1)} L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`);
+        }
+      }
+    }
+    contours.push({ level, path: segments.join(' '), major: Math.round(Math.abs(level) * 100) % 8 === 0 });
+  }
+  return { contours, high, low };
+}
+
+function simulateGreenRoll(
+  trajectory: Trajectory,
+  targetYds: number,
+  pin: PinPosition,
+  stimpM = GREEN_STIMP_M,
+  dimensions = DEFAULT_GREEN_DIMENSIONS,
+  environment: Environment = REFERENCE_ENV,
+): GreenRollResult {
+  const start = { lateralYds: trajectory.sideOffsetYds, forwardYds: trajectory.carryYds - targetYds };
+  const distanceToPin = (point: GreenPoint) => Math.hypot(point.lateralYds - pin.lateralYds, point.forwardYds - pin.forwardYds);
+  if (!trajectory.landed || !isInsideGreen(start.lateralYds, start.forwardYds, dimensions)){
+    return { path: [start], finalPoint: start, rollDistanceYds: 0, distanceToPinYds: distanceToPin(start), simulated: false, leftGreen: false };
+  }
+  let x = start.lateralYds * YDS_TO_M, z = start.forwardYds * YDS_TO_M;
+  const landingAngle = Number.isFinite(trajectory.landingAngleDeg) ? trajectory.landingAngleDeg : 45;
+  const appliedSpin = trajectory.appliedLaunch?.spinRateRpm ?? 0;
+  const angleTransfer = Math.max(0.35, Math.cos(landingAngle * Math.PI / 180));
+  const spinTransfer = 1 / (1 + Math.max(0, appliedSpin) / SPIN_ROLLOUT_REFERENCE_RPM * SPIN_ROLLOUT_SENSITIVITY);
+  const landingSpeedTransfer = LANDING_SPEED_TRANSFER * angleTransfer * spinTransfer;
+  let vx = trajectory.landingVxMs * landingSpeedTransfer;
+  let vz = trajectory.landingVzMs * landingSpeedTransfer;
+  const initialSpeed = Math.hypot(vx, vz);
+  const path: GreenPoint[] = [start];
+  if (!Number.isFinite(initialSpeed) || initialSpeed < 0.05){
+    return { path, finalPoint: start, rollDistanceYds: 0, distanceToPinYds: distanceToPin(start), simulated: true, leftGreen: false };
+  }
+  const rainResistance = environment.rainLevel === 'HEAVY' ? 1.3 : environment.rainLevel === 'LIGHT' ? 1.12 : 1;
+  const resistance = STIMP_TEST_SPEED_MS ** 2 / (2 * stimpM) * rainResistance;
+  const timeStep = 0.02;
+  let rollDistanceM = 0;
+  let leftGreen = false;
+  for (let time = 0; time < 12; time += timeStep){
+    const lateralYds = x * M_TO_YDS, forwardYds = z * M_TO_YDS;
+    const delta = 0.1;
+    const slopeX = (greenElevationM(lateralYds + delta * M_TO_YDS, forwardYds)
+      - greenElevationM(lateralYds - delta * M_TO_YDS, forwardYds)) / (2 * delta);
+    const slopeZ = (greenElevationM(lateralYds, forwardYds + delta * M_TO_YDS)
+      - greenElevationM(lateralYds, forwardYds - delta * M_TO_YDS)) / (2 * delta);
+    const gravityX = -GRAVITY * slopeX, gravityZ = -GRAVITY * slopeZ;
+    const speed = Math.hypot(vx, vz);
+    const slopeAcceleration = Math.hypot(gravityX, gravityZ);
+    if (speed < resistance * timeStep && slopeAcceleration <= resistance){
+      vx = 0; vz = 0;
+      break;
+    }
+    const frictionX = speed > 1e-8 ? -resistance * vx / speed : 0;
+    const frictionZ = speed > 1e-8 ? -resistance * vz / speed : 0;
+    const nextVx = vx + (gravityX + frictionX) * timeStep;
+    const nextVz = vz + (gravityZ + frictionZ) * timeStep;
+    const nextX = x + (vx + nextVx) * 0.5 * timeStep;
+    const nextZ = z + (vz + nextVz) * 0.5 * timeStep;
+    const nextPoint = { lateralYds: nextX * M_TO_YDS, forwardYds: nextZ * M_TO_YDS };
+    if (!isInsideGreen(nextPoint.lateralYds, nextPoint.forwardYds, dimensions)){
+      let insideRatio = 0;
+      let outsideRatio = 1;
+      for (let iteration = 0; iteration < 24; iteration++){
+        const ratio = (insideRatio + outsideRatio) / 2;
+        const point = {
+          lateralYds: (x + (nextX - x) * ratio) * M_TO_YDS,
+          forwardYds: (z + (nextZ - z) * ratio) * M_TO_YDS,
+        };
+        if (isInsideGreen(point.lateralYds, point.forwardYds, dimensions)) insideRatio = ratio;
+        else outsideRatio = ratio;
+      }
+      const edgeX = x + (nextX - x) * insideRatio;
+      const edgeZ = z + (nextZ - z) * insideRatio;
+      const edgePoint = { lateralYds: edgeX * M_TO_YDS, forwardYds: edgeZ * M_TO_YDS };
+      rollDistanceM += Math.hypot(edgeX - x, edgeZ - z);
+      x = edgeX;
+      z = edgeZ;
+      path.push(edgePoint);
+      leftGreen = true;
+      break;
+    }
+    rollDistanceM += Math.hypot(nextX - x, nextZ - z);
+    x = nextX; z = nextZ; vx = nextVx; vz = nextVz;
+    path.push(nextPoint);
+    if (Math.hypot(vx, vz) < 0.03) break;
+  }
+  const finalPoint = { lateralYds: x * M_TO_YDS, forwardYds: z * M_TO_YDS };
+  return {
+    path, finalPoint, rollDistanceYds: rollDistanceM * M_TO_YDS,
+    distanceToPinYds: distanceToPin(finalPoint), simulated: true, leftGreen,
+  };
+}
+
+function greenRollSvgPath(path: GreenPoint[], dimensions = DEFAULT_GREEN_DIMENSIONS) {
+  return path.map((point, index) => {
+    const projected = greenMapPoint(point.lateralYds, point.forwardYds, dimensions);
+    return `${index === 0 ? 'M' : 'L'} ${projected.x.toFixed(1)} ${projected.y.toFixed(1)}`;
+  }).join(' ');
+}
+
+function clampPinPosition(lateralYds: number, forwardYds: number, dimensions = DEFAULT_GREEN_DIMENSIONS): PinPosition {
+  const x = Number.isFinite(lateralYds) ? lateralYds : 0;
+  const z = Number.isFinite(forwardYds) ? forwardYds : 0;
+  const radius = Math.hypot(x / (dimensions.widthYds / 2), z / (dimensions.lengthYds / 2));
+  const scale = radius > 1 ? 1 / radius : 1;
+  return { lateralYds: x * scale, forwardYds: z * scale };
+}
+
+function greenMapPoint(lateralYds: number, forwardYds: number, dimensions = DEFAULT_GREEN_DIMENSIONS) {
+  return {
+    x: 180 + lateralYds / (dimensions.widthYds / 2) * 100,
+    y: 110 - forwardYds / (dimensions.lengthYds / 2) * 53,
+  };
+}
+
+function projectTopView(
+  trajectory: Trajectory, targetYds: number, progress: number, unit: DistanceUnit = 'yd', aimOffsetYds = 0,
+) {
   const maxForward = Math.max(targetYds * YDS_TO_M, ...trajectory.path.map(p => p.z), 30);
-  const maxLateral = Math.max(...trajectory.path.map(p => Math.abs(p.x)), 1);
+  const maxLateral = Math.max(...trajectory.path.map(p => Math.abs(p.x)), Math.abs(aimOffsetYds) * YDS_TO_M, 1);
   const minForward = Math.min(0, ...trajectory.path.map(p => p.z));
   const scale = Math.min(260 / (maxForward - minForward), 290 / maxLateral);
   const landingZoomFactor = 4;
@@ -651,11 +854,12 @@ function projectTopView(trajectory: Trajectory, targetYds: number, progress: num
   const project = (point: { x: number; z: number }) => ({
     x: 400 + point.x * scale, y: originY - point.z * scale,
   });
+  const aimTarget = project({ x: aimOffsetYds * YDS_TO_M, z: targetYds * YDS_TO_M });
   const count = Math.max(1, Math.min(trajectory.path.length, Math.floor(trajectory.path.length * progress)));
   const points = trajectory.path.slice(0, count).map(project);
   const zoomPoints = trajectory.path.slice(0, count).map(projectTargetZoom);
   return {
-    scale, originY, lateralTicks,
+    scale, originY, lateralTicks, aimTarget,
     path: points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '),
     ball: points[points.length - 1],
     landing: project(trajectory.path[trajectory.path.length - 1]),
@@ -667,6 +871,10 @@ function projectTopView(trajectory: Trajectory, targetYds: number, progress: num
       path: zoomPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '),
     },
   };
+}
+
+function aimAngleForOffset(aimOffsetYds: number, targetYds: number) {
+  return Math.atan2(aimOffsetYds, targetYds) * 180 / Math.PI;
 }
 
 type Recommendation = {
@@ -771,6 +979,11 @@ export default function App() {
   const [calcMode, setCalcMode] = useState('GENERAL');
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('yd');
   const [targetInputYds, setTargetInputYds] = useState('140');
+  const [aimOffsetInput, setAimOffsetInput] = useState('0');
+  const [pinPosition, setPinPosition] = useState<PinPosition>({ lateralYds: 0, forwardYds: 0 });
+  const [greenStimpM, setGreenStimpM] = useState<number>(GREEN_STIMP_M);
+  const [greenDimensions, setGreenDimensions] = useState<GreenDimensions>(DEFAULT_GREEN_DIMENSIONS);
+  const [hasExecutedShot, setHasExecutedShot] = useState(false);
   const targetValue = Number(targetInputYds);
   const targetValid = targetInputYds.trim() !== '' && Number.isFinite(targetValue) && targetValue >= 50 && targetValue <= 350;
   const targetDistYds = targetValid ? targetValue : 140;
@@ -795,6 +1008,7 @@ export default function App() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [animProgress, setAnimProgress] = useState(1.0);
   const animationFrameRef = useRef<number | null>(null);
+  const greenMapRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -828,10 +1042,14 @@ export default function App() {
   ), [tourClubs, targetDistYds, environment, calcMode, customClub, selectedClubId]);
   const isCustom = calcMode === 'TRACKMAN';
   const activeClub = isCustom ? personal.club : recommendation.club;
+  const aimOffsetYds = Number(aimOffsetInput);
+  const safeAimOffsetYds = Number.isFinite(aimOffsetYds) ? aimOffsetYds : 0;
+  const aimAngleDeg = aimAngleForOffset(safeAimOffsetYds, recommendation.horizontalYds);
   const trajResult = useMemo(() => calculateTrajectory({
     ...clubLaunch(activeClub),
+    aimAngleDeg,
     spinAxisDeg: isCustom ? personal.axis : 0,
-  }, environment), [activeClub, isCustom, personal.axis, environment]);
+  }, environment), [activeClub, isCustom, personal.axis, aimAngleDeg, environment]);
   const displayedDistance = trajResult.landed ? trajResult.carryYds : null;
   const distanceAdjustment = displayedDistance === null ? null
     : displayedDistance - recommendation.horizontalYds;
@@ -840,6 +1058,34 @@ export default function App() {
   const displayWarning = targetError ?? geometryError ?? (isCustom && personal.errors.length ? personal.errors.join(' ') : null) ?? activeClub.calibrationError
     ?? (!trajResult.landed ? '샷이 그린 높이의 하강 착지점에 도달하지 못했습니다. 예상 캐리를 산출할 수 없습니다.' : null);
   const sideOffsetYds = trajResult.sideOffsetYds;
+  const greenRelief = useMemo(() => buildGreenRelief(greenDimensions), [greenDimensions]);
+  const greenRoll = useMemo(
+    () => simulateGreenRoll(trajResult, recommendation.horizontalYds, pinPosition, greenStimpM, greenDimensions, environment),
+    [trajResult, recommendation.horizontalYds, pinPosition, greenStimpM, greenDimensions, environment],
+  );
+  const pinMapPoint = greenMapPoint(pinPosition.lateralYds, pinPosition.forwardYds, greenDimensions);
+  const highReliefMapPoint = greenMapPoint(greenRelief.high.lateralYds, greenRelief.high.forwardYds, greenDimensions);
+  const lowReliefMapPoint = greenMapPoint(greenRelief.low.lateralYds, greenRelief.low.forwardYds, greenDimensions);
+  const flightLandingPoint = {
+    lateralYds: trajResult.sideOffsetYds,
+    forwardYds: trajResult.carryYds - recommendation.horizontalYds,
+  };
+  const flightLandingMapPoint = greenMapPoint(flightLandingPoint.lateralYds, flightLandingPoint.forwardYds, greenDimensions);
+  const landingMapPoint = greenMapPoint(greenRoll.finalPoint.lateralYds, greenRoll.finalPoint.forwardYds, greenDimensions);
+  const pinDistanceYds = greenRoll.distanceToPinYds;
+  const flightLandingWithinMap = isInsideGreen(flightLandingPoint.lateralYds, flightLandingPoint.forwardYds, greenDimensions);
+  const greenRollPath = greenRollSvgPath(greenRoll.path, greenDimensions);
+
+  const updateGreenDimension = (field: keyof GreenDimensions, value: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return;
+    const limits = field === 'widthYds' ? [20, 60] : [12, 40];
+    if (parsed < limits[0] || parsed > limits[1]) return;
+    const next = { ...greenDimensions, [field]: parsed };
+    setGreenDimensions(next);
+    setPinPosition(current => clampPinPosition(current.lateralYds, current.forwardYds, next));
+    setHasExecutedShot(false);
+  };
 
   const saveProfiles = (profiles: PersonalProfiles) => {
     setPersonalState({ profiles, error: null });
@@ -867,10 +1113,47 @@ export default function App() {
     animationFrameRef.current = null;
     setAnimProgress(1);
     setIsAnimating(false);
+    setHasExecutedShot(false);
   }, [trajResult]);
+
+  const updatePinFromPointer = (event: React.PointerEvent<SVGSVGElement>) => {
+    const svg = greenMapRef.current;
+    const matrix = svg?.getScreenCTM();
+    if (!svg || !matrix) return;
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const local = point.matrixTransform(matrix.inverse());
+    const next = clampPinPosition(
+      (local.x - 180) / 100 * (greenDimensions.widthYds / 2),
+      (110 - local.y) / 53 * (greenDimensions.lengthYds / 2),
+      greenDimensions,
+    );
+    setPinPosition(next);
+    setHasExecutedShot(false);
+  };
+
+  const handlePinKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+    const step = event.shiftKey ? 1 : 0.25;
+    const next = { ...pinPosition };
+    if (event.key === 'ArrowLeft') next.lateralYds -= step;
+    else if (event.key === 'ArrowRight') next.lateralYds += step;
+    else if (event.key === 'ArrowUp') next.forwardYds += step;
+    else if (event.key === 'ArrowDown') next.forwardYds -= step;
+    else if (event.key === 'Home') {
+      setPinPosition({ lateralYds: 0, forwardYds: 0 });
+      setHasExecutedShot(false);
+      event.preventDefault();
+      return;
+    } else return;
+    setPinPosition(clampPinPosition(next.lateralYds, next.forwardYds, greenDimensions));
+    setHasExecutedShot(false);
+    event.preventDefault();
+  };
 
   const triggerShotAnimation = () => {
     if (animationFrameRef.current !== null) return;
+    setHasExecutedShot(false);
     setIsAnimating(true);
     setAnimProgress(0);
 
@@ -887,6 +1170,7 @@ export default function App() {
       } else {
         animationFrameRef.current = null;
         setIsAnimating(false);
+        setHasExecutedShot(true);
       }
     };
 
@@ -954,8 +1238,9 @@ export default function App() {
 
     return { pathString: d, ballPos, pinPos, groundY, startX, scaleX, scaleY };
   }, [trajResult, animProgress, recommendation.horizontalYds, elevationM]);
-  const topView = useMemo(() => projectTopView(trajResult, recommendation.horizontalYds, animProgress, distanceUnit),
-    [trajResult, recommendation.horizontalYds, animProgress, distanceUnit]);
+  const topView = useMemo(() => projectTopView(
+    trajResult, recommendation.horizontalYds, animProgress, distanceUnit, safeAimOffsetYds,
+  ), [trajResult, recommendation.horizontalYds, animProgress, distanceUnit, safeAimOffsetYds]);
 
   return (
     <div className="flex flex-col min-h-screen lg:h-screen w-full bg-slate-950 text-slate-100 font-sans lg:overflow-hidden">
@@ -985,7 +1270,7 @@ export default function App() {
               <h2 className="mb-2 text-sm font-black text-sky-300">사용 안내</h2>
               <ol className="list-decimal space-y-2 pl-4 leading-relaxed">
                 <li><strong className="text-white">시뮬레이션 선택:</strong> 투어 기준은 투어·클럽 평균 샷을, 선수 개별 맞춤은 선택한 클럽의 기준 캐리와 볼속도·발사각·스핀 입력값을 사용합니다. 개인 입력은 이 기기에 저장됩니다.</li>
-                <li><strong className="text-white">목표 설정:</strong> 레이저 거리를 입력하고 거리 단위를 선택합니다. 투어 기준 자동 추천은 현재 환경에서 도달 가능한 클럽을 선택하며, 샷의 발사 조건이나 조준을 목표에 맞춰 바꾸지 않습니다.</li>
+                <li><strong className="text-white">목표·조준 설정:</strong> 레이저 거리와 좌우 조준점 이동을 입력합니다. 좌측은 음수, 우측은 양수이며 조준점은 목표 기준 좌우 거리입니다. 선택한 조준점이 실제 궤적에 반영됩니다.</li>
                 <li><strong className="text-white">환경 설정:</strong> 풍속·풍향, 기온, 그린 고도 차이, 강우, 잔디·라이를 입력합니다. 풍향계는 화살표 키로도 조정할 수 있습니다.</li>
                 <li><strong className="text-white">결과 확인:</strong> 환경 반영 예상 캐리는 런을 제외한 수평 거리입니다. 측면 보기에서 높이·비행을, 위에서 보기에서 좌우 편차를 확인하고 “샷 실행”으로 궤적을 재생합니다.</li>
               </ol>
@@ -1011,53 +1296,74 @@ export default function App() {
       <div className="relative flex-1 min-h-[480px] lg:min-h-0 lg:h-full bg-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col">
         
         {/* Top Header Bar */}
-        <div className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900/95 p-3.5 rounded-2xl border border-slate-700/80 shadow-2xl">
+        <div className="mx-2 mt-2 grid grid-cols-2 gap-1.5 rounded-xl border border-slate-700/80 bg-slate-900/95 p-2 shadow-xl xl:mx-4 xl:mt-3 xl:grid-cols-4 xl:gap-2">
           
-          <div className="flex items-center space-x-3">
-            <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/40 flex items-center justify-center">
-              <TargetIcon size={22} />
+          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-500/20 bg-slate-950/50 p-1.5">
+            <span className="flex shrink-0 items-center justify-center rounded-lg border border-emerald-500/40 bg-emerald-500/20 p-1.5 text-emerald-400">
+              <TargetIcon size={16} />
             </span>
-            <div>
+            <div className="min-w-0">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">목표 레이저 거리</span>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center gap-1">
                 <DistanceInput
                   label="목표 레이저 거리"
                   min={50} max={350} unit={distanceUnit}
                   value={targetInputYds}
                   onChange={setTargetInputYds}
-                  className="w-20 bg-slate-950 border border-slate-700 rounded-lg text-xl font-black text-white px-2 py-0.5 text-center focus:outline-none focus:border-emerald-500"
+                  className="w-[4.25rem] rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-center text-base font-black text-white focus:border-emerald-500 focus:outline-none"
                 />
-                <span className="text-xs text-slate-400 font-bold">{distanceUnit}</span>
+                <span className="text-[10px] font-bold text-slate-400">{distanceUnit}</span>
               </div>
             </div>
           </div>
 
-          {/* Caddie Play-As Distance Recommendation */}
-          <div className="flex items-center space-x-3 bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-500/50 px-4 py-2 rounded-xl">
-            <div className="text-right">
-              <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider block">
-                환경반영예상캐리
-              </span>
-              <div className="flex items-baseline justify-end space-x-1">
-                <span data-testid="play-as" className="text-xl sm:text-2xl font-black text-indigo-200">{displayWarning || displayedDistance === null ? '—' : formatDistance(displayedDistance, distanceUnit)}</span>
+          <div className="flex min-w-0 items-center justify-between gap-1 rounded-lg border border-sky-500/30 bg-slate-950/70 p-1.5">
+            <div className="min-w-0">
+              <span className="block text-[10px] font-bold text-sky-300">조준점 좌우</span>
+              <div className="flex items-center gap-1">
+                <DistanceInput
+                  label="조준점 좌우 이동"
+                  min={-50} max={50} unit={distanceUnit}
+                  value={aimOffsetInput}
+                  onChange={setAimOffsetInput}
+                  className="w-[4.25rem] rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-center text-base font-black text-white focus:border-sky-400 focus:outline-none"
+                />
+                <span className="text-[10px] font-bold text-slate-400">{distanceUnit}</span>
+                <button type="button" onClick={() => setAimOffsetInput('0')}
+                  className="rounded border border-slate-700 px-1.5 py-1 text-[9px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
+                  중앙
+                </button>
               </div>
             </div>
-            <div className={`p-1.5 rounded-lg font-black text-xs ${distanceAdjustment !== null && distanceAdjustment > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'}`}>
+            <span className="hidden max-w-16 text-[9px] leading-tight text-slate-400 xl:block">좌− / 우+</span>
+          </div>
+
+          {/* Caddie Play-As Distance Recommendation */}
+          <div className="flex min-w-0 items-center justify-between gap-1 rounded-lg border border-indigo-500/40 bg-gradient-to-r from-indigo-950 to-slate-900 px-2 py-1.5">
+            <div className="min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-wide text-indigo-300">
+                환경반영예상캐리
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span data-testid="play-as" className="text-lg font-black leading-tight text-indigo-200">{displayWarning || displayedDistance === null ? '—' : formatDistance(displayedDistance, distanceUnit)}</span>
+              </div>
+            </div>
+            <div className={`shrink-0 rounded-md px-1.5 py-1 text-[9px] font-black ${distanceAdjustment !== null && distanceAdjustment > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'}`}>
               {displayWarning || distanceAdjustment === null ? '입력·산출 확인'
-                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? '목표 일치' : `목표보다 ${formatDistance(Math.abs(distanceAdjustment), distanceUnit)} ${distanceAdjustment > 0 ? '김' : '짧음'}`}
+                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? '목표 일치' : `${formatDistance(Math.abs(distanceAdjustment), distanceUnit)} ${distanceAdjustment > 0 ? '김' : '짧음'}`}
             </div>
           </div>
 
           {/* Precise Aim Offset */}
-          <div className="flex items-center space-x-3 bg-slate-900/90 px-3.5 py-2 rounded-xl border border-slate-700">
-            <span className="text-sky-400 flex items-center justify-center">
-              <CompassIcon size={20} />
+          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/90 px-2 py-1.5">
+            <span className="flex shrink-0 items-center justify-center text-sky-400">
+              <CompassIcon size={16} />
             </span>
-            <div>
-              <span className="text-[10px] text-slate-400 block font-medium">예상 좌우 편차</span>
-              <span className="text-xs font-black text-slate-200">
+            <div className="min-w-0">
+              <span className="block text-[9px] font-medium text-slate-400">예상 좌우 편차</span>
+              <span className="text-[11px] font-black leading-tight text-slate-200">
                 {displayWarning ? '—' : Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙 예상'
-                  : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)} 예상`}
+                  : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}
               </span>
             </div>
           </div>
@@ -1073,9 +1379,10 @@ export default function App() {
           ))}
         </div>
         {/* HIGH CONTRAST SVG VECTOR TRAJECTORY DISPLAY */}
-        <div className="w-full flex-1 min-h-[220px] lg:min-h-0 flex items-center justify-center p-4 bg-slate-950">
+        <div className="w-full flex-1 min-h-[220px] lg:min-h-0 flex flex-col items-center gap-3 overflow-y-auto p-4 bg-slate-950">
           {viewMode === 'TOP' ? (
-            <svg aria-label="위에서 본 비행 궤적" data-testid="top-view" viewBox="0 0 800 380" className="w-full h-full max-h-[520px] rounded-2xl border border-slate-800 shadow-2xl">
+            <>
+            <svg aria-label="위에서 본 비행 궤적" data-testid="top-view" viewBox="0 0 800 380" className="w-full h-[360px] max-h-[520px] flex-none rounded-2xl border border-slate-800 shadow-2xl">
               <rect width="800" height="380" rx="16" fill="#022c22" />
               <text x="400" y="23" textAnchor="middle" fill="#e2e8f0" fontSize="12">목표 방향 ↑ · 좌측 ← → 우측 · 가로·세로 동일 축척</text>
               {topView.lateralTicks.map((yd) => {
@@ -1099,6 +1406,17 @@ export default function App() {
               <line x1="400" y1="40" x2="400" y2={topView.originY} stroke="#fbbf24" strokeDasharray="6 4" />
               <circle cx={topView.target.x} cy={topView.target.y} r="10" fill="#059669" stroke="#fbbf24" strokeWidth="2" />
               <text x={topView.target.x + 15} y={topView.target.y - 7} fill="#fbbf24" fontSize="11">목표 {formatDistance(recommendation.horizontalYds, distanceUnit)}</text>
+              {Math.abs(safeAimOffsetYds) >= 0.05 && (
+                <g data-testid="aim-target">
+                  <line x1={topView.target.x} y1={topView.target.y} x2={topView.aimTarget.x} y2={topView.aimTarget.y}
+                    stroke="#38bdf8" strokeDasharray="3 3" />
+                  <circle cx={topView.aimTarget.x} cy={topView.aimTarget.y} r="7" fill="#0ea5e9" stroke="#e0f2fe" strokeWidth="2" />
+                  <text x={topView.aimTarget.x + (safeAimOffsetYds > 0 ? 11 : -11)} y={topView.aimTarget.y + 18}
+                    textAnchor={safeAimOffsetYds > 0 ? 'start' : 'end'} fill="#7dd3fc" fontSize="10">
+                    조준점 {safeAimOffsetYds > 0 ? '우측' : '좌측'} {formatDistance(Math.abs(safeAimOffsetYds), distanceUnit)}
+                  </text>
+                </g>
+              )}
               <circle cx="400" cy={topView.originY} r="4" fill="#ffffff" />
               <text x="415" y={topView.originY + 4} fill="#cbd5e1" fontSize="10">출발</text>
               {animProgress >= 1 && (
@@ -1117,33 +1435,171 @@ export default function App() {
               <text x="400" y="360" textAnchor="middle" fill="#cbd5e1" fontSize="11">
                 {displayWarning ? '입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)' : '수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준'}
               </text>
-              <svg x="535" y="48" width="245" height="160" viewBox="0 0 250 160" aria-label="착지점 확대 보기">
-                <rect x="1" y="1" width="248" height="158" rx="12" fill="#020617" fillOpacity="0.94" stroke="#f472b6" strokeWidth="2" />
-                <text x="125" y="17" textAnchor="middle" fill="#f9a8d4" fontSize="11" fontWeight="700">
-                  목표 기준 착지 확대 · {topView.landingZoom.factor}×
-                </text>
-                <line x1="20" y1={topView.landingZoom.target.y} x2="230" y2={topView.landingZoom.target.y}
-                  stroke="#065f46" strokeDasharray="3 4" />
-                <line x1={topView.landingZoom.target.x} y1="26" x2={topView.landingZoom.target.x} y2="140"
-                  stroke="#065f46" strokeDasharray="3 4" />
-                <path d={topView.landingZoom.path} fill="none" stroke="#38bdf8" strokeWidth="2.5" />
-                <line x1={topView.landingZoom.target.x} y1={topView.landingZoom.target.y}
-                  x2={topView.landingZoom.landing.x} y2={topView.landingZoom.target.y}
-                  stroke="#f472b6" strokeDasharray="3 2" />
-                <line x1={topView.landingZoom.landing.x} y1={topView.landingZoom.target.y}
-                  x2={topView.landingZoom.landing.x} y2={topView.landingZoom.landing.y}
-                  stroke="#f472b6" strokeDasharray="3 2" />
-                <circle cx={topView.landingZoom.target.x} cy={topView.landingZoom.target.y} r="5"
-                  fill="#059669" stroke="#fbbf24" strokeWidth="2" />
-                <circle cx={topView.landingZoom.landing.x} cy={topView.landingZoom.landing.y} r="5"
-                  fill="#f472b6" stroke="#fff" strokeWidth="1.5" />
-                <text x="125" y="153" textAnchor="middle" fill="#cbd5e1" fontSize="9">
-                  목표 대비 {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '좌우 중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`} · 분홍 점: 착지
-                </text>
-              </svg>
             </svg>
+            <section aria-label="그린 확대 및 핀 위치 설정" data-testid="green-pin-panel"
+              className="w-full max-w-[640px] flex-none rounded-2xl border border-emerald-500/40 bg-slate-900 p-3 shadow-xl">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-black text-emerald-200">그린 확대 · 핀 위치 설정</h3>
+                  <p className="text-[10px] text-slate-400">그린을 눌러 핀 이동 · 방향키로 미세 조정</p>
+                </div>
+                <div className="flex flex-col items-end gap-1 text-[10px] text-slate-300">
+                  <span>
+                    핀 {pinPosition.lateralYds > 0 ? '+' : ''}{formatDistance(pinPosition.lateralYds, distanceUnit)} 좌우
+                    {' · '}
+                    {pinPosition.forwardYds > 0 ? '+' : ''}{formatDistance(pinPosition.forwardYds, distanceUnit)} 전후
+                  </span>
+                </div>
+              </div>
+              <div className="mb-2 grid grid-cols-3 gap-2">
+                <label className="text-[10px] text-slate-400">
+                  그린 스피드 (Stimp)
+                  <select id="green-stimp" aria-label="그린 스피드 (Stimp)" data-testid="green-stimp"
+                    value={greenStimpM}
+                    onChange={(event) => setGreenStimpM(Number(event.target.value))}
+                    disabled={isAnimating}
+                    className="mt-0.5 block w-full rounded border border-emerald-800 bg-slate-950 px-1.5 py-1 text-xs font-bold text-emerald-200 disabled:opacity-50">
+                    {GREEN_STIMP_OPTIONS.map((value) => (
+                      <option key={value} value={value}>{value.toFixed(1)}m</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-[10px] text-slate-400">
+                  좌우 폭 (yd)
+                  <input aria-label="그린 좌우 폭 (yd)" data-testid="green-width" type="number" min="20" max="60" step="1"
+                    value={greenDimensions.widthYds}
+                    onChange={(event) => updateGreenDimension('widthYds', event.target.value)}
+                    disabled={isAnimating}
+                    className="mt-0.5 block w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-1 text-xs text-white disabled:opacity-50" />
+                </label>
+                <label className="text-[10px] text-slate-400">
+                  전후 길이 (yd)
+                  <input aria-label="그린 전후 길이 (yd)" data-testid="green-length" type="number" min="12" max="40" step="1"
+                    value={greenDimensions.lengthYds}
+                    onChange={(event) => updateGreenDimension('lengthYds', event.target.value)}
+                    disabled={isAnimating}
+                    className="mt-0.5 block w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-1 text-xs text-white disabled:opacity-50" />
+                </label>
+              </div>
+              <svg ref={greenMapRef} viewBox="0 0 360 220" role="application" aria-label="그린 핀 위치 설정 지도"
+                data-testid="green-map" tabIndex={0} onKeyDown={handlePinKeyDown}
+                onPointerDown={(event) => {
+                  if (isAnimating) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  updatePinFromPointer(event);
+                }}
+                onPointerMove={(event) => {
+                  if (isAnimating || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                  updatePinFromPointer(event);
+                }}
+                onPointerUp={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
+                onPointerCancel={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
+                className={`block h-auto w-full select-none rounded-xl border border-emerald-950 bg-[#071b18] ${isAnimating ? 'cursor-wait' : 'cursor-crosshair'} touch-none`}>
+                <defs>
+                  <linearGradient id="green-surface" x1="0" x2="1" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#4ade80" />
+                    <stop offset="52%" stopColor="#16865b" />
+                    <stop offset="100%" stopColor="#075b45" />
+                  </linearGradient>
+                  <clipPath id="green-shape-clip">
+                    <ellipse cx="180" cy="110" rx="100" ry="53" />
+                  </clipPath>
+                </defs>
+                <rect x="0" y="0" width="360" height="220" rx="12" fill="#08231d" />
+                <ellipse cx="180" cy="110" rx="100" ry="53"
+                  fill="url(#green-surface)" stroke="#86efac" strokeWidth="2" />
+                <g clipPath="url(#green-shape-clip)" fill="none">
+                  {greenRelief.contours.map((contour) => (
+                    <path key={contour.level} data-contour-level={contour.level.toFixed(2)} d={contour.path}
+                      stroke={contour.level < 0 ? '#7dd3fc' : contour.level > 0 ? '#fde68a' : '#f8fafc'}
+                      strokeOpacity={contour.major ? 0.9 : 0.65} strokeWidth={contour.major ? 1.6 : 0.9} />
+                  ))}
+                </g>
+                <text x="180" y="24" textAnchor="middle" fill="#d1fae5" fontSize="11" fontWeight="700">
+                  그린 {greenDimensions.widthYds}×{greenDimensions.lengthYds}yd · 목표 {formatDistance(recommendation.horizontalYds, distanceUnit)}
+                </text>
+                <g aria-label="그린 등고선 높낮이 범례">
+                  <circle cx={highReliefMapPoint.x} cy={highReliefMapPoint.y} r="8" fill="#fde68a" stroke="#fff" strokeWidth="1" />
+                  <text x={highReliefMapPoint.x} y={highReliefMapPoint.y + 3} textAnchor="middle" fill="#422006" fontSize="9" fontWeight="900">H</text>
+                  <circle cx={lowReliefMapPoint.x} cy={lowReliefMapPoint.y} r="8" fill="#7dd3fc" stroke="#fff" strokeWidth="1" />
+                  <text x={lowReliefMapPoint.x} y={lowReliefMapPoint.y + 3} textAnchor="middle" fill="#082f49" fontSize="9" fontWeight="900">L</text>
+                </g>
+                <g data-testid="green-elevation-legend">
+                  <line x1="120" y1="184" x2="143" y2="184" stroke="#fde68a" strokeWidth="2" />
+                  <text x="147" y="187" fill="#e2e8f0" fontSize="8">높음</text>
+                  <line x1="184" y1="184" x2="207" y2="184" stroke="#7dd3fc" strokeWidth="2" />
+                  <text x="211" y="187" fill="#e2e8f0" fontSize="8">낮음</text>
+                </g>
+                {hasExecutedShot && trajResult.landed && (
+                  <>
+                    {greenRoll.simulated && greenRoll.path.length > 1 && (
+                      <path data-testid="green-roll-path" d={greenRollPath} fill="none"
+                        stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="3 2" />
+                    )}
+                    <circle data-testid="green-flight-landing" cx={flightLandingMapPoint.x} cy={flightLandingMapPoint.y}
+                      r="4" fill={flightLandingWithinMap ? 'none' : '#ef4444'}
+                      stroke={flightLandingWithinMap ? '#38bdf8' : '#fff'} strokeWidth="1.5" />
+                    {greenRoll.simulated && (
+                      <line data-testid="pin-distance-line" x1={pinMapPoint.x} y1={pinMapPoint.y}
+                        x2={landingMapPoint.x} y2={landingMapPoint.y} stroke="#f9a8d4" strokeWidth="2.5" strokeDasharray="5 3" />
+                    )}
+                    <circle data-testid="green-landing" cx={landingMapPoint.x} cy={landingMapPoint.y} r="7"
+                      fill={!greenRoll.simulated ? '#ef4444' : greenRoll.leftGreen ? '#fb923c' : '#f472b6'}
+                      stroke="#fff" strokeWidth="2" />
+                  </>
+                )}
+                <g data-testid="green-pin" role="button" aria-label="그린 핀 위치, 드래그 또는 지도 선택으로 이동"
+                  aria-roledescription="이차원 핀 위치 조절" tabIndex={-1}
+                  transform={`translate(${pinMapPoint.x} ${pinMapPoint.y})`} pointerEvents="none">
+                  <line x1="0" y1="0" x2="0" y2="-18" stroke="#fff" strokeWidth="2" />
+                  <path d="M 0 -18 L 13 -14 L 0 -10 Z" fill="#fbbf24" stroke="#fff" strokeWidth="0.7" />
+                  <circle cx="0" cy="0" r="4" fill="#fbbf24" stroke="#fff" strokeWidth="1.5" />
+                </g>
+                {isAnimating && <rect x="0" y="0" width="360" height="220" rx="12" fill="#020617" fillOpacity="0.25" />}
+              </svg>
+              <p data-testid="pin-distance-label" aria-live="polite" className={`mt-1 text-center text-xs font-bold ${
+                hasExecutedShot && trajResult.landed ? 'text-pink-200' : 'text-slate-300'
+              }`}>
+                {!hasExecutedShot
+                  ? '샷 실행 후 핀까지의 직선거리와 굴림을 표시합니다'
+                  : !trajResult.landed
+                    ? '착지점 계산 불가 · 환경과 샷 조건을 확인하세요'
+                    : !greenRoll.simulated
+                      ? `그린 밖 착지 · 굴림 계산 안 함 · 핀까지 ${formatDistance(pinDistanceYds, distanceUnit)}`
+                      : greenRoll.leftGreen
+                        ? `그린 이탈 · 경계까지 굴림 ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)} · 이탈 지점에서 핀까지 ${formatDistance(pinDistanceYds, distanceUnit)}`
+                        : `공 정지점 ↔ 핀 직선거리 ${formatDistance(pinDistanceYds, distanceUnit)} · 굴림 ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)}`}
+              </p>
+              {hasExecutedShot && trajResult.landed && (
+                <p data-testid="green-roll-inputs" className="text-center text-[10px] text-slate-400">
+                  {activeClub.name} · 착지 {Math.hypot(trajResult.landingVxMs, trajResult.landingVzMs).toFixed(1)}m/s ·
+                  {' '}{trajResult.landingAngleDeg.toFixed(0)}° · 백스핀 {Math.round(trajResult.appliedLaunch.spinRateRpm)}rpm
+                </p>
+              )}
+              <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400">
+                <button type="button" onClick={() => {
+                  setPinPosition({ lateralYds: 0, forwardYds: 0 });
+                  setHasExecutedShot(false);
+                }} disabled={isAnimating}
+                  className="rounded border border-slate-700 px-2 py-1 font-bold text-slate-300 hover:border-emerald-400 hover:text-white disabled:opacity-50">
+                  핀 중앙으로
+                </button>
+              </div>
+              <details className="mt-1 text-[10px] text-slate-500">
+                <summary className="cursor-pointer">굴림 모델 안내</summary>
+                <p className="mt-1" data-testid="green-model-note">
+                  등고선 간격은 4cm(선 사이 높이 차)입니다. 클럽별 착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영합니다. 충돌·스핀 감쇠는 실측 보정 전 추정값이며 바운스·잔디결은 생략합니다. 모식 지형은 실측 그린이 아닙니다.
+                </p>
+                <p className="mt-1">핀 위치는 목표점 기준입니다. 핀만 옮기면 공의 굴림 경로는 그대로이고 핀까지 남은 거리만 바뀝니다.</p>
+              </details>
+            </section>
+            </>
           ) : (
-          <svg aria-label="측면 비행 궤적" viewBox="0 0 800 380" className="w-full h-full max-h-[520px] rounded-2xl border border-slate-800 shadow-2xl">
+          <svg aria-label="측면 비행 궤적" viewBox="0 0 800 380" className="w-full h-[360px] max-h-[520px] flex-none rounded-2xl border border-slate-800 shadow-2xl">
             <defs>
               {/* Vibrant Sky Gradient */}
               <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1352,9 +1808,10 @@ export default function App() {
               <p data-testid="recommendation">환경반영예상캐리 <strong>{formatDistance(trajResult.carryYds, distanceUnit)}</strong> (런 제외)</p>
               <p>{isCustom ? `적용 볼속도 ${activeClub.speed.toFixed(1)}mph` : `투어 평균 볼속도 ${activeClub.speed.toFixed(1)}mph`} · {isCustom ? '기준 캐리' : '클럽 풀샷 평균'} {formatDistance(activeClub.carry, distanceUnit)}</p>
               <p className="text-amber-200">라이: {getLie(lie).label} · 런 제외</p>
+              <p data-testid="aim-summary">조준점 {Math.abs(safeAimOffsetYds) < 0.05 ? '목표 중앙' : `${safeAimOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(safeAimOffsetYds), distanceUnit)}`} · 예상 착지 편차 {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}</p>
               <p className="text-slate-400">
-                {isCustom ? '입력 볼속도·발사각·스핀에 현재 환경을 적용한 수평 캐리와 미보정 궤적입니다. 목표 거리에 맞춰 샷을 변경하지 않습니다.'
-                  : '선택 투어·클럽의 평균 볼속도·발사각·스핀에 현재 환경을 적용한 풀샷입니다. 목표에 맞춰 볼속도나 조준을 변경하지 않습니다.'}
+                {isCustom ? '입력 볼속도·발사각·스핀과 지정한 좌우 조준점에 현재 환경을 적용한 수평 캐리와 궤적입니다.'
+                  : '선택 투어·클럽의 평균 볼속도·발사각·스핀과 지정한 좌우 조준점에 현재 환경을 적용한 풀샷입니다.'}
               </p>
             </div>
           )}
@@ -1721,6 +2178,7 @@ export default function App() {
             출발점을 높이 0으로 두고 스핀축과 상대풍속의 각도에 따라 양력을 줄입니다.
             레이저 거리와 고도 차이에서 수평 거리를 구해 예상캐리와 비교합니다.
             예상캐리는 목표선 방향 수평 성분이며, 좌우 편차는 별도로 표시합니다. 목표 높이의 수평면과 하강 궤적의 교점을 착지로 봅니다.
+            조준점 좌우 이동은 목표선 기준으로 입력하며, 음수는 좌측·양수는 우측입니다. 궤적과 착지 편차는 해당 조준점을 반영해 다시 계산합니다.
             투어 모드는 클럽 평균 풀샷, 선수개별맞춤은 입력 샷의 환경반영 예상캐리를 표시합니다.
             모든 거리·높이와 입력 단위는 화면 상단의 미터/야드 선택을 따릅니다.
             자동 추천은 목표 도달 가능성을 역산해 클럽만 선택하며, 표시 샷의 속도·조준은 바꾸지 않습니다.
