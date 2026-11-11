@@ -87,7 +87,7 @@ const TRACKMAN_SOURCE = 'https://www.trackman.media/tour-averages';
 const GREEN_STIMP_M = 3;
 const GREEN_STIMP_OPTIONS = [2, 2.5, 3, 3.5, 4] as const;
 const STIMP_TEST_SPEED_MS = 1.83;
-const LANDING_SPEED_TRANSFER = 0.28;
+const LANDING_SPEED_TRANSFER = 0.10;
 const SPIN_ROLLOUT_REFERENCE_RPM = 6000;
 const SPIN_ROLLOUT_SENSITIVITY = 0.35;
 const DEFAULT_GREEN_DIMENSIONS = { widthYds: 40, lengthYds: 24 };
@@ -258,6 +258,7 @@ function WindDirectionControl({ degrees, speed, unit, onChange }: {
           }
         }}>
         <title>클릭 또는 드래그로 풍향 조절 · 방향키 1° / Shift+방향키 15°</title>
+        <circle r="44" fill="transparent" pointerEvents="all" />
         <circle r="34" fill="#020617" stroke="#38bdf8" strokeWidth="2" />
         {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
           <line key={angle} x1="0" y1="-27" x2="0" y2="-32" stroke="#64748b" transform={`rotate(${angle})`} />
@@ -270,7 +271,7 @@ function WindDirectionControl({ degrees, speed, unit, onChange }: {
       <g pointerEvents="none" fill="#38bdf8" fontSize="12">
         <text x="46" y="-10" fontWeight="900">풍속 {Number(speed.toFixed(1))} {unit} · {degrees}°</text>
         <text x="46" y="9" fontSize="11">풍향계 클릭·드래그로 조절</text>
-        <text x="46" y="26" fontSize="10" fill="#94a3b8">화살표 = 바람이 부는 방향 · 목표 ↑ 기준</text>
+        <text x="46" y="26" fontSize="10" fill="#94a3b8">화살표 = 바람이 향하는 방향 · 목표 ↑ 기준</text>
       </g>
     </g>
   );
@@ -1122,7 +1123,9 @@ export default function App() {
     aimAngleDeg: 0,
     spinAxisDeg: isCustom ? personal.axis : 0,
   }, environment, false), [activeClub, isCustom, personal.axis, environment]);
-  const displayedDistance = carryReference.landed ? carryReference.carryYds : null;
+  const displayedDistance = isCustom
+    ? carryReference.landed ? carryReference.carryYds : null
+    : recommendation.playAsYds;
   const distanceAdjustment = displayedDistance === null ? null
     : displayedDistance - recommendation.horizontalYds;
   const targetError = targetValid ? null : `목표 거리는 ${formatDistance(50, distanceUnit, 4)}–${formatDistance(350, distanceUnit, 4)} 범위로 입력하세요. 입력을 수정할 때까지 궤적은 기본 목표 기준입니다.`;
@@ -1341,7 +1344,7 @@ export default function App() {
                 <li><strong className="text-white">시뮬레이션 선택:</strong> 투어 기준은 투어·클럽 평균 샷을, 선수 개별 맞춤은 선택한 클럽의 기준 캐리와 볼속도·발사각·스핀 입력값을 사용합니다. 개인 입력은 이 기기에 저장됩니다.</li>
                 <li><strong className="text-white">목표·조준 설정:</strong> 레이저 거리와 좌우 조준점 이동을 입력합니다. 좌측은 음수, 우측은 양수이며 조준점 이동은 핀 기준 좌우 거리입니다. 핀 위치·높낮이와 선택한 조준점이 실제 궤적에 반영됩니다.</li>
                 <li><strong className="text-white">환경 설정:</strong> 풍속·풍향, 기온, 그린 고도 차이, 강우, 잔디·라이를 입력합니다. 풍향계는 화살표 키로도 조정할 수 있습니다.</li>
-                <li><strong className="text-white">결과 확인:</strong> 환경 반영 예상 캐리는 런을 제외한 수평 거리입니다. 측면 보기에서 높이·비행을, 위에서 보기에서 좌우 편차를 확인하고 “샷 실행”으로 궤적을 재생합니다.</li>
+                <li><strong className="text-white">결과 확인:</strong> 상단 환경반영 권장거리는 목표를 맞추기 위한 평지 기준 캐리(맞바람이면 증가, 뒷바람이면 감소)입니다. 아래 상세 결과의 예상 캐리는 선택 클럽 풀샷 궤적의 수평 거리입니다. 측면 보기에서 높이·비행을, 위에서 보기에서 좌우 편차를 확인하고 “샷 실행”으로 궤적을 재생합니다.</li>
               </ol>
               <p className="mt-3 border-t border-slate-700 pt-2 leading-relaxed text-amber-200">
                 결과는 기준 자료와 모델 가정에 따른 추정치이며 실측 보장값이 아닙니다. 상세 가정과 한계는 화면 아래 “산출 방식과 한계”에서 확인하세요.
@@ -1413,7 +1416,7 @@ export default function App() {
           <div className="flex min-w-0 items-center justify-between gap-1 rounded-lg border border-indigo-500/40 bg-gradient-to-r from-indigo-950 to-slate-900 px-2 py-1.5">
             <div className="min-w-0">
               <span className="block text-[9px] font-bold uppercase tracking-wide text-indigo-300">
-                환경반영예상캐리
+                {isCustom ? '환경반영예상캐리' : '환경반영 권장거리'}
               </span>
               <div className="flex items-baseline gap-1">
                 <span data-testid="play-as" className="text-lg font-black leading-tight text-indigo-200">{displayWarning || displayedDistance === null ? '—' : formatDistance(displayedDistance, distanceUnit)}</span>
@@ -1421,7 +1424,10 @@ export default function App() {
             </div>
             <div className={`shrink-0 rounded-md px-1.5 py-1 text-[9px] font-black ${distanceAdjustment !== null && distanceAdjustment > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'}`}>
               {displayWarning || distanceAdjustment === null ? '입력·산출 확인'
-                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? '목표 일치' : `${formatDistance(Math.abs(distanceAdjustment), distanceUnit)} ${distanceAdjustment > 0 ? '김' : '짧음'}`}
+                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? '목표 일치'
+                  : `${formatDistance(Math.abs(distanceAdjustment), distanceUnit)} ${isCustom
+                    ? distanceAdjustment > 0 ? '김' : '짧음'
+                    : distanceAdjustment > 0 ? '더 필요' : '덜 필요'}`}
             </div>
           </div>
 
@@ -1511,7 +1517,7 @@ export default function App() {
               className="w-full max-w-[760px] flex-none rounded-2xl border border-emerald-500/40 bg-slate-900 p-3 shadow-xl">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-[10px] text-slate-400">그린을 눌러 핀 이동 · 방향키로 미세 조정</p>
+                  <p className="text-[10px] text-slate-400">깃발을 잡고 드래그하여 핀 이동 · 방향키로 미세 조정</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 text-[10px] text-slate-300">
                   <span>
@@ -1536,25 +1542,34 @@ export default function App() {
                 </label>
                 <label className="text-[10px] text-slate-400">
                   좌우 폭 (yd)
-                  <input aria-label="그린 좌우 폭 (yd)" data-testid="green-width" type="number" min="20" max="60" step="1"
+                  <select aria-label="그린 좌우 폭 (yd)" data-testid="green-width"
                     value={greenDimensions.widthYds}
                     onChange={(event) => updateGreenDimension('widthYds', event.target.value)}
                     disabled={isAnimating}
-                    className="mt-0.5 block w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-1 text-xs text-white disabled:opacity-50" />
+                    className="mt-0.5 block w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-1 text-xs text-white disabled:opacity-50">
+                    {Array.from({ length: 41 }, (_, index) => index + 20).map((value) => (
+                      <option key={value} value={value}>{value} yd</option>
+                    ))}
+                  </select>
                 </label>
                 <label className="text-[10px] text-slate-400">
                   전후 길이 (yd)
-                  <input aria-label="그린 전후 길이 (yd)" data-testid="green-length" type="number" min="12" max="40" step="1"
+                  <select aria-label="그린 전후 길이 (yd)" data-testid="green-length"
                     value={greenDimensions.lengthYds}
                     onChange={(event) => updateGreenDimension('lengthYds', event.target.value)}
                     disabled={isAnimating}
-                    className="mt-0.5 block w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-1 text-xs text-white disabled:opacity-50" />
+                    className="mt-0.5 block w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-1 text-xs text-white disabled:opacity-50">
+                    {Array.from({ length: 29 }, (_, index) => index + 12).map((value) => (
+                      <option key={value} value={value}>{value} yd</option>
+                    ))}
+                  </select>
                 </label>
               </div>
               <svg ref={greenMapRef} viewBox={`0 0 ${GREEN_MAP_SIZE.width} ${GREEN_MAP_SIZE.height}`} role="application" aria-label="그린 핀 위치 설정 지도"
                 data-testid="green-map" tabIndex={0} onKeyDown={handlePinKeyDown}
                 onPointerDown={(event) => {
-                  if (isAnimating) return;
+                  if (isAnimating || !(event.target instanceof SVGElement)
+                    || !event.target.closest('[data-testid="green-pin"]')) return;
                   event.currentTarget.setPointerCapture(event.pointerId);
                   updatePinFromPointer(event);
                 }}
@@ -1629,9 +1644,9 @@ export default function App() {
                     </circle>
                   </>
                 )}
-                <g data-testid="green-pin" role="button" aria-label="그린 핀 위치, 드래그 또는 지도 선택으로 이동"
+                <g data-testid="green-pin" role="button" aria-label="그린 핀 위치, 깃발을 드래그하여 이동"
                   aria-roledescription="이차원 핀 위치 조절" tabIndex={-1}
-                  transform={`translate(${pinMapPoint.x} ${pinMapPoint.y})`} pointerEvents="none">
+                  transform={`translate(${pinMapPoint.x} ${pinMapPoint.y})`} pointerEvents="visiblePainted">
                   <line x1="0" y1="0" x2="0" y2="-18" stroke="#fff" strokeWidth="2" />
                   <path d="M 0 -18 L 13 -14 L 0 -10 Z" fill="#fbbf24" stroke="#fff" strokeWidth="0.7" />
                   <circle cx="0" cy="0" r="4" fill="#fbbf24" stroke="#fff" strokeWidth="1.5" />
@@ -2004,22 +2019,36 @@ export default function App() {
             <p className="text-[11px] text-slate-400">
               맞바람/뒷바람 중 하나와 훅바람/슬라이스바람 중 하나를 조합할 수 있습니다.
               같은 축의 반대 바람은 교체되며, 선택한 항목을 다시 누르면 해당 성분을 해제합니다(최소 한 방향 유지).
-              두 성분 선택 시 45° 대각선으로 설정하며, 화면 풍향계를 클릭·드래그하거나 아래 각도로 1°씩 조정할 수 있습니다.
+              각도와 화살표는 바람이 향하는 방향 기준입니다. 목표를 위로 볼 때 0°/360°의 아래쪽 화살표는 맞바람, 180°의 위쪽 화살표는 뒷바람입니다.
+              맞바람은 일반적으로 캐리를 줄이고 뒷바람은 늘리며, 실제 차이는 샷 조건에 따라 달라집니다.
+              두 성분 선택 시 45° 대각선으로 설정하며, 화면 풍향계를 클릭·드래그하거나 아래 각도로 조정할 수 있습니다.
               풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s).
               선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다.
               목표가 위쪽일 때 화살표는 훅바람 ←, 슬라이스바람 →, 맞바람 ↓, 뒷바람 ↑로 표시됩니다.
             </p>
             </HelpDetails>
-            <input
-              type="range"
-              aria-label="풍향"
-              min="0"
-              max="360"
-              step="1"
-              value={windDirDeg}
-              onChange={(e) => setWindDirDeg(Number(e.target.value))}
-              className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                aria-label="풍향"
+                min="0"
+                max="359"
+                step="1"
+                value={windDirDeg}
+                onChange={(e) => setWindDirDeg(Number(e.target.value))}
+                className="min-w-0 flex-1 accent-sky-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+              <button type="button" aria-label="풍향 5도 감소"
+                onClick={() => setWindDirDeg(current => (current + 355) % 360)}
+                className="min-h-11 min-w-12 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm font-bold text-slate-200 active:bg-slate-700">
+                −5°
+              </button>
+              <button type="button" aria-label="풍향 5도 증가"
+                onClick={() => setWindDirDeg(current => (current + 5) % 360)}
+                className="min-h-11 min-w-12 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm font-bold text-slate-200 active:bg-slate-700">
+                +5°
+              </button>
+            </div>
           </div>
 
           <details className="rounded-xl border border-sky-500/30 bg-slate-900/70 p-3 text-xs text-slate-300">

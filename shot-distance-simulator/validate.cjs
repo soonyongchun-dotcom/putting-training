@@ -114,7 +114,10 @@ check(appMarkup.includes('골프 현장 공통 기준 · 잔디 드리프트 기
   'grass toss has a repeatable qualitative protocol without unsupported speed conversion');
 check(!appMarkup.includes('30° 이하: 약 1~2 m/s') && !appMarkup.includes('5 m/s에서 150야드 샷 기준 약 7~10야드'),
   'practical wind guide avoids unsupported precise flag-angle and crosswind conversions');
-check(/data-testid="play-as"[^>]*>[\d.]+yd</.test(appMarkup), 'main expected carry uses default yards');
+const defaultPlayAsMatch = appMarkup.match(/data-testid="play-as"[^>]*>([\d.]+)yd</);
+check(defaultPlayAsMatch !== null && Number(defaultPlayAsMatch[1]) > 150
+  && appMarkup.includes('환경반영 권장거리'),
+  'main recommendation shows the wind-adjusted play-as distance instead of full-club carry');
 check(appMarkup.includes('조준점 좌우 이동') && appMarkup.includes('좌측은 음수, 우측은 양수'),
   'aim-point control explains signed lateral offsets');
 check(!source.includes('그린 확대 · 핀 위치 설정')
@@ -140,6 +143,8 @@ check(source.includes('data-testid="green-marker-legend"')
   'green map distinguishes fixed flight landing from the Stimp-dependent roll endpoint');
 check(source.includes('data-testid="green-width"')
   && source.includes('data-testid="green-length"')
+  && source.includes('<select aria-label="그린 좌우 폭 (yd)"')
+  && source.includes('<select aria-label="그린 전후 길이 (yd)"')
   && source.includes("updateGreenDimension('widthYds'")
   && source.includes("updateGreenDimension('lengthYds'")
   && source.includes('widthYds: 40, lengthYds: 24')
@@ -150,7 +155,11 @@ check(source.includes('data-testid="green-width"')
   && source.includes('y1="340"')
   && source.includes('data-testid="green-map-size-label"')
   && source.includes('data-testid="green-roll-inputs"'),
-  'green dimensions use equal-distance scaling with size and elevation labels outside the green');
+  'green dimensions are mobile-selectable and use equal-distance scaling with size and elevation labels outside the green');
+check(source.includes("event.target.closest('[data-testid=\"green-pin\"]')")
+  && source.includes('pointerEvents="visiblePainted"')
+  && source.includes('깃발을 잡고 드래그하여 핀 이동'),
+  'green pin moves only when dragging the flag');
 check(/data-testid="recommendation"[^>]*>환경반영예상캐리 <strong>[\d.]+yd<\/strong>/.test(appMarkup),
   'analysis expected carry has no tour prefix');
 check(appMarkup.includes('투어기준시뮬레이션') && !appMarkup.includes('투어·클럽 시뮬레이션'), 'tour mode title updated');
@@ -216,9 +225,28 @@ for (const id of TOUR_IDS) {
     close(manual.trajectory.carryYds, manual.horizontalYds, 0.15, `${id}/${club.id} manual target`);
   }
 }
+const directionCheckLaunch = clubLaunch(bags.LPGA[0]);
+const directionCheckCalm = calculateTrajectory(directionCheckLaunch, REFERENCE_ENV, false).carryYds;
+for (const degrees of [1, 15, 345, 359]) {
+  const headward = calculateTrajectory(directionCheckLaunch,
+    { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: degrees }, false);
+  check(headward.carryYds < directionCheckCalm, `near-headwind angle ${degrees} reduces carry`);
+}
+for (const degrees of [165, 179, 181, 195]) {
+  const tailward = calculateTrajectory(directionCheckLaunch,
+    { ...REFERENCE_ENV, windSpeedMs: 5, windDirDeg: degrees }, false);
+  check(tailward.carryYds > directionCheckCalm, `near-tailwind angle ${degrees} increases carry`);
+}
 function recommend(id, target, overrides = {}, selected = 'AUTO') {
   return recommendShot(bags[id], target, { ...REFERENCE_ENV, ...overrides }, selected);
 }
+const headToTailPlayAs = [0, 315, 270, 225, 180].map(windDirDeg =>
+  recommend('LPGA', 140, { windSpeedMs: 5, windDirDeg }).playAsYds);
+check(headToTailPlayAs.every((distance, index) => index === 0 || distance < headToTailPlayAs[index - 1]),
+  '140-yard play-as distance decreases consistently from headwind through hook to tailwind');
+check(source.includes(': recommendation.playAsYds')
+  && source.includes("isCustom ? '환경반영예상캐리' : '환경반영 권장거리'"),
+  'main distance distinguishes play-as recommendation from custom full-shot carry');
 function reachable(rec, label) {
   check(!rec.warning, `${label}: ${rec.warning}`);
   check(rec.playAsYds !== null, `${label} missing recommendation`);
@@ -346,6 +374,24 @@ const steepLandingRoll = simulateGreenRoll({ ...rollFixture, landingAngleDeg: 65
   { lateralYds: 0, forwardYds: 0 }, 3);
 check(shallowLandingRoll.rollDistanceYds > steepLandingRoll.rollDistanceYds,
   'landing angle changes post-landing rollout');
+const wedgeUphillFixture = {
+  ...rollFixture, carryYds: 95, landingVzMs: 19.1, landingAngleDeg: 42,
+  appliedLaunch: { spinRateRpm: 9316 },
+};
+const wedgeUphillRoll = simulateGreenRoll(wedgeUphillFixture, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+const wedgeDownhillRoll = simulateGreenRoll({ ...wedgeUphillFixture, landingVzMs: -19.1 }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+const sevenIronUphillRoll = simulateGreenRoll({
+  ...wedgeUphillFixture, landingVzMs: 20.27, landingAngleDeg: 35.8,
+  appliedLaunch: { spinRateRpm: 6630 },
+}, 100, { lateralYds: 0, forwardYds: 0 }, 3);
+check(wedgeUphillRoll.rollDistanceYds <= 1,
+  'high-spin wedge landing uphill rolls no more than one yard at Stimp 3');
+check(wedgeDownhillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds,
+  'the same wedge rolls farther when landing downhill');
+check(sevenIronUphillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds,
+  'a lower-spin seven iron can roll farther than the uphill wedge');
 const wetRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3,
   undefined, { ...REFERENCE_ENV, rainLevel: 'HEAVY' });
 check(wetRoll.rollDistanceYds < baselineRoll.rollDistanceYds,
@@ -396,9 +442,11 @@ const outsideGreenRoll = simulateGreenRoll({ ...rollFixture, sideOffsetYds: 30 }
   { lateralYds: 0, forwardYds: 0 });
 check(!outsideGreenRoll.simulated && outsideGreenRoll.rollDistanceYds === 0,
   'roll is not simulated for a shot landing outside the green');
-const smallGreenRoll = simulateGreenRoll({ ...rollFixture, sideOffsetYds: 9, landingVxMs: 10, landingVzMs: 0 }, 100,
+const smallGreenShot = { ...rollFixture, sideOffsetYds: 9, landingVxMs: 25, landingVzMs: 0 };
+const smallGreenRoll = simulateGreenRoll(smallGreenShot, 100,
   { lateralYds: 0, forwardYds: 0 }, 3, { widthYds: 20, lengthYds: 10 });
-check(smallGreenRoll.leftGreen && smallGreenRoll.rollDistanceYds < baselineRoll.rollDistanceYds,
+const fullGreenRoll = simulateGreenRoll(smallGreenShot, 100, { lateralYds: 0, forwardYds: 0 }, 3);
+check(smallGreenRoll.leftGreen && smallGreenRoll.rollDistanceYds < fullGreenRoll.rollDistanceYds,
   'configured green dimensions change edge-out and roll distance');
 close(
   (smallGreenRoll.finalPoint.lateralYds / 10) ** 2 + (smallGreenRoll.finalPoint.forwardYds / 5) ** 2,
@@ -704,5 +752,11 @@ close(windDirectionFromPoint(0, 30), 0, 0, 'down arrow is headwind');
 close(windDirectionFromPoint(30, 0), 90, 0, 'right arrow is slice wind');
 close(windDirectionFromPoint(0, -30), 180, 0, 'up arrow is tailwind');
 close(windDirectionFromPoint(-30, 0), 270, 0, 'left arrow is hook wind');
+check(source.includes('<circle r="44" fill="transparent" pointerEvents="all" />')
+  && source.includes('aria-label="풍향 5도 감소"')
+  && source.includes('aria-label="풍향 5도 증가"')
+  && source.includes('aria-label="풍향"\n                min="0"\n                max="359"')
+  && source.includes('바람이 향하는 방향 기준'),
+  'wind direction controls have a larger touch target, no duplicate 360-degree endpoint, clear airflow convention and 5-degree buttons');
 console.log(`PASS ${assertions} numerical assertions`);
 if (!diagnostics.length) console.log('PASS strict TypeScript and unused-symbol checks');
