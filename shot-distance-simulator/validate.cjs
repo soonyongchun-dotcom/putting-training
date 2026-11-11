@@ -21,7 +21,7 @@ if (diagnostics.length) {
 }
 const result = { exports: {} };
 vm.runInNewContext(ts.transpileModule(source + `
-exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, aimAngleForOffset, clampPinPosition, greenMapPoint, greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity, GREEN_STIMP_OPTIONS };
+exports.engine = { TOURS, TOUR_IDS, REFERENCE_ENV, calibrateClub, clubLaunch, calculateTrajectory, recommendShot, resolvePersonalClub, readPersonalProfiles, projectTopView, aimAngleForOffset, clampPinPosition, greenMapPoint, greenMapGeometry, greenMapCoordinates, greenPinTarget, greenCenterLaserFromPinDistance, greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath, impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel, toggleWindDirection, isWindSelected, windDirectionFromPoint, WindDirectionControl, formatDistance, DistanceTick, PersonalClubEditor, DistanceInput, distanceFromYards, distanceToYards, distanceGrid, solveSpeed, solveAimedShot, getAirDensity, GREEN_STIMP_OPTIONS };
 `, { compilerOptions: { ...options, noEmit: false } }).outputText, {
   exports: result.exports, require,
 }, { filename });
@@ -30,6 +30,7 @@ const { resolvePersonalClub, readPersonalProfiles } = result.exports.engine;
 const { projectTopView } = result.exports.engine;
 const { aimAngleForOffset } = result.exports.engine;
 const { clampPinPosition, greenMapPoint } = result.exports.engine;
+const { greenMapGeometry, greenMapCoordinates, greenPinTarget, greenCenterLaserFromPinDistance } = result.exports.engine;
 const { greenElevationM, buildGreenRelief, simulateGreenRoll, greenRollSvgPath } = result.exports.engine;
 const { impactLaunch, LIE_OPTIONS, WIND_PRESETS, windDirectionLabel } = result.exports.engine;
 const { toggleWindDirection, isWindSelected } = result.exports.engine;
@@ -116,11 +117,11 @@ check(!appMarkup.includes('30° 이하: 약 1~2 m/s') && !appMarkup.includes('5 
 check(/data-testid="play-as"[^>]*>[\d.]+yd</.test(appMarkup), 'main expected carry uses default yards');
 check(appMarkup.includes('조준점 좌우 이동') && appMarkup.includes('좌측은 음수, 우측은 양수'),
   'aim-point control explains signed lateral offsets');
-check(source.includes('그린 확대 · 핀 위치 설정')
+check(!source.includes('그린 확대 · 핀 위치 설정')
   && source.includes('data-testid="green-map"')
   && source.includes('data-testid="green-pin"')
   && source.includes('data-testid="pin-distance-label"'),
-  'green view provides a movable pin and post-shot distance display');
+  'green view removes the redundant heading and provides a movable pin and post-shot distance display');
 check(source.includes('data-testid="green-stimp"')
   && source.includes('GREEN_STIMP_OPTIONS.map')
   && source.includes('등고선 간격은 4cm')
@@ -130,15 +131,26 @@ check(source.includes('aria-label="그린 스피드 (Stimp)"')
   && GREEN_STIMP_OPTIONS.join(',') === '2,2.5,3,3.5,4'
   && source.includes('useState<number>(GREEN_STIMP_M)'),
   'green speed selector offers multiple Stimp settings and defaults to 3m');
+check(source.includes('data-testid="green-marker-legend"')
+  && source.includes('공중 착지점')
+  && source.includes('굴림 후 정지점')
+  && source.includes('Stimp는 착지 후 굴림 거리만 바꿉니다')
+  && source.includes('[activeClub, isCustom, personal.axis, aimAngleDeg, environment]);')
+  && source.includes('[trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment]'),
+  'green map distinguishes fixed flight landing from the Stimp-dependent roll endpoint');
 check(source.includes('data-testid="green-width"')
   && source.includes('data-testid="green-length"')
   && source.includes("updateGreenDimension('widthYds'")
   && source.includes("updateGreenDimension('lengthYds'")
   && source.includes('widthYds: 40, lengthYds: 24')
   && source.includes('field === \'widthYds\' ? [20, 60] : [12, 40]')
-  && source.includes('<ellipse cx="180" cy="110" rx="100" ry="53"')
+  && source.includes('rx={greenMapLayout.rx} ry={greenMapLayout.ry}')
+  && source.includes('max-w-[760px]')
+  && source.includes('labelSpace: 20')
+  && source.includes('y1="340"')
+  && source.includes('data-testid="green-map-size-label"')
   && source.includes('data-testid="green-roll-inputs"'),
-  'tour-size green dimensions control the rendered and calculated ellipse');
+  'green dimensions use equal-distance scaling with size and elevation labels outside the green');
 check(/data-testid="recommendation"[^>]*>환경반영예상캐리 <strong>[\d.]+yd<\/strong>/.test(appMarkup),
   'analysis expected carry has no tour prefix');
 check(appMarkup.includes('투어기준시뮬레이션') && !appMarkup.includes('투어·클럽 시뮬레이션'), 'tour mode title updated');
@@ -298,6 +310,17 @@ check(relief.contours.length === 9 && relief.contours.some(contour => contour.pa
 check(relief.high.heightM > relief.low.heightM
   && greenElevationM(relief.high.lateralYds, relief.high.forwardYds) > greenElevationM(relief.low.lateralYds, relief.low.forwardYds),
   'high and low contour markers match modeled terrain');
+const mainApex = greenElevationM(-8, 2);
+const secondaryApex = greenElevationM(7.5, -4);
+check(mainApex > secondaryApex
+  && secondaryApex > greenElevationM(5.5, -4)
+  && secondaryApex > greenElevationM(9.5, -4)
+  && secondaryApex > greenElevationM(7.5, -6)
+  && secondaryApex > greenElevationM(7.5, -2),
+  'green relief has one dominant broad apex and a separate, lower rounded rise');
+check(greenElevationM(1, 7) < greenElevationM(1, 4)
+  && greenElevationM(4, 1) < greenElevationM(0, 1),
+  'green relief blends into a low area and retains one steeper shoulder');
 const rollFixture = {
   landed: true, carryYds: 100, sideOffsetYds: 0,
   landingVxMs: 0, landingVzMs: 15, landingAngleDeg: 45,
@@ -346,6 +369,23 @@ const terrainRolls = [-3, 0, 3].map(forwardOffset =>
     { lateralYds: 0, forwardYds: 0 }, 3).rollDistanceYds);
 check(Math.max(...terrainRolls) - Math.min(...terrainRolls) > 0.01,
   'rolling distance responds to landing on different modeled terrain');
+const downhillRoll = simulateGreenRoll({ ...rollFixture, landingVzMs: 15 }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+const uphillRoll = simulateGreenRoll({ ...rollFixture, landingVzMs: -15 }, 100,
+  { lateralYds: 0, forwardYds: 0 }, 3);
+check(downhillRoll.rollDistanceYds > uphillRoll.rollDistanceYds,
+  'downhill green slope extends rollout compared with the same uphill shot');
+const shoulderDownhillShot = { ...rollFixture, sideOffsetYds: 2, landingVxMs: 15, landingVzMs: 0 };
+const shoulderUphillShot = { ...shoulderDownhillShot, landingVxMs: -15 };
+const shoulderDownhillFast = simulateGreenRoll(shoulderDownhillShot, 100,
+  { lateralYds: 0, forwardYds: 0 }, 4);
+const shoulderDownhillSlow = simulateGreenRoll(shoulderDownhillShot, 100,
+  { lateralYds: 0, forwardYds: 0 }, 2);
+const shoulderUphillFast = simulateGreenRoll(shoulderUphillShot, 100,
+  { lateralYds: 0, forwardYds: 0 }, 4);
+check(shoulderDownhillFast.rollDistanceYds > shoulderUphillFast.rollDistanceYds * 1.8
+  && shoulderDownhillFast.rollDistanceYds > shoulderDownhillSlow.rollDistanceYds * 2,
+  'fast green rollout is strongly extended down the steeper shoulder and remains shorter uphill');
 check(baselineRoll.distanceToPinYds > 0
   && baselineRoll.distanceToPinYds === Math.hypot(baselineRoll.finalPoint.lateralYds, baselineRoll.finalPoint.forwardYds),
   'post-roll remaining distance is measured directly from the pin');
@@ -382,8 +422,58 @@ check(clampPinPosition(Number.NaN, Number.POSITIVE_INFINITY).lateralYds === 0
   && clampPinPosition(Number.NaN, Number.POSITIVE_INFINITY).forwardYds === 0,
   'pin coordinates recover safely from nonfinite input');
 const mapPoint = greenMapPoint(-3, 2);
-close(mapPoint.x, 165, 1e-10, 'left pin maps left on green');
-close(mapPoint.y, 101.16666666666667, 1e-10, 'forward pin maps toward the far side of green');
+const mapGeometry = greenMapGeometry();
+close(mapGeometry.rx / 20, mapGeometry.ry / 12, 1e-10, 'green map uses the same SVG scale for yards in both directions');
+for (const dimensions of [{ widthYds: 20, lengthYds: 12 }, { widthYds: 60, lengthYds: 40 }]) {
+  const geometry = greenMapGeometry(dimensions);
+  close(geometry.rx / (dimensions.widthYds / 2), geometry.ry / (dimensions.lengthYds / 2), 1e-10,
+    'resized green keeps the same yard-to-pixel scale on both axes');
+  check(geometry.centerY - geometry.ry >= 40 && geometry.centerY + geometry.ry <= 320,
+    'green remains clear of size and elevation labels for supported dimensions');
+}
+close(mapPoint.x, 190, 1e-10, 'left pin maps left on green');
+close(mapPoint.y, 160, 1e-10, 'forward pin maps toward the far side of green below the map header');
+const recoveredMapPosition = greenMapCoordinates(mapPoint.x, mapPoint.y);
+close(recoveredMapPosition.lateralYds, -3, 1e-10, 'enlarged map pointer x converts back to yards');
+close(recoveredMapPosition.forwardYds, 2, 1e-10, 'enlarged map pointer y converts back to yards');
+const highPinTarget = greenPinTarget(140, relief.high, REFERENCE_ENV);
+const lowPinTarget = greenPinTarget(140, relief.low, REFERENCE_ENV);
+check(highPinTarget.elevationDeltaM > lowPinTarget.elevationDeltaM,
+  'pin target height follows the selected contour elevation');
+check(highPinTarget.targetLateralYds === relief.high.lateralYds
+  && highPinTarget.targetForwardYds === highPinTarget.centerHorizontalYds + relief.high.forwardYds,
+  'pin target coordinates include its green position');
+const highPinRecommendation = recommendShot(bags.LPGA, highPinTarget.laserDistanceYds,
+  highPinTarget.environment, '7I');
+close(highPinRecommendation.horizontalYds, highPinTarget.horizontalYds, 1e-8,
+  'shot recommendation solves for the actual pin position and elevation');
+for (const pin of [relief.high, relief.low, { lateralYds: 0, forwardYds: 0 }]) {
+  const centerLaserYds = greenCenterLaserFromPinDistance(140, pin, REFERENCE_ENV);
+  const target = greenPinTarget(centerLaserYds, pin, REFERENCE_ENV);
+  close(target.laserDistanceYds, 140, 1e-8, 'editing laser distance recovers the center reference for each pin location');
+}
+const pinMovedTarget = greenPinTarget(
+  greenCenterLaserFromPinDistance(140, relief.high, REFERENCE_ENV), relief.high, REFERENCE_ENV);
+const sameLaserMovedTarget = greenPinTarget(
+  greenCenterLaserFromPinDistance(140, relief.low, REFERENCE_ENV), relief.low, REFERENCE_ENV);
+close(pinMovedTarget.laserDistanceYds, sameLaserMovedTarget.laserDistanceYds, 1e-8,
+  'same displayed laser distance remains identical across pin elevations');
+check(Math.abs(pinMovedTarget.elevationDeltaM - sameLaserMovedTarget.elevationDeltaM) > 0.01,
+  'equal pin laser distances preserve the different target elevation for club fitting');
+const fixedClubCarryAtHighPin = calculateTrajectory(clubLaunch(sample), REFERENCE_ENV, false).carryYds;
+const fixedClubCarryAtLowPin = calculateTrajectory(clubLaunch(sample), REFERENCE_ENV, false).carryYds;
+close(fixedClubCarryAtHighPin, fixedClubCarryAtLowPin, 0,
+  'fixed-club environmental carry is independent of pin terrain and aim');
+check(source.includes('}, environment), [activeClub, isCustom, personal.axis, aimAngleDeg, environment]);')
+  && source.includes('aimAngleDeg: 0,')
+  && source.includes('}, environment, false), [activeClub, isCustom, personal.axis, environment]);'),
+  'displayed full-shot carry uses the pin-independent environment and reference heading');
+const pinAimAngle = aimAngleForOffset(highPinTarget.targetLateralYds, highPinTarget.targetForwardYds);
+close(Math.tan(pinAimAngle * Math.PI / 180),
+  highPinTarget.targetLateralYds / highPinTarget.targetForwardYds, 1e-10,
+  'default aim direction points at the elevated pin');
+const pinTopView = projectTopView(calculateTrajectory(clubLaunch(sample)), 140, 1, 'yd', 0, relief.high);
+close(pinTopView.target.x, pinTopView.aimTarget.x, 1e-10, 'top-view target and default aim point share the pin position');
 close(aimAngleForOffset(-11, 140), Math.atan2(-11, 140) * 180 / Math.PI, 1e-10,
   'left aim offset converts to leftward launch angle');
 check(aimAngleForOffset(11, 140) > 0 && aimAngleForOffset(-11, 140) < 0,
