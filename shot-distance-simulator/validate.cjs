@@ -149,7 +149,7 @@ check(source.includes('data-testid="green-marker-legend"')
   && source.includes('굴림 후 정지점')
   && source.includes('Stimp는 착지 후 굴림 거리만 바꿉니다')
   && source.includes('[activeClub, isCustom, personal.axis, aimAngleDeg, environment]);')
-  && source.includes('[trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment]'),
+  && source.includes('[trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment, activeClub.id]'),
   'green map distinguishes fixed flight landing from the Stimp-dependent roll endpoint');
 check(source.includes('data-testid="green-width"')
   && source.includes('data-testid="green-length"')
@@ -168,8 +168,19 @@ check(source.includes('data-testid="green-width"')
   'green dimensions are mobile-selectable and use equal-distance scaling with size and elevation labels outside the green');
 check(source.includes("event.target.closest('[data-testid=\"green-pin\"]')")
   && source.includes('pointerEvents="visiblePainted"')
-  && source.includes('깃발을 잡고 드래그하여 핀 이동'),
-  'green pin moves only when dragging the flag');
+  && source.includes('깃발을 잡고 드래그하여 핀 이동')
+  && source.includes('data-testid="green-pin-flag"')
+  && source.includes('fill="#c084fc"')
+  && source.includes('data-testid="green-pin-hit-area"'),
+  'green pin uses a detailed, contour-distinct flag with a forgiving drag target');
+check(source.includes('data-testid="green-roll-path" d={greenRollPath} fill="none"')
+  && source.includes('stroke="#67e8f9" strokeWidth="1.35"')
+  && source.includes('data-testid="pin-distance-line"')
+  && source.includes('strokeWidth="1.25" strokeDasharray="2 3"')
+  && source.includes('data-testid="green-landing"')
+  && source.includes('r="4.25"')
+  && source.includes("greenRoll.leftGreen ? '#fb923c' : '#e879f9'"),
+  'green roll lines and final marker use a lighter, smaller visual treatment');
 check(/data-testid="recommendation"[^>]*>환경반영예상캐리 <strong>[\d.]+yd<\/strong>/.test(appMarkup),
   'analysis expected carry has no tour prefix');
 check(appMarkup.includes('투어기준시뮬레이션') && !appMarkup.includes('투어·클럽 시뮬레이션'), 'tour mode title updated');
@@ -365,6 +376,12 @@ const rollFixture = {
   appliedLaunch: { spinRateRpm: 6000 },
 };
 const baselineRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3);
+const ironTransferRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3,
+  undefined, REFERENCE_ENV, '7I');
+const wedgeTransferRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 3,
+  undefined, REFERENCE_ENV, 'PW');
+check(ironTransferRoll.rollDistanceYds > wedgeTransferRoll.rollDistanceYds * 5,
+  'only wedge clubs use the reduced landing-speed transfer');
 const slowGreenRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 2);
 const fastGreenRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 0, forwardYds: 0 }, 4);
 const relocatedPinRoll = simulateGreenRoll(rollFixture, 100, { lateralYds: 5, forwardYds: 0 }, 3);
@@ -391,13 +408,13 @@ const wedgeUphillFixture = {
   appliedLaunch: { spinRateRpm: 9316 },
 };
 const wedgeUphillRoll = simulateGreenRoll(wedgeUphillFixture, 100,
-  { lateralYds: 0, forwardYds: 0 }, 3);
+  { lateralYds: 0, forwardYds: 0 }, 3, undefined, REFERENCE_ENV, 'GW');
 const wedgeDownhillRoll = simulateGreenRoll({ ...wedgeUphillFixture, landingVzMs: -19.1 }, 100,
-  { lateralYds: 0, forwardYds: 0 }, 3);
+  { lateralYds: 0, forwardYds: 0 }, 3, undefined, REFERENCE_ENV, 'GW');
 const sevenIronUphillRoll = simulateGreenRoll({
   ...wedgeUphillFixture, landingVzMs: 20.27, landingAngleDeg: 35.8,
   appliedLaunch: { spinRateRpm: 6630 },
-}, 100, { lateralYds: 0, forwardYds: 0 }, 3);
+}, 100, { lateralYds: 0, forwardYds: 0 }, 3, undefined, REFERENCE_ENV, '7I');
 check(wedgeUphillRoll.rollDistanceYds <= 1,
   'high-spin wedge landing uphill rolls no more than one yard at Stimp 3');
 check(wedgeDownhillRoll.rollDistanceYds > wedgeUphillRoll.rollDistanceYds,
@@ -473,7 +490,8 @@ smallGreenRoll.rollDistanceYds, 1e-8, 'reported edge-out distance matches displa
 const clubRollDistances = ['D', '7I', '5I', 'PW'].map(id => {
   const club = bags.LPGA.find(value => value.id === id);
   const flight = calculateTrajectory(clubLaunch(club));
-  return simulateGreenRoll(flight, club.carry, { lateralYds: 0, forwardYds: 0 }).rollDistanceYds;
+  return simulateGreenRoll(flight, club.carry, { lateralYds: 0, forwardYds: 0 }, 3,
+    undefined, REFERENCE_ENV, club.id).rollDistanceYds;
 });
 check(new Set(clubRollDistances.map(value => value.toFixed(2))).size > 1,
   'different club launch and backspin inputs produce different landing roll estimates');

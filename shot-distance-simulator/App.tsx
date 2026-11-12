@@ -87,7 +87,8 @@ const TRACKMAN_SOURCE = 'https://www.trackman.media/tour-averages';
 const GREEN_STIMP_M = 3;
 const GREEN_STIMP_OPTIONS = [2, 2.5, 3, 3.5, 4] as const;
 const STIMP_TEST_SPEED_MS = 1.83;
-const LANDING_SPEED_TRANSFER = 0.23;
+const LANDING_SPEED_TRANSFER = 0.28;
+const WEDGE_LANDING_SPEED_TRANSFER = 0.10;
 const LANDING_ANGLE_EXPONENT = 1.5;
 const SPIN_ROLLOUT_REFERENCE_RPM = 6000;
 const SPIN_ROLLOUT_SENSITIVITY = 0.5;
@@ -779,6 +780,7 @@ function simulateGreenRoll(
   stimpM = GREEN_STIMP_M,
   dimensions = DEFAULT_GREEN_DIMENSIONS,
   environment: Environment = REFERENCE_ENV,
+  clubId = '',
 ): GreenRollResult {
   const start = { lateralYds: trajectory.sideOffsetYds, forwardYds: trajectory.carryYds - targetYds };
   const distanceToPin = (point: GreenPoint) => Math.hypot(point.lateralYds - pin.lateralYds, point.forwardYds - pin.forwardYds);
@@ -791,7 +793,9 @@ function simulateGreenRoll(
   const angleTransfer = Math.max(0.15, Math.max(0, Math.cos(landingAngle * Math.PI / 180)) ** LANDING_ANGLE_EXPONENT);
   const spinRatio = Math.max(0, appliedSpin) / SPIN_ROLLOUT_REFERENCE_RPM;
   const spinTransfer = 1 / (1 + SPIN_ROLLOUT_SENSITIVITY * spinRatio ** SPIN_ROLLOUT_EXPONENT);
-  const landingSpeedTransfer = LANDING_SPEED_TRANSFER * angleTransfer * spinTransfer;
+  const clubLandingSpeedTransfer = ['PW', 'GW', 'SW', 'LW'].includes(clubId)
+    ? WEDGE_LANDING_SPEED_TRANSFER : LANDING_SPEED_TRANSFER;
+  const landingSpeedTransfer = clubLandingSpeedTransfer * angleTransfer * spinTransfer;
   let vx = trajectory.landingVxMs * landingSpeedTransfer;
   let vz = trajectory.landingVzMs * landingSpeedTransfer;
   const initialSpeed = Math.hypot(vx, vz);
@@ -1153,8 +1157,8 @@ export default function App() {
   const sideOffsetYds = trajResult.sideOffsetYds;
   const greenRelief = useMemo(() => buildGreenRelief(greenDimensions), [greenDimensions]);
   const greenRoll = useMemo(
-    () => simulateGreenRoll(trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment),
-    [trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment],
+    () => simulateGreenRoll(trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment, activeClub.id),
+    [trajResult, greenTarget.centerHorizontalYds, pinPosition, greenStimpM, greenDimensions, environment, activeClub.id],
   );
   const greenMapLayout = greenMapGeometry(greenDimensions);
   const pinMapPoint = greenMapPoint(pinPosition.lateralYds, pinPosition.forwardYds, greenDimensions);
@@ -1658,20 +1662,21 @@ export default function App() {
                   <>
                     {greenRoll.simulated && greenRoll.path.length > 1 && (
                       <path data-testid="green-roll-path" d={greenRollPath} fill="none"
-                        stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="3 2" />
+                        stroke="#67e8f9" strokeWidth="1.35" strokeDasharray="2 2.5" strokeLinecap="round" />
                     )}
                     <circle data-testid="green-flight-landing" cx={flightLandingMapPoint.x} cy={flightLandingMapPoint.y}
-                      r="4" fill={flightLandingWithinMap ? 'none' : '#ef4444'}
-                      stroke={flightLandingWithinMap ? '#38bdf8' : '#fff'} strokeWidth="1.5">
+                      r="3" fill={flightLandingWithinMap ? 'none' : '#ef4444'}
+                      stroke={flightLandingWithinMap ? '#67e8f9' : '#fff'} strokeWidth="1.25">
                       <title>공중 착지점</title>
                     </circle>
                     {greenRoll.simulated && (
                       <line data-testid="pin-distance-line" x1={pinMapPoint.x} y1={pinMapPoint.y}
-                        x2={landingMapPoint.x} y2={landingMapPoint.y} stroke="#f9a8d4" strokeWidth="2.5" strokeDasharray="5 3" />
+                        x2={landingMapPoint.x} y2={landingMapPoint.y} stroke="#f5d0fe" strokeOpacity="0.8"
+                        strokeWidth="1.25" strokeDasharray="2 3" strokeLinecap="round" />
                     )}
-                    <circle data-testid="green-landing" cx={landingMapPoint.x} cy={landingMapPoint.y} r="7"
-                      fill={!greenRoll.simulated ? '#ef4444' : greenRoll.leftGreen ? '#fb923c' : '#f472b6'}
-                      stroke="#fff" strokeWidth="2">
+                    <circle data-testid="green-landing" cx={landingMapPoint.x} cy={landingMapPoint.y} r="4.25"
+                      fill={!greenRoll.simulated ? '#ef4444' : greenRoll.leftGreen ? '#fb923c' : '#e879f9'}
+                      stroke="#fff" strokeWidth="1.25">
                       <title>굴림 후 공 정지점</title>
                     </circle>
                   </>
@@ -1679,9 +1684,14 @@ export default function App() {
                 <g data-testid="green-pin" role="button" aria-label="그린 핀 위치, 깃발을 드래그하여 이동"
                   aria-roledescription="이차원 핀 위치 조절" tabIndex={-1}
                   transform={`translate(${pinMapPoint.x} ${pinMapPoint.y})`} pointerEvents="visiblePainted">
-                  <line x1="0" y1="0" x2="0" y2="-18" stroke="#fff" strokeWidth="2" />
-                  <path d="M 0 -18 L 13 -14 L 0 -10 Z" fill="#fbbf24" stroke="#fff" strokeWidth="0.7" />
-                  <circle cx="0" cy="0" r="4" fill="#fbbf24" stroke="#fff" strokeWidth="1.5" />
+                  <circle data-testid="green-pin-hit-area" cx="4" cy="-8" r="12" fill="transparent" />
+                  <path d="M 0 -2 V -16" fill="none" stroke="#f8fafc" strokeWidth="1.4" strokeLinecap="round" />
+                  <path data-testid="green-pin-flag" d="M 0 -15 C 4 -17 8 -13 12 -14 L 11 -8 C 7 -7 4 -10 0 -8 Z"
+                    fill="#c084fc" stroke="#f5d0fe" strokeWidth="0.75" strokeLinejoin="round" />
+                  <path d="M 2 -14.5 C 5 -15 7 -12.5 10 -12.5" fill="none" stroke="#fff" strokeOpacity="0.7"
+                    strokeWidth="0.65" strokeLinecap="round" />
+                  <circle cx="0" cy="0" r="3.2" fill="#0f172a" stroke="#f8fafc" strokeWidth="1.1" />
+                  <circle cx="0" cy="0" r="1.15" fill="#c084fc" />
                 </g>
                 {isAnimating && <rect x="0" y="0" width={GREEN_MAP_SIZE.width} height={GREEN_MAP_SIZE.height}
                   rx="12" fill="#020617" fillOpacity="0.25" />}
@@ -1692,7 +1702,7 @@ export default function App() {
                   공중 착지점
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full border border-white bg-pink-400" />
+                  <span className="inline-block h-2 w-2 rounded-full border border-white bg-fuchsia-400" />
                   굴림 후 정지점
                 </span>
                 <span className="text-slate-400">Stimp는 착지 후 굴림 거리만 바꿉니다</span>
