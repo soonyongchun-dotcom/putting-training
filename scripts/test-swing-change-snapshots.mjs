@@ -381,7 +381,8 @@ function setupComparisonCharts() {
     createTextNode: text => text,
   };
   context.swingChangeResults = new Element('div');
-  for (const name of ['createGraphSvgElement', 'getSwingChangeCheckpointPhase', 'createSwingChangeChart', 'renderSwingChangeComparison']) {
+  for (const name of ['createGraphSvgElement', 'getSwingChangeCheckpointPhase', 'getSwingChangePhasePoint',
+    'createSwingChangeChart', 'createSwingChangeDisplacementTable', 'renderSwingChangeComparison']) {
     vm.runInContext(html.match(new RegExp(`  function ${name}\\([\\s\\S]*?\\n  }`))[0], context);
   }
   context.swingChangeRecords = [0, 1].map(index => {
@@ -396,6 +397,79 @@ function setupComparisonCharts() {
   context.swingChangeRecords.forEach(record => context.swingChangeSelectedIds.add(record.id));
   return context;
 }
+
+test('displacement tabs select top, waist and impact values and deltas without resetting graphs', () => {
+  const context = setupComparisonCharts();
+  context.swingChangeRecords.forEach((record, index) => {
+    for (const key of Object.keys(record.snapshot.graphs)) {
+      record.snapshot.graphs[key] = [
+        { x: 0, y: 0, phase: 'address', progress: 0 },
+        { x: index ? -6 : -3, y: index ? 8 : 4, phase: 'top', progress: 40 },
+        { x: index ? 9 : 6, y: index ? 12 : 8,
+          phase: key === 'sideHand' ? 'downP6' : key === 'frontHand' ? 'frame2-side' : 'F2 B/F5 B', progress: 80 },
+        { x: index ? 8 : 5, y: index ? 15 : 12, phase: 'impact', progress: 100 },
+      ];
+    }
+  });
+  context.renderSwingChangeComparison();
+  const charts = context.swingChangeResults.children.slice(0, 5);
+  charts[2].open = true;
+  const c7Checkbox = charts[2].querySelectorAll('input')[0];
+  c7Checkbox.checked = false;
+  const section = context.swingChangeResults.children[5];
+  const buttons = section.querySelectorAll('button');
+  const values = () => section.querySelectorAll('tbody')[0].children.map(row => row.children.slice(1).map(cell => cell.textContent));
+  assert.deepEqual(buttons.map(button => button.textContent), ['Backswing top', 'Waist level', 'Impact']);
+  assert.deepEqual(values(), Array.from({ length: 4 }, () => ['13.0%', '17.0%']));
+  for (const [index, phase, expected, delta] of [
+    [0, 'top', ['5.0%', '10.0%'], '+5.0%p'],
+    [1, 'downP6', ['10.0%', '15.0%'], '+5.0%p'],
+    [2, 'impact', ['13.0%', '17.0%'], '+4.0%p'],
+  ]) {
+    buttons[index].listeners.click();
+    assert.equal(section.attributes['data-displacement-phase'], phase);
+    assert.equal(buttons[index].attributes['aria-pressed'], 'true');
+    assert.equal(buttons.filter(button => button.attributes['aria-pressed'] === 'true').length, 1);
+    assert.deepEqual(values(), Array.from({ length: 4 }, () => expected));
+    assert.ok(section.querySelectorAll('p').some(p => p.textContent.includes(`Front C7 ${delta}`)));
+    charts.forEach((chart, i) => assert.equal(context.swingChangeResults.children[i], chart));
+    assert.equal(charts[2].open, true);
+    assert.equal(c7Checkbox.checked, false);
+  }
+});
+
+test('checkpoint tables never replace missing waist or impact input with an arbitrary endpoint', () => {
+  const context = setupComparisonCharts();
+  const points = [
+    { x: 0, y: 0, phase: 'F1 A', progress: 0 },
+    { x: 3, y: 4, phase: 'F1 B', progress: 30 },
+    { x: 30, y: 40, phase: 'F3 B', progress: 95 },
+  ];
+  assert.equal(context.getSwingChangePhasePoint(points, 'top'), points[1]);
+  assert.equal(context.getSwingChangePhasePoint(points, 'impact'), null);
+  assert.equal(context.getSwingChangePhasePoint(points, 'downP6'), null);
+  for (const marker of ['F2 B', 'F5 B', 'F6 A', 'frame5-side', 'frame6-front', 'downP6']) {
+    const waist = { x: 6, y: 8, phase: marker, progress: 80 };
+    assert.equal(context.getSwingChangePhasePoint([...points, waist], 'downP6'), waist);
+  }
+  const f2 = { x: 6, y: 8, phase: 'F2 B', progress: 80 };
+  const f5 = { x: 9, y: 12, phase: 'F5 B', progress: 81 };
+  assert.equal(context.getSwingChangePhasePoint([f5, f2], 'downP6'), f2);
+  assert.equal(context.getSwingChangePhasePoint([{ ...f2, progress: 100 }], 'downP6'), null);
+  assert.equal(context.getSwingChangePhasePoint([{ ...f2, phase: 'F1 B/F2 B' }], 'downP6'), null);
+  assert.equal(context.getSwingChangePhasePoint([{ ...f2, phase: 'F4 B', progress: 95 }], 'impact'), null);
+  context.swingChangeRecords.forEach(record => {
+    for (const key of Object.keys(record.snapshot.graphs)) record.snapshot.graphs[key] = points;
+  });
+  context.renderSwingChangeComparison();
+  const section = context.swingChangeResults.children[5];
+  for (const button of [section.querySelectorAll('button')[1], section.querySelectorAll('button')[2]]) {
+    button.listeners.click();
+    assert.ok(section.querySelectorAll('tbody')[0].children.every(row =>
+      row.children.slice(1).every(cell => cell.textContent === '—')));
+    assert.ok(section.querySelectorAll('p').some(p => p.textContent.includes('Front C7 —')));
+  }
+});
 
 test('comparison shows separate hand paths and C7/core XY, signed X and signed Y graphs', () => {
   const context = setupComparisonCharts();

@@ -54,6 +54,8 @@ Front C7/core raw inputs are grouped and sorted by saved video time, not frame I
 
 Analysis 2/3 and comparison front graphs share direction labels through `getFrontGraphDirectionLabels`: for right-handed, unmirrored face-on footage, +X (image right) is player left/target side and -X is player right/backswing side. Coordinates, saved percentages, and scoring are unchanged; no handedness detection or automatic mirroring is added. Side-hand graphs retain image-left/right labels. The assumption and exceptions appear in the graph notes and are included in PDFs.
 
+The displacement table has backswing-top, waist-level and impact selectors beside its title (default: impact). Each selection shows the address-relative XY magnitude and corresponding record deltas, without rebuilding charts or resetting their disclosures/series. Explicit saved checkpoint labels are required; missing checkpoints show a dash rather than the last point. Front waist samples prefer F2 B, then F5 B or F6 A; side samples use `downP6`. Existing canonical and legacy top/impact labels are supported. PDF export retains the selected table checkpoint. Percentages retain each view's address reference length; no schema or scoring changes are needed.
+
 ## If coach sees no existing data
 1. Run sql/04_rls_hotfix_jwt_helpers.sql
 2. Logout/login again and refresh
