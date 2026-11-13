@@ -14547,13 +14547,11 @@
     const playerName = selection.playerName
       || swingChangePlayers.find(player => player.id === selection.playerId)?.name
       || selection.playerId || getSwingUiText('미등록 선수', 'Unregistered player');
-    const clubName = selection.clubType === 'driver' ? getSwingUiText('드라이버', 'Driver')
-      : selection.clubType === 'iron' ? getSwingUiText('아이언', 'Iron') : getSwingUiText('클럽 미지정', 'No club selected');
     return {
       id, player_id: selection.playerId || 'unregistered', playerName,
       clubType: selection.clubType || '', session_date: sessionDate,
       label: fileName, snapshot,
-      displayLabel: `${playerName} · ${clubName} · ${sessionDate}`,
+      displayLabel: fileName,
     };
   }
 
@@ -14761,13 +14759,14 @@
     }
     const dateLegend = document.createElement('div');
     dateLegend.className = 'swing-change-legend';
+    const graphLabels = records.map(record => record.label || record.displayLabel || record.session_date);
     records.forEach((record, index) => {
       if (!series.some(item => item.recordIndex === index)) return;
       const item = document.createElement('span');
       const swatch = document.createElement('i');
       swatch.className = 'swing-change-swatch';
       swatch.style.borderColor = colors[index % colors.length];
-      item.append(swatch, document.createTextNode(record.displayLabel || record.session_date));
+      item.append(swatch, document.createTextNode(graphLabels[index]));
       dateLegend.append(item);
     });
     const checkpoints = [];
@@ -14785,7 +14784,7 @@
         const phaseLabel = phase === 'address' ? getSwingUiText('어드레스', 'Address')
           : phase === 'top' ? getSwingUiText('백스윙 탑', 'Backswing top')
             : phase === 'impact' ? getSwingUiText('임팩트', 'Impact') : point.phase;
-        let tooltip = `${item.record.displayLabel || item.record.session_date} · ${seriesName(item.key)} · ${phaseLabel} · ${
+        let tooltip = `${graphLabels[item.recordIndex]} · ${seriesName(item.key)} · ${phaseLabel} · ${
             timed ? `${getSwingUiText('진행률', 'Progress')} ${point.x.toFixed(1)}% · ${axis === 'horizontal' ? 'X' : 'Y'} ${point.y.toFixed(1)}%`
               : `X ${point.x.toFixed(1)}%, Y ${point.y.toFixed(1)}%`}`;
         tooltip += ` · ${getSwingUiText('연결 순서', 'Path order')} ${pointIndex + 1}/${item.points.length}`;
@@ -15018,7 +15017,8 @@
     report.append(heading);
     records.forEach(record => {
       const source = document.createElement('p');
-      source.textContent = `${record.displayLabel} (${record.label})`;
+      source.textContent = record.displayLabel === record.label
+        ? record.label : `${record.displayLabel} (${record.label})`;
       report.append(source);
     });
     report.append(...swingChangeResults.cloneNode(true).children);
@@ -15146,7 +15146,9 @@
         }
       });
       const text = document.createElement('span');
-      text.textContent = `${record.displayLabel || record.session_date}${record.label ? ` (${record.label})` : ''}`;
+      const displayLabel = record.displayLabel || record.session_date;
+      text.textContent = record.label && record.label !== displayLabel
+        ? `${displayLabel} (${record.label})` : displayLabel;
       const detail = document.createElement('small');
       const available = Object.values(record.snapshot.graphs).filter(points => points.length > 1).length;
       detail.textContent = getSwingUiText(`비교 그래프 ${available}종`, `${available} graph types`);

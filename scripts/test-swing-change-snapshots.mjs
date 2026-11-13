@@ -292,7 +292,7 @@ test('older JSON without a separate history snapshot loads player, club and save
   assert.equal(record.player_id, 'player-1');
   assert.equal(record.session_date, '2026-11-13');
   assert.equal(record.clubType, 'driver');
-  assert.match(record.displayLabel, /Player One.*Driver.*2026-11-13/);
+  assert.equal(record.displayLabel, 'saved-analysis.json');
   const missing = makeProject();
   missing.analysis.frameStateHistory = { front: {}, side: {} };
   missing.analysis.backswingFrames = {};
@@ -667,6 +667,26 @@ test('C7 is drawn above overlapping core paths and missing C7 data is explicitly
     }
     assert.ok(annotations[1].every(group => group.attributes['data-phase'] !== 'impact'),
       'Missing side-view impact must not be fabricated');
+  });
+
+  test('graph legends and point tooltips use imported filenames instead of duplicate dates', () => {
+    const context = setupComparisonCharts();
+    context.swingChangeRecords.forEach((record, index) => {
+      record.displayLabel = 'Player · Iron · 2026-11-13';
+      record.session_date = '2026-11-13';
+      record.label = `swing-${index + 1}.json`;
+    });
+    context.renderSwingChangeComparison();
+    const chart = context.swingChangeResults.children[0];
+    const legend = chart.children.find(node => node.className === 'swing-change-legend');
+    const labels = legend.children.map(item => item.children[1]);
+    assert.deepEqual(labels, [
+      'swing-1.json',
+      'swing-2.json',
+    ]);
+    const markers = chart.children.find(node => node.tagName === 'svg').children.at(-1).children;
+    assert.ok(markers.some(group => group.children[0].children[0].textContent.includes('swing-1.json')));
+    assert.ok(markers.some(group => group.children[0].children[0].textContent.includes('swing-2.json')));
   });
 
   test('legacy frame labels identify checkpoints without treating an intermediate F4 as impact', () => {
