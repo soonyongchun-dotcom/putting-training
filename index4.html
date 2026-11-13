@@ -9151,6 +9151,74 @@
     }
   }
 
+  function addCanvasToPdfPages(canvas, container, doc, margin, imageQuality) {
+    const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    const pageHeight = doc.internal.pageSize.getHeight() - margin * 2;
+    const sourcePageHeight = Math.floor(pageHeight * canvas.width / pageWidth);
+    const containerRect = container.getBoundingClientRect();
+    const scaleY = canvas.height / Math.max(containerRect.height, 1);
+    const protectedSelector = '.analysis-segment-compare-card, .analysis-type-section, .r10-report-section';
+    const protectedBoxes = Array.from(container.querySelectorAll(protectedSelector))
+      .map(element => {
+        const rect = element.getBoundingClientRect();
+        return {
+          top: Math.max(0, (rect.top - containerRect.top) * scaleY),
+          bottom: Math.min(canvas.height, (rect.bottom - containerRect.top) * scaleY),
+        };
+      })
+      .filter(box => box.bottom > box.top)
+      .sort((a, b) => a.top - b.top);
+    const protectedRows = [];
+    protectedBoxes.forEach(box => {
+      const lastRow = protectedRows[protectedRows.length - 1];
+      if (lastRow && box.top < lastRow.bottom) {
+        lastRow.bottom = Math.max(lastRow.bottom, box.bottom);
+      } else {
+        protectedRows.push({ top: box.top, bottom: box.bottom });
+      }
+    });
+
+    const breakPoints = protectedRows.map(row => row.bottom);
+    const textBlocks = container.querySelectorAll('h1, h2, h3, h4, p, li, tr, .analysis-metric, .analysis-b-row-item');
+    textBlocks.forEach(element => {
+      const rect = element.getBoundingClientRect();
+      if (!rect.height || !rect.width) return;
+      const point = (rect.bottom - containerRect.top) * scaleY;
+      const insideProtectedRow = protectedRows.some(row => point > row.top + 1 && point < row.bottom - 1);
+      if (!insideProtectedRow && point > 0 && point < canvas.height) breakPoints.push(point);
+    });
+    breakPoints.sort((a, b) => a - b);
+
+    let sourceY = 0;
+    while (sourceY < canvas.height) {
+      const targetY = Math.min(sourceY + sourcePageHeight, canvas.height);
+      const eligibleBreaks = breakPoints.filter(point => point > sourceY + 1 && point <= targetY);
+      const preferredBreaks = eligibleBreaks.filter(point => point - sourceY >= sourcePageHeight * 0.45);
+      const nextY = targetY === canvas.height
+        ? canvas.height
+        : (preferredBreaks.length ? preferredBreaks[preferredBreaks.length - 1]
+          : eligibleBreaks.length ? eligibleBreaks[eligibleBreaks.length - 1] : targetY);
+      const sourceHeight = nextY - sourceY;
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sourceHeight;
+      pageCanvas.getContext('2d').drawImage(
+        canvas, 0, sourceY, canvas.width, sourceHeight,
+        0, 0, canvas.width, sourceHeight
+      );
+      if (sourceY > 0) doc.addPage();
+      doc.addImage(
+        pageCanvas.toDataURL('image/jpeg', imageQuality),
+        'JPEG', margin, margin, pageWidth, (sourceHeight * pageWidth) / canvas.width
+      );
+      sourceY = nextY;
+    }
+  }
+
+  function expandPdfDetails(container) {
+    container.querySelectorAll('details').forEach(detail => { detail.open = true; });
+  }
+
   async function downloadAnalysisPDF() {
     if (!window.jspdf || !window.html2canvas) {
       alert('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.');
@@ -9171,12 +9239,12 @@
     }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
 
     const source = stage === 'r10' ? r10AnalysisPanel : analysisPanel;
     const clone = source.cloneNode(true);
     clone.hidden = false;
     clone.classList.remove('collapsed');
+    expandPdfDetails(clone);
     clone.querySelector('#r10AnalysisPanel')?.remove();
     clone.style.position = 'fixed';
     clone.style.top = '-9999px';
@@ -9187,11 +9255,14 @@
     clone.style.padding = '16px';
     clone.style.border = '1px solid #cccccc';
     clone.style.boxShadow = 'none';
+    clone.style.overflow = 'visible';
     clone.querySelector('.analysis-panel-controls')?.remove();
-    const referenceGuide = clone.querySelector('#analysisReferenceGuide');
-    if (referenceGuide && !referenceGuide.open) referenceGuide.remove();
     clone.querySelectorAll('button').forEach(btn => btn.remove());
     clone.querySelectorAll('input[type="file"], .r10-file-actions').forEach(element => element.remove());
+    clone.querySelectorAll('.r10-table-wrap').forEach(element => {
+      element.style.maxHeight = 'none';
+      element.style.overflow = 'visible';
+    });
     source.querySelectorAll('canvas').forEach(canvas => {
       const target = Array.from(clone.querySelectorAll('canvas')).find(candidate => candidate.id === canvas.id);
       if (!target) return;
@@ -9211,25 +9282,7 @@
 
     try {
       const canvas = await html2canvas(clone, { scale: 1, backgroundColor: '#ffffff' });
-      const imgWidth = pageWidth - 80;
-      const pageHeight = doc.internal.pageSize.getHeight() - 80;
-      const sourcePageHeight = Math.floor((pageHeight * canvas.width) / imgWidth);
-
-      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
-        const sourceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sourceHeight;
-        pageCanvas.getContext('2d').drawImage(
-          canvas, 0, sourceY, canvas.width, sourceHeight,
-          0, 0, canvas.width, sourceHeight
-        );
-        if (sourceY > 0) doc.addPage();
-        doc.addImage(
-          pageCanvas.toDataURL('image/jpeg', 0.75),
-          'JPEG', 40, 40, imgWidth, (sourceHeight * imgWidth) / canvas.width
-        );
-      }
+      addCanvasToPdfPages(canvas, clone, doc, 40, 0.75);
     } catch (error) {
       console.warn('PDF 생성 중 오류가 발생했습니다.', error);
       alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
@@ -9267,6 +9320,7 @@
     heading.textContent = uiLanguage === 'en' ? 'Backswing Analysis Result' : '백스윙 분석 결과';
     report.append(heading);
     const result = backswingResult.cloneNode(true);
+    expandPdfDetails(result);
     const resultDisclosure = result.querySelector('.backswing-result-disclosure');
     if (resultDisclosure) resultDisclosure.open = true;
     const resultTitle = result.querySelector('.backswing-result-title');
@@ -9291,23 +9345,7 @@
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     try {
       const canvas = await html2canvas(report, { scale: 1, backgroundColor: '#ffffff' });
-      const pageWidth = doc.internal.pageSize.getWidth() - 80;
-      const pageHeight = doc.internal.pageSize.getHeight() - 80;
-      const sourcePageHeight = Math.floor((pageHeight * canvas.width) / pageWidth);
-      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
-        const sourceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sourceHeight;
-        pageCanvas.getContext('2d').drawImage(
-          canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight
-        );
-        if (sourceY > 0) doc.addPage();
-        doc.addImage(
-          pageCanvas.toDataURL('image/jpeg', 0.85),
-          'JPEG', 40, 40, pageWidth, (sourceHeight * pageWidth) / canvas.width
-        );
-      }
+      addCanvasToPdfPages(canvas, report, doc, 40, 0.85);
     } catch (error) {
       console.warn('백스윙 분석 PDF 생성 중 오류가 발생했습니다.', error);
       alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
@@ -15680,6 +15718,7 @@
     }
     r10ReportPdfBtn.disabled = true;
     const clone = r10ReportSheet.cloneNode(true);
+    expandPdfDetails(clone);
     clone.style.position = 'fixed';
     clone.style.left = '-10000px';
     clone.style.top = '0';
@@ -15692,18 +15731,7 @@
       const canvas = await html2canvas(clone, { scale: 1.5, backgroundColor: '#ffffff' });
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth() - 64;
-      const pageHeight = doc.internal.pageSize.getHeight() - 64;
-      const sourcePageHeight = Math.floor(pageHeight * canvas.width / pageWidth);
-      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
-        const sourceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sourceHeight;
-        pageCanvas.getContext('2d').drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-        if (sourceY > 0) doc.addPage();
-        doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.88), 'JPEG', 32, 32, pageWidth, sourceHeight * pageWidth / canvas.width);
-      }
+      addCanvasToPdfPages(canvas, clone, doc, 32, 0.88);
       doc.save(`SY-GSAP_Profile_${String(r10GeneratedReport.profile.n).padStart(2, '0')}_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (error) {
       console.warn('R10 종합보고서 PDF 생성 오류', error);
