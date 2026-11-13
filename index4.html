@@ -640,15 +640,52 @@
     display: none;
     width: min(95vw, 990px);
     margin: 14px auto 18px;
-    padding: 12px;
+    padding: 20px;
     box-sizing: border-box;
     color: #f7f7f7;
     background: rgba(9, 20, 28, 0.92);
     border: 1px solid rgba(68, 205, 180, 0.45);
-    border-radius: 8px;
+    border-radius: 12px;
     text-align: left;
   }
   .swing-compare-panel.visible { display: block; }
+  .swing-compare-panel.history-mode > :not(.swing-compare-header):not(#swingChangeView) { display: none; }
+  .swing-compare-panel.history-mode .swing-compare-controls > :not(#swingChangeModeBtn) { display: none; }
+  .swing-compare-panel :is(button, select, input:not([type=checkbox])) { min-height: 40px; margin: 0; padding: 9px 12px; border: 1px solid #39565e; border-radius: 7px; background: #162e36; color: #e7f3f2; font-size: 0.8125rem; line-height: 1.4; }
+  .swing-compare-panel button { cursor: pointer; word-break: keep-all; }
+  .swing-compare-panel button:hover:not(:disabled) { background: #22434b; border-color: #69bcae; }
+  .swing-compare-panel :is(#swingChangeModeBtn, #swingChangeCompareBtn) { background: #176957; border-color: #428e7c; color: #f0fff9; }
+  .swing-compare-panel :is(#swingChangeModeBtn, #swingChangeCompareBtn):hover:not(:disabled) { background: #21836c; }
+  .swing-compare-panel label { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; font-weight: 500; cursor: default; }
+  .swing-change-view { margin-top: 18px; padding: 18px; border: 1px solid rgba(68, 205, 180, 0.25); border-radius: 10px; background: rgba(0, 0, 0, 0.16); }
+  .swing-change-view h2 { margin: 0 0 16px; color: #e7f5f1; font-size: 1.125rem; font-weight: 700; line-height: 1.5; letter-spacing: -0.02em; }
+  .swing-change-view[hidden] { display: none; }
+  .swing-change-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #swingChangePdfBtn { margin-left: auto; background: transparent; color: #b9d8d2; }
+  .swing-change-toolbar label, .swing-change-filters label, .swing-change-save-controls label { display: grid; gap: 4px; color: #b9d8d2; font-size: 0.78rem; }
+  .swing-change-save-controls select, .swing-change-save-controls input { min-height: 34px; padding: 5px 8px; border: 1px solid rgba(142, 219, 199, 0.4); border-radius: 4px; background: #102127; color: #f2fbf8; }
+  .swing-change-save-controls { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .swing-change-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; padding: 16px; border: 1px solid #2b444c; border-radius: 8px; background: #11242c; }
+  .swing-change-filters select { width: 100%; min-width: 0; color-scheme: dark; }
+  .swing-change-selection-note { display: block; margin-top: 12px; color: #9ebbb4; font-size: 0.8125rem; }
+  .swing-change-record-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 8px; max-height: 280px; margin-top: 14px; overflow: auto; }
+  .swing-compare-panel .swing-change-record-option { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border: 1px solid #2b444c; border-radius: 7px; background: #11242c; color: #d7e9e5; font-size: 0.8125rem; cursor: pointer; overflow-wrap: anywhere; }
+  .swing-compare-panel .swing-change-record-option:hover { background: #18343c; }
+  .swing-change-record-option:has(input:checked) { border-color: #69bcae; }
+  .swing-change-record-option input { flex: 0 0 auto; margin: 4px 0 0; accent-color: #44cdb4; }
+  .swing-change-record-option small { display: block; margin-top: 3px; color: #9ebbb4; }
+  .swing-change-status { margin: 14px 0 0; padding: 12px 14px; border-left: 3px solid #428e7c; border-radius: 4px; background: rgba(68, 205, 180, 0.06); color: #b9d8d2; font-size: 0.8125rem; line-height: 1.7; overflow-wrap: anywhere; }
+  .swing-change-results { display: grid; gap: 12px; margin-top: 12px; }
+  .swing-change-chart { min-width: 0; padding: 10px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; background: rgba(255,255,255,0.035); }
+  .swing-change-chart h3 { margin: 0 0 6px; color: #a6e7d5; font-size: 0.9rem; }
+  .swing-change-chart svg { display: block; width: 100%; height: auto; }
+  .swing-change-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 7px; color: #d7e9e5; font-size: 0.74rem; }
+  .swing-change-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swing-change-swatch { display: inline-block; width: 18px; border-top: 3px solid; }
+  .swing-change-delta { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+  .swing-change-delta th, .swing-change-delta td { padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; }
+  .swing-change-delta th { color: #a6e7d5; }
+  .swing-change-note { color: #9ebbb4; font-size: 0.74rem; line-height: 1.5; }
   .backswing-panel { display: none; width: min(95vw, 990px); margin: 14px auto; padding: 12px; box-sizing: border-box; color: #f7f7f7; background: #15262c; border: 1px solid #53ad9b; border-radius: 6px; }
   .backswing-panel.visible { display: block; }
   .backswing-panel select, .backswing-panel button { margin: 4px; padding: 6px 9px; }
@@ -701,12 +738,29 @@
     gap: 8px;
     flex-wrap: wrap;
   }
-  .swing-compare-header { justify-content: space-between; }
-  .swing-compare-title { font-size: 1rem; font-weight: 800; }
+  .swing-compare-header { justify-content: space-between; gap: 16px; }
+  .swing-compare-title { width: 100%; font-size: 1.125rem; font-weight: 700; line-height: 1.5; letter-spacing: -0.02em; }
+  .swing-compare-controls { width: 100%; padding-top: 16px; border-top: 1px solid #2b444c; }
+  .swing-compare-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
   .swing-compare-controls select {
-    min-width: 190px;
-    padding: 6px 8px;
-    border-radius: 5px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    background: #102127;
+    color-scheme: dark;
+  }
+  .swing-compare-controls #swingChangeModeBtn { margin-left: auto; }
+  .swing-compare-panel.history-mode .swing-compare-title { width: auto; }
+  .swing-compare-panel.history-mode .swing-compare-controls { width: auto; padding-top: 0; border-top: 0; }
+  body[data-swing-compare-view="free"] .swing-compare-selects { grid-template-columns: minmax(0, 1fr); }
+  .swing-compare-panel #swingCompareFreeTools label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #b9d8d2; font-size: 0.8125rem; }
+  .swing-compare-panel #swingCompareFreeTools button[aria-pressed="true"] { border-color: #69bcae; background: #176957; }
+  @media (max-width: 640px) {
+    .swing-compare-panel { padding: 14px; }
+    .swing-change-view { padding: 14px; }
+    .swing-compare-controls button, .swing-change-toolbar button { flex: 1 1 calc(50% - 4px); }
+    .swing-compare-controls #swingChangeModeBtn, #swingChangePdfBtn { margin-left: 0; }
+    .swing-change-filters { grid-template-columns: minmax(0, 1fr); padding: 12px; }
   }
   .swing-compare-status {
     margin-top: 9px;
@@ -1813,11 +1867,24 @@
   #analysisWorkflowFiles .analysis-project-actions { flex: 0 1 auto; padding: 0; border: 0; background: transparent; }
   #analysisWorkflowFiles .analysis-toolbar-label { display: none; }
   #analysisWorkflowFiles .analysis-workflow-utilities { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; }
+  #analysisWorkflowFiles .analysis-context-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; min-height: 36px; padding: 0; border: 1px solid rgba(255,255,255,0.22); border-radius: 7px; background: rgba(0,0,0,0.3); color: #e7f3f2; cursor: pointer; }
+  #analysisWorkflowFiles .analysis-context-btn svg { width: 18px; height: 18px; }
+  #analysisWorkflowFiles .analysis-context-btn:hover { background: rgba(255,255,255,0.12); }
+  #analysisWorkflowFiles .analysis-context-btn:focus-visible { outline: 2px solid #69d8ba; outline-offset: 3px; }
   #analysisWorkflowFiles .language-select { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.22); border-radius: 7px; background: rgba(0,0,0,0.3); color: #e7f3f2; cursor: pointer; }
   #analysisWorkflowFiles .language-select svg { width: 18px; height: 18px; pointer-events: none; }
   #analysisWorkflowFiles .language-select select { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; padding: 0; opacity: 0; cursor: pointer; }
   #analysisWorkflowFiles .language-select:hover { background: rgba(255,255,255,0.12); }
   #analysisWorkflowFiles .language-select:focus-within { outline: 2px solid #69d8ba; outline-offset: 3px; }
+  .analysis-context-dialog { width: min(440px, calc(100vw - 32px)); max-width: 440px; padding: 18px; border: 1px solid rgba(142,219,199,0.42); border-radius: 12px; background: #102127; color: #f2fbf8; box-shadow: 0 18px 48px #00000070; }
+  .analysis-context-dialog::backdrop { background: rgba(0,0,0,0.68); backdrop-filter: blur(2px); }
+  .analysis-context-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .analysis-context-dialog-header h2 { margin: 0; color: #a6e7d5; font-size: 1rem; }
+  .analysis-context-dialog-header button { width: 34px; min-height: 34px; padding: 0; font-size: 1.25rem; }
+  .analysis-context-dialog .swing-change-save-controls { display: grid; gap: 12px; }
+  .analysis-context-dialog .swing-change-save-controls select { width: 100%; }
+  body[data-swing-compare="active"] #analysisWorkflowFiles > :not(#swingCompareToggleBtn) { display: none !important; }
+  body[data-swing-compare="active"] #analysisWorkflowFiles { justify-content: flex-end; }
   #analysisWorkflowProgress { gap: 5px; }
   body[data-workflow-stage] :is(#analysisWorkflow, #analysisVideoWorkspace, #backswingPanel, #analysisPanel, #r10AnalysisPanel) { scroll-margin-top: 12px; }
   #analysisWorkflowProgress button[data-status="pending"] { border-color: #667b90; }
@@ -1951,7 +2018,34 @@
         <path d="M12 7v14M12 7C9.8 5.2 6.7 4.5 3 5.5v13c3.7-1 6.8-.3 9 1.5m0-13c2.2-1.8 5.3-2.5 9-1.5v13c-3.7-1-6.8-.3-9 1.5"/>
       </svg>
     </a>
+    <button type="button" id="analysisContextBtn" class="analysis-context-btn" aria-controls="analysisContextDialog" aria-haspopup="dialog" aria-expanded="false" title="분석 선수·클럽 선택" aria-label="분석 선수·클럽 선택">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="8" cy="7" r="3"></circle>
+        <path d="M2.5 20c0-4 2.2-6 5.5-6s5.5 2 5.5 6"></path>
+        <path d="m19 4-2 15m-1 0h4"></path>
+      </svg>
+    </button>
   </div>
+  <dialog id="analysisContextDialog" class="analysis-context-dialog" aria-labelledby="analysisContextDialogTitle">
+    <div class="analysis-context-dialog-header">
+      <h2 id="analysisContextDialogTitle">분석 선수·클럽 선택</h2>
+      <button type="button" id="analysisContextDialogCloseBtn" aria-label="닫기" title="닫기">×</button>
+    </div>
+    <div class="swing-change-save-controls">
+      <label><span id="analysisPlayerSelectLabel">분석 선수</span>
+        <select id="swingChangePlayerIdSelect" aria-label="분석 선수" title="등록 선수가 아니면 선택하지 마세요. 선수명은 파일명에서 제외됩니다.">
+          <option value="">선수 선택 안 함</option>
+        </select>
+      </label>
+      <label><span id="analysisClubSelectLabel">클럽</span>
+        <select id="analysisClubTypeSelect" aria-label="분석 클럽 종류">
+          <option value="">선택 안 함</option>
+          <option value="driver">드라이버</option>
+          <option value="iron">아이언</option>
+        </select>
+      </label>
+    </div>
+  </dialog>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
 </div>
 
@@ -2052,22 +2146,25 @@
   <div class="swing-compare-header">
     <div class="swing-compare-title" id="swingCompareTitle">A/B 스윙 핵심 포인트 비교</div>
     <div class="swing-compare-controls">
-      <select id="swingCompareViewSelect" aria-label="비교 촬영 방향">
-        <option value="front">정면 비교</option>
-        <option value="side">측면 비교</option>
-        <option value="free">자유 비교</option>
-      </select>
-      <select id="swingComparePhaseSelect" aria-label="비교 시점">
-        <option value="address">어드레스</option>
-        <option value="top">백스윙 탑 (1/5)</option>
-        <option value="shoulder">어깨선 (2/5)</option>
-        <option value="waist">허리선 (3/5)</option>
-        <option value="preImpact">임팩트 전 (4/5)</option>
-        <option value="impact">임팩트 (5/5)</option>
-      </select>
+      <div class="swing-compare-selects">
+        <select id="swingCompareViewSelect" aria-label="비교 촬영 방향">
+          <option value="front">정면 비교</option>
+          <option value="side">측면 비교</option>
+          <option value="free">자유 비교</option>
+        </select>
+        <select id="swingComparePhaseSelect" aria-label="비교 시점">
+          <option value="address">어드레스</option>
+          <option value="top">백스윙 탑 (1/5)</option>
+          <option value="shoulder">어깨선 (2/5)</option>
+          <option value="waist">허리선 (3/5)</option>
+          <option value="preImpact">임팩트 전 (4/5)</option>
+          <option value="impact">임팩트 (5/5)</option>
+        </select>
+      </div>
       <button type="button" id="swingCompareTableToggleBtn" aria-expanded="true">비교표 접기</button>
       <button type="button" id="swingCompareClearPhaseBtn" title="현재 시점의 A/B 포인트만 삭제">현재 시점 지우기</button>
       <button type="button" id="swingCompareResetBtn" title="모든 비교 포인트와 결과 삭제">비교 초기화</button>
+      <button type="button" id="swingChangeModeBtn" aria-expanded="false">선수 스윙변화 확인</button>
     </div>
     <div id="swingCompareFreeTools" aria-label="자유 비교 도구">
       <button type="button" data-free-tool="draw" aria-pressed="true">점·선 그리기</button>
@@ -2076,6 +2173,24 @@
       <label>기준선 실제 길이(cm, 선택) <input id="swingCompareFreeLength" type="number" min="0.1" max="1000" step="0.1" placeholder="미입력 시 %" style="width:100px;"></label>
     </div>
   </div>
+  <section class="swing-change-view" id="swingChangeView" hidden aria-labelledby="swingChangeTitle">
+    <h2 id="swingChangeTitle">선수별 스윙 변화</h2>
+    <div class="swing-change-toolbar">
+      <button type="button" id="swingChangeLoadBtn">분석 JSON 폴더 선택</button>
+      <button type="button" id="swingChangeCompareBtn" disabled>선택 기록 비교 (0/4)</button>
+      <button type="button" id="swingChangePdfBtn" disabled>비교결과 PDF 다운로드</button>
+    </div>
+    <input type="file" id="swingChangeFolderInput" accept=".json,application/json" webkitdirectory multiple hidden>
+    <div class="swing-change-filters">
+      <label><span id="swingChangeFilterPlayerLabel">선수</span><select id="swingChangeFilterPlayer" disabled><option value="">전체 선수</option></select></label>
+      <label><span id="swingChangeFilterClubLabel">클럽</span><select id="swingChangeFilterClub" disabled><option value="">전체 클럽</option></select></label>
+      <label><span id="swingChangeFilterDateLabel">분석일</span><select id="swingChangeFilterDate" disabled><option value="">전체 날짜</option></select></label>
+    </div>
+    <p class="swing-change-status" id="swingChangeStatus" role="status" aria-live="polite">분석 1·3 결과를 저장한 JSON 폴더를 선택하세요. 별도 변화 기록 등록 없이 선수·날짜별 그래프를 비교합니다.</p>
+    <small class="swing-change-selection-note" id="swingChangeSelectionNote">선수·날짜를 바꿔도 선택한 파일은 유지됩니다. 클럽을 지정하면 다른 클럽의 선택은 해제됩니다. 최대 4개까지 선택하세요.</small>
+    <div class="swing-change-record-list" id="swingChangeRecordList"></div>
+    <div class="swing-change-results" id="swingChangeResults"></div>
+  </section>
   <div class="swing-compare-status" id="swingCompareStatus">A/B에 서로 다른 스윙 영상을 불러온 뒤 비교 입력을 시작하세요.</div>
   <small id="swingCompareViewNote">A/B 모두 같은 촬영 방향의 영상을 사용하세요.</small>
   <div class="swing-compare-summary" id="swingCompareSummary"></div>
@@ -9157,7 +9272,7 @@
     const sourcePageHeight = Math.floor(pageHeight * canvas.width / pageWidth);
     const containerRect = container.getBoundingClientRect();
     const scaleY = canvas.height / Math.max(containerRect.height, 1);
-    const protectedSelector = '.analysis-segment-compare-card, .analysis-type-section, .r10-report-section';
+    const protectedSelector = '.analysis-segment-compare-card, .analysis-type-section, .r10-report-section, .swing-change-chart';
     const protectedBoxes = Array.from(container.querySelectorAll(protectedSelector))
       .map(element => {
         const rect = element.getBoundingClientRect();
@@ -9280,7 +9395,10 @@
     });
     document.body.appendChild(clone);
 
+    let downloadName;
     try {
+      downloadName = await getAnalysisDownloadFileName(stage || 'analysis', 'pdf',
+        { sourceName: stage === 'r10' ? r10SourceName : '' });
       const canvas = await html2canvas(clone, { scale: 1, backgroundColor: '#ffffff' });
       addCanvasToPdfPages(canvas, clone, doc, 40, 0.75);
     } catch (error) {
@@ -9291,12 +9409,7 @@
       clone.remove();
     }
 
-    const frontFileNameText = frontFileInput && frontFileInput.files && frontFileInput.files[0]
-      ? frontFileInput.files[0].name
-      : document.getElementById('frontFileName') ? document.getElementById('frontFileName').textContent : '';
-    let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : 'MotionAnalysis';
-    baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || 'MotionAnalysis';
-    doc.save(`${baseFileName}_${stage || 'analysis'}_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(downloadName);
   }
 
   async function downloadBackswingAnalysisPDF() {
@@ -9343,7 +9456,10 @@
     document.body.appendChild(report);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    let downloadName;
     try {
+      downloadName = await getAnalysisDownloadFileName('backswing', 'pdf',
+        { sourceName: backswingSourceIdentity?.split('|')[0] || '' });
       const canvas = await html2canvas(report, { scale: 1, backgroundColor: '#ffffff' });
       addCanvasToPdfPages(canvas, report, doc, 40, 0.85);
     } catch (error) {
@@ -9353,12 +9469,7 @@
     } finally {
       report.remove();
     }
-    const frontFileNameText = frontFileInput && frontFileInput.files && frontFileInput.files[0]
-      ? frontFileInput.files[0].name
-      : document.getElementById('frontFileName') ? document.getElementById('frontFileName').textContent : '';
-    let baseFileName = frontFileNameText ? frontFileNameText.replace(/\.[^/.]+$/, '') : 'BackswingAnalysis';
-    baseFileName = baseFileName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '_').trim() || 'BackswingAnalysis';
-    doc.save(`${baseFileName}_backswing_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(downloadName);
   }
 
   function clearAnalysisResults() {
@@ -10100,32 +10211,33 @@
     });
   }
 
-  function getEngineHandPathData() {
+  function getEngineHandPathData(project = null) {
+    const history = project ? project.analysis.frameStateHistory : frameStateHistory;
     const unavailable = reason => ({ points: [], reason });
-    if (!areVideoSourcesSame()) return unavailable(getSwingUiText(
+    if (!(project ? project.media.front && project.media.front === project.media.side : areVideoSourcesSame())) return unavailable(getSwingUiText(
       '경로 표시 보류: A/B에 같은 정면 영상을 로드하세요. 서로 다른 영상의 좌표는 연결하지 않습니다.',
       'Path unavailable: load the same front-view video in A/B. Coordinates from different sources are not connected.'));
     const indices = { frame1: 4, frame2: 0, frame3: 6, frame4: 5, frame5: 0, frame6: 2 };
-    const origin = frameStateHistory.front.frame1?.points?.[4];
-    const addressTime = frameStateHistory.front.frame1?.videoTime;
-    const topTime = frameStateHistory.side.frame1?.videoTime;
-    const impactTime = frameStateHistory.side.frame6?.videoTime;
+    const origin = history.front.frame1?.points?.[4];
+    const addressTime = history.front.frame1?.videoTime;
+    const topTime = history.side.frame1?.videoTime;
+    const impactTime = history.side.frame6?.videoTime;
     const validPoint = point => point && hasMetric(point.x) && hasMetric(point.y);
     if (!validPoint(origin) || ![addressTime, topTime, impactTime].every(time => hasMetric(time) && time >= 0)
       || !(addressTime < topTime && topTime < impactTime)
-      || !validPoint(frameStateHistory.side.frame1?.points?.[4])
-      || !validPoint(frameStateHistory.side.frame6?.points?.[2])) {
+      || !validPoint(history.side.frame1?.points?.[4])
+      || !validPoint(history.side.frame6?.points?.[2])) {
       return unavailable(getSwingUiText(
         '경로 표시 보류: F1 A 어드레스·F1 B 탑·F6 B 임팩트의 손 포인트와 증가하는 저장 시점이 필요합니다.',
         'Path unavailable: F1 A address, F1 B top and F6 B impact need hand points and increasing saved times.'));
     }
-    const storedAspect = frameStateHistory.front.frame1.aspectRatio;
-    const aspect = storedAspect ?? (!backswingActive && frontVideo.videoWidth > 0 && frontVideo.videoHeight > 0
+    const storedAspect = history.front.frame1.aspectRatio;
+    const aspect = storedAspect ?? (!project && !backswingActive && frontVideo.videoWidth > 0 && frontVideo.videoHeight > 0
       ? getAnalysisAspect(frontVideo) : null);
     if (!hasMetric(aspect) || aspect <= 0) return unavailable(getSwingUiText(
       '경로 표시 보류: 정면 영상 비율이 없습니다. 영상을 로드하고 F1 A를 다시 분석하세요.',
       'Path unavailable: source aspect ratio missing. Load the video and reanalyze F1 A.'));
-    const anchors = [frameStateHistory.side.frame1, frameStateHistory.side.frame6];
+    const anchors = [history.side.frame1, history.side.frame6];
     if (anchors.some(entry => entry.aspectRatio != null
       && (!hasMetric(entry.aspectRatio) || Math.abs(entry.aspectRatio - aspect) > 0.001))) {
       return unavailable(getSwingUiText('경로 표시 보류: 탑·임팩트 입력의 영상 비율이 어드레스와 다릅니다. 같은 정면 영상에서 다시 분석하세요.',
@@ -10135,7 +10247,7 @@
     const omitted = [];
     for (const [frame, index] of Object.entries(indices)) {
       for (const view of ['front', 'side']) {
-        const entry = frameStateHistory[view][frame];
+        const entry = history[view][frame];
         const label = `${frame.replace('frame', 'F')} ${view === 'front' ? 'A' : 'B'}`;
         const point = entry?.points?.[index];
         if (!validPoint(point) || !hasMetric(entry.videoTime) || entry.videoTime < addressTime || entry.videoTime > impactTime
@@ -10156,7 +10268,7 @@
       'Path unavailable: check address, top and impact source aspects and reanalyze.'));
     // F1 fixes the address/top; F6 B fixes impact when another frame shares its time.
     const impact = groups.get(impactTime);
-    const impactHand = frameStateHistory.side.frame6.points[2];
+    const impactHand = history.side.frame6.points[2];
     impact.x = (impactHand.x - origin.x) * aspect * 100;
     impact.y = (origin.y - impactHand.y) * 100;
     const points = [...groups.values()].sort((a, b) => a.time - b.time).map(point => ({
@@ -10200,18 +10312,19 @@
     return details;
   }
 
-  function getEngineVerticalMotionData(axis = 'vertical') {
+  function getEngineVerticalMotionData(axis = 'vertical', project = null) {
+    const history = project ? project.analysis.frameStateHistory : frameStateHistory;
     const horizontal = axis === 'horizontal';
     const xy = axis === 'xy';
     const needsAspect = horizontal || xy;
     const coordinate = horizontal ? 'x' : 'y';
     const unavailable = reason => ({ series: [], reason });
-    if (!areVideoSourcesSame()) return unavailable(getSwingUiText(
+    if (!(project ? project.media.front && project.media.front === project.media.side : areVideoSourcesSame())) return unavailable(getSwingUiText(
       '이동 표시 보류: A/B에 같은 정면 영상을 로드하세요.',
       'Motion unavailable: load the same front-view video in A/B.'));
-    const address = frameStateHistory.front.frame1;
-    const top = frameStateHistory.side.frame1;
-    const impact = frameStateHistory.side.frame6;
+    const address = history.front.frame1;
+    const top = history.side.frame1;
+    const impact = history.side.frame6;
     if (![address?.videoTime, top?.videoTime, impact?.videoTime].every(time => hasMetric(time) && time >= 0)
       || !(address.videoTime < top.videoTime && top.videoTime < impact.videoTime)) {
       return unavailable(getSwingUiText(
@@ -10222,7 +10335,7 @@
     if (!validPoint(address.points?.[0]) || !validPoint(address.points?.[3])) return unavailable(getSwingUiText(
       '이동 표시 보류: F1 A의 C7과 코어(골반 중심) 포인트가 필요합니다.',
       'Motion unavailable: F1 A C7 and core (pelvis center) points are required.'));
-    const aspect = address.aspectRatio ?? (!backswingActive && frontVideo.videoWidth > 0 && frontVideo.videoHeight > 0
+    const aspect = address.aspectRatio ?? (!project && !backswingActive && frontVideo.videoWidth > 0 && frontVideo.videoHeight > 0
       ? getAnalysisAspect(frontVideo) : null);
     if (needsAspect && (!hasMetric(aspect) || aspect <= 0)) return unavailable(getSwingUiText(
       '이동 표시 보류: 영상 비율이 없습니다. 정면 영상을 로드하고 F1 A를 다시 분석하세요.',
@@ -10241,7 +10354,7 @@
       const groups = new Map();
       for (const [frame, pointIndices] of Object.entries(indices)) {
         for (const view of ['front', 'side']) {
-          const entry = frameStateHistory[view][frame];
+          const entry = history[view][frame];
           const label = `${frame.replace('frame', 'F')} ${view === 'front' ? 'A' : 'B'}`;
           const point = entry?.points?.[pointIndices[definition.index]];
           if (!validPoint(point) || !hasMetric(entry.videoTime)
@@ -11336,6 +11449,7 @@
     }
     if (statusSpan) statusSpan.textContent = '';
     swingCompareActive = !swingCompareActive;
+    if (swingCompareActive && analysisContextDialog.open) analysisContextDialog.close();
     updateSwingComparePresentation();
     if (swingCompareActive) document.body.dataset.swingCompare = 'active';
     else delete document.body.dataset.swingCompare;
@@ -13979,6 +14093,59 @@
   const saveAnalysisProjectBtn = document.getElementById('saveAnalysisProjectBtn');
   const loadAnalysisProjectBtn = document.getElementById('loadAnalysisProjectBtn');
   const analysisProjectFileInput = document.getElementById('analysisProjectFileInput');
+  const analysisContextBtn = document.getElementById('analysisContextBtn');
+  const analysisContextDialog = document.getElementById('analysisContextDialog');
+  const analysisContextDialogCloseBtn = document.getElementById('analysisContextDialogCloseBtn');
+  const swingChangePlayerIdSelect = document.getElementById('swingChangePlayerIdSelect');
+  const analysisClubTypeSelect = document.getElementById('analysisClubTypeSelect');
+  const swingChangeModeBtn = document.getElementById('swingChangeModeBtn');
+  const swingChangeView = document.getElementById('swingChangeView');
+  const swingChangeLoadBtn = document.getElementById('swingChangeLoadBtn');
+  const swingChangeFolderInput = document.getElementById('swingChangeFolderInput');
+  const swingChangeFilterPlayer = document.getElementById('swingChangeFilterPlayer');
+  const swingChangeFilterClub = document.getElementById('swingChangeFilterClub');
+  const swingChangeFilterDate = document.getElementById('swingChangeFilterDate');
+  const swingChangePdfBtn = document.getElementById('swingChangePdfBtn');
+  const swingChangeCompareBtn = document.getElementById('swingChangeCompareBtn');
+  const swingChangeRecordList = document.getElementById('swingChangeRecordList');
+  const swingChangeResults = document.getElementById('swingChangeResults');
+  const swingChangeStatus = document.getElementById('swingChangeStatus');
+  let swingChangePlayers = [];
+  let swingChangeRecords = [];
+  const swingChangeSelectedIds = new Set();
+  let swingChangePlayersLoadPromise = null;
+  let swingChangePdfExporting = false;
+
+  function getLocalDateInputValue(date = new Date()) {
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 10);
+  }
+
+  function sanitizeAnalysisFileNamePart(value) {
+    return String(value || '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+      .replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+  }
+
+  function createAnalysisExportFileName(playerName, clubName, date, sourceName, kind = 'analysis', extension = 'json') {
+    const sourceBase = sanitizeAnalysisFileNamePart(String(sourceName || '').replace(/\.[^/.]+$/, '')) || 'SwingAnalysis';
+    const parts = [playerName, clubName, date, sourceBase]
+      .map(sanitizeAnalysisFileNamePart).filter(Boolean);
+    return `${parts.join('-')}_${sanitizeAnalysisFileNamePart(kind)}.${extension}`;
+  }
+
+  async function getAnalysisDownloadFileName(kind, extension, { sourceName = '', view = 'front', date = getLocalDateInputValue(), playerName, clubName } = {}) {
+    if (playerName === undefined && !swingChangePlayers.length
+      && (swingChangePlayerIdSelect.value || swingChangePlayerIdSelect.dataset.selectedPlayerId)) {
+      await ensureSwingChangePlayers();
+    }
+    const player = swingChangePlayers.find(item => item.id === swingChangePlayerIdSelect.value);
+    const selectedClubName = analysisClubTypeSelect.value ? analysisClubTypeSelect.selectedOptions[0]?.textContent : '';
+    const source = sourceName || [view, view === 'front' ? 'side' : 'front'].map(candidate =>
+      videoFileIdentity[candidate]?.split('|')[0]
+      || document.getElementById(`${candidate}FileName`)?.textContent?.trim()).find(Boolean)
+      || r10SourceName || 'SwingAnalysis';
+    return createAnalysisExportFileName(playerName ?? player?.name ?? '', clubName ?? selectedClubName, date, source, kind, extension);
+  }
 
   function copyProjectValue(value) {
     return JSON.parse(JSON.stringify(value));
@@ -14091,6 +14258,11 @@
           playerCode: analysisPlayerCodeInput.value.trim(),
           knownTotalDistanceM: analysisKnownDistanceInput.value === '' ? null : Number(analysisKnownDistanceInput.value),
         },
+        athleteSelection: {
+          playerId: swingChangePlayerIdSelect.value,
+          playerName: swingChangePlayers.find(player => player.id === swingChangePlayerIdSelect.value)?.name || '',
+          clubType: analysisClubTypeSelect.value,
+        },
         playerReference: { rows: playerReferenceRows, settings: getPlayerReferenceSettings() },
         physicalSensitivity: getPhysicalSensitivity(),
         frontZoom,
@@ -14127,6 +14299,510 @@
         panelVisible: !r10AnalysisPanel.hidden,
       },
     };
+  }
+
+  function getSwingChangeScale(view, project = null) {
+    const state = project ? project.analysis : { frameStateHistory, backswingFrames };
+    const address = view === 'side' ? state.backswingFrames?.address : state.frameStateHistory.front?.frame1;
+    const start = address?.points?.[view === 'side' ? 1 : 0];
+    const end = address?.points?.[view === 'side' ? 0 : 3];
+    const aspect = address?.aspectRatio;
+    if (!start || !end || !hasMetric(aspect) || aspect <= 0) return null;
+    const scale = Math.hypot((start.x - end.x) * aspect, start.y - end.y) * 100;
+    return scale > 0.1 ? scale : null;
+  }
+
+  function normalizeSwingChangePoints(points, referenceLength, timeRange = null) {
+    if (!Array.isArray(points) || !hasMetric(referenceLength) || referenceLength <= 0) return [];
+    return points.filter(point => point && hasMetric(point.x) && hasMetric(point.y))
+      .map(point => ({
+        x: Number((point.x / referenceLength * 100).toFixed(3)),
+        y: Number((point.y / referenceLength * 100).toFixed(3)),
+        phase: String(point.phase || point.label || '').slice(0, 40),
+        progress: timeRange && hasMetric(timeRange.duration) && timeRange.duration > 0 && hasMetric(point.time)
+          ? Number(clamp((point.time - timeRange.start) / timeRange.duration * 100, 0, 100).toFixed(1)) : null,
+      }));
+  }
+
+  function createSwingChangeSnapshot(sessionDate, label, project = null) {
+    const frontScale = getSwingChangeScale('front', project);
+    const sideScale = getSwingChangeScale('side', project);
+    const frontHandData = getEngineHandPathData(project);
+    const frontMotionData = getEngineVerticalMotionData('xy', project);
+    const frontTimeDuration = frontHandData.points?.length > 1
+      ? frontHandData.points[frontHandData.points.length - 1].time - frontHandData.points[0].time : 0;
+    const frontTimeRange = frontTimeDuration > 0
+      ? { start: frontHandData.points[0].time, duration: frontTimeDuration } : null;
+    const frontMotionRange = hasMetric(frontMotionData.duration) && frontMotionData.duration > 0
+      ? { start: frontMotionData.addressTime, duration: frontMotionData.duration } : null;
+    if (frontTimeRange && frontTimeRange.duration <= 0) frontTimeRange.duration = null;
+    const graph = {
+      frontHand: normalizeSwingChangePoints(frontHandData.points, frontScale, frontTimeRange),
+      frontC7: normalizeSwingChangePoints(frontMotionData.series?.find(series => series.key === 'c7')?.points
+        ?.map(point => ({ ...point, phase: point.sources?.join('/') })), frontScale, frontMotionRange),
+      frontCore: normalizeSwingChangePoints(frontMotionData.series?.find(series => series.key === 'core')?.points
+        ?.map(point => ({ ...point, phase: point.sources?.join('/') })), frontScale, frontMotionRange),
+      sideHand: normalizeSwingChangePoints(getBackswingHandPathPoints(project ? project.analysis.backswingFrames : backswingFrames), sideScale),
+    };
+    const usableGraphs = Object.values(graph).filter(points => points.length > 1).length;
+    if (!usableGraphs) return null;
+    return {
+      version: 1,
+      id: crypto.randomUUID(),
+      sessionDate,
+      label: String(label || '').replace(/[<>]/g, '').trim().slice(0, 120),
+      savedAt: new Date().toISOString(),
+      reference: {
+        front: 'F1 A address C7-to-pelvis length = 100%',
+        side: 'Side-view address hands-to-clubhead projected length = 100%',
+      },
+      unit: '% of within-view address reference length',
+      graphs: graph,
+    };
+  }
+
+  function isSwingChangeSnapshot(value) {
+    const parsedDate = typeof value?.sessionDate === 'string'
+      ? new Date(`${value.sessionDate}T00:00:00Z`) : null;
+    if (!value || typeof value !== 'object' || value.version !== 1
+      || typeof value.id !== 'string'
+      || !/^\d{4}-\d{2}-\d{2}$/.test(value.sessionDate)
+      || !parsedDate || !Number.isFinite(parsedDate.getTime())
+      || parsedDate.toISOString().slice(0, 10) !== value.sessionDate
+      || !value.graphs || typeof value.graphs !== 'object') return false;
+    return ['frontHand', 'frontC7', 'frontCore', 'sideHand'].every(key =>
+      Array.isArray(value.graphs[key]) && value.graphs[key].length <= 40
+      && value.graphs[key].every(point => point && Number.isFinite(point.x) && Math.abs(point.x) <= 100000
+        && Number.isFinite(point.y) && Math.abs(point.y) <= 100000
+        && (point.progress == null || (Number.isFinite(point.progress) && point.progress >= 0 && point.progress <= 100))
+        && typeof point.phase === 'string' && point.phase.length <= 40));
+  }
+
+  async function loadSwingChangePlayers() {
+    const { data, error } = await sb.from('sytpt_users').select('id,name,role').order('name').limit(2000);
+    if (error) throw error;
+    swingChangePlayers = (data || [])
+      .filter(player => player && typeof player.id === 'string' && player.id && String(player.role || '').toLowerCase() !== 'coach')
+      .sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+    swingChangePlayerIdSelect.replaceChildren(new Option(getSwingUiText('선수 선택 안 함', 'No player selected'), ''));
+    swingChangePlayers.forEach(player => {
+      const option = new Option(`${player.name || player.id} · ${player.id}`, player.id);
+      swingChangePlayerIdSelect.append(option);
+    });
+    const previousPlayerId = swingChangePlayerIdSelect.dataset.selectedPlayerId || '';
+    if (previousPlayerId && swingChangePlayers.some(player => player.id === previousPlayerId)) {
+      swingChangePlayerIdSelect.value = previousPlayerId;
+    } else if (previousPlayerId) {
+      swingChangePlayerIdSelect.dataset.selectedPlayerId = '';
+    }
+    if (!swingChangePlayers.length) {
+      throw new Error(getSwingUiText('등록된 선수를 찾을 수 없습니다.', 'No registered players were found.'));
+    }
+  }
+
+  async function ensureSwingChangePlayers() {
+    if (swingChangePlayers.length) return;
+    if (!swingChangePlayersLoadPromise) {
+      swingChangePlayersLoadPromise = loadSwingChangePlayers().finally(() => {
+        swingChangePlayersLoadPromise = null;
+      });
+    }
+    await swingChangePlayersLoadPromise;
+  }
+
+  function createSwingChangeFileRecord(project, fileName, id) {
+    validateAnalysisProject(project, false);
+    const savedDate = new Date(project.savedAt);
+    const sessionDate = project.analysis.swingChangeRecord?.sessionDate
+      || (Number.isFinite(savedDate.getTime()) ? getLocalDateInputValue(savedDate) : '');
+    const snapshot = createSwingChangeSnapshot(sessionDate, '', project);
+    if (!snapshot || !isSwingChangeSnapshot(snapshot)) {
+      throw new Error(getSwingUiText('비교할 그래프 또는 분석 날짜가 없습니다.', 'No comparable graphs or valid analysis date.'));
+    }
+    const selection = project.analysis.athleteSelection || {};
+    const playerName = selection.playerName
+      || swingChangePlayers.find(player => player.id === selection.playerId)?.name
+      || selection.playerId || getSwingUiText('미등록 선수', 'Unregistered player');
+    const clubName = selection.clubType === 'driver' ? getSwingUiText('드라이버', 'Driver')
+      : selection.clubType === 'iron' ? getSwingUiText('아이언', 'Iron') : getSwingUiText('클럽 미지정', 'No club selected');
+    return {
+      id, player_id: selection.playerId || 'unregistered', playerName,
+      clubType: selection.clubType || '', session_date: sessionDate,
+      label: fileName, snapshot,
+      displayLabel: `${playerName} · ${clubName} · ${sessionDate}`,
+    };
+  }
+
+  function getFilteredSwingChangeRecords() {
+    return swingChangeRecords.filter(record =>
+      (!swingChangeFilterPlayer.value || record.player_id === swingChangeFilterPlayer.value)
+      && (!swingChangeFilterClub.value || record.clubType === swingChangeFilterClub.value));
+  }
+
+  function updateSwingChangeDateFilter() {
+    const previousDate = swingChangeFilterDate.value;
+    const dates = [...new Set(getFilteredSwingChangeRecords().map(record => record.session_date))].sort().reverse();
+    swingChangeFilterDate.replaceChildren(new Option(getSwingUiText('전체 날짜', 'All dates'), ''));
+    dates.forEach(date => swingChangeFilterDate.append(new Option(date, date)));
+    if (dates.includes(previousDate)) swingChangeFilterDate.value = previousDate;
+    swingChangeFilterDate.disabled = !dates.length;
+  }
+
+  function updateSwingChangeFileFilters(useAnalysisSelection = false) {
+    const selectedPlayer = useAnalysisSelection ? swingChangePlayerIdSelect.value : swingChangeFilterPlayer.value;
+    const selectedClub = useAnalysisSelection ? analysisClubTypeSelect.value : swingChangeFilterClub.value;
+    swingChangeFilterPlayer.replaceChildren(new Option(getSwingUiText('전체 선수', 'All players'), ''));
+    const players = new Map(swingChangeRecords.map(record => [record.player_id, record.playerName]));
+    [...players].sort((a, b) => a[1].localeCompare(b[1])).forEach(([id, name]) =>
+      swingChangeFilterPlayer.append(new Option(name, id)));
+    if (players.has(selectedPlayer)) swingChangeFilterPlayer.value = selectedPlayer;
+    swingChangeFilterClub.replaceChildren(new Option(getSwingUiText('전체 클럽', 'All clubs'), ''),
+      new Option(getSwingUiText('드라이버', 'Driver'), 'driver'),
+      new Option(getSwingUiText('아이언', 'Iron'), 'iron'));
+    swingChangeFilterClub.value = selectedClub;
+    swingChangeFilterPlayer.disabled = !swingChangeRecords.length;
+    swingChangeFilterClub.disabled = !swingChangeRecords.length;
+    updateSwingChangeDateFilter();
+  }
+
+  async function loadSwingChangeFolder(files) {
+    swingChangeLoadBtn.disabled = true;
+    swingChangeStatus.textContent = getSwingUiText('분석 JSON을 읽는 중입니다...', 'Reading analysis JSON files...');
+    const records = [];
+    const failures = [];
+    try {
+      for (const file of files) {
+        if (!/\.json$/i.test(file.name)) continue;
+        try {
+          if (file.size > ANALYSIS_PROJECT_MAX_BYTES) throw new Error(getSwingUiText('25 MB 초과', 'Exceeds 25 MB'));
+          const project = JSON.parse(await file.text());
+          records.push(createSwingChangeFileRecord(project, file.name, file.webkitRelativePath || file.name));
+        } catch (error) {
+          console.error('비교용 분석 JSON 읽기 실패', file.name, error);
+          failures.push(`${file.name}: ${error.message || error}`);
+        }
+      }
+      swingChangeRecords = records.sort((a, b) => b.session_date.localeCompare(a.session_date) || a.label.localeCompare(b.label));
+      swingChangeSelectedIds.clear();
+      swingChangeResults.replaceChildren();
+      updateSwingChangeFileFilters(true);
+      renderSwingChangeRecordList();
+      const message = records.length
+        ? getSwingUiText(`${records.length}개 분석 JSON을 불러왔습니다. 선수·날짜를 선택하고 최대 4개 파일을 비교하세요.`,
+          `Loaded ${records.length} analysis JSON files. Filter by player and date, then compare up to four files.`)
+        : getSwingUiText('비교 가능한 분석 JSON이 없습니다. 분석 1·3 그래프가 포함된 폴더를 선택하세요.',
+          'No comparable analysis JSON files. Select a folder containing analysis 1 or 3 graphs.');
+      swingChangeStatus.textContent = failures.length
+        ? `${message}\n${getSwingUiText('불러오지 못한 파일', 'Files not loaded')} (${failures.length}): ${failures.join(' / ')}`
+        : message;
+    } finally {
+      swingChangeLoadBtn.disabled = false;
+    }
+  }
+
+  function createSwingChangeChart(container, title, records, graphKeys) {
+    const series = records.flatMap((record, recordIndex) => graphKeys.flatMap(key => {
+      const points = record.snapshot.graphs[key];
+      return points.length > 1 ? [{ record, recordIndex, key, points }] : [];
+    }));
+    const section = document.createElement('section');
+    section.className = 'swing-change-chart';
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    section.append(heading);
+    if (!series.length) {
+      const empty = document.createElement('p');
+      empty.className = 'swing-change-note';
+      empty.textContent = getSwingUiText('선택한 기록에 이 그래프 입력이 없습니다.', 'No matching graph inputs in the selected records.');
+      section.append(empty);
+      container.append(section);
+      return;
+    }
+    const colors = ['#55d6be', '#f4ba58', '#7daeff', '#ff817d'];
+    const allPoints = series.flatMap(item => item.points);
+    const minX = Math.min(0, ...allPoints.map(point => point.x));
+    const maxX = Math.max(0, ...allPoints.map(point => point.x));
+    const minY = Math.min(0, ...allPoints.map(point => point.y));
+    const maxY = Math.max(0, ...allPoints.map(point => point.y));
+    const spanX = Math.max(maxX - minX, 1);
+    const spanY = Math.max(maxY - minY, 1);
+    const scale = Math.min(560 / spanX, 320 / spanY);
+    const centerX = 380 - (minX + maxX) / 2 * scale;
+    const centerY = 220 + (minY + maxY) / 2 * scale;
+    const x = value => centerX + value * scale;
+    const y = value => centerY - value * scale;
+    const svg = createGraphSvgElement('svg', { viewBox: '0 0 760 460', role: 'img', 'aria-label': title });
+    svg.append(createGraphSvgElement('line', { x1: 80, y1: y(0), x2: 680, y2: y(0), stroke: '#647b76', 'stroke-dasharray': '4 4' }),
+      createGraphSvgElement('line', { x1: x(0), y1: 45, x2: x(0), y2: 390, stroke: '#647b76', 'stroke-dasharray': '4 4' }),
+      createGraphSvgElement('text', { x: 680, y: y(0) - 7, fill: '#b7ccc6', 'font-size': 12 }, 'X'),
+      createGraphSvgElement('text', { x: x(0) + 7, y: 42, fill: '#b7ccc6', 'font-size': 12 }, 'Y'));
+    const dateLegend = document.createElement('div');
+    dateLegend.className = 'swing-change-legend';
+    records.forEach((record, index) => {
+      const item = document.createElement('span');
+      const swatch = document.createElement('i');
+      swatch.className = 'swing-change-swatch';
+      swatch.style.borderColor = colors[index % colors.length];
+      item.append(swatch, document.createTextNode(record.displayLabel || record.session_date));
+      dateLegend.append(item);
+    });
+    series.forEach(item => {
+      const color = colors[item.recordIndex % colors.length];
+      const dash = item.key === 'frontC7' ? '8 4' : item.key === 'frontCore' ? '2 4' : '';
+      const path = item.points.map((point, index) => `${index ? 'L' : 'M'} ${x(point.x)} ${y(point.y)}`).join(' ');
+      svg.append(createGraphSvgElement('path', { d: path, fill: 'none', stroke: color, 'stroke-width': 2.5,
+        'stroke-dasharray': dash, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      item.points.forEach(point => {
+        const dot = createGraphSvgElement('circle', { cx: x(point.x), cy: y(point.y), r: 4, fill: color, stroke: '#102127', 'stroke-width': 1 });
+        dot.append(createGraphSvgElement('title', {},
+          `${item.record.displayLabel || item.record.session_date} · ${item.key === 'frontHand' || item.key === 'sideHand' ? '손' : item.key === 'frontC7' ? 'C7' : '코어'} · ${point.phase} · X ${point.x.toFixed(1)}%, Y ${point.y.toFixed(1)}%`));
+        svg.append(dot);
+      });
+    });
+    const typeLegend = document.createElement('p');
+    typeLegend.className = 'swing-change-note';
+    typeLegend.textContent = getSwingUiText('실선: 손 경로 · 파선: C7 · 점선: 코어. 정면은 어드레스 C7–골반 길이, 측면은 어드레스 손–클럽헤드의 2D 길이를 100%로 비교합니다.',
+      'Solid: hands · dashed: C7 · dotted: core. Front: address C7-to-pelvis length = 100%. Side: address hands-to-clubhead projected length = 100%.');
+    section.append(svg, dateLegend, typeLegend);
+    container.append(section);
+  }
+
+  function renderSwingChangeComparison() {
+    const records = swingChangeRecords.filter(record => swingChangeSelectedIds.has(record.id))
+      .sort((a, b) => a.session_date.localeCompare(b.session_date));
+    if (records.length < 2 || records.length > 4) return;
+    const crossPlayer = new Set(records.map(record => record.player_id)).size > 1;
+    swingChangeResults.replaceChildren();
+    createSwingChangeChart(swingChangeResults, getSwingUiText('정면 이동 경로', 'Front-view movement paths'),
+      records, ['frontHand', 'frontC7', 'frontCore']);
+    createSwingChangeChart(swingChangeResults, getSwingUiText('측면 손 이동 경로', 'Side-view hand path'),
+      records, ['sideHand']);
+
+    const table = document.createElement('table');
+    table.className = 'swing-change-delta';
+    const head = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    [getSwingUiText('이동 지표 · 말단 위치', 'Motion metric · endpoint'), ...records.map(record => record.displayLabel || record.session_date)]
+      .forEach(value => { const cell = document.createElement('th'); cell.textContent = value; headerRow.append(cell); });
+    head.append(headerRow);
+    const body = document.createElement('tbody');
+    for (const [key, label] of [['frontHand', '정면 손'], ['frontC7', '정면 C7'], ['frontCore', '정면 코어'], ['sideHand', '측면 손']]) {
+      const row = document.createElement('tr');
+      const title = document.createElement('td');
+      title.textContent = getSwingUiText(label, ({ '정면 손': 'Front hands', '정면 C7': 'Front C7', '정면 코어': 'Front core', '측면 손': 'Side hands' })[label]);
+      row.append(title);
+      const values = records.map(record => {
+        const points = record.snapshot.graphs[key];
+        const point = points[points.length - 1];
+        return point ? Math.hypot(point.x, point.y) : null;
+      });
+      values.forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = hasMetric(value) ? `${value.toFixed(1)}%` : '—';
+        row.append(cell);
+      });
+      body.append(row);
+    }
+    table.append(head, body);
+    const tableSection = document.createElement('section');
+    tableSection.className = 'swing-change-chart';
+    const tableTitle = document.createElement('h3');
+    tableTitle.textContent = getSwingUiText('기준 길이 대비 말단 이동량', 'Endpoint displacement relative to reference length');
+    tableSection.append(tableTitle, table);
+    if (records.length >= 2 && !crossPlayer) {
+      const first = records[0], latest = records[records.length - 1];
+      const changes = [['frontHand', '정면 손'], ['frontC7', '정면 C7'], ['frontCore', '정면 코어'], ['sideHand', '측면 손']]
+        .map(([key, label]) => {
+          const firstPoints = first.snapshot.graphs[key], latestPoints = latest.snapshot.graphs[key];
+          const a = firstPoints[firstPoints.length - 1], b = latestPoints[latestPoints.length - 1];
+          if (!a || !b) return null;
+          return `${getSwingUiText(label, label)} ${Math.hypot(b.x, b.y) - Math.hypot(a.x, a.y) >= 0 ? '+' : ''}${(Math.hypot(b.x, b.y) - Math.hypot(a.x, a.y)).toFixed(1)}%p`;
+        }).filter(Boolean);
+      const delta = document.createElement('p');
+      delta.className = 'swing-change-note';
+      delta.textContent = getSwingUiText(`최초 선택 대비 최근 기록: ${changes.join(' · ')}`,
+        `Latest minus earliest selected record: ${changes.join(' · ')}`);
+      tableSection.append(delta);
+    }
+    const note = document.createElement('p');
+    note.className = 'swing-change-note';
+    note.textContent = getSwingUiText(
+      crossPlayer
+        ? '각 선수 그래프는 별도로 정규화한 2D 입력 경로입니다. 선수 간 비교는 기준 길이 대비 관측값만 비교하며, 촬영 방향·자세점이 일치해야 합니다.'
+        : '각 날짜의 그래프는 별도로 정규화한 2D 입력 경로입니다. 변화량은 관측 참고값이며 점수·진단이나 실제 3D 힘을 뜻하지 않습니다. 촬영 방향·자세점이 다르면 직접 비교하지 마세요.',
+      crossPlayer
+        ? 'Each player path is independently normalized 2D input. Cross-player comparisons show observational values relative to reference length; camera view and pose checkpoints must match.'
+        : 'Each date is an independently normalized 2D path. Deltas are observational references, not scores, diagnoses, or measured 3D forces. Do not compare mismatched views or pose checkpoints.'
+    );
+    tableSection.append(note);
+    swingChangeResults.append(tableSection);
+    updateSwingChangeCompareButton();
+  }
+
+  async function downloadSwingChangePDF() {
+    if (swingChangePdfExporting) return;
+    if (!swingChangeResults.children.length) {
+      alert(getSwingUiText('선택 파일을 먼저 비교하세요.', 'Compare selected files before downloading a PDF.'));
+      return;
+    }
+    if (!window.jspdf || !window.html2canvas) {
+      alert(getSwingUiText('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.', 'PDF libraries have not loaded.'));
+      return;
+    }
+    const records = swingChangeRecords.filter(record => swingChangeSelectedIds.has(record.id))
+      .sort((a, b) => a.session_date.localeCompare(b.session_date));
+    const report = document.createElement('section');
+    report.className = 'swing-change-results';
+    Object.assign(report.style, {
+      position: 'fixed', top: '0', left: '-10000px', width: '900px',
+      padding: '20px', boxSizing: 'border-box', background: '#ffffff',
+      color: '#000000', textAlign: 'left', fontFamily: 'Arial, sans-serif',
+    });
+    const heading = document.createElement('h1');
+    heading.textContent = getSwingUiText('선수별 스윙 변화 비교결과', 'Player Swing Change Comparison');
+    report.append(heading);
+    records.forEach(record => {
+      const source = document.createElement('p');
+      source.textContent = `${record.displayLabel} (${record.label})`;
+      report.append(source);
+    });
+    report.append(...swingChangeResults.cloneNode(true).children);
+    report.querySelectorAll('*').forEach(element => {
+      element.style.color = '#000000';
+      element.style.background = '#ffffff';
+      if (!element.classList.contains('swing-change-swatch')) element.style.borderColor = '#cccccc';
+      element.style.overflow = 'visible';
+    });
+    report.querySelectorAll('svg text').forEach(element => element.setAttribute('fill', '#333333'));
+    swingChangePdfExporting = true;
+    updateSwingChangeCompareButton();
+    document.body.appendChild(report);
+    try {
+      const playerName = [...new Set(records.filter(record => record.player_id !== 'unregistered')
+        .map(record => record.playerName))].join('_vs_');
+      const clubName = [...new Set(records.map(record => record.clubType))].map(club =>
+        club === 'driver' ? getSwingUiText('드라이버', 'Driver')
+          : club === 'iron' ? getSwingUiText('아이언', 'Iron') : '').filter(Boolean).join('_vs_');
+      const downloadName = await getAnalysisDownloadFileName('swing_comparison', 'pdf', {
+        playerName, clubName, sourceName: records[0].label,
+      });
+      const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+      const canvas = await html2canvas(report, { scale: 2, backgroundColor: '#ffffff' });
+      addCanvasToPdfPages(canvas, report, doc, 40, 0.9);
+      doc.save(downloadName);
+    } catch (error) {
+      console.warn('스윙 비교 PDF 생성 중 오류가 발생했습니다.', error);
+      alert(getSwingUiText('비교결과 PDF 생성에 실패했습니다. 다시 시도해주세요.',
+        'Could not create the comparison PDF. Please try again.'));
+    } finally {
+      report.remove();
+      swingChangePdfExporting = false;
+      updateSwingChangeCompareButton();
+    }
+  }
+
+  function setSwingChangeCopy() {
+    const english = uiLanguage === 'en';
+    document.getElementById('swingChangeTitle').textContent = english ? 'Player Swing Changes' : '선수별 스윙 변화';
+    const contextTitle = english ? 'Select Player and Club' : '분석 선수·클럽 선택';
+    analysisContextBtn.title = contextTitle;
+    analysisContextBtn.setAttribute('aria-label', contextTitle);
+    document.getElementById('analysisContextDialogTitle').textContent = contextTitle;
+    analysisContextDialogCloseBtn.title = english ? 'Close' : '닫기';
+    analysisContextDialogCloseBtn.setAttribute('aria-label', english ? 'Close' : '닫기');
+    swingChangeModeBtn.textContent = swingChangeView.hidden
+      ? (english ? 'Check Player Swing Changes' : '선수 스윙변화 확인')
+      : (english ? 'Return to A/B Comparison' : 'A/B 스윙 비교로 돌아가기');
+    swingChangeLoadBtn.textContent = english ? 'Choose Analysis JSON Folder' : '분석 JSON 폴더 선택';
+    document.getElementById('swingChangeFilterPlayerLabel').textContent = english ? 'Player' : '선수';
+    document.getElementById('swingChangeFilterClubLabel').textContent = english ? 'Club' : '클럽';
+    document.getElementById('swingChangeFilterDateLabel').textContent = english ? 'Analysis date' : '분석일';
+    document.getElementById('swingChangeSelectionNote').textContent = english
+      ? 'Selections remain when changing player or date. Choosing a club deselects files from other clubs. Choose up to four files.'
+      : '선수·날짜를 바꿔도 선택한 파일은 유지됩니다. 클럽을 지정하면 다른 클럽의 선택은 해제됩니다. 최대 4개까지 선택하세요.';
+    swingChangePdfBtn.textContent = english
+      ? 'Download Comparison PDF' : '비교결과 PDF 다운로드';
+    document.getElementById('analysisPlayerSelectLabel').textContent = english ? 'Player' : '분석 선수';
+    swingChangePlayerIdSelect.setAttribute('aria-label', english ? 'Analysis player' : '분석 선수');
+    swingChangePlayerIdSelect.title = english
+      ? 'Leave unregistered players unselected; no player name will be added to the filename.'
+      : '등록 선수가 아니면 선택하지 마세요. 선수명은 파일명에서 제외됩니다.';
+    document.getElementById('analysisClubSelectLabel').textContent = english ? 'Club' : '클럽';
+    analysisClubTypeSelect.setAttribute('aria-label', english ? 'Analysis club type' : '분석 클럽 종류');
+    const playerPlaceholder = swingChangePlayerIdSelect.options[0];
+    if (playerPlaceholder) playerPlaceholder.textContent = english ? 'No player selected' : '선수 선택 안 함';
+    analysisClubTypeSelect.options[0].textContent = english ? 'Not selected' : '선택 안 함';
+    analysisClubTypeSelect.options[1].textContent = english ? 'Driver' : '드라이버';
+    analysisClubTypeSelect.options[2].textContent = english ? 'Iron' : '아이언';
+    updateSwingChangeFileFilters();
+    renderSwingChangeRecordList();
+  }
+
+  function setSwingChangeFileSelected(id, checked) {
+    if (checked && !swingChangeSelectedIds.has(id) && swingChangeSelectedIds.size >= 4) {
+      swingChangeStatus.textContent = getSwingUiText('한 번에 최대 4개 파일까지 비교할 수 있습니다.',
+        'You can compare up to four files at a time.');
+      return false;
+    }
+    if (checked) swingChangeSelectedIds.add(id);
+    else swingChangeSelectedIds.delete(id);
+    swingChangeResults.replaceChildren();
+    updateSwingChangeCompareButton();
+    return true;
+  }
+
+  function updateSwingChangeCompareButton() {
+    const count = swingChangeSelectedIds.size;
+    swingChangeCompareBtn.disabled = count < 2;
+    swingChangeCompareBtn.textContent = getSwingUiText(`선택 파일 비교 (${count}/4)`, `Compare selected files (${count}/4)`);
+    swingChangePdfBtn.disabled = swingChangePdfExporting || !swingChangeResults.children.length;
+  }
+
+  function renderSwingChangeRecordList() {
+    swingChangeRecordList.replaceChildren();
+    const club = swingChangeFilterClub.value;
+    const excludedSelections = swingChangeRecords.filter(record =>
+      club && record.clubType !== club && swingChangeSelectedIds.has(record.id));
+    if (excludedSelections.length) {
+      excludedSelections.forEach(record => swingChangeSelectedIds.delete(record.id));
+      swingChangeResults.replaceChildren();
+      swingChangeStatus.textContent = getSwingUiText(
+        `클럽 조건이 다른 ${excludedSelections.length}개 파일의 선택을 해제했습니다.`,
+        `Deselected ${excludedSelections.length} files that do not match the selected club.`);
+    }
+    const filteredIds = new Set(getFilteredSwingChangeRecords()
+      .filter(record => !swingChangeFilterDate.value || record.session_date === swingChangeFilterDate.value)
+      .map(record => record.id));
+    swingChangeRecords.filter(record => filteredIds.has(record.id) || swingChangeSelectedIds.has(record.id)).forEach(record => {
+      const option = document.createElement('label');
+      option.className = 'swing-change-record-option';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = record.id;
+      checkbox.checked = swingChangeSelectedIds.has(record.id);
+      checkbox.addEventListener('change', () => {
+        if (!setSwingChangeFileSelected(record.id, checkbox.checked)) checkbox.checked = false;
+        if (!checkbox.checked && !filteredIds.has(record.id)) {
+          option.remove();
+          swingChangeRecordList.querySelector('input')?.focus({ preventScroll: true });
+        }
+      });
+      const text = document.createElement('span');
+      text.textContent = `${record.displayLabel || record.session_date}${record.label ? ` (${record.label})` : ''}`;
+      const detail = document.createElement('small');
+      const available = Object.values(record.snapshot.graphs).filter(points => points.length > 1).length;
+      detail.textContent = getSwingUiText(`비교 그래프 ${available}종`, `${available} graph types`);
+      text.append(detail);
+      option.append(checkbox, text);
+      swingChangeRecordList.append(option);
+    });
+    if (!swingChangeRecordList.children.length) {
+      const empty = document.createElement('p');
+      empty.className = 'swing-change-note';
+      empty.textContent = getSwingUiText('선택 조건에 맞는 분석 JSON이 없습니다.', 'No analysis JSON files match these filters.');
+      swingChangeRecordList.append(empty);
+    }
+    updateSwingChangeCompareButton();
   }
 
   function isSafeProjectTree(value, depth = 0, budget = { nodes: 0 }) {
@@ -14223,12 +14899,25 @@
       });
   }
 
-  function validateAnalysisProject(project) {
+  function validateAnalysisProject(project, requireMatchingMedia = true) {
     if (!project || project.format !== ANALYSIS_PROJECT_FORMAT || project.version !== ANALYSIS_PROJECT_VERSION
       || !project.media || !project.analysis || !project.r10 || !isSafeProjectTree(project)) {
       throw new Error(r10Text('분석 프로젝트 파일 형식 또는 버전이 올바르지 않습니다.', 'The analysis project format or version is not supported.'));
     }
     const state = project.analysis;
+    if (state.swingChangeRecord != null && !isSwingChangeSnapshot(state.swingChangeRecord)) {
+      throw new Error(r10Text('저장된 스윙 변화 기록이 올바르지 않습니다.', 'The saved swing-change record is invalid.'));
+    }
+    if (state.athleteSelection != null
+      && (!state.athleteSelection || typeof state.athleteSelection !== 'object'
+        || Array.isArray(state.athleteSelection)
+        || typeof state.athleteSelection.playerId !== 'string'
+        || state.athleteSelection.playerId.length > 256
+        || (state.athleteSelection.playerName != null
+          && (typeof state.athleteSelection.playerName !== 'string' || state.athleteSelection.playerName.length > 256))
+        || !['', 'driver', 'iron'].includes(state.athleteSelection.clubType))) {
+      throw new Error(r10Text('저장된 선수·클럽 정보가 올바르지 않습니다.', 'The saved player or club selection is invalid.'));
+    }
     if (state.physicalSensitivity != null) PhysicalDistanceReference.validateSensitivity(state.physicalSensitivity);
     if (state.playerReference != null) {
       const reference = state.playerReference;
@@ -14334,7 +15023,7 @@
     for (const view of ['front', 'side']) {
       const identity = project.media[view];
       const currentIdentity = getAnalysisVideoIdentity(view);
-      if (identity != null && currentIdentity !== identity) {
+      if (requireMatchingMedia && identity != null && currentIdentity !== identity) {
         const label = view === 'front' ? 'A' : 'B';
         throw new Error(r10Text(
           `저장한 프로젝트의 ${label} 영상과 현재 영상이 일치하지 않습니다. 저장에 사용한 원본 영상을 먼저 불러온 뒤 프로젝트를 다시 여세요.`,
@@ -14353,7 +15042,8 @@
     });
   }
 
-  function saveAnalysisProject() {
+  async function saveAnalysisProject() {
+    saveAnalysisProjectBtn.disabled = true;
     try {
       if (![analysisBodyMassInput, analysisLeanMassInput, analysisBodyFatInput, analysisKnownDistanceInput].every(input => input.checkValidity())) {
         alert(r10Text(
@@ -14362,26 +15052,36 @@
         ));
         return;
       }
+      if (!swingChangePlayers.length
+        && (swingChangePlayerIdSelect.value || swingChangePlayerIdSelect.dataset.selectedPlayerId)) {
+        await ensureSwingChangePlayers();
+      }
       const project = buildAnalysisProject();
+      const sessionDate = getLocalDateInputValue(new Date(project.savedAt));
+      const swingChangeSnapshot = createSwingChangeSnapshot(sessionDate, '', project);
+      if (swingChangeSnapshot) {
+        project.analysis.swingChangeRecord = swingChangeSnapshot;
+      }
       const json = JSON.stringify(project, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       if (blob.size > ANALYSIS_PROJECT_MAX_BYTES) {
         alert(r10Text('분석 프로젝트가 25 MB를 초과해 저장할 수 없습니다.', 'The analysis project exceeds the 25 MB size limit.'));
         return;
       }
+      const downloadName = await getAnalysisDownloadFileName('analysis', 'json', { date: sessionDate });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      const baseName = (document.getElementById('frontFileName')?.textContent || 'SwingAnalysis')
-        .replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9가-힣_-]/g, '_') || 'SwingAnalysis';
       link.href = url;
-      link.download = `${baseName}_analysis_${new Date().toISOString().slice(0, 10)}.json`;
+      link.download = downloadName;
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('분석 프로젝트 저장 실패', error);
-      alert(r10Text('분석 프로젝트를 저장하지 못했습니다. 브라우저 저장 공간을 확인한 뒤 다시 시도하세요.', 'Could not save the analysis project. Check browser storage and try again.'));
+      alert(error.message || r10Text('분석 프로젝트를 저장하지 못했습니다. 브라우저 저장 공간을 확인한 뒤 다시 시도하세요.', 'Could not save the analysis project. Check browser storage and try again.'));
+    } finally {
+      saveAnalysisProjectBtn.disabled = false;
     }
   }
 
@@ -14477,6 +15177,10 @@
     selectedSegment = state.selectedSegment;
     analysisSegmentSelect.value = selectedSegment;
     analysisHeightInput.value = state.height;
+    const athleteSelection = state.athleteSelection || {};
+    swingChangePlayerIdSelect.dataset.selectedPlayerId = athleteSelection.playerId || '';
+    swingChangePlayerIdSelect.value = athleteSelection.playerId || '';
+    analysisClubTypeSelect.value = athleteSelection.clubType || '';
     const athleteData = state.athleteData || {};
     analysisBodyMassInput.value = athleteData.bodyMassKg ?? '';
     analysisLeanMassInput.value = athleteData.leanMassKg ?? '';
@@ -14679,7 +15383,74 @@
     });
   }
 
-  saveFrameBtn.addEventListener('click', () => {
+  swingChangePlayerIdSelect.addEventListener('focus', async () => {
+    if (swingChangePlayers.length) return;
+    try {
+      await ensureSwingChangePlayers();
+    } catch (error) {
+      console.error('등록 선수 목록 불러오기 실패', error);
+      if (statusSpan) statusSpan.textContent = getSwingUiText(
+        `등록 선수 목록을 불러오지 못했습니다: ${error.message || error}`,
+        `Could not load registered players: ${error.message || error}`);
+    }
+  });
+  swingChangeModeBtn.addEventListener('click', () => {
+    const open = swingChangeView.hidden;
+    swingChangeView.hidden = !open;
+    swingComparePanel.classList.toggle('history-mode', open);
+    swingChangeModeBtn.setAttribute('aria-expanded', String(open));
+    setSwingChangeCopy();
+    if (open && !swingChangeRecords.length) {
+      swingChangeStatus.textContent = getSwingUiText(
+        '분석 1·3 결과를 저장한 JSON 폴더를 선택하세요. 별도 변화 기록 등록 없이 선수·날짜별 그래프를 비교합니다. 파일은 서버에 업로드되지 않으며, 다시 방문하면 폴더를 선택해야 합니다.',
+        'Choose the folder containing saved analysis 1 or 3 JSON files. Compare graphs by player and date without separate history registration. Files stay on this PC; select the folder again on your next visit.'
+      );
+    }
+  });
+  swingChangePlayerIdSelect.addEventListener('change', () => {
+    const playerId = swingChangePlayerIdSelect.value;
+    swingChangePlayerIdSelect.dataset.selectedPlayerId = playerId;
+  });
+  analysisContextBtn.addEventListener('click', () => {
+    if (analysisContextDialog.open) {
+      analysisContextDialog.close();
+      return;
+    }
+    analysisContextDialog.showModal();
+    analysisContextBtn.setAttribute('aria-expanded', 'true');
+  });
+  analysisContextDialogCloseBtn.addEventListener('click', () => analysisContextDialog.close());
+  analysisContextDialog.addEventListener('close', () => {
+    analysisContextBtn.setAttribute('aria-expanded', 'false');
+  });
+  swingChangeLoadBtn.addEventListener('click', () => {
+    swingChangeFolderInput.value = '';
+    swingChangeFolderInput.click();
+  });
+  swingChangeFolderInput.addEventListener('change', async () => {
+    if (!swingChangeFolderInput.files.length) return;
+    try {
+      await loadSwingChangeFolder(swingChangeFolderInput.files);
+    } catch (error) {
+      console.error('분석 JSON 폴더 불러오기 실패', error);
+      swingChangeStatus.textContent = getSwingUiText(
+        `폴더를 불러오지 못했습니다: ${error.message || error}`,
+        `Could not load the folder: ${error.message || error}`
+      );
+    }
+  });
+  [swingChangeFilterPlayer, swingChangeFilterClub].forEach(select =>
+    select.addEventListener('change', () => {
+      updateSwingChangeDateFilter();
+      renderSwingChangeRecordList();
+    }));
+  swingChangeFilterDate.addEventListener('change', renderSwingChangeRecordList);
+  swingChangeCompareBtn.addEventListener('click', renderSwingChangeComparison);
+  swingChangePdfBtn.addEventListener('click', downloadSwingChangePDF);
+  if (languageSelect) languageSelect.addEventListener('change', setSwingChangeCopy);
+  setSwingChangeCopy();
+
+  saveFrameBtn.addEventListener('click', async () => {
     if(!frontVideo.paused || !sideVideo.paused){
       alert("Pause the video(s) before saving.");
       return;
@@ -14702,6 +15473,16 @@
       return;
     }
 
+    let downloadName;
+    try {
+      downloadName = await getAnalysisDownloadFileName(`frame_capture_${selectedView || 'ab'}`, 'png',
+        { view: includeFront ? 'front' : 'side' });
+    } catch (error) {
+      console.error('프레임 이미지 저장 준비 실패', error);
+      alert(getSwingUiText(`이미지 저장을 준비하지 못했습니다: ${error.message || error}`,
+        `Could not prepare the image download: ${error.message || error}`));
+      return;
+    }
     const gap = (includeFront && includeSide) ? 10 : 0;
     const frontZoomedWidth = (frontVideo.videoWidth || 640) * frontZoom;
     const frontZoomedHeight = (frontVideo.videoHeight || 360) * frontZoom;
@@ -14749,7 +15530,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `swing_frame_capture_${Date.now()}.png`;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -15728,11 +16509,13 @@
     clone.style.boxShadow = 'none';
     document.body.appendChild(clone);
     try {
+      const downloadName = await getAnalysisDownloadFileName(
+        `r10_profile_${String(r10GeneratedReport.profile.n).padStart(2, '0')}_report`, 'pdf', { sourceName: r10SourceName });
       const canvas = await html2canvas(clone, { scale: 1.5, backgroundColor: '#ffffff' });
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
       addCanvasToPdfPages(canvas, clone, doc, 32, 0.88);
-      doc.save(`SY-GSAP_Profile_${String(r10GeneratedReport.profile.n).padStart(2, '0')}_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      doc.save(downloadName);
     } catch (error) {
       console.warn('R10 종합보고서 PDF 생성 오류', error);
       alert(r10Text('PDF 생성에 실패했습니다. 다시 시도해주세요.', 'Could not generate the PDF. Please try again.'));

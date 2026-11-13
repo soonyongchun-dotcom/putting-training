@@ -18,6 +18,8 @@ test('A/B comparison remains accessible outside the stage-specific analysis tool
   assert.doesNotMatch(html, /body\[data-workflow-stage\] #swingCompare(?:Panel|ToggleBtn)/);
   assert.match(html, /body\[data-swing-compare="active"\] #analysisVideoWorkspace/);
   assert.match(html, /body\[data-swing-compare="active"\] #sideWrapper/);
+  assert.match(html, /body\[data-swing-compare="active"\] #analysisWorkflowFiles > :not\(#swingCompareToggleBtn\)/);
+  assert.match(html, /id="analysisContextBtn"/);
 });
 
 test('comparison can open before video upload and closes without losing the selected workflow stage', () => {
@@ -27,6 +29,7 @@ test('comparison can open before video upload and closes without losing the sele
     backswingActive: true, swingCompareActive: false, frontVideo: {}, sideVideo: {},
     stanceReferenceActive: true, stanceReferencePendingPoints: [{}],
     stanceReferenceBtn: element(), statusSpan: element(), swingComparePanel: element(),
+    analysisContextDialog: { open: false, close() { this.open = false; } },
     swingCompareToggleBtn: element(), swingCompareStatus: element(),
     distanceMeasureActive: true, distanceReferenceActive: true,
     cancelPointer() {}, translateUiText: text => text, getSwingUiText: (ko, en) => en,
@@ -34,8 +37,10 @@ test('comparison can open before video upload and closes without losing the sele
     showGuide() {}, updateSwingCompareGuide() {}, redrawSwingCompareOverlays() {}, updateSwingComparePresentation() {},
   });
   vm.runInContext(html.match(/  function toggleSwingCompareMode\(\)[\s\S]*?\n  }/)[0], c);
+  c.analysisContextDialog.open = true;
   c.toggleSwingCompareMode();
   assert.equal(c.swingCompareActive, true);
+  assert.equal(c.analysisContextDialog.open, false);
   assert.equal(c.document.body.dataset.swingCompare, 'active');
   assert.equal(c.backswingActive, false);
   assert.equal(c.stanceReferenceActive, false);
