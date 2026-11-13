@@ -226,3 +226,80 @@ test('failed comparison PDF capture is explicit, cleans up and allows retry', as
   assert.equal(t.c.swingChangePdfBtn.disabled, false);
   assert.equal(t.c.swingChangePdfExporting, false);
 });
+
+function setupKeypointComparison(view = 'front') {
+  const t = setup('engine');
+  const collapsed = new Set(['collapsed']);
+  const table = { style: {}, classList: { remove: value => collapsed.delete(value) } };
+  const sections = ['summary', 'opinion', 'table'].map(kind => ({ kind, style: {} }));
+  const removedControls = [];
+  const report = {
+    style: {}, children: [...sections], classList: { remove() {} },
+    removeAttribute() {},
+    prepend(...items) { this.children.unshift(...items); },
+    append(...items) { this.children.push(...items); },
+    querySelectorAll(selector) {
+      if (selector === '*') return [...sections, table];
+      if (selector === '.swing-compare-table-wrap') return [table];
+      return [{ remove() { removedControls.push(selector); } }];
+    },
+    remove() { this.removed = true; },
+  };
+  let refreshed = false;
+  Object.assign(t.c, {
+    swingComparePdfBtn: { disabled: false },
+    swingCompareView: view,
+    SWING_COMPARE_PHASES: [{ id: 'address' }, { id: 'impact' }],
+    computeSwingComparePhaseMetrics: phase => phase === 'address' ? {} : null,
+    updateSwingCompareResults() { refreshed = true; },
+    swingComparePanel: { cloneNode: () => report },
+  });
+  return { ...t, report, collapsed, removedControls, refreshed: () => refreshed };
+}
+
+for (const view of ['front', 'side']) {
+  test(`A/B ${view} PDF exports summary, opinion and expanded six-phase table separately from swing history`, async () => {
+    const t = setupKeypointComparison(view);
+    await t.c.downloadSwingComparePDF();
+    assert.equal(t.saved[0], `Player_One-Driver-2026-11-13-swing_ab_comparison_${view}.pdf`);
+    assert.equal(t.refreshed(), true);
+    assert.equal(t.captures[0], t.report);
+    assert.deepEqual(t.report.children.slice(2, 5).map(node => node.kind), ['summary', 'opinion', 'table']);
+    assert.match(t.report.children[0].textContent, view === 'side' ? /Side/ : /Front/);
+    assert.match(t.report.children[1].textContent, /A: swing.mp4 · B: side.mp4/);
+    assert.equal(t.collapsed.has('collapsed'), false);
+    assert.match(t.removedControls[0], /swingChangeView/);
+    assert.equal(t.report.removed, true);
+    assert.equal(t.c.swingComparePdfBtn.disabled, false);
+  });
+}
+
+test('A/B PDF refuses missing paired points, free comparison and unavailable libraries', async () => {
+  const t = setupKeypointComparison();
+  t.c.computeSwingComparePhaseMetrics = () => null;
+  await t.c.downloadSwingComparePDF();
+  assert.match(t.alerts[0], /Complete A\/B points/);
+  t.c.computeSwingComparePhaseMetrics = () => ({});
+  t.c.swingCompareView = 'free';
+  await t.c.downloadSwingComparePDF();
+  assert.match(t.alerts[1], /front or side comparison/);
+  t.c.swingCompareView = 'front';
+  t.c.window.jspdf = null;
+  await t.c.downloadSwingComparePDF();
+  assert.match(t.alerts[2], /libraries/);
+  assert.equal(t.captures.length, 0);
+  assert.equal(t.saved.length, 0);
+});
+
+test('A/B PDF capture failure cleans up, reports failure and restores its button', async () => {
+  const t = setupKeypointComparison();
+  t.c.html2canvas = async () => {
+    assert.equal(t.c.swingComparePdfBtn.disabled, true);
+    throw new Error('capture failed');
+  };
+  await t.c.downloadSwingComparePDF();
+  assert.match(t.alerts[0], /Could not create the A\/B comparison PDF/);
+  assert.equal(t.saved.length, 0);
+  assert.equal(t.report.removed, true);
+  assert.equal(t.c.swingComparePdfBtn.disabled, false);
+});

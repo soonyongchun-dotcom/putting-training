@@ -1715,7 +1715,7 @@
   body[data-swing-compare="active"] #analysisWorkflowReset,
   body[data-swing-compare="active"] #downloadPdfBtn { display: none !important; }
   body[data-swing-compare="active"] .video-header .analysis-btn { display: none !important; }
-  body[data-swing-compare-view="free"] :is(#swingComparePhaseSelect, #swingCompareSummary, .swing-compare-opinion, #swingCompareTableWrap, #swingCompareTableToggleBtn, #swingCompareClearPhaseBtn) { display: none !important; }
+  body[data-swing-compare-view="free"] :is(#swingComparePhaseSelect, #swingCompareSummary, .swing-compare-opinion, #swingCompareTableWrap, #swingCompareTableToggleBtn, #swingCompareClearPhaseBtn, #swingComparePdfBtn) { display: none !important; }
   #swingCompareFreeTools { display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
   #crossCorrectionSetup {
     margin-top: 14px;
@@ -2001,7 +2001,7 @@
 </div>
 
 <div class="top-bar">
-  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span>   <span class="version">ver 26.1105-f1-ad</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
+  <h1><button type="button" id="appIntroToggleBtn" class="app-title-button" aria-expanded="false" aria-controls="appIntroPanel"><span>SY-GSAP (Golf Swing Analysis Platform)</span>   <span class="version">ver 26.1113-f-ad</span><span class="app-title-chevron" aria-hidden="true">▾</span></button></h1>
   <div class="analysis-workflow-utilities">
     <label class="language-select" for="languageSelect" title="언어 선택">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2164,6 +2164,7 @@
       <button type="button" id="swingCompareTableToggleBtn" aria-expanded="true">비교표 접기</button>
       <button type="button" id="swingCompareClearPhaseBtn" title="현재 시점의 A/B 포인트만 삭제">현재 시점 지우기</button>
       <button type="button" id="swingCompareResetBtn" title="모든 비교 포인트와 결과 삭제">비교 초기화</button>
+      <button type="button" id="swingComparePdfBtn">A/B 비교결과 PDF 다운로드</button>
       <button type="button" id="swingChangeModeBtn" aria-expanded="false">선수 스윙변화 확인</button>
     </div>
     <div id="swingCompareFreeTools" aria-label="자유 비교 도구">
@@ -3084,6 +3085,7 @@
     '선택 자세': 'Select Pose', '어드레스': 'Address', '백스윙 탑': 'Top of Backswing',
     '비교표 접기': 'Collapse Comparison Table', '비교표 펼치기': 'Expand Comparison Table',
     '현재 시점 지우기': 'Clear Current Phase', '비교 초기화': 'Reset Comparison',
+    'A/B 비교결과 PDF 다운로드': 'Download A/B Comparison PDF',
     '기준선 지정 완료': 'Reference Line Set', '기준점 선택 중': 'Selecting Reference Points',
     '거리 선택 중': 'Selecting Distance Points', '분석을 시작하기 전에 선수 키(cm)를 먼저 입력하세요. 이동 변위 지표 계산의 정확도를 위해 필요합니다.': 'Enter the player height in centimeters before starting the analysis. This is required to calculate displacement metrics.',
     '분석을 시작하기 전에 "기준선 지정" 버튼으로 A 영상에서 머리~발끝 기준선을 먼저 표시하세요. C7 변위(%) 계산의 기준(=입력한 키 100%)이 됩니다.': 'Set a head-to-toe reference line on Video A before starting. It is used as the 100% scale for C7 displacement.',
@@ -4000,6 +4002,7 @@
   const swingCompareTableToggleBtn = document.getElementById('swingCompareTableToggleBtn');
   const swingCompareClearPhaseBtn = document.getElementById('swingCompareClearPhaseBtn');
   const swingCompareResetBtn = document.getElementById('swingCompareResetBtn');
+  const swingComparePdfBtn = document.getElementById('swingComparePdfBtn');
   const swingCompareStatus = document.getElementById('swingCompareStatus');
   const swingCompareSummary = document.getElementById('swingCompareSummary');
   const swingCompareOpinion = document.getElementById('swingCompareOpinion');
@@ -9412,6 +9415,71 @@
     doc.save(downloadName);
   }
 
+  async function downloadSwingComparePDF() {
+    if (swingComparePdfBtn.disabled) return;
+    if (swingCompareView === 'free' || !SWING_COMPARE_PHASES.some(phase => computeSwingComparePhaseMetrics(phase.id))) {
+      alert(getSwingUiText('정면 또는 측면 비교에서 한 시점 이상의 A/B 포인트 입력을 완료하세요.',
+        'Complete A/B points for at least one phase in front or side comparison.'));
+      return;
+    }
+    if (!window.jspdf || !window.html2canvas) {
+      alert(getSwingUiText('PDF 생성에 필요한 라이브러리가 로드되지 않았습니다.', 'PDF libraries have not loaded.'));
+      return;
+    }
+    updateSwingCompareResults();
+    const report = swingComparePanel.cloneNode(true);
+    report.removeAttribute('id');
+    report.classList.remove('history-mode');
+    Object.assign(report.style, {
+      display: 'block', position: 'fixed', top: '0', left: '-10000px',
+      width: '1100px', maxWidth: 'none', margin: '0', padding: '20px',
+      background: '#ffffff', color: '#000000', overflow: 'visible',
+    });
+    report.querySelectorAll('.swing-compare-header, #swingChangeView, #swingCompareStatus')
+      .forEach(element => element.remove());
+    const heading = document.createElement('h1');
+    heading.textContent = getSwingUiText('A/B 스윙 핵심 포인트 비교 결과', 'A/B Key-Point Swing Comparison Results')
+      + ' · ' + (swingCompareView === 'side' ? getSwingUiText('측면', 'Side') : getSwingUiText('정면', 'Front'));
+    const sources = document.createElement('p');
+    sources.textContent = ['front', 'side'].map((view, index) => {
+      const name = videoFileIdentity[view]?.split('|')[0]
+        || document.getElementById(`${view}FileName`)?.textContent?.trim() || '—';
+      return `${index === 0 ? 'A' : 'B'}: ${name}`;
+    }).join(' · ');
+    report.prepend(heading, sources);
+    report.querySelectorAll('.swing-compare-table-wrap').forEach(element => {
+      element.classList.remove('collapsed');
+      element.style.display = 'block';
+    });
+    report.querySelectorAll('*').forEach(element => {
+      element.style.color = '#000000';
+      element.style.background = '#ffffff';
+      element.style.borderColor = '#cccccc';
+      element.style.boxShadow = 'none';
+      element.style.overflow = 'visible';
+    });
+    const note = document.createElement('p');
+    note.textContent = getSwingUiText('미입력·산출 불가 항목은 — 또는 - 로 표시됩니다. 비교 지표는 선수의 절대 실력이나 우열을 뜻하지 않습니다.',
+      'Missing or unavailable metrics are shown as — or -. Comparison metrics do not measure absolute skill or rank players.');
+    report.append(note);
+    swingComparePdfBtn.disabled = true;
+    document.body.appendChild(report);
+    try {
+      const downloadName = await getAnalysisDownloadFileName(`ab_comparison_${swingCompareView}`, 'pdf');
+      const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+      const canvas = await html2canvas(report, { scale: 2, backgroundColor: '#ffffff' });
+      addCanvasToPdfPages(canvas, report, doc, 40, 0.9);
+      doc.save(downloadName);
+    } catch (error) {
+      console.warn('A/B 비교 PDF 생성 중 오류가 발생했습니다.', error);
+      alert(getSwingUiText('A/B 비교결과 PDF 생성에 실패했습니다. 다시 시도해주세요.',
+        'Could not create the A/B comparison PDF. Please try again.'));
+    } finally {
+      report.remove();
+      swingComparePdfBtn.disabled = false;
+    }
+  }
+
   async function downloadBackswingAnalysisPDF() {
     if (!backswingClassification) {
       alert('백스윙 유형 판정이 완료된 후 PDF를 다운로드하세요.');
@@ -14037,6 +14105,7 @@
   if (swingCompareToggleBtn) {
     swingCompareToggleBtn.addEventListener('click', toggleSwingCompareMode);
   }
+  swingComparePdfBtn.addEventListener('click', downloadSwingComparePDF);
   if (swingCompareTableToggleBtn && swingCompareTableWrap) {
     swingCompareTableToggleBtn.addEventListener('click', () => {
       const collapsed = swingCompareTableWrap.classList.toggle('collapsed');
