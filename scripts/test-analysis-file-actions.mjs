@@ -162,6 +162,8 @@ function setupComparison() {
   Object.assign(t.c, {
     swingChangePdfBtn: {},
     swingChangeCompareBtn: {},
+    swingChangeLoadBtn: {},
+    swingChangeRemoveBtn: {},
     swingChangePdfExporting: false,
     swingChangeSelectedIds: new Set(['first', 'second']),
     swingChangeRecords: [
@@ -176,12 +178,15 @@ function setupComparison() {
   t.c.document.createElement = () => {
     const element = {
       style: {}, children: [], append(...items) { this.children.push(...items); },
-      querySelectorAll: () => [], remove() { this.removed = true; },
+      querySelectorAll(selector) {
+        return selector === 'details' ? this.children.filter(child => child.tagName === 'details') : [];
+      },
+      remove() { this.removed = true; },
     };
     reports.push(element);
     return element;
   };
-  for (const [prefix, name] of [['function', 'updateSwingChangeCompareButton'], ['async function', 'downloadSwingChangePDF']]) {
+  for (const [prefix, name] of [['function', 'expandPdfDetails'], ['function', 'updateSwingChangeCompareButton'], ['async function', 'downloadSwingChangePDF']]) {
     vm.runInContext(html.match(new RegExp(`  ${prefix} ${name}\\([\\s\\S]*?\\n  }`))[0], t.c);
   }
   return { ...t, reports, pagination };
@@ -211,6 +216,22 @@ test('comparison PDF rejects absent results or libraries without saving', async 
   assert.match(t.alerts[1], /libraries/);
   assert.equal(t.saved.length, 0);
   assert.equal(t.reports.length, 0);
+});
+
+test('comparison PDF expands cloned charts without opening the on-screen originals', async () => {
+  const t = setupComparison();
+  const originals = Array.from({ length: 5 }, (_, index) => ({ tagName: 'details', open: index === 0 }));
+  const clones = originals.map(chart => ({ ...chart }));
+  t.c.swingChangeResults.children = originals;
+  t.c.swingChangeResults.cloneNode = () => ({ children: clones });
+  t.c.html2canvas = async report => {
+    assert.ok(report.querySelectorAll('details').every(chart => chart.open));
+    assert.equal(report.querySelectorAll('details').length, 5);
+    return { width: 800, height: 600 };
+  };
+  await t.c.downloadSwingChangePDF();
+  assert.equal(t.saved.length, 1);
+  assert.deepEqual(originals.map(chart => chart.open), [true, false, false, false, false]);
 });
 
 test('failed comparison PDF capture is explicit, cleans up and allows retry', async () => {

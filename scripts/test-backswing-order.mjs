@@ -113,7 +113,7 @@ function sandbox() {
     'computeBackswingDeliveryObservations', 'createBackswingDeliveryCard',
     'getBackswingHandPathPoints', 'getBackswingHandCurve', 'createHandPathFigure', 'createBackswingHandPath',
     'getBackswingPhaseForAnalysisFrame', 'getAnalysisFrameMotionCheckpoint', 'applySavedBackswingMotion',
-    'getEngineHandPathData', 'createEngineHandPath', 'saveFrameInputState',
+    'getEngineImpactReference', 'getEngineHandPathData', 'getFrontGraphDirectionLabels', 'createEngineHandPath', 'saveFrameInputState',
     'createCollapsibleGraph', 'getEngineVerticalMotionData', 'createGraphSvgElement', 'createEngineVerticalMotion', 'createEngineMotionFigure',
     'getXYGraphLayout', 'createEngineXYMotionFigure',
     'sanitizeStoredBackswingClassification', 'getDownswingSideEvidence',
@@ -718,7 +718,7 @@ test('horizontal motion uses separate address X origins and stored aspect-correc
       assert.ok(Math.abs(point.y - expected) < 1e-9);
     }
   });
-  assert.match(c.createEngineMotionFigure('horizontal').children[2].textContent, /Image right is \+/);
+  assert.ok(c.createEngineMotionFigure('horizontal').children[2].textContent.includes(c.getFrontGraphDirectionLabels().note));
   const figure = c.createEngineVerticalMotion();
   const select = figure.children[1].children[1];
   assert.equal(select.value, 'xy');

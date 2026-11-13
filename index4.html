@@ -678,6 +678,11 @@
   .swing-change-results { display: grid; gap: 12px; margin-top: 12px; }
   .swing-change-chart { min-width: 0; padding: 10px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; background: rgba(255,255,255,0.035); }
   .swing-change-chart h3 { margin: 0 0 6px; color: #a6e7d5; font-size: 0.9rem; }
+  .swing-change-chart > summary { color: #a6e7d5; font-size: 0.9rem; font-weight: 700; text-align: left; cursor: pointer; }
+  .swing-change-chart[open] > summary { margin-bottom: 10px; }
+  .swing-change-series-controls { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0; }
+  .swing-change-series-controls label { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid #2b444c; border-radius: 4px; background: #11242c; color: #d7e9e5; font-size: 0.8rem; cursor: pointer; }
+  .swing-change-series-controls input { margin: 0; accent-color: #55d6be; }
   .swing-change-chart svg { display: block; width: 100%; height: auto; }
   .swing-change-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 7px; color: #d7e9e5; font-size: 0.74rem; }
   .swing-change-legend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -2179,6 +2184,7 @@
     <div class="swing-change-toolbar">
       <button type="button" id="swingChangeLoadBtn">분석 JSON 폴더 선택</button>
       <button type="button" id="swingChangeCompareBtn" disabled>선택 기록 비교 (0/4)</button>
+      <button type="button" id="swingChangeRemoveBtn" disabled>선택 파일 목록에서 제외</button>
       <button type="button" id="swingChangePdfBtn" disabled>비교결과 PDF 다운로드</button>
     </div>
     <input type="file" id="swingChangeFolderInput" accept=".json,application/json" webkitdirectory multiple hidden>
@@ -2187,7 +2193,7 @@
       <label><span id="swingChangeFilterClubLabel">클럽</span><select id="swingChangeFilterClub" disabled><option value="">전체 클럽</option></select></label>
       <label><span id="swingChangeFilterDateLabel">분석일</span><select id="swingChangeFilterDate" disabled><option value="">전체 날짜</option></select></label>
     </div>
-    <p class="swing-change-status" id="swingChangeStatus" role="status" aria-live="polite">분석 1·3 결과를 저장한 JSON 폴더를 선택하세요. 별도 변화 기록 등록 없이 선수·날짜별 그래프를 비교합니다.</p>
+    <p class="swing-change-status" id="swingChangeStatus" role="status" aria-live="polite">분석 1·2·3 결과를 저장한 JSON 폴더를 선택하세요. 별도 변화 기록 등록 없이 선수·날짜별 그래프를 비교합니다.</p>
     <small class="swing-change-selection-note" id="swingChangeSelectionNote">선수·날짜를 바꿔도 선택한 파일은 유지됩니다. 클럽을 지정하면 다른 클럽의 선택은 해제됩니다. 최대 4개까지 선택하세요.</small>
     <div class="swing-change-record-list" id="swingChangeRecordList"></div>
     <div class="swing-change-results" id="swingChangeResults"></div>
@@ -2669,6 +2675,7 @@
     </details>
     </details>
     <div class="analysis-swing-type" id="analysisSwingType"></div>
+    <div id="analysisMotionGraphs" data-workflow-for="engine swingtype"></div>
     <div id="geminiReportBlock" data-workflow-for="manual" style="display:none;margin:12px 0 0;padding:12px;background:rgba(19,87,61,0.2);border:1px solid rgba(82,216,150,0.45);border-radius:8px;text-align:left;line-height:1.65;color:#e7fff1;white-space:pre-wrap;"></div>
     <div class="analysis-score-block" id="analysisSegmentScores" data-workflow-for="engine">
       <div class="analysis-score-group">
@@ -4121,6 +4128,7 @@
   const analysisConsistencyAverage = document.getElementById('analysisConsistencyAverage');
   const analysisSummary = document.getElementById('analysisSummary');
   const analysisSwingType = document.getElementById('analysisSwingType');
+  const analysisMotionGraphs = document.getElementById('analysisMotionGraphs');
   const analysisSegmentScoreF1 = document.getElementById('analysisSegmentScoreF1');
   const analysisSegmentScoreF2 = document.getElementById('analysisSegmentScoreF2');
   const analysisSegmentScoreF3 = document.getElementById('analysisSegmentScoreF3');
@@ -8219,7 +8227,7 @@
     const warningsReference = document.getElementById('analysisProfileWarningsReference');
     if (warningsReference) warningsReference.innerHTML = profileWarningRows.join('');
     analysisSwingType.innerHTML = rows.join('');
-    analysisSwingType.append(
+    analysisMotionGraphs.replaceChildren(
       createCollapsibleGraph(createEngineHandPath(), 'engine-hand'),
       createCollapsibleGraph(createEngineVerticalMotion(), 'engine-vertical'));
     const reference = document.getElementById('analysisTypeReference');
@@ -9565,6 +9573,7 @@
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 평균: -';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
     if (analysisSwingType) analysisSwingType.innerHTML = '';
+    if (analysisMotionGraphs) analysisMotionGraphs.replaceChildren();
     for (const id of ['analysisTypeReference', 'analysisBonusReference', 'analysisPowerComparisonReference', 'analysisProfileWarningsReference', 'physicalReferenceNote', 'distanceEstimateReference', 'distanceEstimateFormulaReference', 'physicalReferenceDetails']) {
       const reference = document.getElementById(id);
       if (reference) reference.textContent = '';
@@ -10279,6 +10288,11 @@
     });
   }
 
+  function getEngineImpactReference(history) {
+    const frame = history.side.frame6 ? 'frame6' : 'frame4';
+    return { frame, entry: history.side[frame], handIndex: frame === 'frame6' ? 2 : 5 };
+  }
+
   function getEngineHandPathData(project = null) {
     const history = project ? project.analysis.frameStateHistory : frameStateHistory;
     const unavailable = reason => ({ points: [], reason });
@@ -10289,15 +10303,16 @@
     const origin = history.front.frame1?.points?.[4];
     const addressTime = history.front.frame1?.videoTime;
     const topTime = history.side.frame1?.videoTime;
-    const impactTime = history.side.frame6?.videoTime;
+    const impactReference = getEngineImpactReference(history);
+    const impactTime = impactReference.entry?.videoTime;
     const validPoint = point => point && hasMetric(point.x) && hasMetric(point.y);
     if (!validPoint(origin) || ![addressTime, topTime, impactTime].every(time => hasMetric(time) && time >= 0)
       || !(addressTime < topTime && topTime < impactTime)
       || !validPoint(history.side.frame1?.points?.[4])
-      || !validPoint(history.side.frame6?.points?.[2])) {
+      || !validPoint(impactReference.entry?.points?.[impactReference.handIndex])) {
       return unavailable(getSwingUiText(
-        '경로 표시 보류: F1 A 어드레스·F1 B 탑·F6 B 임팩트의 손 포인트와 증가하는 저장 시점이 필요합니다.',
-        'Path unavailable: F1 A address, F1 B top and F6 B impact need hand points and increasing saved times.'));
+        '경로 표시 보류: F1 A 어드레스·F1 B 탑·임팩트(F6 B, 없으면 F4 B)의 손 포인트와 증가하는 저장 시점이 필요합니다.',
+        'Path unavailable: F1 A address, F1 B top and impact (F6 B, or F4 B when F6 is absent) need hand points and increasing saved times.'));
     }
     const storedAspect = history.front.frame1.aspectRatio;
     const aspect = storedAspect ?? (!project && !backswingActive && frontVideo.videoWidth > 0 && frontVideo.videoHeight > 0
@@ -10305,7 +10320,7 @@
     if (!hasMetric(aspect) || aspect <= 0) return unavailable(getSwingUiText(
       '경로 표시 보류: 정면 영상 비율이 없습니다. 영상을 로드하고 F1 A를 다시 분석하세요.',
       'Path unavailable: source aspect ratio missing. Load the video and reanalyze F1 A.'));
-    const anchors = [history.side.frame1, history.side.frame6];
+    const anchors = [history.side.frame1, impactReference.entry];
     if (anchors.some(entry => entry.aspectRatio != null
       && (!hasMetric(entry.aspectRatio) || Math.abs(entry.aspectRatio - aspect) > 0.001))) {
       return unavailable(getSwingUiText('경로 표시 보류: 탑·임팩트 입력의 영상 비율이 어드레스와 다릅니다. 같은 정면 영상에서 다시 분석하세요.',
@@ -10334,9 +10349,9 @@
     if (![addressTime, topTime, impactTime].every(time => groups.has(time))) return unavailable(getSwingUiText(
       '경로 표시 보류: 어드레스·탑·임팩트 입력의 영상 비율을 확인하고 다시 분석하세요.',
       'Path unavailable: check address, top and impact source aspects and reanalyze.'));
-    // F1 fixes the address/top; F6 B fixes impact when another frame shares its time.
+    // Use the chosen impact landmark when multiple frames share its timestamp.
     const impact = groups.get(impactTime);
-    const impactHand = history.side.frame6.points[2];
+    const impactHand = impactReference.entry.points[impactReference.handIndex];
     impact.x = (impactHand.x - origin.x) * aspect * 100;
     impact.y = (origin.y - impactHand.y) * 100;
     const points = [...groups.values()].sort((a, b) => a.time - b.time).map(point => ({
@@ -10348,18 +10363,29 @@
     return { points, omitted, legacyAspect: storedAspect == null };
   }
 
+  function getFrontGraphDirectionLabels() {
+    return {
+      positive: getSwingUiText('선수 왼쪽 (+X)', 'Player left (+X)'),
+      negative: getSwingUiText('선수 오른쪽 (−X)', 'Player right (−X)'),
+      note: getSwingUiText(
+        '방향 기준: 오른손잡이·좌우 반전 없는 정면 영상에서 +X(모니터 오른쪽)=선수 왼쪽·타깃 쪽, −X(모니터 왼쪽)=선수 오른쪽·백스윙 쪽입니다. +Y는 위쪽입니다. 왼손잡이·반전 영상은 이 대응이 다르며 좌표를 자동 반전하지 않습니다.',
+        'Direction convention: for a right-handed player in an unmirrored face-on video, +X (image right) = player left / target side; −X (image left) = player right / backswing side. +Y is up. Left-handed or mirrored videos differ; coordinates are not automatically flipped.'),
+    };
+  }
+
   function createEngineHandPath() {
     const data = getEngineHandPathData();
     let note = getSwingUiText(
-      '원점=F1 A 어드레스 손. X+=영상 오른쪽, Y+=영상 위쪽. 단위=영상 높이의 1%, 가로/세로 동일 척도. 같은 정면 영상의 A/B 손 중심을 저장 시간순으로 연결하며 같은 시점은 한 점으로 표시합니다. 툴팁에 입력 프레임·시점을 표시합니다. 백스윙 중간 입력은 없어 어드레스→탑 곡선은 상세 궤적을 나타내지 않습니다. 곡선은 선택점 사이 보간이며 실측 연속 궤적·속도·3D 경로가 아닙니다. 점수에는 반영하지 않습니다.',
-      'Origin=F1 A address hands. X+=image right; Y+=image up. Units=1% image height, equal axis scale. Same-source A/B hand centers are connected in saved-time order; equal times share one point. Tooltips list source frames and times. No intermediate backswing inputs: address→top does not show a detailed trajectory. Curves interpolate selected points, not measured continuous motion, speed or a 3D path. Excluded from scores.');
+      '원점=F1 A 어드레스 손. 단위=영상 높이의 1%, 가로/세로 동일 척도. 같은 정면 영상의 A/B 손 중심을 저장 시간순으로 연결하며 같은 시점은 한 점으로 표시합니다. 툴팁에 입력 프레임·시점을 표시합니다. 백스윙 중간 입력은 없어 어드레스→탑 곡선은 상세 궤적을 나타내지 않습니다. 곡선은 선택점 사이 보간이며 실측 연속 궤적·속도·3D 경로가 아닙니다. 점수에는 반영하지 않습니다.',
+      'Origin=F1 A address hands. Units=1% image height, equal axis scale. Same-source A/B hand centers are connected in saved-time order; equal times share one point. Tooltips list source frames and times. No intermediate backswing inputs: address→top does not show a detailed trajectory. Curves interpolate selected points, not measured continuous motion, speed or a 3D path. Excluded from scores.');
+    note = `${getFrontGraphDirectionLabels().note} ${note}`;
     if (data.omitted?.length) note += getSwingUiText(` 제외된 입력(누락·시점 범위·영상 비율 확인): ${data.omitted.join(', ')}.`,
       ` Omitted inputs (check missing points, time range or aspect): ${data.omitted.join(', ')}.`);
     if (data.legacyAspect) note += getSwingUiText(' 이전 자료의 영상 비율은 현재 로드한 정면 영상에서 사용합니다.',
       ' Legacy data uses the currently loaded front-video aspect ratio.');
     return createHandPathFigure(data.points, {
-      caption: getSwingUiText('정면 손 이동 경로 · 엔진 분석 선택점과 추정 곡선', 'Front-View Hand Path · Engine Checkpoints and Interpolated Curves'),
-      available: !data.reason, unavailable: data.reason, note,
+      caption: getSwingUiText('정면 손 이동 경로 · 모션 분석 선택점과 추정 곡선', 'Front-View Hand Path · Motion Checkpoints and Interpolated Curves'),
+      available: !data.reason, unavailable: data.reason, note, frontView: true,
       detailPhases: data.points.filter(point => point.phase !== 'top').map(point => point.phase),
       detailNote: getSwingUiText('어드레스·다운스윙·임팩트 확대. 점 위치는 그대로, 이름표만 연결선으로 펼쳤습니다. 좌표 기준과 동일 척도를 유지합니다.',
         'Address / downswing / impact detail. Point positions are unchanged; labels fan out with leader lines. Coordinates and equal scale are preserved.'),
@@ -10392,12 +10418,13 @@
       'Motion unavailable: load the same front-view video in A/B.'));
     const address = history.front.frame1;
     const top = history.side.frame1;
-    const impact = history.side.frame6;
+    const impactReference = getEngineImpactReference(history);
+    const impact = impactReference.entry;
     if (![address?.videoTime, top?.videoTime, impact?.videoTime].every(time => hasMetric(time) && time >= 0)
       || !(address.videoTime < top.videoTime && top.videoTime < impact.videoTime)) {
       return unavailable(getSwingUiText(
-        '이동 표시 보류: F1 A 어드레스·F1 B 탑·F6 B 임팩트의 증가하는 저장 시점이 필요합니다.',
-        'Motion unavailable: F1 A address, F1 B top and F6 B impact need increasing saved times.'));
+        '이동 표시 보류: F1 A 어드레스·F1 B 탑·임팩트(F6 B, 없으면 F4 B)의 증가하는 저장 시점이 필요합니다.',
+        'Motion unavailable: F1 A address, F1 B top and impact (F6 B, or F4 B when F6 is absent) need increasing saved times.'));
     }
     const validPoint = point => point && hasMetric(point[coordinate]) && (!xy || hasMetric(point.x));
     if (!validPoint(address.points?.[0]) || !validPoint(address.points?.[3])) return unavailable(getSwingUiText(
@@ -10437,8 +10464,7 @@
           else groups.set(entry.videoTime, { time: entry.videoTime,
             x: xy ? (point.x - definition.originX) * aspect * 100 : entry.videoTime - address.videoTime,
             y: displacement(definition.origin, point), sources: [label] });
-          // Prefer the dedicated F6 B impact point to a duplicate F4 B sample.
-          if (frame === 'frame6' && view === 'side') {
+          if (frame === impactReference.frame && view === 'side') {
             groups.get(entry.videoTime).y = displacement(definition.origin, point);
             if (xy) groups.get(entry.videoTime).x = (point.x - definition.originX) * aspect * 100;
           }
@@ -10530,7 +10556,8 @@
     const plotY = y => 210 - (y - layout.centerY) * layout.scale;
     svg.append(makeSvg('line', { x1: 40, y1: plotY(0), x2: 600, y2: plotY(0), stroke: '#647b76', 'stroke-dasharray': '4 4' }),
       makeSvg('line', { x1: plotX(0), y1: 35, x2: plotX(0), y2: 375, stroke: '#647b76', 'stroke-dasharray': '4 4' }),
-      makeSvg('text', { x: 578, y: plotY(0) - 8, fill: '#b7ccc6', 'font-size': 12 }, 'X+'),
+      makeSvg('text', { x: 600, y: plotY(0) - 8, fill: '#b7ccc6', 'font-size': 12, 'text-anchor': 'end' }, getFrontGraphDirectionLabels().positive),
+      makeSvg('text', { x: 40, y: plotY(0) - 8, fill: '#b7ccc6', 'font-size': 12 }, getFrontGraphDirectionLabels().negative),
       makeSvg('text', { x: plotX(0) + 8, y: 30, fill: '#b7ccc6', 'font-size': 12 }, 'Y+'));
     const maxSpan = Math.max(layout.spanX, layout.spanY, 1);
     const magnitude = 10 ** Math.floor(Math.log10(maxSpan / 5));
@@ -10566,8 +10593,9 @@
       svg.append(makeSvg('text', { x: 45 + index * 210, y: 403, fill: series.color, 'font-size': 13 }, series.label));
     });
     note.textContent = getSwingUiText(
-      'C7과 코어 각각의 F1 A 어드레스 위치를 (0,0)에 겹쳐 상대 이동을 비교합니다. 두 점의 실제 신체상 거리·위치는 표시하지 않습니다. X+=영상 오른쪽, Y+=영상 위쪽이며 타깃·해부학적 좌우와 다릅니다. 단위=영상 높이의 1%, 영상 비율 보정·가로/세로 동일 척도. 번호는 시간순, 툴팁은 프레임·어드레스 이후 시간·좌표입니다. 곡선은 선택점 사이 보간이며 백스윙 중간 궤적·연속 운동·속도·3D 경로는 측정하지 않습니다. 코어는 골반 중심이며 실측 무게중심이 아닙니다. 점수에는 반영하지 않습니다.',
-      'Each C7/core F1 A address position is overlaid at (0,0) to compare relative movement, not actual body spacing or positions. X+=image right; Y+=image up, not target/anatomical directions. Units=1% image height, source-aspect corrected with equal axis scale. Numbers show time order; tooltips give frames, elapsed video time and coordinates. Curves interpolate selected points; intermediate backswing motion, continuous movement, speed and 3D paths are not measured. Core is pelvis center, not measured center of mass. Excluded from scores.');
+      'C7과 코어 각각의 F1 A 어드레스 위치를 (0,0)에 겹쳐 상대 이동을 비교합니다. 두 점의 실제 신체상 거리·위치는 표시하지 않습니다. 단위=영상 높이의 1%, 영상 비율 보정·가로/세로 동일 척도. 번호는 시간순, 툴팁은 프레임·어드레스 이후 시간·좌표입니다. 곡선은 선택점 사이 보간이며 백스윙 중간 궤적·연속 운동·속도·3D 경로는 측정하지 않습니다. 코어는 골반 중심이며 실측 무게중심이 아닙니다. 점수에는 반영하지 않습니다.',
+      'Each C7/core F1 A address position is overlaid at (0,0) to compare relative movement, not actual body spacing or positions. Units=1% image height, source-aspect corrected with equal axis scale. Numbers show time order; tooltips give frames, elapsed video time and coordinates. Curves interpolate selected points; intermediate backswing motion, continuous movement, speed and 3D paths are not measured. Core is pelvis center, not measured center of mass. Excluded from scores.');
+    note.textContent = `${getFrontGraphDirectionLabels().note} ${note.textContent}`;
     if (data.omitted.length) note.textContent += getSwingUiText(` 제외된 입력: ${data.omitted.join(', ')}.`,
       ` Omitted inputs: ${data.omitted.join(', ')}.`);
     if (data.legacyAspect) note.textContent += getSwingUiText(' 이전 자료는 현재 로드한 정면 영상 비율을 사용합니다.',
@@ -10609,7 +10637,7 @@
       makeSvg('line', { x1: 70, y1: plotY(0), x2: 580, y2: plotY(0), stroke: '#9fbab2', 'stroke-dasharray': '4 4' }),
       makeSvg('text', { x: 70, y: 25, fill: '#b7ccc6', 'font-size': 12 },
         horizontal
-          ? getSwingUiText('좌우 변화 · 영상 높이 % (영상 오른쪽 +)', 'Horizontal change · % image height (image right +)')
+          ? getSwingUiText('좌우 변화 · 영상 높이 % (선수 왼쪽 + / 오른쪽 −)', 'Horizontal change · % image height (player left + / right −)')
           : getSwingUiText('상하 변화 · 영상 높이 % (위쪽 +)', 'Vertical change · % image height (up +)')),
       makeSvg('text', { x: 340, y: 382, fill: '#b7ccc6', 'font-size': 12 },
         getSwingUiText('어드레스 이후 영상 시간 (초)', 'Video time since address (s)')));
@@ -10646,8 +10674,9 @@
       ` Omitted inputs: ${data.omitted.join(', ')}.`);
     if (horizontal) {
       note.textContent = getSwingUiText(
-        '각 점의 F1 A 어드레스 좌우 위치를 각각 0으로 두었습니다. 영상 오른쪽은 +, 왼쪽은 −이며 타깃 방향이나 선수의 해부학적 좌우와는 다릅니다. 좌우 좌표는 영상 비율을 보정하며 단위는 영상 높이의 1%로 상하 그래프와 같습니다. C7은 목 중심 투영점, 코어는 골반 중심이며 실제 무게중심이 아닙니다. 저장한 영상 시간 간격으로 선택점 사이를 보간하며 슬로모션을 실제 시간으로 환산하지 않습니다. 점수에는 반영하지 않습니다.',
-        'Each landmark uses its own F1 A address horizontal position as zero. Image right is +, left is −; not target direction or anatomical left/right. Source-aspect correction gives units of 1% image height, matching vertical motion. C7 is projected neck center; core is pelvis center, not measured center of mass. Curves interpolate saved video timestamps; slow motion is not converted to real time. Excluded from scores.');
+        '각 점의 F1 A 어드레스 좌우 위치를 각각 0으로 두었습니다. 좌우 좌표는 영상 비율을 보정하며 단위는 영상 높이의 1%로 상하 그래프와 같습니다. C7은 목 중심 투영점, 코어는 골반 중심이며 실제 무게중심이 아닙니다. 저장한 영상 시간 간격으로 선택점 사이를 보간하며 슬로모션을 실제 시간으로 환산하지 않습니다. 점수에는 반영하지 않습니다.',
+        'Each landmark uses its own F1 A address horizontal position as zero. Source-aspect correction gives units of 1% image height, matching vertical motion. C7 is projected neck center; core is pelvis center, not measured center of mass. Curves interpolate saved video timestamps; slow motion is not converted to real time. Excluded from scores.');
+      note.textContent = `${getFrontGraphDirectionLabels().note} ${note.textContent}`;
       if (data.omitted.length) note.textContent += getSwingUiText(` 제외된 입력: ${data.omitted.join(', ')}.`,
         ` Omitted inputs: ${data.omitted.join(', ')}.`);
       if (data.legacyAspect) note.textContent += getSwingUiText(' 이전 자료는 현재 로드한 정면 영상 비율을 사용합니다.',
@@ -10735,8 +10764,12 @@
       const origin = { x: expanded ? 180 : 320 - centerX * scale, y: expanded ? 355 : 210 + centerY * scale };
       svg.append(makeSvg('line', { x1: 40, y1: origin.y, x2: 600, y2: origin.y, stroke: '#647b76', 'stroke-dasharray': '4 4' }),
         makeSvg('line', { x1: origin.x, y1: 35, x2: origin.x, y2: 375, stroke: '#647b76', 'stroke-dasharray': '4 4' }),
-        makeSvg('text', { x: 578, y: origin.y - 8, fill: '#b7ccc6', 'font-size': 12 }, 'X+'),
+        makeSvg('text', { x: options.frontView ? 600 : 578, y: origin.y - 8, fill: '#b7ccc6', 'font-size': 12,
+          'text-anchor': options.frontView ? 'end' : 'start' },
+          options.frontView ? getFrontGraphDirectionLabels().positive : 'X+'),
         makeSvg('text', { x: origin.x + 8, y: 30, fill: '#b7ccc6', 'font-size': 12 }, 'Y+'));
+      if (options.frontView) svg.append(makeSvg('text', { x: 40, y: origin.y - 8, fill: '#b7ccc6', 'font-size': 12 },
+        getFrontGraphDirectionLabels().negative));
       const maxSpan = Math.max(spanX, spanY, 1);
       const magnitude = 10 ** Math.floor(Math.log10(maxSpan / 5));
       const step = [1, 2, 5, 10].map(n => n * magnitude).find(n => n >= maxSpan / 5);
@@ -14170,6 +14203,7 @@
   const swingChangeModeBtn = document.getElementById('swingChangeModeBtn');
   const swingChangeView = document.getElementById('swingChangeView');
   const swingChangeLoadBtn = document.getElementById('swingChangeLoadBtn');
+  const swingChangeRemoveBtn = document.getElementById('swingChangeRemoveBtn');
   const swingChangeFolderInput = document.getElementById('swingChangeFolderInput');
   const swingChangeFilterPlayer = document.getElementById('swingChangeFilterPlayer');
   const swingChangeFilterClub = document.getElementById('swingChangeFilterClub');
@@ -14479,14 +14513,30 @@
     await swingChangePlayersLoadPromise;
   }
 
+  function getOrderedSwingChangePoints(points) {
+    return points.every(point => hasMetric(point.progress))
+      ? [...points].sort((a, b) => a.progress - b.progress) : points;
+  }
+
   function createSwingChangeFileRecord(project, fileName, id) {
     validateAnalysisProject(project, false);
     const savedDate = new Date(project.savedAt);
     const sessionDate = project.analysis.swingChangeRecord?.sessionDate
       || (Number.isFinite(savedDate.getTime()) ? getLocalDateInputValue(savedDate) : '');
-    const snapshot = createSwingChangeSnapshot(sessionDate, '', project);
-    if (!snapshot || !isSwingChangeSnapshot(snapshot)) {
+    const reconstructed = createSwingChangeSnapshot(sessionDate, '', project);
+    const stored = project.analysis.swingChangeRecord;
+    const snapshot = isSwingChangeSnapshot(stored) ? copyProjectValue(stored) : reconstructed;
+    if (snapshot && reconstructed) {
+      for (const [key, points] of Object.entries(reconstructed.graphs)) {
+        if (snapshot.graphs[key].length < 2) snapshot.graphs[key] = points;
+      }
+    }
+    if (!snapshot || !isSwingChangeSnapshot(snapshot)
+      || !Object.values(snapshot.graphs).some(points => points.length > 1)) {
       throw new Error(getSwingUiText('비교할 그래프 또는 분석 날짜가 없습니다.', 'No comparable graphs or valid analysis date.'));
+    }
+    for (const [key, points] of Object.entries(snapshot.graphs)) {
+      snapshot.graphs[key] = getOrderedSwingChangePoints(points);
     }
     const selection = project.analysis.athleteSelection || {};
     const playerName = selection.playerName
@@ -14535,54 +14585,138 @@
   }
 
   async function loadSwingChangeFolder(files) {
+    if (swingChangeLoadBtn.disabled) return;
+    const firstLoad = !swingChangeRecords.length;
     swingChangeLoadBtn.disabled = true;
+    updateSwingChangeCompareButton();
     swingChangeStatus.textContent = getSwingUiText('분석 JSON을 읽는 중입니다...', 'Reading analysis JSON files...');
     const records = [];
     const failures = [];
+    const loadedIds = new Set(swingChangeRecords.map(record => record.id));
+    let duplicates = 0;
     try {
       for (const file of files) {
         if (!/\.json$/i.test(file.name)) continue;
         try {
           if (file.size > ANALYSIS_PROJECT_MAX_BYTES) throw new Error(getSwingUiText('25 MB 초과', 'Exceeds 25 MB'));
-          const project = JSON.parse(await file.text());
-          records.push(createSwingChangeFileRecord(project, file.name, file.webkitRelativePath || file.name));
+          const content = await file.text();
+          const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(content));
+          const id = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+          if (loadedIds.has(id)) {
+            duplicates++;
+            continue;
+          }
+          const project = JSON.parse(content);
+          records.push(createSwingChangeFileRecord(project, file.name, id));
+          loadedIds.add(id);
         } catch (error) {
           console.error('비교용 분석 JSON 읽기 실패', file.name, error);
           failures.push(`${file.name}: ${error.message || error}`);
         }
       }
-      swingChangeRecords = records.sort((a, b) => b.session_date.localeCompare(a.session_date) || a.label.localeCompare(b.label));
-      swingChangeSelectedIds.clear();
-      swingChangeResults.replaceChildren();
-      updateSwingChangeFileFilters(true);
+      swingChangeRecords = [...swingChangeRecords, ...records]
+        .sort((a, b) => b.session_date.localeCompare(a.session_date) || a.label.localeCompare(b.label));
+      updateSwingChangeFileFilters(firstLoad);
       renderSwingChangeRecordList();
-      const message = records.length
-        ? getSwingUiText(`${records.length}개 분석 JSON을 불러왔습니다. 선수·날짜를 선택하고 최대 4개 파일을 비교하세요.`,
-          `Loaded ${records.length} analysis JSON files. Filter by player and date, then compare up to four files.`)
-        : getSwingUiText('비교 가능한 분석 JSON이 없습니다. 분석 1·3 그래프가 포함된 폴더를 선택하세요.',
-          'No comparable analysis JSON files. Select a folder containing analysis 1 or 3 graphs.');
+      const message = swingChangeRecords.length
+        ? getSwingUiText(`${records.length}개 추가, 중복 ${duplicates}개 제외 · 총 ${swingChangeRecords.length}개 분석 JSON. 기존 선택과 비교 결과는 유지됩니다. 선수·날짜를 선택하고 최대 4개 파일을 비교하세요.`,
+          `Added ${records.length}, skipped ${duplicates} duplicates · ${swingChangeRecords.length} analysis JSON files in total. Existing selections and results are retained. Filter by player and date, then compare up to four files.`)
+        : getSwingUiText('비교 가능한 분석 JSON이 없습니다. 분석 1·2·3 그래프가 포함된 폴더를 선택하세요.',
+          'No comparable analysis JSON files. Select a folder containing analysis 1, 2 or 3 graphs.');
       swingChangeStatus.textContent = failures.length
         ? `${message}\n${getSwingUiText('불러오지 못한 파일', 'Files not loaded')} (${failures.length}): ${failures.join(' / ')}`
         : message;
     } finally {
       swingChangeLoadBtn.disabled = false;
+      updateSwingChangeCompareButton();
     }
   }
 
-  function createSwingChangeChart(container, title, records, graphKeys) {
-    const series = records.flatMap((record, recordIndex) => graphKeys.flatMap(key => {
-      const points = record.snapshot.graphs[key];
+  function removeSelectedSwingChangeFiles() {
+    const count = swingChangeSelectedIds.size;
+    if (!count) {
+      swingChangeStatus.textContent = getSwingUiText('목록에서 제외할 파일을 먼저 선택하세요.', 'Select files to remove from the list first.');
+      return;
+    }
+    if (!confirm(getSwingUiText(
+      `선택한 ${count}개 파일을 불러온 목록에서 제외할까요? PC의 원본 JSON 파일은 삭제하지 않습니다.`,
+      `Remove ${count} selected files from the loaded list? Original JSON files on this PC will not be deleted.`))) return;
+    swingChangeRecords = swingChangeRecords.filter(record => !swingChangeSelectedIds.has(record.id));
+    swingChangeSelectedIds.clear();
+    swingChangeResults.replaceChildren();
+    updateSwingChangeFileFilters();
+    renderSwingChangeRecordList();
+    swingChangeStatus.textContent = getSwingUiText(
+      `${count}개 파일을 목록에서 제외했습니다. 원본 파일은 유지됩니다. 남은 파일: ${swingChangeRecords.length}개.`,
+      `Removed ${count} files from the list. Original files are unchanged. ${swingChangeRecords.length} files remain.`);
+  }
+
+  function getSwingChangeCheckpointPhase(point) {
+    if (['address', 'top', 'impact'].includes(point.phase)) return point.phase;
+    const sources = point.phase.split('/').map(source => source.trim());
+    if (sources.includes('F1 A')) return 'address';
+    if (sources.includes('F1 B')) return 'top';
+    if (sources.includes('F6 B') || (sources.includes('F4 B') && point.progress === 100)) return 'impact';
+    return null;
+  }
+
+  function createSwingChangeChart(container, title, records, graphKeys, axis = 'xy', visibleKeys = graphKeys) {
+    const timed = axis !== 'xy';
+    const frontView = !graphKeys.includes('sideHand');
+    const availableSeries = records.flatMap((record, recordIndex) => graphKeys.flatMap(key => {
+      const source = getOrderedSwingChangePoints(record.snapshot.graphs[key]);
+      const points = timed
+        ? source.every(point => hasMetric(point.progress))
+          ? source.map(point => ({ ...point, x: point.progress, y: axis === 'horizontal' ? point.x : point.y }))
+          : []
+        : source;
       return points.length > 1 ? [{ record, recordIndex, key, points }] : [];
     }));
-    const section = document.createElement('section');
+    const series = availableSeries.filter(item => visibleKeys.includes(item.key));
+    const section = document.createElement('details');
     section.className = 'swing-change-chart';
-    const heading = document.createElement('h3');
+    section.open = graphKeys[0] === 'frontHand';
+    const heading = document.createElement('summary');
     heading.textContent = title;
     section.append(heading);
+    if (graphKeys.includes('frontC7') && graphKeys.includes('frontCore')) {
+      const controls = document.createElement('div');
+      controls.className = 'swing-change-series-controls';
+      const inputs = graphKeys.map(key => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = key;
+        input.disabled = !availableSeries.some(item => item.key === key);
+        input.checked = visibleKeys.includes(key) && !input.disabled;
+        const name = key === 'frontC7' ? 'C7' : getSwingUiText('코어 중심', 'Core');
+        label.append(input, document.createTextNode(input.disabled
+          ? `${name} (${getSwingUiText('입력 없음', 'no data')})` : name));
+        controls.append(label);
+        return input;
+      });
+      inputs.forEach((input, index) => input.addEventListener('change', () => {
+        const restoreFocus = document.activeElement === input;
+        const holder = document.createElement('div');
+        createSwingChangeChart(holder, title, records, graphKeys, axis,
+          inputs.filter(item => item.checked).map(item => item.value));
+        const replacement = holder.children[0];
+        replacement.open = section.open;
+        section.replaceWith(replacement);
+        if (restoreFocus) replacement.querySelectorAll('input')[index].focus();
+      }));
+      section.append(controls);
+    }
     if (!series.length) {
       const empty = document.createElement('p');
       empty.className = 'swing-change-note';
-      empty.textContent = getSwingUiText('선택한 기록에 이 그래프 입력이 없습니다.', 'No matching graph inputs in the selected records.');
+      empty.textContent = availableSeries.length
+        ? getSwingUiText('표시할 지표를 선택하세요.', 'Select a metric to display.')
+        : timed
+          ? getSwingUiText('이 축을 비교할 좌표와 저장 시점 정보가 없습니다. 진행률을 임의로 만들지 않습니다.',
+            'Coordinates and saved timing are required for this axis comparison. Progress is not invented.')
+          : getSwingUiText('선택한 기록에 이 그래프 입력이 없습니다. 측면 손은 해당 JSON의 측면 입력이 필요합니다.',
+            'No matching graph inputs in the selected records. Side hands require side-view inputs in the JSON.');
       section.append(empty);
       container.append(section);
       return;
@@ -14590,24 +14724,40 @@
     const colors = ['#55d6be', '#f4ba58', '#7daeff', '#ff817d'];
     const allPoints = series.flatMap(item => item.points);
     const minX = Math.min(0, ...allPoints.map(point => point.x));
-    const maxX = Math.max(0, ...allPoints.map(point => point.x));
+    const maxX = timed ? 100 : Math.max(0, ...allPoints.map(point => point.x));
     const minY = Math.min(0, ...allPoints.map(point => point.y));
     const maxY = Math.max(0, ...allPoints.map(point => point.y));
     const spanX = Math.max(maxX - minX, 1);
     const spanY = Math.max(maxY - minY, 1);
     const scale = Math.min(560 / spanX, 320 / spanY);
-    const centerX = 380 - (minX + maxX) / 2 * scale;
-    const centerY = 220 + (minY + maxY) / 2 * scale;
-    const x = value => centerX + value * scale;
-    const y = value => centerY - value * scale;
+    const scaleX = timed ? 560 / spanX : scale;
+    const scaleY = timed ? 320 / spanY : scale;
+    const centerX = 380 - (minX + maxX) / 2 * scaleX;
+    const centerY = 220 + (minY + maxY) / 2 * scaleY;
+    const x = value => centerX + value * scaleX;
+    const y = value => centerY - value * scaleY;
     const svg = createGraphSvgElement('svg', { viewBox: '0 0 760 460', role: 'img', 'aria-label': title });
     svg.append(createGraphSvgElement('line', { x1: 80, y1: y(0), x2: 680, y2: y(0), stroke: '#647b76', 'stroke-dasharray': '4 4' }),
       createGraphSvgElement('line', { x1: x(0), y1: 45, x2: x(0), y2: 390, stroke: '#647b76', 'stroke-dasharray': '4 4' }),
-      createGraphSvgElement('text', { x: 680, y: y(0) - 7, fill: '#b7ccc6', 'font-size': 12 }, 'X'),
-      createGraphSvgElement('text', { x: x(0) + 7, y: 42, fill: '#b7ccc6', 'font-size': 12 }, 'Y'));
+      createGraphSvgElement('text', { x: 680, y: timed ? 440 : y(0) - 7, fill: '#b7ccc6', 'font-size': 12, 'text-anchor': 'end' },
+        timed ? getSwingUiText('영상 진행률 (%)', 'Video progress (%)')
+          : frontView ? getFrontGraphDirectionLabels().positive : 'X (%)'),
+      createGraphSvgElement('text', { x: x(0) + 7, y: 32, fill: '#b7ccc6', 'font-size': 12 },
+        timed ? (axis === 'horizontal' ? 'X (%)' : 'Y (%)') : 'Y (%)'));
+    if (!timed && frontView) svg.append(createGraphSvgElement('text', { x: 80, y: y(0) - 7,
+      fill: '#b7ccc6', 'font-size': 12 }, getFrontGraphDirectionLabels().negative));
+    if (timed) {
+      for (let i = 0; i <= 4; i++) {
+        const progress = i * 25;
+        const value = minY + (maxY - minY) * i / 4;
+        svg.append(createGraphSvgElement('text', { x: x(progress), y: 410, fill: '#b7ccc6', 'font-size': 11, 'text-anchor': 'middle' }, `${progress}%`),
+          createGraphSvgElement('text', { x: x(0) - 8, y: y(value) + 4, fill: '#b7ccc6', 'font-size': 11, 'text-anchor': 'end' }, `${value.toFixed(1)}%`));
+      }
+    }
     const dateLegend = document.createElement('div');
     dateLegend.className = 'swing-change-legend';
     records.forEach((record, index) => {
+      if (!series.some(item => item.recordIndex === index)) return;
       const item = document.createElement('span');
       const swatch = document.createElement('i');
       swatch.className = 'swing-change-swatch';
@@ -14615,24 +14765,95 @@
       item.append(swatch, document.createTextNode(record.displayLabel || record.session_date));
       dateLegend.append(item);
     });
-    series.forEach(item => {
+    const checkpoints = [];
+    const seriesName = key => key === 'frontC7' ? 'C7'
+      : key === 'frontCore' ? getSwingUiText('코어', 'Core') : getSwingUiText('손', 'Hands');
+    [...series].sort((a, b) => Number(a.key === 'frontC7') - Number(b.key === 'frontC7')).forEach(item => {
       const color = colors[item.recordIndex % colors.length];
       const dash = item.key === 'frontC7' ? '8 4' : item.key === 'frontCore' ? '2 4' : '';
       const path = item.points.map((point, index) => `${index ? 'L' : 'M'} ${x(point.x)} ${y(point.y)}`).join(' ');
-      svg.append(createGraphSvgElement('path', { d: path, fill: 'none', stroke: color, 'stroke-width': 2.5,
+      svg.append(createGraphSvgElement('path', { d: path, 'data-series': item.key, fill: 'none', stroke: color,
+        'stroke-width': item.key === 'frontC7' ? 3 : 2.5,
         'stroke-dasharray': dash, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-      item.points.forEach(point => {
-        const dot = createGraphSvgElement('circle', { cx: x(point.x), cy: y(point.y), r: 4, fill: color, stroke: '#102127', 'stroke-width': 1 });
-        dot.append(createGraphSvgElement('title', {},
-          `${item.record.displayLabel || item.record.session_date} · ${item.key === 'frontHand' || item.key === 'sideHand' ? '손' : item.key === 'frontC7' ? 'C7' : '코어'} · ${point.phase} · X ${point.x.toFixed(1)}%, Y ${point.y.toFixed(1)}%`));
-        svg.append(dot);
+      item.points.forEach((point, pointIndex) => {
+        const phase = getSwingChangeCheckpointPhase(point);
+        const phaseLabel = phase === 'address' ? getSwingUiText('어드레스', 'Address')
+          : phase === 'top' ? getSwingUiText('백스윙 탑', 'Backswing top')
+            : phase === 'impact' ? getSwingUiText('임팩트', 'Impact') : point.phase;
+        let tooltip = `${item.record.displayLabel || item.record.session_date} · ${seriesName(item.key)} · ${phaseLabel} · ${
+            timed ? `${getSwingUiText('진행률', 'Progress')} ${point.x.toFixed(1)}% · ${axis === 'horizontal' ? 'X' : 'Y'} ${point.y.toFixed(1)}%`
+              : `X ${point.x.toFixed(1)}%, Y ${point.y.toFixed(1)}%`}`;
+        tooltip += ` · ${getSwingUiText('연결 순서', 'Path order')} ${pointIndex + 1}/${item.points.length}`;
+        if (!timed && hasMetric(point.progress)) tooltip += ` · ${getSwingUiText('진행률', 'Progress')} ${point.progress.toFixed(1)}%`;
+        if (phase) checkpoints.push({ x: x(point.x), y: y(point.y), color, phase, tooltip, key: item.key });
+        else {
+          const dot = createGraphSvgElement('circle', { cx: x(point.x), cy: y(point.y), r: 4, fill: color, stroke: '#102127', 'stroke-width': 1 });
+          dot.append(createGraphSvgElement('title', {}, tooltip));
+          svg.append(dot);
+        }
       });
+    });
+    const annotations = createGraphSvgElement('g', {});
+    checkpoints.forEach(point => {
+      const group = createGraphSvgElement('g', { 'data-phase': point.phase, 'data-series': point.key });
+      const c7 = point.key === 'frontC7';
+      const radius = c7 ? 8 : 6;
+      const markerAttributes = { fill: c7 ? 'none' : point.color,
+        stroke: c7 ? point.color : '#102127', 'stroke-width': c7 ? 2 : 1.5 };
+      const marker = point.phase === 'top'
+        ? createGraphSvgElement('polygon', { ...markerAttributes,
+          points: `${point.x},${point.y - radius - 1} ${point.x - radius},${point.y + radius - 1} ${point.x + radius},${point.y + radius - 1}` })
+        : point.phase === 'impact'
+          ? createGraphSvgElement('rect', { ...markerAttributes, x: point.x - radius + 1, y: point.y - radius + 1,
+            width: (radius - 1) * 2, height: (radius - 1) * 2 })
+          : createGraphSvgElement('circle', { ...markerAttributes, cx: point.x, cy: point.y, r: radius });
+      marker.append(createGraphSvgElement('title', {}, point.tooltip));
+      group.append(marker);
+      annotations.append(group);
+    });
+    svg.append(annotations);
+    const seriesLegend = document.createElement('div');
+    seriesLegend.className = 'swing-change-legend';
+    graphKeys.forEach(key => {
+      if (!series.some(item => item.key === key)) return;
+      const item = document.createElement('span');
+      const swatch = document.createElement('i');
+      swatch.className = 'swing-change-swatch';
+      swatch.style.borderColor = '#b7ccc6';
+      swatch.style.borderTopStyle = key === 'frontC7' ? 'dashed' : key === 'frontCore' ? 'dotted' : 'solid';
+      item.append(swatch, document.createTextNode(key === 'frontCore'
+        ? getSwingUiText('코어 중심 (골반 중심) · 점선 · 채운 표식', 'Core (pelvis center) · dotted · filled markers')
+        : key === 'frontC7' ? getSwingUiText('C7 · 파선 · 빈 표식', 'C7 · dashed · hollow markers') : getSwingUiText('손 경로 · 실선', 'Hands · solid')));
+      seriesLegend.append(item);
     });
     const typeLegend = document.createElement('p');
     typeLegend.className = 'swing-change-note';
-    typeLegend.textContent = getSwingUiText('실선: 손 경로 · 파선: C7 · 점선: 코어. 정면은 어드레스 C7–골반 길이, 측면은 어드레스 손–클럽헤드의 2D 길이를 100%로 비교합니다.',
-      'Solid: hands · dashed: C7 · dotted: core. Front: address C7-to-pelvis length = 100%. Side: address hands-to-clubhead projected length = 100%.');
-    section.append(svg, dateLegend, typeLegend);
+    typeLegend.textContent = getSwingUiText('○ 어드레스 · △ 백스윙 탑 · □ 임팩트. 점에 마우스를 올리면 상세 정보를 볼 수 있습니다. 저장된 시점만 표시합니다.',
+      'Circle: address · triangle: backswing top · square: impact. Hover over points for details. Only saved checkpoints are marked.');
+    typeLegend.textContent += graphKeys.includes('sideHand')
+      ? getSwingUiText(' 기준: 어드레스 손–클럽헤드의 2D 길이 = 100%.',
+        ' Reference: address hands-to-clubhead projected length = 100%.')
+      : getSwingUiText(' 기준: 어드레스 C7–골반 길이 = 100%.',
+        ' Reference: address C7-to-pelvis length = 100%.');
+    typeLegend.textContent += timed
+      ? getSwingUiText(' 가로축은 저장 영상 시간을 어드레스 0%–임팩트 100%로 정규화한 진행률입니다. 탑 시점은 파일마다 다를 수 있으며 실제 속도 비교가 아닙니다.',
+        ' The horizontal axis normalizes saved video time from address 0% to impact 100%. Top timing may differ between files; this is not a speed comparison.')
+      : frontView
+        ? getSwingUiText(' 가로·세로 동일 척도입니다.', ' Both axes use equal scales.')
+        : getSwingUiText(' X+=영상 오른쪽, Y+=위쪽. 가로·세로 동일 척도입니다.',
+          ' X+=image right, Y+=up. Both axes use equal scales.');
+    if (frontView) typeLegend.textContent += ` ${getFrontGraphDirectionLabels().note}`;
+    const missing = records.length * visibleKeys.length - series.length;
+    if (missing) typeLegend.textContent += getSwingUiText(
+      ` 입력점 또는 저장 시점 정보가 부족한 ${missing}개 계열은 제외했습니다.`,
+      ` Excluded ${missing} series with insufficient points or saved timing.`);
+    if (!timed && series.some(item => ['frontC7', 'frontCore'].includes(item.key)
+      && !item.points.every(point => hasMetric(point.progress)))) {
+      typeLegend.textContent += getSwingUiText(
+        ' 시점 정보가 없는 계열은 저장된 점 순서로 연결하며, 시간순 연결 여부를 확인할 수 없습니다.',
+        ' Series without timing use saved sample order; chronological connection cannot be verified.');
+    }
+    section.append(svg, dateLegend, seriesLegend, typeLegend);
     container.append(section);
   }
 
@@ -14642,10 +14863,16 @@
     if (records.length < 2 || records.length > 4) return;
     const crossPlayer = new Set(records.map(record => record.player_id)).size > 1;
     swingChangeResults.replaceChildren();
-    createSwingChangeChart(swingChangeResults, getSwingUiText('정면 이동 경로', 'Front-view movement paths'),
-      records, ['frontHand', 'frontC7', 'frontCore']);
+    createSwingChangeChart(swingChangeResults, getSwingUiText('정면 손 이동 경로', 'Front-view hand path'),
+      records, ['frontHand']);
     createSwingChangeChart(swingChangeResults, getSwingUiText('측면 손 이동 경로', 'Side-view hand path'),
       records, ['sideHand']);
+    createSwingChangeChart(swingChangeResults, getSwingUiText('정면 C7·코어 중심 이동 · XY 경로', 'Front C7 / Core Motion · XY Paths'),
+      records, ['frontC7', 'frontCore']);
+    createSwingChangeChart(swingChangeResults, getSwingUiText('정면 C7·코어 중심 이동 · X축 좌우 변화', 'Front C7 / Core Motion · Horizontal X'),
+      records, ['frontC7', 'frontCore'], 'horizontal');
+    createSwingChangeChart(swingChangeResults, getSwingUiText('정면 C7·코어 중심 이동 · Y축 상하 변화', 'Front C7 / Core Motion · Vertical Y'),
+      records, ['frontC7', 'frontCore'], 'vertical');
 
     const table = document.createElement('table');
     table.className = 'swing-change-delta';
@@ -14736,6 +14963,7 @@
       report.append(source);
     });
     report.append(...swingChangeResults.cloneNode(true).children);
+    expandPdfDetails(report);
     report.querySelectorAll('*').forEach(element => {
       element.style.color = '#000000';
       element.style.background = '#ffffff';
@@ -14783,12 +15011,13 @@
       ? (english ? 'Check Player Swing Changes' : '선수 스윙변화 확인')
       : (english ? 'Return to A/B Comparison' : 'A/B 스윙 비교로 돌아가기');
     swingChangeLoadBtn.textContent = english ? 'Choose Analysis JSON Folder' : '분석 JSON 폴더 선택';
+    swingChangeRemoveBtn.textContent = english ? 'Remove Selected Files from List' : '선택 파일 목록에서 제외';
     document.getElementById('swingChangeFilterPlayerLabel').textContent = english ? 'Player' : '선수';
     document.getElementById('swingChangeFilterClubLabel').textContent = english ? 'Club' : '클럽';
     document.getElementById('swingChangeFilterDateLabel').textContent = english ? 'Analysis date' : '분석일';
     document.getElementById('swingChangeSelectionNote').textContent = english
-      ? 'Selections remain when changing player or date. Choosing a club deselects files from other clubs. Choose up to four files.'
-      : '선수·날짜를 바꿔도 선택한 파일은 유지됩니다. 클럽을 지정하면 다른 클럽의 선택은 해제됩니다. 최대 4개까지 선택하세요.';
+      ? 'Additional folders are added to the list. Choose up to four files to compare or remove from this list only. Selections remain when changing player or date; choosing a club deselects other clubs.'
+      : '다른 폴더도 추가로 불러올 수 있습니다. 최대 4개 파일을 체크하여 비교하거나 목록에서만 제외하세요. 선수·날짜를 바꿔도 선택은 유지되며, 클럽을 지정하면 다른 클럽의 선택은 해제됩니다.';
     swingChangePdfBtn.textContent = english
       ? 'Download Comparison PDF' : '비교결과 PDF 다운로드';
     document.getElementById('analysisPlayerSelectLabel').textContent = english ? 'Player' : '분석 선수';
@@ -14825,6 +15054,7 @@
     swingChangeCompareBtn.disabled = count < 2;
     swingChangeCompareBtn.textContent = getSwingUiText(`선택 파일 비교 (${count}/4)`, `Compare selected files (${count}/4)`);
     swingChangePdfBtn.disabled = swingChangePdfExporting || !swingChangeResults.children.length;
+    swingChangeRemoveBtn.disabled = swingChangeLoadBtn.disabled || !count;
   }
 
   function renderSwingChangeRecordList() {
@@ -15471,8 +15701,8 @@
     setSwingChangeCopy();
     if (open && !swingChangeRecords.length) {
       swingChangeStatus.textContent = getSwingUiText(
-        '분석 1·3 결과를 저장한 JSON 폴더를 선택하세요. 별도 변화 기록 등록 없이 선수·날짜별 그래프를 비교합니다. 파일은 서버에 업로드되지 않으며, 다시 방문하면 폴더를 선택해야 합니다.',
-        'Choose the folder containing saved analysis 1 or 3 JSON files. Compare graphs by player and date without separate history registration. Files stay on this PC; select the folder again on your next visit.'
+        '분석 1·2·3 결과를 저장한 JSON 폴더를 선택하세요. 별도 변화 기록 등록 없이 선수·날짜별 그래프를 비교합니다. 파일은 서버에 업로드되지 않으며, 다시 방문하면 폴더를 선택해야 합니다.',
+        'Choose the folder containing saved analysis 1, 2 or 3 JSON files. Compare graphs by player and date without separate history registration. Files stay on this PC; select the folder again on your next visit.'
       );
     }
   });
@@ -15515,6 +15745,7 @@
     }));
   swingChangeFilterDate.addEventListener('change', renderSwingChangeRecordList);
   swingChangeCompareBtn.addEventListener('click', renderSwingChangeComparison);
+  swingChangeRemoveBtn.addEventListener('click', removeSelectedSwingChangeFiles);
   swingChangePdfBtn.addEventListener('click', downloadSwingChangePDF);
   if (languageSelect) languageSelect.addEventListener('change', setSwingChangeCopy);
   setSwingChangeCopy();

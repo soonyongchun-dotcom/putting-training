@@ -368,10 +368,18 @@
   </ol>
   <h3>분석 프로젝트 저장과 이어하기</h3>
   <p>분석 패널의 “분석 저장”은 프레임 선택·입력 포인트·분석 결과와 R10 보조 데이터를 JSON 프로젝트 파일로 저장합니다. 이어서 작업할 때는 A/B 패널에 저장 당시와 동일한 원본 영상을 먼저 불러온 다음 “분석 불러오기”로 해당 JSON을 선택하세요. 프로젝트 파일에는 동영상 자체가 들어 있지 않으며, 현재 분석을 저장 내용으로 대체하기 전에 확인 메시지가 표시됩니다. 파일 크기 제한은 25MB입니다.</p>
-  <p>분석 전 사용설명서 옆 선수·클럽 아이콘에서 분석 대상을 선택하세요. PDF·JSON·프레임 PNG 등 모든 다운로드 파일명은 <strong>선수명-클럽-날짜-원본파일명_종류.확장자</strong> 형식이며, 미등록 선수는 선수명을 생략합니다. 날짜는 PC의 현지 날짜를 사용합니다. 분석 JSON은 <strong>_analysis.json</strong>, 분석 PDF는 <strong>_backswing.pdf</strong> 등 분석 종류, 프레임 이미지는 <strong>_frame_capture_front.png</strong> 등 선택 화면을 뒤에 표시합니다. R10 PDF는 원본 CSV 파일명을 사용하고 종합보고서에는 프로필 번호도 포함합니다. 분석 1·3의 비교 가능한 그래프는 별도 등록 없이 분석 JSON에 함께 저장됩니다.</p>
+  <p>분석 전 사용설명서 옆 선수·클럽 아이콘에서 분석 대상을 선택하세요. PDF·JSON·프레임 PNG 등 모든 다운로드 파일명은 <strong>선수명-클럽-날짜-원본파일명_종류.확장자</strong> 형식이며, 미등록 선수는 선수명을 생략합니다. 날짜는 PC의 현지 날짜를 사용합니다. 분석 JSON은 <strong>_analysis.json</strong>, 분석 PDF는 <strong>_backswing.pdf</strong> 등 분석 종류, 프레임 이미지는 <strong>_frame_capture_front.png</strong> 등 선택 화면을 뒤에 표시합니다. R10 PDF는 원본 CSV 파일명을 사용하고 종합보고서에는 프로필 번호도 포함합니다. 분석 1·2·3의 비교 가능한 그래프는 별도 등록 없이 분석 JSON에 함께 저장됩니다.</p>
   <h3>저장한 분석 JSON으로 선수별 변화 비교</h3>
+  <p>분석 2·3과 스윙 변화 비교의 정면 그래프는 같은 방향 표기를 사용합니다. <strong>오른손잡이·좌우 반전 없는 정면 영상 기준</strong>으로 +X(모니터 오른쪽)는 선수 왼쪽·타깃 쪽, −X(모니터 왼쪽)는 선수 오른쪽·백스윙 쪽입니다. +Y는 위쪽입니다. 표시 문구만 통일하며 좌표·기존 분석 점수는 바꾸지 않습니다. 왼손잡이·반전 영상은 이 대응이 다르며 자동 방향 전환은 하지 않습니다. 측면 손 그래프는 신체 좌우가 아닌 영상 좌우 기준을 유지합니다.</p>
+  <p>비교 결과는 <strong>정면 손 경로 · 측면 손 경로 · C7·코어 XY 경로 · C7·코어 X축 좌우 변화 · C7·코어 Y축 상하 변화</strong>의 다섯 그래프와 이동량 표로 나누어 표시하며 PDF에도 모두 포함됩니다. 손 경로와 몸통 이동을 분리하여 C7·골반의 작은 이동도 확인할 수 있습니다. 색은 날짜별 파일, 파선은 C7, 점선은 코어(골반 중심)입니다. X·Y 변화 그래프의 가로축은 저장 영상 시간을 어드레스 0%–임팩트 100%로 정규화한 진행률이며 실제 속도나 동일한 탑 시점을 뜻하지 않습니다. 영상 오른쪽 X+, 위쪽 Y+이며, 이동량은 기준 길이 대비 %입니다.</p>
+  <p>비교 후에는 첫 번째 그래프만 펼쳐집니다. 다른 그래프는 제목을 눌러 각각 펼치거나 접을 수 있습니다. C7·코어 그래프 안의 체크박스로 두 지표를 따로 선택하면 선택한 데이터에 맞춰 축 범위가 다시 맞춰집니다. C7은 파선과 빈 표식으로 코어 위에 표시하며, 코어 중심(골반 중심)은 점선과 채운 표식으로 구분합니다. 비교 가능한 C7 입력이 없으면 <strong>C7 (입력 없음)</strong>으로 안내합니다. PDF는 화면의 접힘 상태와 관계없이 다섯 그래프를 펼쳐 저장하며, C7·코어 선택 상태는 유지합니다.</p>
+  <p>그래프의 주요 시점은 <strong>○ 어드레스 · △ 백스윙 탑 · □ 임팩트</strong>로 표시합니다. 그래프 안에는 반복 이름표나 연결선을 표시하지 않으며, 점에 마우스를 올리면 날짜·손/C7/코어 구분·시점·좌표를 확인할 수 있습니다. 색은 날짜별 파일이며 지표의 선·표식 구분은 그래프 아래 범례에 표시합니다. 저장되지 않은 시점은 임의로 표시하지 않습니다. PDF도 이름표 없이 도형과 범례로 표시합니다.</p>
+  <p>C7·코어 XY 연결선은 프레임 번호나 분석 버튼을 누른 순서가 아니라 <strong>저장 영상 시각순</strong>으로 연결합니다. 저장된 비교 그래프를 불러올 때도 진행률순으로 정렬하며, 점에 마우스를 올리면 연결 순서와 진행률을 확인할 수 있습니다. 이 그래프는 분석 2·3의 정면 C7·골반 입력을 사용하므로 측면 손 경로의 P1–P7 전체가 자동으로 생기는 것은 아닙니다. 저장 시점이 없는 이전 계열은 저장 배열 순서를 유지하고 시간순 여부를 확인할 수 없다는 안내를 표시합니다.</p>
+  <p>JSON에 저장된 비교 그래프를 우선 사용하고, 빠진 그래프는 저장된 입력점으로 재구성합니다. 분석 2 저장 파일 하나에 측면 손 입력과 정면 손·C7·코어 입력이 함께 있으면 별도 분석 3 파일 없이 모든 그래프를 비교할 수 있습니다. 측면 입력이 없거나 저장 시점 정보가 없는 항목은 임의로 만들지 않고 해당 그래프에 안내합니다.</p>
+  <p>정면 손 이동 경로와 C7·코어 중심 이동 그래프는 분석 2(비거리 모션 분석)와 분석 3(스윙 유형 분석)에 함께 표시됩니다. F1 A 어드레스·F1 B 탑과 임팩트의 저장 입력을 사용하며, 임팩트는 F6 B를 우선하고 F6 입력이 없으면 F4 B를 사용합니다. 따라서 분석 2만 저장한 이전 JSON도 이 입력과 영상 비율이 있으면 정면 3종 그래프를 재구성하여 선수별 변화에서 비교할 수 있습니다. A/B는 같은 정면 영상이어야 하고 저장 시점이 어드레스→탑→임팩트 순서여야 합니다. 없는 입력점은 임의로 만들지 않습니다.</p>
   <p>“A/B 스윙 비교” → “선수 스윙변화 확인” → “분석 JSON 폴더 선택” 순으로 엽니다. PC에 저장한 JSON 폴더를 선택하면 선수·클럽·분석일별로 파일을 찾을 수 있습니다. 날짜를 바꾸며 두 개에서 최대 네 개까지 선택한 뒤 “선택 파일 비교”를 누르세요. 다른 선수의 파일도 함께 비교할 수 있으며, 현재 분석은 바뀌지 않고 원본 동영상도 필요하지 않습니다.</p>
   <p>파일 카드에는 원본 JSON 파일명을 괄호 안에 표시합니다. 선수·날짜를 바꿀 때는 선택한 파일이 유지되지만, 드라이버 또는 아이언을 지정하면 다른 클럽과 클럽 미지정 파일의 선택은 해제되고 이전 비교 결과도 지워집니다. 해당 클럽 파일이 없으면 빈 목록 안내를 표시합니다. 클럽은 JSON에 저장된 선택 정보를 기준으로 구분합니다.</p>
+  <p>다른 폴더를 다시 선택하면 기존 파일·선택·비교 결과를 유지하며 새 파일을 추가합니다. 내용이 완전히 같은 JSON은 중복으로 추가하지 않고, 같은 파일명이라도 내용이 다르면 별도 파일로 불러옵니다. 체크한 파일(한 번에 최대 4개)을 “선택 파일 목록에서 제외”로 정리할 수 있습니다. 확인 후 불러온 목록에서만 제외하며, PC의 원본 JSON은 삭제하지 않습니다. 제외한 파일은 폴더를 다시 선택하면 불러올 수 있습니다.</p>
   <p>비교 후 “비교결과 PDF 다운로드”를 누르면 그래프·이동량 표·변화 요약과 비교한 JSON 파일 목록을 함께 저장합니다. 비교 결과가 없으면 다운로드 버튼은 비활성화됩니다. 파일명은 비교 대상의 선수·클럽, 저장 당일의 현지 날짜, 첫 번째 비교 JSON 파일명 뒤에 <strong>_swing_comparison.pdf</strong>를 붙입니다. 여러 선수·클럽은 <strong>_vs_</strong>로 구분하며 미등록 선수명은 생략합니다.</p>
   <p>폴더는 PC에서만 읽으며 서버로 업로드하지 않습니다. 페이지를 다시 열거나 폴더에 새 파일을 추가했을 때는 폴더를 다시 선택하세요. 이전 JSON도 저장된 입력점과 영상 비율이 충분하면 그래프를 재구성합니다. 정면은 어드레스 C7–골반 길이, 측면은 어드레스 손–클럽헤드의 2D 길이를 100%로 비교하며, 같은 촬영 방향·자세점·클럽 조건에서 해석하세요.</p>
 
@@ -807,7 +815,7 @@
     <h3>C7·코어 이동 그래프</h3>
     <p>엔진 결과 안의 C7·코어 그래프는 같은 정면 영상을 A와 B에 불러온 경우에만 표시됩니다. 기본 앵커는 F1 A 어드레스, F1 B 탑, F6 B 임팩트이며 저장된 영상 시각이 반드시 이 순서로 증가해야 합니다. F1 A에서 C7(목 중심 투영점)과 코어(골반 중심)를 각각 찍어 기준 원점을 만들어야 합니다. XY·좌우 그래프는 분석점의 가로세로 비율도 필요합니다. 그래프 종류에 따라 좌표 또는 영상 비율이 다른 입력점은 생략될 수 있습니다.</p>
     <p>XY 그래프는 C7과 코어를 각각 자기 어드레스 원점에 맞춰 겹쳐 봅니다. 시간별 상하 이동의 주소 기준 Y+는 위쪽, 시간별 좌우 이동 X+는 영상 오른쪽입니다. 각 축은 영상 높이의 1% 단위이며 가로축만 원본 영상 비율로 보정됩니다. 시간 그래프의 x축은 저장 시각으로 어드레스에서의 경과 시간이며, 슬로모션 재생 배율을 실제 초 단위로 역산하지 않습니다. 같은 시각에 입력된 좌표는 한 점으로 합쳐집니다.</p>
-    <p class="small">그래프 곡선은 선택점 사이의 보간이며 실제 연속 운동, 속도, 3D 경로, 지면반력 또는 신체 무게중심을 측정하지 않고 엔진 점수에도 반영되지 않습니다. 그래프를 그릴 샘플이 부족하면 결과 대신 “이동 표시 보류”와 필요한 입력이 표시됩니다. 숫자와 점의 위치는 영상의 좌표계 기준이며 X 방향은 타깃 방향이나 해부학적 좌우를 뜻하지 않습니다.</p>
+    <p class="small">그래프 곡선은 선택점 사이의 보간이며 실제 연속 운동, 속도, 3D 경로, 지면반력 또는 신체 무게중심을 측정하지 않고 엔진 점수에도 반영되지 않습니다. 그래프를 그릴 샘플이 부족하면 결과 대신 “이동 표시 보류”와 필요한 입력이 표시됩니다. 좌표는 영상 기준을 유지합니다. 선수 방향 표기는 오른손잡이·좌우 반전 없는 정면 기준으로 +X=선수 왼쪽·타깃 쪽, −X=선수 오른쪽·백스윙 쪽이며, 다른 촬영 조건은 자동 보정하지 않습니다.</p>
   </section>
 
   <section class="chapter-page chapter-break" id="chapter-07">
@@ -1478,7 +1486,7 @@
     <h3>C7 and Core Motion Graphs</h3>
     <p>The engine C7/core graphs appear only when A and B use the same front-view source. Required anchors are F1 A address, F1 B top, and F6 B impact, with increasing saved timestamps. F1 A must also contain C7 (projected neck-center point) and core (pelvis-center) landmarks. XY/horizontal graphs additionally need the source aspect ratio. Depending on the selected graph, points with missing coordinates, timestamps, or matching aspect may be omitted.</p>
     <p>XY plots overlay C7 and core after independently setting each address position to its own origin. In vertical plots, Y+ is image-up; in horizontal plots, X+ is image-right. Axes are in units of 1% image height, with horizontal movement corrected for source aspect ratio. Time plots use elapsed saved video timestamps from address; slow-motion playback rate is not converted back to real time. Coordinates recorded at identical timestamps are merged.</p>
-    <p class="small">The curves interpolate selected points; they do not measure continuous motion, speed, a 3D path, ground-reaction force, or the body’s center of mass and do not affect scores. When data are insufficient, the app displays a “Motion unavailable” message and the missing prerequisites instead of fabricating a path. The horizontal sign is image-based, not target direction or anatomical left/right.</p>
+    <p class="small">The curves interpolate selected points; they do not measure continuous motion, speed, a 3D path, ground-reaction force, or the body’s center of mass and do not affect scores. When data are insufficient, the app displays a “Motion unavailable” message and the missing prerequisites instead of fabricating a path. Coordinates remain image-based. Analysis 2/3 and comparison front graphs share the right-handed, unmirrored face-on convention: +X = player left / target side; −X = player right / backswing side. Other camera orientations and handedness are not automatically corrected.</p>
   </section>
 
   <section class="chapter-page chapter-break" id="en-chapter-07">
