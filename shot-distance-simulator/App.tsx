@@ -99,6 +99,12 @@ const GREEN_MAP_SIZE = { width: 440, height: 360, centerX: 220, centerY: 180, pa
 type DistanceUnit = 'yd' | 'm';
 type GreenDimensions = { widthYds: number; lengthYds: number };
 
+type UiLanguage = 'ko' | 'en';
+const LANGUAGE_STORAGE_KEY = 'sy-shot-language-v1';
+// 기본 한국어. App 렌더 시작 시 선택 언어로 갱신되며, 모든 표시 문자열은 t()로 선택합니다.
+let uiLanguage: UiLanguage = 'ko';
+function t(ko: string, en: string) { return uiLanguage === 'en' ? en : ko; }
+
 function distanceFromYards(yards: number, unit: DistanceUnit) {
   return unit === 'm' ? yards * YDS_TO_M : yards;
 }
@@ -164,6 +170,12 @@ const WIND_PRESETS = [
   { degrees: 270, label: '훅바람', direction: '우측 → 좌측' },
   { degrees: 90, label: '슬라이스바람', direction: '좌측 → 우측' },
 ] as const;
+const WIND_PRESETS_EN: Record<number, { label: string; direction: string }> = {
+  0: { label: 'Headwind', direction: 'Target → Player' },
+  180: { label: 'Tailwind', direction: 'Player → Target' },
+  270: { label: 'Hook wind', direction: 'Right → Left' },
+  90: { label: 'Slice wind', direction: 'Left → Right' },
+};
 function windSelections(degrees: number) {
   const radians = degrees * Math.PI / 180;
   const component = (value: number) => Math.abs(value) < 1e-8 ? 0 : Math.sign(value);
@@ -200,6 +212,15 @@ const LIE_OPTIONS = [
     note: '볼속도 15% 감소. 발사각 -3°·스핀 50% 감소는 모델 가정입니다. 고정 거리 손실을 강제하지 않으며 클럽·샷별로 계산합니다.' },
 ] as const;
 type LieId = typeof LIE_OPTIONS[number]['id'];
+const LIE_TEXT_EN: Record<LieId, { label: string; note: string }> = {
+  FAIRWAY: { label: 'Fairway · Neutral', note: 'Reference lie. Ball speed, launch angle, and spin are unchanged.' },
+  DOWNGRAIN: { label: 'Fairway · Down-grain', note: 'Ball speed kept, spin −20% (midpoint of the published 15–25% range). Rollout may increase after landing.' },
+  AGAINST_GRAIN: { label: 'Fairway · Into-grain', note: 'Ball speed −3% (midpoint of the published 2–4% range). The direction of head twist is not predicted.' },
+  FLYER: { label: 'Rough · Slightly sunk (25% / flyer)', note: 'Ball speed kept, spin −35%. The +2° launch for a higher start is a model assumption. Rollout may increase, but longer carry is not guaranteed.' },
+  HALF_ROUGH: { label: 'Rough · Half sunk (50%)', note: 'Ball speed −6%, spin −50%. Launch angle is kept.' },
+  DEEP_ROUGH: { label: 'Rough · Fully sunk (100%)', note: 'Ball speed −15%. The −3° launch and −50% spin are model assumptions. No fixed distance loss is forced; each club and shot is computed.' },
+};
+function lieLabel(id: LieId) { return t(getLie(id).label, LIE_TEXT_EN[id].label); }
 
 function getLie(id: LieId) {
   const lie = LIE_OPTIONS.find(option => option.id === id);
@@ -210,9 +231,12 @@ function getLie(id: LieId) {
 function windDirectionLabel(degrees: number) {
   const normalized = ((degrees % 360) + 360) % 360;
   const preset = WIND_PRESETS.find(option => option.degrees === normalized);
-  if (preset) return `${preset.label} (${preset.direction})`;
-  const longitudinal = normalized < 90 || normalized > 270 ? '맞바람' : '뒷바람';
-  const lateral = normalized < 180 ? '슬라이스바람 · 좌→우' : '훅바람 · 우→좌';
+  if (preset) {
+    const en = WIND_PRESETS_EN[preset.degrees];
+    return `${t(preset.label, en.label)} (${t(preset.direction, en.direction)})`;
+  }
+  const longitudinal = normalized < 90 || normalized > 270 ? t('맞바람', 'headwind') : t('뒷바람', 'tailwind');
+  const lateral = normalized < 180 ? t('슬라이스바람 · 좌→우', 'slice wind · L→R') : t('훅바람 · 우→좌', 'hook wind · R→L');
   return `${normalized}° ${longitudinal} + ${lateral}`;
 }
 
@@ -234,7 +258,7 @@ function WindDirectionControl({ degrees, speed, unit, onChange }: {
   };
   return (
     <g transform="translate(90, 85)">
-      <text x="0" y="-44" textAnchor="middle" fill="#cbd5e1" fontSize="11">목표 ↑</text>
+      <text x="0" y="-44" textAnchor="middle" fill="#cbd5e1" fontSize="11">{t('목표 ↑', 'Target ↑')}</text>
       <g role="slider" tabIndex={0} aria-label="풍향계 직접 조절" aria-valuemin={0} aria-valuemax={359}
         aria-valuenow={degrees % 360} aria-valuetext={windDirectionLabel(degrees)}
         className="cursor-crosshair focus:outline focus:outline-2 focus:outline-sky-300"
@@ -266,7 +290,7 @@ function WindDirectionControl({ degrees, speed, unit, onChange }: {
             onChange(event.key === 'Home' ? 0 : event.key === 'End' ? 359 : (degrees + (delta ?? 0) + 360) % 360);
           }
         }}>
-        <title>클릭 또는 드래그로 풍향 조절 · 방향키 1° / Shift+방향키 15°</title>
+        <title>{t('클릭 또는 드래그로 풍향 조절 · 방향키 1° / Shift+방향키 15°', 'Click or drag to set wind direction · Arrow keys 1° / Shift+arrow 15°')}</title>
         <circle r="44" fill="transparent" pointerEvents="all" />
         <circle r="34" fill="#020617" stroke="#38bdf8" strokeWidth="2" />
         {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
@@ -278,9 +302,9 @@ function WindDirectionControl({ degrees, speed, unit, onChange }: {
         </g>
       </g>
       <g pointerEvents="none" fill="#38bdf8" fontSize="12">
-        <text x="46" y="-10" fontWeight="900">풍속 {Number(speed.toFixed(1))} {unit} · {degrees}°</text>
-        <text x="46" y="9" fontSize="11">풍향계 클릭·드래그로 조절</text>
-        <text x="46" y="26" fontSize="10" fill="#94a3b8">화살표 = 바람이 향하는 방향 · 목표 ↑ 기준</text>
+        <text x="46" y="-10" fontWeight="900">{t('풍속', 'Wind')} {Number(speed.toFixed(1))} {unit} · {degrees}°</text>
+        <text x="46" y="9" fontSize="11">{t('풍향계 클릭·드래그로 조절', 'Click or drag the dial to adjust')}</text>
+        <text x="46" y="26" fontSize="10" fill="#94a3b8">{t('화살표 = 바람이 향하는 방향 · 목표 ↑ 기준', 'Arrow = direction wind blows toward · Target ↑')}</text>
       </g>
     </g>
   );
@@ -309,6 +333,13 @@ const PERSONAL_FIELDS = [
   { key: 'axis', label: '스핀축', unit: '°', min: -30, max: 30, step: 0.1 },
 ] as const;
 type PersonalField = typeof PERSONAL_FIELDS[number]['key'];
+const PERSONAL_FIELD_LABELS_EN: Record<PersonalField, string> = {
+  carry: 'Base carry', clubSpeed: 'Club speed', speed: 'Ball speed', launch: 'Launch angle',
+  spin: 'Backspin', apex: 'Apex height', axis: 'Spin axis',
+};
+function personalFieldLabel(field: { key: PersonalField; label: string }) {
+  return t(field.label, PERSONAL_FIELD_LABELS_EN[field.key]);
+}
 type PersonalProfile = Partial<Record<PersonalField, string>>;
 type PersonalProfiles = Record<string, PersonalProfile>;
 const PROFILE_STORAGE_KEY = 'sy-shot-personal-clubs-v1';
@@ -335,7 +366,9 @@ function readPersonalProfiles(): { profiles: PersonalProfiles; error: string | n
     }
     return { profiles, error: null };
   } catch (error) {
-    return { profiles: {}, error: `개인 클럽 데이터를 불러오지 못했습니다: ${error instanceof Error ? error.message : String(error)}. 현재 투어 평균을 표시하며, 입력하면 저장 데이터를 교체합니다.` };
+    return { profiles: {}, error: t(
+      `개인 클럽 데이터를 불러오지 못했습니다: ${error instanceof Error ? error.message : String(error)}. 현재 투어 평균을 표시하며, 입력하면 저장 데이터를 교체합니다.`,
+      `Could not load saved personal club data: ${error instanceof Error ? error.message : String(error)}. Tour averages are shown; entering values replaces the saved data.`) };
   }
 }
 
@@ -350,7 +383,7 @@ function resolvePersonalClub(base: CalibratedClub, profile: PersonalProfile, uni
       const range = field.unit === 'yd'
         ? `${formatDistance(field.min, unit, 4)}–${formatDistance(field.max, unit, 4)}`
         : `${field.min}–${field.max}${field.unit}`;
-      errors.push(`${field.label}: ${range} 범위로 입력하세요.`);
+      errors.push(t(`${field.label}: ${range} 범위로 입력하세요.`, `${personalFieldLabel(field)}: enter a value within ${range}.`));
     } else values[field.key] = value;
   }
   const carry = values.carry ?? base.carry;
@@ -370,9 +403,9 @@ function PersonalClubEditor({ base, profile, unit, onChange, onReset }: {
   return (
     <div className="space-y-2 border border-emerald-500/30 bg-slate-900 rounded-xl p-3">
       <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold">
-        <SlidersIcon size={16} /><span>{base.name} 개인 데이터 입력</span>
+        <SlidersIcon size={16} /><span>{t(`${base.name} 개인 데이터 입력`, `${clubDisplayName(base)} personal data`)}</span>
       </div>
-      <p className="text-[11px] text-slate-400">빈칸은 선택 투어 평균 적용 · 입력값은 클럽별로 이 브라우저에 자동 저장됩니다.</p>
+      <p className="text-[11px] text-slate-400">{t('빈칸은 선택 투어 평균 적용 · 입력값은 클럽별로 이 브라우저에 자동 저장됩니다.', 'Blank fields use the selected tour average · entries are saved per club in this browser.')}</p>
       <div className="grid grid-cols-2 gap-2">
         {PERSONAL_FIELDS.map((field) => {
           const reference = field.key === 'axis' ? 0 : base[field.key];
@@ -380,14 +413,14 @@ function PersonalClubEditor({ base, profile, unit, onChange, onReset }: {
           const raw = profile[field.key] ?? '';
           return (
             <label key={field.key} className="block text-[11px] text-slate-300">
-              {field.label} ({isDistance ? unit : field.unit})
-              <span className="block text-sky-300">투어 기준: {isDistance ? formatDistance(reference, unit) : `${Number(reference.toFixed(1))}${field.unit}`}</span>
+              {personalFieldLabel(field)} ({isDistance ? unit : field.unit})
+              <span className="block text-sky-300">{t('투어 기준: ', 'Tour reference: ')}{isDistance ? formatDistance(reference, unit) : `${Number(reference.toFixed(1))}${field.unit}`}</span>
               {isDistance ? (
                 <DistanceInput value={raw} unit={unit} min={field.min} max={field.max} reference={reference}
-                  label={`개인 ${field.label}`} onChange={(value) => onChange(field.key, value)}
+                  label={t(`개인 ${field.label}`, `Personal ${PERSONAL_FIELD_LABELS_EN[field.key]}`)} onChange={(value) => onChange(field.key, value)}
                   className="mt-1 w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1.5 focus:border-emerald-400" />
               ) : (
-                <input type="number" aria-label={`개인 ${field.label}`} min={field.min} max={field.max} step={field.step}
+                <input type="number" aria-label={t(`개인 ${field.label}`, `Personal ${PERSONAL_FIELD_LABELS_EN[field.key]}`)} min={field.min} max={field.max} step={field.step}
                   value={raw} placeholder={String(Number(reference.toFixed(1)))}
                   onChange={(e) => onChange(field.key, e.target.value)}
                   className="mt-1 w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1.5 focus:border-emerald-400" />
@@ -396,18 +429,14 @@ function PersonalClubEditor({ base, profile, unit, onChange, onReset }: {
           );
         })}
       </div>
-      <HelpDetails title="개인 입력 기준 안내">
+      <HelpDetails title={t('개인 입력 기준 안내', 'Personal input reference')}>
       <p className="text-[11px] text-slate-400">
-        기준 캐리는 무풍·20°C·평지의 런 제외 거리입니다. 캐리 또는 높이를 입력하면 개인 발사 데이터로 항력·양력을 재보정합니다.
-        거리와 높이는 화면 상단에서 선택한 단위로 입력합니다. 단위를 바꿔도 저장된 실제 거리는 유지됩니다.
-        캐리만 입력한 경우 높이는 투어 높이에 거리 비율을 적용한 추정값입니다.
-        캐리·높이가 모두 비어 있으면 투어 공력 모델에 입력 발사 데이터를 적용합니다.
-        입력한 스핀축도 기준 캐리·높이 보정에 적용됩니다.
-        클럽 스피드는 참고용이며 비행 계산은 볼 스피드를 사용합니다.
+        {t('기준 캐리는 무풍·20°C·평지의 런 제외 거리입니다. 캐리 또는 높이를 입력하면 개인 발사 데이터로 항력·양력을 재보정합니다. 거리와 높이는 화면 상단에서 선택한 단위로 입력합니다. 단위를 바꿔도 저장된 실제 거리는 유지됩니다. 캐리만 입력한 경우 높이는 투어 높이에 거리 비율을 적용한 추정값입니다. 캐리·높이가 모두 비어 있으면 투어 공력 모델에 입력 발사 데이터를 적용합니다. 입력한 스핀축도 기준 캐리·높이 보정에 적용됩니다. 클럽 스피드는 참고용이며 비행 계산은 볼 스피드를 사용합니다.',
+          'Base carry is the no-wind, 20°C, flat-ground distance excluding rollout. Entering carry or apex recalibrates drag/lift to your launch data. Distances and heights use the unit selected at the top; switching units keeps the stored real distance. With carry only, apex is estimated from the tour apex scaled by distance. With both blank, your launch data runs on the tour aero model. An entered spin axis is also applied to the carry/apex calibration. Club speed is informational; flight uses ball speed.')}
       </p>
       </HelpDetails>
       <button onClick={onReset} className="w-full border border-slate-600 rounded-lg p-2 text-xs text-slate-300">
-        이 클럽 개인 입력 지우기 (투어 평균 복원)
+        {t('이 클럽 개인 입력 지우기 (투어 평균 복원)', 'Clear this club’s personal entries (restore tour average)')}
       </button>
     </div>
   );
@@ -488,6 +517,19 @@ const TOURS: Record<TourId, { name: string; note: string; clubs: ClubData[] }> =
     }))),
   },
 };
+const TOUR_NOTES_EN: Record<TourId, string> = {
+  PGA: 'TrackMan published PGA averages · GW/SW/LW estimated',
+  LPGA: 'TrackMan published LPGA averages · GW/SW/LW estimated',
+  KLPGA: 'Fully estimated · assumes 97% of LPGA ball/club speed and 96% of carry/apex. Not an official KLPGA average.',
+};
+const CLUB_NAMES_EN: Record<string, string> = {
+  D: 'Driver', '3W': '3-wood', '5W': '5-wood', HY: 'Hybrid 15–18°',
+  '3I': '3-iron', '4I': '4-iron', '5I': '5-iron', '6I': '6-iron', '7I': '7-iron', '8I': '8-iron', '9I': '9-iron',
+  PW: 'Pitching wedge', GW: 'Gap wedge', SW: 'Sand wedge', LW: 'Lob wedge',
+};
+function clubDisplayName(club: { id: string; name: string }) {
+  return t(club.name, CLUB_NAMES_EN[club.id] ?? club.name);
+}
 
 function getAirDensity(tempCelsius: number) {
   const tempKelvin = tempCelsius + 273.15;
@@ -640,7 +682,9 @@ function calibrateClub(club: ClubData, spinAxisDeg = 0): CalibratedClub {
   error = Math.max(Math.abs(final.carryYds - club.carry) / club.carry, Math.abs(final.apexYds - club.apex) / club.apex);
   return {
     ...club, dragScale, liftScale,
-    calibrationError: final.landed && Number.isFinite(error) && error < 0.003 ? null : `${club.name} 기준 캐리·높이 보정 실패: 입력한 거리·높이·발사 조건의 조합을 확인하세요.`,
+    calibrationError: final.landed && Number.isFinite(error) && error < 0.003 ? null : t(
+      `${club.name} 기준 캐리·높이 보정 실패: 입력한 거리·높이·발사 조건의 조합을 확인하세요.`,
+      `${CLUB_NAMES_EN[club.id] ?? club.name} carry/apex calibration failed: check the combination of distance, apex, and launch inputs.`),
   };
 }
 
@@ -1039,9 +1083,9 @@ function recommendShot(
   });
   if (club.calibrationError) return fail(club.calibrationError);
   if (targetLaserYds * YDS_TO_M <= Math.abs(env.elevationDeltaM)) {
-    return fail('레이저 거리는 고도 차이보다 커야 합니다.');
+    return fail(t('레이저 거리는 고도 차이보다 커야 합니다.', 'The laser distance must exceed the elevation difference.'));
   }
-  if (solution === null) return fail('현재 조건에서 선택 가능한 클럽·볼속도·조준으로 목표에 도달할 수 없습니다. 거리를 줄이거나 다른 클럽을 선택하세요.');
+  if (solution === null) return fail(t('현재 조건에서 선택 가능한 클럽·볼속도·조준으로 목표에 도달할 수 없습니다. 거리를 줄이거나 다른 클럽을 선택하세요.', 'The target cannot be reached with the available club, ball speed, and aim under current conditions. Reduce the distance or choose another club.'));
   const { requiredSpeed, aimAngleDeg, trajectory } = solution;
   // Play-as is the calm, level carry of the required launch, not 2 * target - actual carry.
   const calm = calculateTrajectory({ ...launch, ballSpeedMph: requiredSpeed, aimAngleDeg: 0 }, REFERENCE_ENV, false);
@@ -1053,6 +1097,14 @@ function recommendShot(
 }
 
 export default function App() {
+  const [language, setLanguage] = useState<UiLanguage>(() => {
+    try { return localStorage.getItem(LANGUAGE_STORAGE_KEY) === 'en' ? 'en' : 'ko'; } catch { return 'ko'; }
+  });
+  uiLanguage = language;
+  const selectLanguage = (next: UiLanguage) => {
+    setLanguage(next);
+    try { localStorage.setItem(LANGUAGE_STORAGE_KEY, next); } catch { /* 저장 불가 시 세션 한정 적용 */ }
+  };
   const [calcMode, setCalcMode] = useState('GENERAL');
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('yd');
   const [targetInputYds, setTargetInputYds] = useState('140');
@@ -1119,11 +1171,11 @@ export default function App() {
   const targetValid = centerInputValid && targetDistYds >= 50 && targetDistYds <= 350;
   const customClub = tourClubs.find((c) => c.id === selectedClubId) ?? tourClubs.find((c) => c.id === '7I') ?? tourClubs[0];
   const profile = personalState.profiles[customClub.id];
-  const personal = useMemo(() => resolvePersonalClub(customClub, profile ?? {}, distanceUnit), [customClub, profile, distanceUnit]);
+  const personal = useMemo(() => resolvePersonalClub(customClub, profile ?? {}, distanceUnit), [customClub, profile, distanceUnit, language]);
   const recommendation = useMemo(() => recommendShot(
     tourClubs, greenTarget.laserDistanceYds, greenTarget.environment,
     calcMode === 'TRACKMAN' ? customClub.id : selectedClubId,
-  ), [tourClubs, greenTarget, calcMode, customClub, selectedClubId]);
+  ), [tourClubs, greenTarget, calcMode, customClub, selectedClubId, language]);
   const isCustom = calcMode === 'TRACKMAN';
   const activeClub = isCustom ? personal.club : recommendation.club;
   const aimOffsetYds = Number(aimOffsetInput);
@@ -1150,10 +1202,13 @@ export default function App() {
     : recommendation.playAsYds;
   const distanceAdjustment = displayedDistance === null ? null
     : displayedDistance - recommendation.horizontalYds;
-  const targetError = targetValid ? null : `목표 거리는 ${formatDistance(50, distanceUnit, 4)}–${formatDistance(350, distanceUnit, 4)} 범위로 입력하세요. 입력을 수정할 때까지 궤적은 기본 목표 기준입니다.`;
-  const geometryError = targetValid && targetDistYds * YDS_TO_M <= Math.abs(greenTarget.elevationDeltaM) ? '레이저 거리는 핀 고도 차이보다 커야 합니다.' : null;
+  const targetError = targetValid ? null : t(
+    `목표 거리는 ${formatDistance(50, distanceUnit, 4)}–${formatDistance(350, distanceUnit, 4)} 범위로 입력하세요. 입력을 수정할 때까지 궤적은 기본 목표 기준입니다.`,
+    `Enter a target distance within ${formatDistance(50, distanceUnit, 4)}–${formatDistance(350, distanceUnit, 4)}. Until corrected, the trajectory uses the default target.`);
+  const geometryError = targetValid && targetDistYds * YDS_TO_M <= Math.abs(greenTarget.elevationDeltaM)
+    ? t('레이저 거리는 핀 고도 차이보다 커야 합니다.', 'The laser distance must exceed the pin elevation difference.') : null;
   const displayWarning = targetError ?? geometryError ?? (isCustom && personal.errors.length ? personal.errors.join(' ') : null) ?? activeClub.calibrationError
-    ?? (!trajResult.landed ? '샷이 그린 높이의 하강 착지점에 도달하지 못했습니다. 예상 캐리를 산출할 수 없습니다.' : null);
+    ?? (!trajResult.landed ? t('샷이 그린 높이의 하강 착지점에 도달하지 못했습니다. 예상 캐리를 산출할 수 없습니다.', 'The shot never descends to the green height, so the expected carry cannot be computed.') : null);
   const sideOffsetYds = trajResult.sideOffsetYds;
   const greenRelief = useMemo(() => buildGreenRelief(greenDimensions), [greenDimensions]);
   const greenRoll = useMemo(
@@ -1191,7 +1246,9 @@ export default function App() {
       localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profiles));
       setStorageError(null);
     } catch (error) {
-      setStorageError(`개인 입력을 저장하지 못했습니다. 현재 화면에는 적용되지만 새로고침하면 사라질 수 있습니다: ${error instanceof Error ? error.message : String(error)}`);
+      setStorageError(t(
+        `개인 입력을 저장하지 못했습니다. 현재 화면에는 적용되지만 새로고침하면 사라질 수 있습니다: ${error instanceof Error ? error.message : String(error)}`,
+        `Could not save the personal entry. It applies to this screen but may be lost after a refresh: ${error instanceof Error ? error.message : String(error)}`));
     }
   };
   const updatePersonalField = (field: PersonalField, value: string) => {
@@ -1348,40 +1405,36 @@ export default function App() {
               ver26.1112-1f-ad
             </span>
           </h1>
-          <details className="relative shrink-0">
-            <summary
-              aria-label="샷거리 시뮬레이터 사용설명서"
-              title="샷거리 시뮬레이터 사용설명서"
-              className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-sky-400/40 bg-slate-950/70 text-sky-300 hover:bg-sky-500/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden"
-            >
-              <HelpCircleIcon size={20} />
-            </summary>
-            <section
-              role="region"
-              aria-label="샷거리 시뮬레이터 사용설명서"
-              className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-sky-400/40 bg-slate-900 p-4 text-left text-xs text-slate-200 shadow-2xl"
-            >
-              <h2 className="mb-2 text-sm font-black text-sky-300">사용 안내</h2>
-              <ol className="list-decimal space-y-2 pl-4 leading-relaxed">
-                <li><strong className="text-white">시뮬레이션 선택:</strong> 투어 기준은 투어·클럽 평균 샷을, 선수 개별 맞춤은 선택한 클럽의 기준 캐리와 볼속도·발사각·스핀 입력값을 사용합니다. 개인 입력은 이 기기에 저장됩니다.</li>
-                <li><strong className="text-white">목표·조준 설정:</strong> 레이저 거리와 좌우 조준점 이동을 입력합니다. 좌측은 음수, 우측은 양수이며 조준점 이동은 핀 기준 좌우 거리입니다. 키보드에 음수 기호가 없으면 − 좌측 / + 우측 버튼으로 1단위 조절할 수 있습니다. 핀 위치·높낮이와 선택한 조준점이 실제 궤적에 반영됩니다.</li>
-                <li><strong className="text-white">환경 설정:</strong> 풍속·풍향, 기온, 그린 고도 차이, 강우, 잔디·라이를 입력합니다. 풍향계는 화살표 키로도 조정할 수 있습니다.</li>
-                <li><strong className="text-white">결과 확인:</strong> 상단 환경반영 권장거리는 목표를 맞추기 위한 평지 기준 캐리(맞바람이면 증가, 뒷바람이면 감소)입니다. 아래 상세 결과의 예상 캐리는 선택 클럽 풀샷 궤적의 수평 거리입니다. 측면 보기에서 높이·비행을, 위에서 보기에서 좌우 편차를 확인하고 “샷 실행”으로 궤적을 재생합니다.</li>
-              </ol>
-              <p className="mt-3 border-t border-slate-700 pt-2 leading-relaxed text-amber-200">
-                결과는 기준 자료와 모델 가정에 따른 추정치이며 실측 보장값이 아닙니다. 상세 가정과 한계는 화면 아래 “산출 방식과 한계”에서 확인하세요.
-              </p>
-            </section>
-          </details>
+          <div role="group" aria-label={t('언어 선택', 'Language')} className="flex shrink-0 items-center gap-1 text-xs">
+            {([{ id: 'ko', label: '한국어' }, { id: 'en', label: 'English' }] as const).map(({ id, label }) => (
+              <button key={id} type="button" onClick={() => selectLanguage(id)} aria-pressed={language === id}
+                className={`rounded-lg border px-2.5 py-1 font-bold ${language === id ? 'border-amber-300 bg-amber-400/20 text-amber-200' : 'border-slate-700 text-slate-400 hover:text-slate-200'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div role="group" aria-label="거리 단위 선택" className="mt-1 flex items-center gap-2 text-xs">
-          <span className="text-slate-300">거리 단위</span>
-          {([{ id: 'm', label: '미터 (m)' }, { id: 'yd', label: '야드 (yd)' }] as const).map(({ id, label }) => (
-            <button key={id} onClick={() => setDistanceUnit(id)} aria-pressed={distanceUnit === id}
-              className={`rounded-lg border px-3 py-1 font-bold ${distanceUnit === id ? 'border-sky-400 bg-sky-500/20 text-sky-300' : 'border-slate-700 text-slate-400'}`}>
-              {label}
-            </button>
-          ))}
+        <div className="mt-1 flex items-center gap-2 text-xs">
+          <div role="group" aria-label="거리 단위 선택" className="flex items-center gap-2">
+            <span className="text-slate-300">{t('거리 단위', 'Distance unit')}</span>
+            {([{ id: 'm', label: t('미터 (m)', 'Meters (m)') }, { id: 'yd', label: t('야드 (yd)', 'Yards (yd)') }] as const).map(({ id, label }) => (
+              <button key={id} onClick={() => setDistanceUnit(id)} aria-pressed={distanceUnit === id}
+                className={`rounded-lg border px-3 py-1 font-bold ${distanceUnit === id ? 'border-sky-400 bg-sky-500/20 text-sky-300' : 'border-slate-700 text-slate-400'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <a
+            href={`../../SY-SDE_샷거리시뮬레이터_사용설명서.html?lang=${language}`}
+            target="_blank" rel="noopener noreferrer"
+            title={t('샷거리 시뮬레이터 사용설명서 (새 탭)', 'Shot distance simulator user guide (new tab)')}
+            aria-label={t('샷거리 시뮬레이터 사용설명서 열기 (새 탭)', 'Open the shot distance simulator user guide (new tab)')}
+            className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-sky-400/40 bg-slate-950/70 text-sky-300 hover:bg-sky-500/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="h-4 w-4">
+              <path d="M12 7v14M12 7C9.8 5.2 6.7 4.5 3 5.5v13c3.7-1 6.8-.3 9 1.5m0-13c2.2-1.8 5.3-2.5 9-1.5v13c-3.7-1-6.8-.3-9 1.5" />
+            </svg>
+          </a>
         </div>
       </header>
       <div className="flex flex-col lg:flex-row flex-1 min-h-0">
@@ -1397,7 +1450,7 @@ export default function App() {
               <TargetIcon size={16} />
             </span>
             <div className="min-w-0">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">핀까지 레이저 거리</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{t('핀까지 레이저 거리', 'Laser distance to pin')}</span>
               <div className="flex items-center gap-1">
                 <DistanceInput
                   label="핀까지 레이저 거리"
@@ -1415,7 +1468,7 @@ export default function App() {
 
           <div className="flex min-w-0 items-center justify-between gap-1 rounded-lg border border-sky-500/30 bg-slate-950/70 p-1.5">
             <div className="min-w-0">
-              <span className="block text-[10px] font-bold text-sky-300">핀 기준 조준점 좌우</span>
+              <span className="block text-[10px] font-bold text-sky-300">{t('핀 기준 조준점 좌우', 'Aim offset from pin')}</span>
               <div className="flex items-center gap-1">
                 <DistanceInput
                   label="조준점 좌우 이동"
@@ -1427,7 +1480,7 @@ export default function App() {
                 <span className="text-[10px] font-bold text-slate-400">{distanceUnit}</span>
                 <button type="button" onClick={() => setAimOffsetInput('0')}
                   className="rounded border border-slate-700 px-1.5 py-1 text-[9px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
-                  중앙
+                  {t('중앙', 'Center')}
                 </button>
               </div>
               <div className="mt-1 flex justify-end gap-1">
@@ -1435,35 +1488,35 @@ export default function App() {
                   aria-label={`조준점을 좌측으로 ${aimOffsetStepLabel} 이동`}
                   onClick={() => updateAimOffsetByStep(-1)}
                   className="rounded border border-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
-                  − 좌측
+                  {t('− 좌측', '− Left')}
                 </button>
                 <button type="button" data-testid="aim-step-right"
                   aria-label={`조준점을 우측으로 ${aimOffsetStepLabel} 이동`}
                   onClick={() => updateAimOffsetByStep(1)}
                   className="rounded border border-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-300 hover:border-sky-400 hover:text-white">
-                  + 우측
+                  {t('+ 우측', '+ Right')}
                 </button>
               </div>
             </div>
-            <span className="hidden max-w-16 text-[9px] leading-tight text-slate-400 xl:block">좌− / 우+</span>
+            <span className="hidden max-w-16 text-[9px] leading-tight text-slate-400 xl:block">{t('좌− / 우+', 'L− / R+')}</span>
           </div>
 
           {/* Caddie Play-As Distance Recommendation */}
           <div className="flex min-w-0 items-center justify-between gap-1 rounded-lg border border-indigo-500/40 bg-gradient-to-r from-indigo-950 to-slate-900 px-2 py-1.5">
             <div className="min-w-0">
               <span className="block text-[9px] font-bold uppercase tracking-wide text-indigo-300">
-                {isCustom ? '환경반영예상캐리' : '환경반영 권장거리'}
+                {t(isCustom ? '환경반영예상캐리' : '환경반영 권장거리', isCustom ? 'Env-adjusted expected carry' : 'Env-adjusted play-as distance')}
               </span>
               <div className="flex items-baseline gap-1">
                 <span data-testid="play-as" className="text-lg font-black leading-tight text-indigo-200">{displayWarning || displayedDistance === null ? '—' : formatDistance(displayedDistance, distanceUnit)}</span>
               </div>
             </div>
             <div className={`shrink-0 rounded-md px-1.5 py-1 text-[9px] font-black ${distanceAdjustment !== null && distanceAdjustment > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'}`}>
-              {displayWarning || distanceAdjustment === null ? '입력·산출 확인'
-                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? '목표 일치'
+              {displayWarning || distanceAdjustment === null ? t('입력·산출 확인', 'Check inputs')
+                : Math.abs(distanceFromYards(distanceAdjustment, distanceUnit)) < 0.05 ? t('목표 일치', 'On target')
                   : `${formatDistance(Math.abs(distanceAdjustment), distanceUnit)} ${isCustom
-                    ? distanceAdjustment > 0 ? '김' : '짧음'
-                    : distanceAdjustment > 0 ? '더 필요' : '덜 필요'}`}
+                    ? distanceAdjustment > 0 ? t('김', 'long') : t('짧음', 'short')
+                    : distanceAdjustment > 0 ? t('더 필요', 'more needed') : t('덜 필요', 'less needed')}`}
             </div>
           </div>
 
@@ -1473,10 +1526,10 @@ export default function App() {
               <CompassIcon size={16} />
             </span>
             <div className="min-w-0">
-              <span className="block text-[9px] font-medium text-slate-400">예상 좌우 편차</span>
+              <span className="block text-[9px] font-medium text-slate-400">{t('예상 좌우 편차', 'Expected lateral miss')}</span>
               <span className="text-[11px] font-black leading-tight text-slate-200">
-                {displayWarning ? '—' : Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙 예상'
-                  : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}
+                {displayWarning ? '—' : Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? t('중앙 예상', 'Center expected')
+                  : `${sideOffsetYds > 0 ? t('우측', 'Right') : t('좌측', 'Left')} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}
               </span>
             </div>
           </div>
@@ -1484,7 +1537,7 @@ export default function App() {
         </div>
 
         <div role="group" aria-label="시뮬레이션 뷰 선택" className="mx-3 mt-2 flex gap-2">
-          {([{ id: 'SIDE', label: '측면 보기' }, { id: 'TOP', label: '위에서 보기 (좌우 편차)' }] as const).map((view) => (
+          {([{ id: 'SIDE', label: t('측면 보기', 'Side view') }, { id: 'TOP', label: t('위에서 보기 (좌우 편차)', 'Top view (lateral miss)') }] as const).map((view) => (
             <button key={view.id} onClick={() => setViewMode(view.id)} aria-pressed={viewMode === view.id}
               className={`px-2.5 py-1 rounded-lg border text-xs font-bold ${viewMode === view.id ? 'bg-sky-500/20 text-sky-300 border-sky-400' : 'text-slate-400 border-slate-700'}`}>
               {view.label}
@@ -1497,7 +1550,7 @@ export default function App() {
             <>
             <svg aria-label="위에서 본 비행 궤적" data-testid="top-view" viewBox="0 0 800 380" className="w-full h-auto lg:h-[min(40vh,320px)] lg:min-h-[220px] flex-none rounded-2xl border border-slate-800 shadow-2xl">
               <rect width="800" height="380" rx="16" fill="#022c22" />
-              <text x="400" y="23" textAnchor="middle" fill="#e2e8f0" fontSize="12">목표 방향 ↑ · 좌측 ← → 우측 · 가로·세로 동일 축척</text>
+              <text x="400" y="23" textAnchor="middle" fill="#e2e8f0" fontSize="12">{t('목표 방향 ↑ · 좌측 ← → 우측 · 가로·세로 동일 축척', 'Target direction ↑ · Left ← → Right · Equal X/Y scale')}</text>
               {topView.lateralTicks.map((yd) => {
                 const x = 400 + yd * YDS_TO_M * topView.scale;
                 if (x < 65 || x > 735) return null;
@@ -1518,7 +1571,7 @@ export default function App() {
               })}
               <line x1="400" y1="40" x2="400" y2={topView.originY} stroke="#fbbf24" strokeDasharray="6 4" />
               <circle cx={topView.target.x} cy={topView.target.y} r="10" fill="#059669" stroke="#fbbf24" strokeWidth="2" />
-              <text x={topView.target.x + 15} y={topView.target.y - 7} fill="#fbbf24" fontSize="11">핀 {formatDistance(recommendation.horizontalYds, distanceUnit)}</text>
+              <text x={topView.target.x + 15} y={topView.target.y - 7} fill="#fbbf24" fontSize="11">{t('핀', 'Pin')} {formatDistance(recommendation.horizontalYds, distanceUnit)}</text>
               {Math.abs(safeAimOffsetYds) >= 0.05 && (
                 <g data-testid="aim-target">
                   <line x1={topView.target.x} y1={topView.target.y} x2={topView.aimTarget.x} y2={topView.aimTarget.y}
@@ -1526,19 +1579,19 @@ export default function App() {
                   <circle cx={topView.aimTarget.x} cy={topView.aimTarget.y} r="7" fill="#0ea5e9" stroke="#e0f2fe" strokeWidth="2" />
                   <text x={topView.aimTarget.x + (safeAimOffsetYds > 0 ? 11 : -11)} y={topView.aimTarget.y + 18}
                     textAnchor={safeAimOffsetYds > 0 ? 'start' : 'end'} fill="#7dd3fc" fontSize="10">
-                    조준점 {safeAimOffsetYds > 0 ? '우측' : '좌측'} {formatDistance(Math.abs(safeAimOffsetYds), distanceUnit)}
+                    {t('조준점', 'Aim')} {safeAimOffsetYds > 0 ? t('우측', 'right') : t('좌측', 'left')} {formatDistance(Math.abs(safeAimOffsetYds), distanceUnit)}
                   </text>
                 </g>
               )}
               <circle cx="400" cy={topView.originY} r="4" fill="#ffffff" />
-              <text x="415" y={topView.originY + 4} fill="#cbd5e1" fontSize="10">출발</text>
+              <text x="415" y={topView.originY + 4} fill="#cbd5e1" fontSize="10">{t('출발', 'Start')}</text>
               {animProgress >= 1 && (
                 <g data-testid="top-landing">
                   <line x1="400" y1={topView.landing.y} x2={topView.landing.x} y2={topView.landing.y} stroke="#f472b6" strokeDasharray="3 3" />
                   <circle cx={topView.landing.x} cy={topView.landing.y} r="7" fill="none" stroke="#f472b6" strokeWidth="2" />
                   <text x={topView.landing.x + (sideOffsetYds >= 0 ? 14 : -14)} y={topView.landing.y + 18}
                     textAnchor={sideOffsetYds >= 0 ? 'start' : 'end'} fill="#f9a8d4" fontSize="11">
-                    {trajResult.landed ? '착지' : '비행 종료'} · {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}
+                    {trajResult.landed ? t('착지', 'Landing') : t('비행 종료', 'Flight end')} · {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? t('중앙', 'Center') : `${sideOffsetYds > 0 ? t('우측', 'Right') : t('좌측', 'Left')} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}
                   </text>
                 </g>
               )}
@@ -1546,26 +1599,26 @@ export default function App() {
               <circle data-testid="top-ball" cx={topView.ball.x} cy={topView.ball.y} r="5" fill="#ffffff" stroke="#38bdf8" strokeWidth="2" />
               <WindDirectionControl degrees={windDirDeg} speed={windSpeedVal} unit={windUnit} onChange={setWindDirDeg} />
               <text x="400" y="360" textAnchor="middle" fill="#cbd5e1" fontSize="11">
-                {displayWarning ? '입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)' : '수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준'}
+                {displayWarning ? t('입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)', 'Check inputs · reference trajectory (no expected carry)') : t('수평면 투영 · 높이는 측면 보기에서 확인 · 좌우 편차는 목표선 기준', 'Horizontal projection · height in side view · lateral miss vs target line')}
               </text>
             </svg>
             <section aria-label="그린 확대 및 핀 위치 설정" data-testid="green-pin-panel"
               className="w-full max-w-[760px] flex-none rounded-2xl border border-emerald-500/40 bg-slate-900 p-3 shadow-xl">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-[10px] text-slate-400">깃발을 잡고 드래그하여 핀 이동 · 방향키로 미세 조정</p>
+                  <p className="text-[10px] text-slate-400">{t('깃발을 잡고 드래그하여 핀 이동 · 방향키로 미세 조정', 'Drag the flag to move the pin · arrow keys for fine adjustment')}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 text-[10px] text-slate-300">
                   <span>
-                    핀 {pinPosition.lateralYds > 0 ? '+' : ''}{formatDistance(pinPosition.lateralYds, distanceUnit)} 좌우
+                    {t('핀', 'Pin')} {pinPosition.lateralYds > 0 ? '+' : ''}{formatDistance(pinPosition.lateralYds, distanceUnit)} {t('좌우', 'lateral')}
                     {' · '}
-                    {pinPosition.forwardYds > 0 ? '+' : ''}{formatDistance(pinPosition.forwardYds, distanceUnit)} 전후
+                    {pinPosition.forwardYds > 0 ? '+' : ''}{formatDistance(pinPosition.forwardYds, distanceUnit)} {t('전후', 'depth')}
                   </span>
                 </div>
               </div>
               <div className="mb-2 grid grid-cols-3 gap-2">
                 <label className="text-[10px] text-slate-400">
-                  그린 스피드 (Stimp)
+                  {t('그린 스피드 (Stimp)', 'Green speed (Stimp)')}
                   <select id="green-stimp" aria-label="그린 스피드 (Stimp)" data-testid="green-stimp"
                     value={greenStimpM}
                     onChange={(event) => setGreenStimpM(Number(event.target.value))}
@@ -1577,7 +1630,7 @@ export default function App() {
                   </select>
                 </label>
                 <label className="text-[10px] text-slate-400">
-                  좌우 폭 (yd)
+                  {t('좌우 폭 (yd)', 'Width (yd)')}
                   <select aria-label="그린 좌우 폭 (yd)" data-testid="green-width"
                     value={greenDimensions.widthYds}
                     onChange={(event) => updateGreenDimension('widthYds', event.target.value)}
@@ -1589,7 +1642,7 @@ export default function App() {
                   </select>
                 </label>
                 <label className="text-[10px] text-slate-400">
-                  전후 길이 (yd)
+                  {t('전후 길이 (yd)', 'Depth (yd)')}
                   <select aria-label="그린 전후 길이 (yd)" data-testid="green-length"
                     value={greenDimensions.lengthYds}
                     onChange={(event) => updateGreenDimension('lengthYds', event.target.value)}
@@ -1644,7 +1697,7 @@ export default function App() {
                 </g>
                 <text data-testid="green-map-size-label" x={greenMapLayout.centerX} y="24"
                   textAnchor="middle" fill="#d1fae5" fontSize="11" fontWeight="700">
-                  그린 {greenDimensions.widthYds}×{greenDimensions.lengthYds}yd · 핀까지 {formatDistance(targetDistYds, distanceUnit)}
+                  {t('그린', 'Green')} {greenDimensions.widthYds}×{greenDimensions.lengthYds}yd · {t('핀까지', 'to pin')} {formatDistance(targetDistYds, distanceUnit)}
                 </text>
                 <g aria-label="그린 등고선 높낮이 범례">
                   <circle cx={highReliefMapPoint.x} cy={highReliefMapPoint.y} r="8" fill="#fde68a" stroke="#fff" strokeWidth="1" />
@@ -1654,9 +1707,9 @@ export default function App() {
                 </g>
                 <g data-testid="green-elevation-legend">
                   <line x1="160" y1="340" x2="183" y2="340" stroke="#fde68a" strokeWidth="2" />
-                  <text x="187" y="343" fill="#e2e8f0" fontSize="8">높음</text>
+                  <text x="187" y="343" fill="#e2e8f0" fontSize="8">{t('높음', 'High')}</text>
                   <line x1="224" y1="340" x2="247" y2="340" stroke="#7dd3fc" strokeWidth="2" />
-                  <text x="251" y="343" fill="#e2e8f0" fontSize="8">낮음</text>
+                  <text x="251" y="343" fill="#e2e8f0" fontSize="8">{t('낮음', 'Low')}</text>
                 </g>
                 {hasExecutedShot && trajResult.landed && (
                   <>
@@ -1667,7 +1720,7 @@ export default function App() {
                     <circle data-testid="green-flight-landing" cx={flightLandingMapPoint.x} cy={flightLandingMapPoint.y}
                       r="3" fill={flightLandingWithinMap ? 'none' : '#ef4444'}
                       stroke={flightLandingWithinMap ? '#67e8f9' : '#fff'} strokeWidth="1.25">
-                      <title>공중 착지점</title>
+                      <title>{t('공중 착지점', 'Flight landing point')}</title>
                     </circle>
                     {greenRoll.simulated && (
                       <line data-testid="pin-distance-line" x1={pinMapPoint.x} y1={pinMapPoint.y}
@@ -1677,7 +1730,7 @@ export default function App() {
                     <circle data-testid="green-landing" cx={landingMapPoint.x} cy={landingMapPoint.y} r="4.25"
                       fill={!greenRoll.simulated ? '#ef4444' : greenRoll.leftGreen ? '#fb923c' : '#e879f9'}
                       stroke="#fff" strokeWidth="1.25">
-                      <title>굴림 후 공 정지점</title>
+                      <title>{t('굴림 후 공 정지점', 'Ball rest point after roll')}</title>
                     </circle>
                   </>
                 )}
@@ -1699,31 +1752,31 @@ export default function App() {
               <div data-testid="green-marker-legend" className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-slate-300">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-sky-400" />
-                  공중 착지점
+                  {t('공중 착지점', 'Flight landing point')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-block h-2 w-2 rounded-full border border-white bg-fuchsia-400" />
-                  굴림 후 정지점
+                  {t('굴림 후 정지점', 'Rest point after roll')}
                 </span>
-                <span className="text-slate-400">Stimp는 착지 후 굴림 거리만 바꿉니다</span>
+                <span className="text-slate-400">{t('Stimp는 착지 후 굴림 거리만 바꿉니다', 'Stimp changes only the post-landing roll distance')}</span>
               </div>
               <p data-testid="pin-distance-label" aria-live="polite" className={`mt-1 text-center text-xs font-bold ${
                 hasExecutedShot && trajResult.landed ? 'text-pink-200' : 'text-slate-300'
               }`}>
                 {!hasExecutedShot
-                  ? '샷 실행 후 공중 착지점과 굴림 후 정지점을 표시합니다'
+                  ? t('샷 실행 후 공중 착지점과 굴림 후 정지점을 표시합니다', 'Launch a shot to show the flight landing and post-roll rest points')
                   : !trajResult.landed
-                    ? '공중 착지점 계산 불가 · 환경과 샷 조건을 확인하세요'
+                    ? t('공중 착지점 계산 불가 · 환경과 샷 조건을 확인하세요', 'Flight landing could not be computed · check the environment and shot conditions')
                     : !greenRoll.simulated
-                      ? `공중 착지: 그린 밖 · 굴림 계산 안 함 · 핀까지 ${formatDistance(pinDistanceYds, distanceUnit)}`
+                      ? t(`공중 착지: 그린 밖 · 굴림 계산 안 함 · 핀까지 ${formatDistance(pinDistanceYds, distanceUnit)}`, `Flight landing: off the green · roll not simulated · ${formatDistance(pinDistanceYds, distanceUnit)} to pin`)
                       : greenRoll.leftGreen
-                        ? `그린 이탈 · 경계까지 굴림 ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)} · 이탈 지점에서 핀까지 ${formatDistance(pinDistanceYds, distanceUnit)}`
-                        : `공 정지점 ↔ 핀 직선거리 ${formatDistance(pinDistanceYds, distanceUnit)} · 굴림 ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)}`}
+                        ? t(`그린 이탈 · 경계까지 굴림 ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)} · 이탈 지점에서 핀까지 ${formatDistance(pinDistanceYds, distanceUnit)}`, `Rolled off the green · ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)} to the edge · ${formatDistance(pinDistanceYds, distanceUnit)} from exit to pin`)
+                        : t(`공 정지점 ↔ 핀 직선거리 ${formatDistance(pinDistanceYds, distanceUnit)} · 굴림 ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)}`, `Rest point ↔ pin ${formatDistance(pinDistanceYds, distanceUnit)} · roll ${formatDistance(greenRoll.rollDistanceYds, distanceUnit)}`)}
               </p>
               {hasExecutedShot && trajResult.landed && (
                 <p data-testid="green-roll-inputs" className="text-center text-[10px] text-slate-400">
-                  {activeClub.name} · 공중 착지 속도 {Math.hypot(trajResult.landingVxMs, trajResult.landingVzMs).toFixed(1)}m/s ·
-                  {' '}{trajResult.landingAngleDeg.toFixed(0)}° · 백스핀 {Math.round(trajResult.appliedLaunch.spinRateRpm)}rpm
+                  {clubDisplayName(activeClub)} · {t('공중 착지 속도', 'Flight landing speed')} {Math.hypot(trajResult.landingVxMs, trajResult.landingVzMs).toFixed(1)}m/s ·
+                  {' '}{trajResult.landingAngleDeg.toFixed(0)}° · {t('백스핀', 'backspin')} {Math.round(trajResult.appliedLaunch.spinRateRpm)}rpm
                 </p>
               )}
               <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400">
@@ -1732,15 +1785,16 @@ export default function App() {
                   setHasExecutedShot(false);
                 }} disabled={isAnimating}
                   className="rounded border border-slate-700 px-2 py-1 font-bold text-slate-300 hover:border-emerald-400 hover:text-white disabled:opacity-50">
-                  핀 중앙으로
+                  {t('핀 중앙으로', 'Center the pin')}
                 </button>
               </div>
               <details className="mt-1 text-[10px] text-slate-500">
-                <summary className="cursor-pointer">굴림 모델 안내</summary>
+                <summary className="cursor-pointer">{t('굴림 모델 안내', 'Roll model notes')}</summary>
                 <p className="mt-1" data-testid="green-model-note">
-                  등고선 간격은 4cm(선 사이 높이 차)입니다. 클럽별 착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영합니다. 스핀 제동은 비선형 보정이며, 발사각·최고 높이는 비행 계산으로 구한 착지 상태에 간접 반영합니다. 실제 바운스 실험에서도 착지 후 미끄럼과 스핀 변화가 관찰되어, 충돌·스핀 감쇠는 실측 그린 보정 전 추정값이고 바운스·잔디결은 생략합니다. 모식 지형은 실측 그린이 아닙니다.
+                  {t('등고선 간격은 4cm(선 사이 높이 차)입니다. 클럽별 착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영합니다. 스핀 제동은 비선형 보정이며, 발사각·최고 높이는 비행 계산으로 구한 착지 상태에 간접 반영합니다. 실제 바운스 실험에서도 착지 후 미끄럼과 스핀 변화가 관찰되어, 충돌·스핀 감쇠는 실측 그린 보정 전 추정값이고 바운스·잔디결은 생략합니다. 모식 지형은 실측 그린이 아닙니다.',
+                    'Contour spacing is 4 cm of height per line. The roll uses each club’s landing speed, angle, and backspin, the selected Stimp, terrain slope, and rain. Spin braking is a nonlinear correction, and launch/apex enter indirectly through the computed landing state. Because real bounce tests also show post-landing skid and spin change, the impact and spin-decay values are estimates pending green calibration; bounce and grain are omitted. The schematic terrain is not a surveyed green.')}
                 </p>
-                <p className="mt-1">핀 위치와 높낮이가 샷의 조준 목표와 착지 조건에 반영됩니다. 위치를 옮기면 지형에 따라 굴림 거리도 달라질 수 있습니다.</p>
+                <p className="mt-1">{t('핀 위치와 높낮이가 샷의 조준 목표와 착지 조건에 반영됩니다. 위치를 옮기면 지형에 따라 굴림 거리도 달라질 수 있습니다.', 'The pin position and its elevation feed the aim target and landing conditions. Moving the pin can change the roll distance with the terrain.')}</p>
               </details>
             </section>
             </>
@@ -1800,8 +1854,8 @@ export default function App() {
             <polygon points={`${svgPathData.pinPos.x},${svgPathData.pinPos.y - 50} ${svgPathData.pinPos.x - 22},${svgPathData.pinPos.y - 42} ${svgPathData.pinPos.x},${svgPathData.pinPos.y - 34}`} fill="#ef4444" stroke="#f8fafc" strokeWidth="1" />
 
             <text x="400" y="355" fill="#cbd5e1" fontSize="11" textAnchor="middle">
-              {displayWarning ? '입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)'
-                : isCustom ? '입력한 선수 샷 · 환경반영 예상 궤적' : `${selectedTour} ${activeClub.name} 평균 샷 · 환경반영 예상 궤적`}
+              {displayWarning ? t('입력·산출 확인 필요 · 참고 궤적 (예상캐리 없음)', 'Check inputs · reference trajectory (no expected carry)')
+                : isCustom ? t('입력한 선수 샷 · 환경반영 예상 궤적', 'Entered personal shot · env-adjusted expected trajectory') : t(`${selectedTour} ${activeClub.name} 평균 샷 · 환경반영 예상 궤적`, `${selectedTour} ${clubDisplayName(activeClub)} average shot · env-adjusted expected trajectory`)}
             </text>
 
             {/* Animated High-Glow Trajectory Path */}
@@ -1833,13 +1887,13 @@ export default function App() {
               className="flex items-center space-x-1.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 text-sm font-black px-4 py-1.5 rounded-lg shadow-md transition-all transform active:scale-95"
             >
               <PlayIcon size={18} />
-              <span>{isAnimating ? '비행 중...' : '샷 실행 (Launch Shot)'}</span>
+              <span>{isAnimating ? t('비행 중...', 'In flight...') : t('샷 실행 (Launch Shot)', 'Launch Shot')}</span>
             </button>
 
             <button
               onClick={resetShotAnimation}
               className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
-              title="리셋"
+              title={t('리셋', 'Reset')}
             >
               <RotateCcwIcon size={18} />
             </button>
@@ -1847,22 +1901,22 @@ export default function App() {
 
           <div className="hidden md:flex items-center space-x-3 text-[11px] text-slate-300 font-mono">
             <div>
-              <span className="text-slate-500 block font-sans">{trajResult.landed ? '수평 캐리 (Carry)' : '미도달 비행거리'}</span>
+              <span className="text-slate-500 block font-sans">{trajResult.landed ? t('수평 캐리 (Carry)', 'Carry') : t('미도달 비행거리', 'Unreached flight distance')}</span>
               <span className="text-sm font-black text-emerald-400">{displayWarning ? '—' : formatDistance(trajResult.carryYds, distanceUnit)}</span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
-              <span className="text-slate-500 block font-sans">최고 높이 (Apex)</span>
+              <span className="text-slate-500 block font-sans">{t('최고 높이 (Apex)', 'Apex')}</span>
               <span className="text-sm font-black text-sky-400">{displayWarning ? '—' : formatDistance(trajResult.apexYds, distanceUnit)}</span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
-              <span className="text-slate-500 block font-sans">체공 시간 (Hang Time)</span>
+              <span className="text-slate-500 block font-sans">{t('체공 시간 (Hang Time)', 'Hang Time')}</span>
               <span className="text-sm font-black text-indigo-400">{displayWarning ? '—' : `${trajResult.flightTimeSec.toFixed(1)}s`}</span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
-              <span className="text-slate-500 block font-sans">낙하 각도 (Landing)</span>
+              <span className="text-slate-500 block font-sans">{t('낙하 각도 (Landing)', 'Landing Angle')}</span>
               <span className="text-sm font-black text-amber-400">{displayWarning ? '—' : `${Math.round(trajResult.landingAngleDeg)}°`}</span>
             </div>
           </div>
@@ -1880,7 +1934,7 @@ export default function App() {
               <span className="text-emerald-400 flex items-center justify-center">
                 <ActivityIcon size={20} />
               </span>
-              <h2 className="text-sm font-black text-white tracking-wide">캐디 분석 엔진 (Caddie Simulator)</h2>
+              <h2 className="text-sm font-black text-white tracking-wide">{t('캐디 분석 엔진 (Caddie Simulator)', 'Caddie Analysis Engine')}</h2>
             </div>
             <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-bold">PHYSICS ESTIMATE</span>
           </div>
@@ -1895,7 +1949,7 @@ export default function App() {
               }`}
             >
               <LayersIcon size={14} />
-              <span>투어기준시뮬레이션</span>
+              <span>{t('투어기준시뮬레이션', 'Tour-average simulation')}</span>
             </button>
             <button
               onClick={() => setCalcMode('TRACKMAN')}
@@ -1906,7 +1960,7 @@ export default function App() {
               }`}
             >
               <AwardIcon size={14} />
-              <span>선수개별맞춤시뮬레이션</span>
+              <span>{t('선수개별맞춤시뮬레이션', 'Personal player simulation')}</span>
             </button>
           </div>
         </div>
@@ -1917,24 +1971,24 @@ export default function App() {
               <button key={id} onClick={() => { setSelectedTour(id); if (!isCustom) setSelectedClubId('AUTO'); }}
                 aria-pressed={selectedTour === id}
                 className={`py-2 rounded-xl border text-xs font-bold ${selectedTour === id ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'border-slate-700 text-slate-300'}`}>
-                {id}{id === 'KLPGA' ? ' (추정)' : ''}
+                {id}{id === 'KLPGA' ? t(' (추정)', ' (est.)') : ''}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-amber-200">{TOURS[selectedTour].note}</p>
+          <p className="text-[11px] text-amber-200">{t(TOURS[selectedTour].note, TOUR_NOTES_EN[selectedTour])}</p>
           <label className="block text-xs text-slate-300">
-            클럽 선택
+            {t('클럽 선택', 'Club selection')}
             <select aria-label="클럽 선택" value={selectedClubId}
               onChange={(e) => setSelectedClubId(e.target.value)}
               className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
               <option value="AUTO">
                 {calcMode === 'GENERAL'
                   ? recommendation.warning
-                    ? `자동 추천 (범위 초과 · 최장 클럽: ${recommendation.club.name})`
-                    : `자동 추천 (현재 환경에서 도달 가능한 클럽: ${recommendation.club.name}${recommendation.club.estimated ? ' · 추정' : ''})`
-                  : '7번 아이언 기준 모델'}
+                    ? t(`자동 추천 (범위 초과 · 최장 클럽: ${recommendation.club.name})`, `Auto pick (out of range · longest club: ${clubDisplayName(recommendation.club)})`)
+                    : t(`자동 추천 (현재 환경에서 도달 가능한 클럽: ${recommendation.club.name}${recommendation.club.estimated ? ' · 추정' : ''})`, `Auto pick (reachable club in current conditions: ${clubDisplayName(recommendation.club)}${recommendation.club.estimated ? ' · est.' : ''})`)
+                  : t('7번 아이언 기준 모델', '7-iron reference model')}
               </option>
-              {tourClubs.map((c) => <option key={c.id} value={c.id}>{c.name} · {formatDistance(c.carry, distanceUnit)}{c.estimated ? ' (추정)' : ''}</option>)}
+              {tourClubs.map((c) => <option key={c.id} value={c.id}>{clubDisplayName(c)} · {formatDistance(c.carry, distanceUnit)}{c.estimated ? t(' (추정)', ' (est.)') : ''}</option>)}
             </select>
           </label>
           {isCustom && (
@@ -1948,27 +2002,27 @@ export default function App() {
           ) : (
             <div className="text-xs space-y-2 bg-slate-900 border border-slate-700 rounded-xl p-3">
               <p className="font-bold text-emerald-300">
-                {isCustom && personal.hasPersonal ? '개인 입력 · ' : `${selectedTour} 기준 · `}{activeClub.name}{activeClub.estimated ? ' (투어 기준 추정 포함)' : ''}
+                {isCustom && personal.hasPersonal ? t('개인 입력 · ', 'Personal input · ') : `${selectedTour} ${t('기준 · ', 'reference · ')}`}{clubDisplayName(activeClub)}{activeClub.estimated ? t(' (투어 기준 추정 포함)', ' (includes tour-based estimates)') : ''}
               </p>
-              <p>레이저 {formatDistance(targetDistYds, distanceUnit)} → 수평 {formatDistance(recommendation.horizontalYds, distanceUnit)}</p>
-              <p data-testid="recommendation">환경반영예상캐리 <strong>{formatDistance(trajResult.carryYds, distanceUnit)}</strong> (런 제외)</p>
-              <p>{isCustom ? `적용 볼속도 ${activeClub.speed.toFixed(1)}mph` : `투어 평균 볼속도 ${activeClub.speed.toFixed(1)}mph`} · {isCustom ? '기준 캐리' : '클럽 풀샷 평균'} {formatDistance(activeClub.carry, distanceUnit)}</p>
-              <p className="text-amber-200">라이: {getLie(lie).label} · 런 제외</p>
-              <p data-testid="aim-summary">조준점 {Math.abs(safeAimOffsetYds) < 0.05 ? '핀 정조준' : `핀 기준 ${safeAimOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(safeAimOffsetYds), distanceUnit)}`} · 예상 착지 편차 {Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? '중앙' : `${sideOffsetYds > 0 ? '우측' : '좌측'} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}</p>
+              <p>{t('레이저', 'Laser')} {formatDistance(targetDistYds, distanceUnit)} → {t('수평', 'horizontal')} {formatDistance(recommendation.horizontalYds, distanceUnit)}</p>
+              <p data-testid="recommendation">{t('환경반영예상캐리 ', 'Env-adjusted expected carry ')}<strong>{formatDistance(trajResult.carryYds, distanceUnit)}</strong>{t(' (런 제외)', ' (excl. rollout)')}</p>
+              <p>{isCustom ? t(`적용 볼속도 ${activeClub.speed.toFixed(1)}mph`, `Applied ball speed ${activeClub.speed.toFixed(1)}mph`) : t(`투어 평균 볼속도 ${activeClub.speed.toFixed(1)}mph`, `Tour average ball speed ${activeClub.speed.toFixed(1)}mph`)} · {isCustom ? t('기준 캐리', 'base carry') : t('클럽 풀샷 평균', 'club full-shot average')} {formatDistance(activeClub.carry, distanceUnit)}</p>
+              <p className="text-amber-200">{t('라이: ', 'Lie: ')}{lieLabel(lie)}{t(' · 런 제외', ' · excl. rollout')}</p>
+              <p data-testid="aim-summary">{t('조준점 ', 'Aim ')}{Math.abs(safeAimOffsetYds) < 0.05 ? t('핀 정조준', 'at the pin') : `${t('핀 기준 ', '')}${safeAimOffsetYds > 0 ? t('우측', 'right of pin') : t('좌측', 'left of pin')} ${formatDistance(Math.abs(safeAimOffsetYds), distanceUnit)}`} · {t('예상 착지 편차 ', 'expected landing miss ')}{Math.abs(distanceFromYards(sideOffsetYds, distanceUnit)) < 0.05 ? t('중앙', 'center') : `${sideOffsetYds > 0 ? t('우측', 'right') : t('좌측', 'left')} ${formatDistance(Math.abs(sideOffsetYds), distanceUnit)}`}</p>
               <p className="text-slate-400">
-                {isCustom ? '입력 볼속도·발사각·스핀과 지정한 좌우 조준점에 현재 환경을 적용한 수평 캐리와 궤적입니다.'
-                  : '선택 투어·클럽의 평균 볼속도·발사각·스핀과 지정한 좌우 조준점에 현재 환경을 적용한 풀샷입니다.'}
+                {isCustom ? t('입력 볼속도·발사각·스핀과 지정한 좌우 조준점에 현재 환경을 적용한 수평 캐리와 궤적입니다.', 'Horizontal carry and trajectory from your ball speed, launch, and spin with the chosen aim offset under current conditions.')
+                  : t('선택 투어·클럽의 평균 볼속도·발사각·스핀과 지정한 좌우 조준점에 현재 환경을 적용한 풀샷입니다.', 'A full shot using the selected tour/club average ball speed, launch, and spin with the chosen aim offset under current conditions.')}
               </p>
             </div>
           )}
           {!isCustom && selectedClubId === 'AUTO' && recommendation.warning && (
-            <p role="alert" className="text-xs text-amber-200">자동 추천 범위 초과: {recommendation.warning} 아래 궤적과 예상캐리는 최장 클럽의 평균 샷입니다.</p>
+            <p role="alert" className="text-xs text-amber-200">{t('자동 추천 범위 초과: ', 'Auto pick out of range: ')}{recommendation.warning} {t('아래 궤적과 예상캐리는 최장 클럽의 평균 샷입니다.', 'The trajectory and expected carry below use the longest club’s average shot.')}</p>
           )}
           <details className="text-xs text-slate-300">
-            <summary className="cursor-pointer font-bold text-sky-300">선택 투어 클럽별 평균 데이터</summary>
+            <summary className="cursor-pointer font-bold text-sky-300">{t('선택 투어 클럽별 평균 데이터', 'Selected tour club averages')}</summary>
             <div className="overflow-x-auto mt-2">
               <table className="w-full text-[10px] text-right">
-                <thead><tr className="text-slate-400"><th className="text-left">클럽</th><th>캐리 {distanceUnit}</th><th>클럽 mph</th><th>볼 mph</th><th>발사 °</th><th>스핀 rpm</th><th>높이 {distanceUnit}</th></tr></thead>
+                <thead><tr className="text-slate-400"><th className="text-left">{t('클럽', 'Club')}</th><th>{t('캐리', 'Carry')} {distanceUnit}</th><th>{t('클럽', 'Club')} mph</th><th>{t('볼', 'Ball')} mph</th><th>{t('발사', 'Launch')} °</th><th>{t('스핀', 'Spin')} rpm</th><th>{t('높이', 'Apex')} {distanceUnit}</th></tr></thead>
                 <tbody>{tourClubs.map((c) => (
                   <tr key={c.id} className="border-t border-slate-800">
                     <td className="py-1.5 text-left">{c.id}{c.estimated ? '*' : ''}</td>
@@ -1977,8 +2031,8 @@ export default function App() {
                 ))}</tbody>
               </table>
             </div>
-            <p className="mt-2 text-amber-200">* 추정값. GW/SW/LW는 공개 표에 없어 PW 대비 거리 86/72/58%, 속도 90/80/70%, 발사각 +4.5/+9/+14° 가정.</p>
-            <a href={TRACKMAN_SOURCE} target="_blank" rel="noreferrer" className="block mt-2 text-sky-400 underline">출처: TrackMan 공식 Tour Averages (공개 표, 실시간 시즌 통계 아님)</a>
+            <p className="mt-2 text-amber-200">{t('* 추정값. GW/SW/LW는 공개 표에 없어 PW 대비 거리 86/72/58%, 속도 90/80/70%, 발사각 +4.5/+9/+14° 가정.', '* Estimated. GW/SW/LW are not in the published table; assumed 86/72/58% of PW distance, 90/80/70% speed, and +4.5/+9/+14° launch.')}</p>
+            <a href={TRACKMAN_SOURCE} target="_blank" rel="noreferrer" className="block mt-2 text-sky-400 underline">{t('출처: TrackMan 공식 Tour Averages (공개 표, 실시간 시즌 통계 아님)', 'Source: official TrackMan Tour Averages (published table, not live season stats)')}</a>
           </details>
         </div>
 
@@ -1988,14 +2042,14 @@ export default function App() {
             <span className="flex items-center justify-center">
               <WindIcon size={16} />
             </span>
-            <span>필드 환경 변수 설정 (Environment)</span>
+            <span>{t('필드 환경 변수 설정 (Environment)', 'Field Environment Settings')}</span>
           </div>
 
           {/* Target Distance Slider */}
           <div className="space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-400">목표 그린 레이저 거리 (Target)</span>
-              <span className="font-bold text-white font-mono">{targetValid ? formatDistance(targetDistYds, distanceUnit) : '입력 확인'}</span>
+              <span className="text-slate-400">{t('목표 그린 레이저 거리 (Target)', 'Target green laser distance')}</span>
+              <span className="font-bold text-white font-mono">{targetValid ? formatDistance(targetDistYds, distanceUnit) : t('입력 확인', 'Check input')}</span>
             </div>
             <input
               type="range"
@@ -2012,7 +2066,7 @@ export default function App() {
           {/* Wind Speed & Wind Unit Toggle */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400">풍속 (Wind Speed)</span>
+              <span className="text-slate-400">{t('풍속 (Wind Speed)', 'Wind Speed')}</span>
               <div className="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800">
                 {['m/s', 'mph', 'km/h'].map((u) => (
                   <button
@@ -2043,7 +2097,7 @@ export default function App() {
           {/* Wind Direction */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-400">풍향 (Wind Direction)</span>
+              <span className="text-slate-400">{t('풍향 (Wind Direction)', 'Wind Direction')}</span>
             </div>
             <div role="group" aria-label="풍향 빠른 선택" className="grid grid-cols-2 gap-2">
               {WIND_PRESETS.map(preset => (
@@ -2051,22 +2105,16 @@ export default function App() {
                   aria-pressed={isWindSelected(windDirDeg, preset.degrees)}
                   className={`px-2 py-2 text-xs rounded-lg border font-bold ${isWindSelected(windDirDeg, preset.degrees)
                     ? 'bg-sky-500/20 text-sky-300 border-sky-400' : 'bg-slate-900 text-slate-300 border-slate-700'}`}>
-                  <span className="block">{preset.label}</span>
-                  <span className="block text-[10px] font-normal">{preset.direction}</span>
+                  <span className="block">{t(preset.label, WIND_PRESETS_EN[preset.degrees].label)}</span>
+                  <span className="block text-[10px] font-normal">{t(preset.direction, WIND_PRESETS_EN[preset.degrees].direction)}</span>
                 </button>
               ))}
             </div>
             <p data-testid="wind-direction-label" className="text-xs font-bold text-sky-300">{windDirectionLabel(windDirDeg)}</p>
-            <HelpDetails title="풍향 설정 안내">
+            <HelpDetails title={t('풍향 설정 안내', 'Wind direction help')}>
             <p className="text-[11px] text-slate-400">
-              맞바람/뒷바람 중 하나와 훅바람/슬라이스바람 중 하나를 조합할 수 있습니다.
-              같은 축의 반대 바람은 교체되며, 선택한 항목을 다시 누르면 해당 성분을 해제합니다(최소 한 방향 유지).
-              각도와 화살표는 바람이 향하는 방향 기준입니다. 목표를 위로 볼 때 0°/360°의 아래쪽 화살표는 맞바람, 180°의 위쪽 화살표는 뒷바람입니다.
-              맞바람은 일반적으로 캐리를 줄이고 뒷바람은 늘리며, 실제 차이는 샷 조건에 따라 달라집니다.
-              두 성분 선택 시 45° 대각선으로 설정하며, 화면 풍향계를 클릭·드래그하거나 아래 각도로 조정할 수 있습니다.
-              풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s).
-              선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다.
-              목표가 위쪽일 때 화살표는 훅바람 ←, 슬라이스바람 →, 맞바람 ↓, 뒷바람 ↑로 표시됩니다.
+              {t('맞바람/뒷바람 중 하나와 훅바람/슬라이스바람 중 하나를 조합할 수 있습니다. 같은 축의 반대 바람은 교체되며, 선택한 항목을 다시 누르면 해당 성분을 해제합니다(최소 한 방향 유지). 각도와 화살표는 바람이 향하는 방향 기준입니다. 목표를 위로 볼 때 0°/360°의 아래쪽 화살표는 맞바람, 180°의 위쪽 화살표는 뒷바람입니다. 맞바람은 일반적으로 캐리를 줄이고 뒷바람은 늘리며, 실제 차이는 샷 조건에 따라 달라집니다. 두 성분 선택 시 45° 대각선으로 설정하며, 화면 풍향계를 클릭·드래그하거나 아래 각도로 조정할 수 있습니다. 풍속은 합성 바람의 전체 속도로 유지됩니다(5m/s 대각선이면 각 성분 약 3.5m/s). 선수 → 목표 방향, 오른손잡이 기준이며 풍속 0이면 방향 영향이 없습니다. 목표가 위쪽일 때 화살표는 훅바람 ←, 슬라이스바람 →, 맞바람 ↓, 뒷바람 ↑로 표시됩니다.',
+                'Combine one of headwind/tailwind with one of hook/slice wind. Opposite winds on the same axis replace each other, and selecting an active option again clears that component (at least one direction is kept). Angles and arrows indicate the direction the wind blows toward. With the target upward, a downward arrow at 0°/360° is a headwind and an upward arrow at 180° a tailwind. Headwinds generally reduce carry and tailwinds increase it; the actual difference depends on the shot. Selecting both components sets a 45° diagonal, and you can also click/drag the dial or adjust the angle below. Wind speed is the total of the combined wind (a 5 m/s diagonal gives about 3.5 m/s per component). Player → target orientation, right-handed reference; at 0 wind speed, direction has no effect. With the target upward the arrows read hook ←, slice →, headwind ↓, tailwind ↑.')}
             </p>
             </HelpDetails>
             <div className="flex items-center gap-2">
@@ -2095,133 +2143,133 @@ export default function App() {
 
           <details className="rounded-xl border border-sky-500/30 bg-slate-900/70 p-3 text-xs text-slate-300">
             <summary className="cursor-pointer list-none font-black text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
-              실전 바람 판단 가이드 <span className="ml-1 font-normal text-slate-400">· 풍속표, 추정법, A/B/C 시퀀스</span>
+              {t('실전 바람 판단 가이드', 'Practical wind judgment guide')} <span className="ml-1 font-normal text-slate-400">{t('· 풍속표, 추정법, A/B/C 시퀀스', '· speed table, estimation, A/B/C sequences')}</span>
             </summary>
-            <div className="mt-3 space-y-3 leading-relaxed">
+              <div className="mt-3 space-y-3 leading-relaxed">
               <p className="text-[11px] text-amber-200">
-                아래 수치는 현장 판단을 위한 대략적인 참고값입니다. 코스 지형·깃발 형태·돌풍에 따라 달라지며, 앱의 물리 시뮬레이션 입력이나 결과를 자동 변경하지 않습니다.
+                {t('아래 수치는 현장 판단을 위한 대략적인 참고값입니다. 코스 지형·깃발 형태·돌풍에 따라 달라지며, 앱의 물리 시뮬레이션 입력이나 결과를 자동 변경하지 않습니다.', 'The figures below are rough on-course references. They vary with terrain, flag type, and gusts, and never change the app’s physics inputs or results automatically.')}
               </p>
               <p className="text-[11px] text-amber-200">
-                비거리 보정은 샷별 편차가 큰 참고값입니다. 시뮬레이터는 볼 속도·발사각·스핀과 상대풍속에 따른 비행을 계산하므로, 현재 샷 비교에는 캐디 분석 결과를 참고하되 실측 예측으로 간주하지 마세요.
+                {t('비거리 보정은 샷별 편차가 큰 참고값입니다. 시뮬레이터는 볼 속도·발사각·스핀과 상대풍속에 따른 비행을 계산하므로, 현재 샷 비교에는 캐디 분석 결과를 참고하되 실측 예측으로 간주하지 마세요.', 'Distance corrections are references with large shot-to-shot variance. The simulator computes flight from ball speed, launch, spin, and relative wind, so use the caddie analysis for comparison but do not treat it as a measured prediction.')}
               </p>
 
               <section aria-labelledby="wind-feel-title">
-                <h3 id="wind-feel-title" className="mb-1 font-bold text-white">풍속별 관찰 단서 (보포트 풍력 계급의 지상 관측 참고)</h3>
+                <h3 id="wind-feel-title" className="mb-1 font-bold text-white">{t('풍속별 관찰 단서 (보포트 풍력 계급의 지상 관측 참고)', 'Observation cues by wind speed (Beaufort scale ground references)')}</h3>
                 <p className="mb-1 text-[10px] text-slate-400">
-                  0~18 m/s를 2 m/s 간격으로 나눴습니다. 보포트 계급 경계는 이 구간과 일치하지 않아 경계 구간에는 두 계급을 함께 표기합니다. 지상 관측 단서이며 골프공의 상공 풍속·비거리를 직접 뜻하지 않습니다.
+                  {t('0~18 m/s를 2 m/s 간격으로 나눴습니다. 보포트 계급 경계는 이 구간과 일치하지 않아 경계 구간에는 두 계급을 함께 표기합니다. 지상 관측 단서이며 골프공의 상공 풍속·비거리를 직접 뜻하지 않습니다.', '0–18 m/s is split into 2 m/s bands. Beaufort class boundaries do not align with these bands, so boundary rows list both classes. These are ground cues, not the ball’s aloft wind speed or carry.')}
                 </p>
                 <div className="overflow-x-auto rounded-lg border border-slate-700">
                   <table className="min-w-[620px] w-full text-left text-[10px]">
                     <thead className="bg-slate-800 text-slate-300">
                       <tr>
-                        <th className="p-2">풍속</th><th className="p-2">바람 종류 (보포트)</th><th className="p-2">지상 관찰 단서</th><th className="p-2">골프 현장 참고</th>
+                        <th className="p-2">{t('풍속', 'Wind')}</th><th className="p-2">{t('바람 종류 (보포트)', 'Wind type (Beaufort)')}</th><th className="p-2">{t('지상 관찰 단서', 'Ground observation cues')}</th><th className="p-2">{t('골프 현장 참고', 'On-course notes')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">0~2 m/s</td><td className="p-2">고요~남실바람 (B0~B2 일부)</td><td className="p-2">연기가 거의 곧게 오르거나 약하게 흐름. 잎 움직임은 거의 없거나 약함.</td><td className="p-2">깃발은 늘어지거나 가볍게 움직일 수 있음. 미풍이라도 방향을 확인.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">2~4 m/s</td><td className="p-2">남실바람~산들바람 (B2~B3)</td><td className="p-2">얼굴에 바람이 느껴지기 시작하고 잎이 바스락거리거나 작은 잔가지가 움직임.</td><td className="p-2">얼굴에 느껴지는 바람과 주변 잎의 움직임으로 대략적인 풍향을 살피고, 한 지점의 깃발만으로 풍속을 단정하지 않음.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">4~6 m/s</td><td className="p-2">산들바람~건들바람 (B3~B4)</td><td className="p-2">잎과 작은 잔가지가 계속 움직이며, 윗구간에서는 먼지·가벼운 종이가 날릴 수 있음.</td><td className="p-2">깃발이 펴지는지 관찰하고 맞바람·뒷바람·옆바람 방향을 구분.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">6~8 m/s</td><td className="p-2">건들바람~흔들바람 (B4~B5 일부)</td><td className="p-2">먼지와 종이가 날고 작은 가지가 움직임. 상단 구간에서 작은 나무가 흔들리기 시작할 수 있음.</td><td className="p-2">깃발의 지속적인 펄럭임과 돌풍을 함께 확인하고 탄도·체공시간을 고려.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">8~10 m/s</td><td className="p-2">흔들바람 (B5)</td><td className="p-2">잎이 있는 작은 나무가 흔들리기 시작함.</td><td className="p-2">평균과 순간 돌풍을 나눠 관찰하고, 안전한 타깃 여유를 고려.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">10~12 m/s</td><td className="p-2">흔들바람~된바람 (B5~B6)</td><td className="p-2">작은 나무가 흔들리고 큰 가지가 움직이기 시작할 수 있음.</td><td className="p-2">샷 간 바람 변동이 커질 수 있으므로 돌풍과 목표 주변의 흐름을 재확인.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">12~14 m/s</td><td className="p-2">된바람~센바람 (B6~B7 일부)</td><td className="p-2">큰 가지가 움직이며, 윗구간에서는 나무 전체가 흔들리기 시작할 수 있음.</td><td className="p-2">클럽 선택뿐 아니라 좌우 위험 구역과 균형 유지도 함께 고려.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">14~16 m/s</td><td className="p-2">센바람 (B7)</td><td className="p-2">나무가 크게 흔들리고 바람을 거슬러 걷기 불편할 수 있음.</td><td className="p-2">깃발만 믿지 말고 코스의 강풍·플레이 중단 안내를 확인.</td></tr>
-                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">16~18 m/s</td><td className="p-2">센바람~큰바람 (B7~B8 일부)</td><td className="p-2">큰바람 구간에선 잔가지가 부러질 수 있고 보행이 매우 불편할 수 있음.</td><td className="p-2">샷 판단보다 안전이 우선. 코스 운영 및 기상 안전 지침을 따름.</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">0~2 m/s</td><td className="p-2">{t('고요~남실바람 (B0~B2 일부)', 'Calm–light breeze (B0–part of B2)')}</td><td className="p-2">{t('연기가 거의 곧게 오르거나 약하게 흐름. 잎 움직임은 거의 없거나 약함.', 'Smoke rises nearly straight or drifts slightly. Leaf movement is minimal.')}</td><td className="p-2">{t('깃발은 늘어지거나 가볍게 움직일 수 있음. 미풍이라도 방향을 확인.', 'Flags may hang or move lightly. Check direction even in light air.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">2~4 m/s</td><td className="p-2">{t('남실바람~산들바람 (B2~B3)', 'Light–gentle breeze (B2–B3)')}</td><td className="p-2">{t('얼굴에 바람이 느껴지기 시작하고 잎이 바스락거리거나 작은 잔가지가 움직임.', 'Wind is felt on the face; leaves rustle and small twigs move.')}</td><td className="p-2">{t('얼굴에 느껴지는 바람과 주변 잎의 움직임으로 대략적인 풍향을 살피고, 한 지점의 깃발만으로 풍속을 단정하지 않음.', 'Read rough direction from the face and nearby leaves; never fix the speed from one flag.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">4~6 m/s</td><td className="p-2">{t('산들바람~건들바람 (B3~B4)', 'Gentle–moderate breeze (B3–B4)')}</td><td className="p-2">{t('잎과 작은 잔가지가 계속 움직이며, 윗구간에서는 먼지·가벼운 종이가 날릴 수 있음.', 'Leaves and small twigs move constantly; near the top of the band, dust and light paper can blow about.')}</td><td className="p-2">{t('깃발이 펴지는지 관찰하고 맞바람·뒷바람·옆바람 방향을 구분.', 'Watch whether flags extend and distinguish head/tail/cross winds.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">6~8 m/s</td><td className="p-2">{t('건들바람~흔들바람 (B4~B5 일부)', 'Moderate–fresh breeze (B4–part of B5)')}</td><td className="p-2">{t('먼지와 종이가 날고 작은 가지가 움직임. 상단 구간에서 작은 나무가 흔들리기 시작할 수 있음.', 'Dust and paper fly; small branches move. Near the top, small trees may begin to sway.')}</td><td className="p-2">{t('깃발의 지속적인 펄럭임과 돌풍을 함께 확인하고 탄도·체공시간을 고려.', 'Watch sustained flag flutter and gusts together; consider trajectory and hang time.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">8~10 m/s</td><td className="p-2">{t('흔들바람 (B5)', 'Fresh breeze (B5)')}</td><td className="p-2">{t('잎이 있는 작은 나무가 흔들리기 시작함.', 'Small leafy trees begin to sway.')}</td><td className="p-2">{t('평균과 순간 돌풍을 나눠 관찰하고, 안전한 타깃 여유를 고려.', 'Observe average wind and momentary gusts separately; allow a safe target margin.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">10~12 m/s</td><td className="p-2">{t('흔들바람~된바람 (B5~B6)', 'Fresh–strong breeze (B5–B6)')}</td><td className="p-2">{t('작은 나무가 흔들리고 큰 가지가 움직이기 시작할 수 있음.', 'Small trees sway and large branches may start to move.')}</td><td className="p-2">{t('샷 간 바람 변동이 커질 수 있으므로 돌풍과 목표 주변의 흐름을 재확인.', 'Shot-to-shot variation grows; recheck gusts and the flow near the target.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">12~14 m/s</td><td className="p-2">{t('된바람~센바람 (B6~B7 일부)', 'Strong breeze–near gale (B6–part of B7)')}</td><td className="p-2">{t('큰 가지가 움직이며, 윗구간에서는 나무 전체가 흔들리기 시작할 수 있음.', 'Large branches move; near the top, whole trees may begin to sway.')}</td><td className="p-2">{t('클럽 선택뿐 아니라 좌우 위험 구역과 균형 유지도 함께 고려.', 'Besides club choice, consider lateral hazards and keeping balance.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">14~16 m/s</td><td className="p-2">{t('센바람 (B7)', 'Near gale (B7)')}</td><td className="p-2">{t('나무가 크게 흔들리고 바람을 거슬러 걷기 불편할 수 있음.', 'Whole trees sway; walking against the wind is uncomfortable.')}</td><td className="p-2">{t('깃발만 믿지 말고 코스의 강풍·플레이 중단 안내를 확인.', 'Do not rely on flags alone; check course high-wind and suspension notices.')}</td></tr>
+                      <tr><td className="whitespace-nowrap p-2 font-bold text-sky-300">16~18 m/s</td><td className="p-2">{t('센바람~큰바람 (B7~B8 일부)', 'Near gale–gale (B7–part of B8)')}</td><td className="p-2">{t('큰바람 구간에선 잔가지가 부러질 수 있고 보행이 매우 불편할 수 있음.', 'In the gale band, twigs can break and walking becomes very difficult.')}</td><td className="p-2">{t('샷 판단보다 안전이 우선. 코스 운영 및 기상 안전 지침을 따름.', 'Safety outranks shot decisions. Follow course operations and weather safety guidance.')}</td></tr>
                     </tbody>
                   </table>
                 </div>
                 <p className="mt-2 text-[10px] text-slate-400">
-                  보포트 계급의 영문 등급과 지상 영향 설명은 <a href="https://www.canada.ca/en/environment-climate-change/services/general-marine-weather-information/understanding-forecasts/beaufort-wind-scale-table.html" target="_blank" rel="noreferrer" className="text-sky-300 underline">Environment and Climate Change Canada</a> 자료를 참고했습니다. m/s 구간은 2 m/s 단위로 보기 쉽게 묶은 값입니다.
+                  {t('보포트 계급의 영문 등급과 지상 영향 설명은 ', 'Beaufort class names and ground-effect descriptions reference ')}<a href="https://www.canada.ca/en/environment-climate-change/services/general-marine-weather-information/understanding-forecasts/beaufort-wind-scale-table.html" target="_blank" rel="noreferrer" className="text-sky-300 underline">Environment and Climate Change Canada</a>{t(' 자료를 참고했습니다. m/s 구간은 2 m/s 단위로 보기 쉽게 묶은 값입니다.', '. The m/s bands are grouped in 2 m/s steps for readability.')}
                 </p>
                 <div className="mt-2 rounded-lg border border-sky-500/20 bg-slate-950/80 p-2">
-                  <h4 className="font-bold text-sky-300">골프 현장 공통 기준 · 잔디 드리프트 기록법</h4>
+                  <h4 className="font-bold text-sky-300">{t('골프 현장 공통 기준 · 잔디 드리프트 기록법', 'Common on-course protocol · grass-drift logging')}</h4>
                   <p className="mt-1 text-[10px]">
-                    비슷한 양의 마른 잔디를 어깨·얼굴 높이(약 1.5m)에서 던지지 말고 놓습니다. 놓은 지점부터 처음 닿은 곳까지의 옆 이동을 같은 방식으로 3회 관찰하고, 2회 이상 비슷한 결과일 때만 대표 경향으로 기록합니다.
+                    {t('비슷한 양의 마른 잔디를 어깨·얼굴 높이(약 1.5m)에서 던지지 말고 놓습니다. 놓은 지점부터 처음 닿은 곳까지의 옆 이동을 같은 방식으로 3회 관찰하고, 2회 이상 비슷한 결과일 때만 대표 경향으로 기록합니다.', 'Release — do not throw — a similar amount of dry grass from shoulder/face height (about 1.5 m). Observe the lateral drift from release to first touch three times the same way, and record a representative tendency only when at least two results agree.')}
                   </p>
                   <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] sm:grid-cols-4">
-                    <span className="rounded bg-slate-900 p-1">근거리 · 0.5m 미만</span>
-                    <span className="rounded bg-slate-900 p-1">짧은 이동 · 0.5~1m</span>
-                    <span className="rounded bg-slate-900 p-1">뚜렷한 이동 · 1~2m</span>
-                    <span className="rounded bg-slate-900 p-1">긴 이동 · 2m 초과 / 공중에 뜸</span>
+                    <span className="rounded bg-slate-900 p-1">{t('근거리 · 0.5m 미만', 'Near · under 0.5 m')}</span>
+                    <span className="rounded bg-slate-900 p-1">{t('짧은 이동 · 0.5~1m', 'Short drift · 0.5–1 m')}</span>
+                    <span className="rounded bg-slate-900 p-1">{t('뚜렷한 이동 · 1~2m', 'Clear drift · 1–2 m')}</span>
+                    <span className="rounded bg-slate-900 p-1">{t('긴 이동 · 2m 초과 / 공중에 뜸', 'Long drift · over 2 m / stays airborne')}</span>
                   </div>
                   <p className="mt-1 text-[10px] text-amber-200">
-                    이 구간은 관찰 결과를 일관되게 기록하기 위한 편의상 분류이지, 특정 m/s나 보포트 계급으로 환산하는 실험 기준은 아닙니다. 잔디의 크기·수분·낙하 시간과 지면 난류가 달라지므로 풍속 수치나 비거리 보정에는 쓰지 말고, 풍향·돌풍 여부를 깃발·주변 자연물과 함께 판단하세요. 강풍에는 잔디를 놓는 시험을 생략하고 안전 지침을 우선합니다.
+                    {t('이 구간은 관찰 결과를 일관되게 기록하기 위한 편의상 분류이지, 특정 m/s나 보포트 계급으로 환산하는 실험 기준은 아닙니다. 잔디의 크기·수분·낙하 시간과 지면 난류가 달라지므로 풍속 수치나 비거리 보정에는 쓰지 말고, 풍향·돌풍 여부를 깃발·주변 자연물과 함께 판단하세요. 강풍에는 잔디를 놓는 시험을 생략하고 안전 지침을 우선합니다.', 'These bands are a convenience for consistent logging, not an experimental basis for converting to m/s or Beaufort classes. Grass size, moisture, fall time, and ground turbulence vary, so never use them for wind-speed numbers or distance corrections; judge direction and gustiness together with flags and surroundings. In strong wind, skip the grass test and follow safety guidance first.')}
                   </p>
                 </div>
               </section>
 
               <section aria-labelledby="wind-methods-title">
-                <h3 id="wind-methods-title" className="mb-1 font-bold text-white">시합 현장 4단계 바람 추정법</h3>
+                <h3 id="wind-methods-title" className="mb-1 font-bold text-white">{t('시합 현장 4단계 바람 추정법', 'Four-step on-course wind estimation')}</h3>
                 <ol className="space-y-2">
                   <li className="rounded-lg bg-slate-950/80 p-2">
-                    <strong className="text-sky-300">① 핀 깃발 관찰 (정량계가 아닌 방향·지속성 단서)</strong>
-                    <p>깃발이 처지는지, 간헐적으로 펴지는지, 계속 펴져 있는지 관찰합니다. 깃발의 크기·재질·설치 방식·돌풍에 따라 모양이 달라지므로 각도를 특정 m/s로 환산하지 말고, 다른 지표와 함께 보세요.</p>
+                    <strong className="text-sky-300">{t('① 핀 깃발 관찰 (정량계가 아닌 방향·지속성 단서)', '① Watch the pin flag (direction/persistence cue, not a gauge)')}</strong>
+                    <p>{t('깃발이 처지는지, 간헐적으로 펴지는지, 계속 펴져 있는지 관찰합니다. 깃발의 크기·재질·설치 방식·돌풍에 따라 모양이 달라지므로 각도를 특정 m/s로 환산하지 말고, 다른 지표와 함께 보세요.', 'Note whether the flag droops, extends intermittently, or stays extended. Flag size, fabric, mounting, and gusts all change its shape, so never convert its angle to m/s; read it alongside other cues.')}</p>
                   </li>
                   <li className="rounded-lg bg-slate-950/80 p-2">
-                    <strong className="text-sky-300">② 잔디 날리기 (Grass Toss, 방향 확인)</strong>
-                    <p>위 공통 기준대로 같은 높이에서 마른 잔디를 3회 놓고, 이동 거리 구간과 반복되는 방향만 기록합니다. 이동 거리로 풍속을 환산하지 마세요. 잔디 조각의 크기·수분·낙하 시간과 지형 난류가 결과를 크게 바꿉니다.</p>
+                    <strong className="text-sky-300">{t('② 잔디 날리기 (Grass Toss, 방향 확인)', '② Grass toss (direction check)')}</strong>
+                    <p>{t('위 공통 기준대로 같은 높이에서 마른 잔디를 3회 놓고, 이동 거리 구간과 반복되는 방향만 기록합니다. 이동 거리로 풍속을 환산하지 마세요. 잔디 조각의 크기·수분·낙하 시간과 지형 난류가 결과를 크게 바꿉니다.', 'Following the common protocol above, release dry grass three times from the same height and record only the drift band and any repeated direction. Never convert drift to wind speed; blade size, moisture, fall time, and terrain turbulence change the result greatly.')}</p>
                   </li>
                   <li className="rounded-lg bg-slate-950/80 p-2">
-                    <strong className="text-sky-300">③ 높이에 따른 바람 변화 확인</strong>
-                    <p>티잉 지점·페어웨이·그린의 깃발과 나무 윗부분, 구름의 이동이 서로 다르면 고도별 풍향·풍속이 다를 수 있습니다. 나무나 구름의 움직임만으로 공의 Apex 풍속을 수치로 추정할 수는 없습니다.</p>
+                    <strong className="text-sky-300">{t('③ 높이에 따른 바람 변화 확인', '③ Check wind change with height')}</strong>
+                    <p>{t('티잉 지점·페어웨이·그린의 깃발과 나무 윗부분, 구름의 이동이 서로 다르면 고도별 풍향·풍속이 다를 수 있습니다. 나무나 구름의 움직임만으로 공의 Apex 풍속을 수치로 추정할 수는 없습니다.', 'If flags at the tee, fairway, and green disagree with treetops or cloud movement, wind may differ by altitude. Tree or cloud motion alone cannot give a numeric apex wind speed.')}</p>
                   </li>
                   <li className="rounded-lg bg-slate-950/80 p-2">
-                    <strong className="text-sky-300">④ 얼굴 감각과 계측값 교차 확인</strong>
-                    <p>얼굴에 느껴지는 바람과 소리는 순간 변화나 대략적인 방향을 알아차리는 보조 단서입니다. 풍속 수치가 필요하면 타격 지점의 노출된 곳에서 휴대용 풍속계를 여러 번 읽고 평균과 돌풍을 따로 기록하세요. 지면 계측값이 상공 바람과 같다고 가정하지 않습니다.</p>
+                    <strong className="text-sky-300">{t('④ 얼굴 감각과 계측값 교차 확인', '④ Cross-check feel against instruments')}</strong>
+                    <p>{t('얼굴에 느껴지는 바람과 소리는 순간 변화나 대략적인 방향을 알아차리는 보조 단서입니다. 풍속 수치가 필요하면 타격 지점의 노출된 곳에서 휴대용 풍속계를 여러 번 읽고 평균과 돌풍을 따로 기록하세요. 지면 계측값이 상공 바람과 같다고 가정하지 않습니다.', 'Wind on the face and its sound are secondary cues for momentary change and rough direction. If you need numbers, take repeated handheld anemometer readings at an exposed spot near the ball and log average and gusts separately. Do not assume ground readings equal the wind aloft.')}</p>
                   </li>
                 </ol>
                 <p className="mt-2 text-[10px] text-slate-400">
-                  지상 풍속 관찰표: <a href="https://www.canada.ca/en/environment-climate-change/services/general-marine-weather-information/understanding-forecasts/beaufort-wind-scale-table.html" target="_blank" rel="noreferrer" className="text-sky-300 underline">Environment and Climate Change Canada · Beaufort Wind Scale</a>
+                  {t('지상 풍속 관찰표: ', 'Ground wind observation table: ')}<a href="https://www.canada.ca/en/environment-climate-change/services/general-marine-weather-information/understanding-forecasts/beaufort-wind-scale-table.html" target="_blank" rel="noreferrer" className="text-sky-300 underline">Environment and Climate Change Canada · Beaufort Wind Scale</a>
                 </p>
               </section>
 
               <section aria-labelledby="wind-patterns-title">
-                <h3 id="wind-patterns-title" className="mb-1 font-bold text-white">선수별 바람 결정 시퀀스</h3>
+                <h3 id="wind-patterns-title" className="mb-1 font-bold text-white">{t('선수별 바람 결정 시퀀스', 'Player wind-decision sequences')}</h3>
                 <div className="space-y-2">
                   <article className="rounded-lg border border-indigo-500/30 bg-indigo-950/30 p-2">
-                    <h4 className="font-bold text-indigo-200">Pattern A · 분석적 지표 시퀀스 (정밀 수치형)</h4>
-                    <p className="text-[10px] text-slate-400">트랙맨 데이터와 수치 기반 계산을 선호하는 골퍼</p>
+                    <h4 className="font-bold text-indigo-200">{t('Pattern A · 분석적 지표 시퀀스 (정밀 수치형)', 'Pattern A · Analytical sequence (numbers-driven)')}</h4>
+                    <p className="text-[10px] text-slate-400">{t('트랙맨 데이터와 수치 기반 계산을 선호하는 골퍼', 'For golfers who prefer TrackMan data and numeric reasoning')}</p>
                     <ol className="mt-1 list-inside list-decimal space-y-0.5">
-                      <li>풍층 비교: 티잉 지점·그린의 깃발과 나무 윗부분을 비교해 높이에 따른 변화 가능성을 파악하며, 관찰만으로 Apex 풍속을 단정하지 않음.</li>
-                      <li>타깃 구역 관찰: 그린 주변 깃발을 여러 순간 관찰해 평균적인 흐름과 돌풍을 구분.</li>
-                      <li>수치 합산: 레이저 거리 + 고도 보정에 바람 영향을 더해 Play-As 거리를 판단. m/s당 고정 야드 환산은 샷마다 달라지는 참고값으로만 사용.</li>
-                      <li>클럽 결정: 템포를 바꾸기보다 클럽 번호로 조절. 필요한 클럽 수는 바람만으로 고정하지 말고 샷 탄도와 클럽 간 거리 차이를 함께 고려.</li>
+                      <li>{t('풍층 비교: 티잉 지점·그린의 깃발과 나무 윗부분을 비교해 높이에 따른 변화 가능성을 파악하며, 관찰만으로 Apex 풍속을 단정하지 않음.', 'Layer check: compare tee/green flags with treetops for altitude differences, without fixing an apex wind speed from observation alone.')}</li>
+                      <li>{t('타깃 구역 관찰: 그린 주변 깃발을 여러 순간 관찰해 평균적인 흐름과 돌풍을 구분.', 'Target-zone watch: observe flags near the green over several moments to separate average flow from gusts.')}</li>
+                      <li>{t('수치 합산: 레이저 거리 + 고도 보정에 바람 영향을 더해 Play-As 거리를 판단. m/s당 고정 야드 환산은 샷마다 달라지는 참고값으로만 사용.', 'Sum the numbers: judge a play-as distance from laser + elevation + wind effect; treat fixed yards-per-m/s conversions only as shot-dependent references.')}</li>
+                      <li>{t('클럽 결정: 템포를 바꾸기보다 클럽 번호로 조절. 필요한 클럽 수는 바람만으로 고정하지 말고 샷 탄도와 클럽 간 거리 차이를 함께 고려.', 'Club decision: adjust by club number rather than tempo; set the number of clubs from trajectory and club gaps, not from wind alone.')}</li>
                     </ol>
                   </article>
                   <article className="rounded-lg border border-emerald-500/30 bg-emerald-950/30 p-2">
-                    <h4 className="font-bold text-emerald-200">Pattern B · 직관·감각적 시퀀스 (구질 컨트롤형)</h4>
-                    <p className="text-[10px] text-slate-400">구질과 탄도 조절로 바람을 이용하거나 이기려는 골퍼</p>
+                    <h4 className="font-bold text-emerald-200">{t('Pattern B · 직관·감각적 시퀀스 (구질 컨트롤형)', 'Pattern B · Intuitive sequence (shot-shape control)')}</h4>
+                    <p className="text-[10px] text-slate-400">{t('구질과 탄도 조절로 바람을 이용하거나 이기려는 골퍼', 'For golfers who ride or fight the wind with shape and trajectory')}</p>
                     <ol className="mt-1 list-inside list-decimal space-y-0.5">
-                      <li>체감 센싱: 어드레스에서 얼굴과 귀에 닿는 바람으로 순간 변화를 감지.</li>
-                      <li>잔디 날리기: 공 주변의 순간적인 풍향과 돌풍 여부를 확인하되, 이동 거리나 잔디만으로 공의 초반 궤적·풍속을 확정하지 않음.</li>
-                      <li>구질 매칭: 맞바람은 한 클럽 크게 잡고 3/4 스윙의 낮은 펀치샷으로 백스핀을 억제. 옆바람은 바람을 태우는 Wind-Rider와 바람을 이기는 Wind-Cheater 중 선택.</li>
-                      <li>에이밍 확정: 나무나 벙커 가장자리 등 그린 주변 시각화 지점을 조준선으로 선택.</li>
+                      <li>{t('체감 센싱: 어드레스에서 얼굴과 귀에 닿는 바람으로 순간 변화를 감지.', 'Feel sensing: detect momentary changes from wind on the face and ears at address.')}</li>
+                      <li>{t('잔디 날리기: 공 주변의 순간적인 풍향과 돌풍 여부를 확인하되, 이동 거리나 잔디만으로 공의 초반 궤적·풍속을 확정하지 않음.', 'Grass toss: confirm momentary direction and gustiness near the ball, without fixing early trajectory or wind speed from the grass alone.')}</li>
+                      <li>{t('구질 매칭: 맞바람은 한 클럽 크게 잡고 3/4 스윙의 낮은 펀치샷으로 백스핀을 억제. 옆바람은 바람을 태우는 Wind-Rider와 바람을 이기는 Wind-Cheater 중 선택.', 'Shape matching: into the wind take one more club and hit a low 3/4 punch to limit backspin; in crosswinds choose between a wind-rider and a wind-cheater.')}</li>
+                      <li>{t('에이밍 확정: 나무나 벙커 가장자리 등 그린 주변 시각화 지점을 조준선으로 선택.', 'Commit the aim: pick a visual anchor near the green — a tree or bunker edge — as the aim line.')}</li>
                     </ol>
                   </article>
                   <article className="rounded-lg border border-amber-500/30 bg-amber-950/30 p-2">
-                    <h4 className="font-bold text-amber-200">Pattern C · 위협 관리 시퀀스 (코스 매니지먼트형)</h4>
-                    <p className="text-[10px] text-slate-400">6 m/s 이상이거나 돌풍이 심해 실수를 줄여야 하는 상황</p>
+                    <h4 className="font-bold text-amber-200">{t('Pattern C · 위협 관리 시퀀스 (코스 매니지먼트형)', 'Pattern C · Threat-management sequence (course management)')}</h4>
+                    <p className="text-[10px] text-slate-400">{t('6 m/s 이상이거나 돌풍이 심해 실수를 줄여야 하는 상황', 'For 6 m/s+ or gusty conditions where limiting mistakes comes first')}</p>
                     <ol className="mt-1 list-inside list-decimal space-y-0.5">
-                      <li>위험 요소 스캔: 바람에 밀릴 때의 해저드, OB, 벙커 등 징벌 구역을 확인.</li>
-                      <li>돌풍 주기 측정: 10~15초간 깃발을 관찰해 평균 풍속과 최대 돌풍의 차이를 파악.</li>
-                      <li>최악 조건 설정: 맞바람이 가장 강한 순간을 기준으로 거리와 클럽을 결정.</li>
-                      <li>안전 구역 타깃팅: 핀 대신 그린 중앙을 겨냥해 빗나가도 안전하게 안착할 여지를 확보.</li>
+                      <li>{t('위험 요소 스캔: 바람에 밀릴 때의 해저드, OB, 벙커 등 징벌 구역을 확인.', 'Hazard scan: identify penal areas — hazards, OB, bunkers — where the wind could push the ball.')}</li>
+                      <li>{t('돌풍 주기 측정: 10~15초간 깃발을 관찰해 평균 풍속과 최대 돌풍의 차이를 파악.', 'Gust cycle: watch the flag for 10–15 seconds to gauge the gap between average wind and peak gusts.')}</li>
+                      <li>{t('최악 조건 설정: 맞바람이 가장 강한 순간을 기준으로 거리와 클럽을 결정.', 'Worst-case setting: pick distance and club for the strongest headwind moment.')}</li>
+                      <li>{t('안전 구역 타깃팅: 핀 대신 그린 중앙을 겨냥해 빗나가도 안전하게 안착할 여지를 확보.', 'Safe-zone targeting: aim at the green center instead of the pin so a miss still lands safely.')}</li>
                     </ol>
                   </article>
                 </div>
               </section>
 
               <section aria-labelledby="wind-distance-title">
-                <h3 id="wind-distance-title" className="mb-1 font-bold text-white">실전 비거리 보정 참고</h3>
+                <h3 id="wind-distance-title" className="mb-1 font-bold text-white">{t('실전 비거리 보정 참고', 'Practical distance-correction notes')}</h3>
                 <ul className="space-y-1 rounded-lg bg-slate-950/80 p-2">
-                  <li><strong className="text-sky-300">맞바람·뒷바람:</strong> TrackMan 투어 6번 아이언의 일정 풍속 사례에서 20 mph 맞바람 캐리 손실은 같은 세기 뒷바람 캐리 증가보다 거의 두 배 컸습니다. 이는 해당 샷 조건의 비교이며, 풍향 효과는 비선형이고 탄도·스핀·체공시간에 따라 달라 단일한 m/s당 야드 공식으로 일반화하지 마세요.</li>
-                  <li><strong className="text-sky-300">옆바람:</strong> 보편적으로 신뢰할 수 있는 고정 야드 환산값을 제시하기 어렵습니다. 목표선 대비 착지 편차는 풍속뿐 아니라 공의 체공시간, 스핀축, 높이에 따른 풍속 변화에 좌우됩니다.</li>
-                  <li><strong className="text-sky-300">현장 적용:</strong> 풍속 1 m/s는 약 2.24 mph입니다. 이 환산은 단위 변환일 뿐, 비거리 변화가 풍속에 정비례한다는 뜻은 아닙니다. 런은 별도이며 이 기준은 캐리 참고입니다.</li>
+                  <li><strong className="text-sky-300">{t('맞바람·뒷바람:', 'Head/tailwind:')}</strong> {t('TrackMan 투어 6번 아이언의 일정 풍속 사례에서 20 mph 맞바람 캐리 손실은 같은 세기 뒷바람 캐리 증가보다 거의 두 배 컸습니다. 이는 해당 샷 조건의 비교이며, 풍향 효과는 비선형이고 탄도·스핀·체공시간에 따라 달라 단일한 m/s당 야드 공식으로 일반화하지 마세요.', 'In a TrackMan tour 6-iron fixed-wind example, the carry lost to a 20 mph headwind was nearly twice the carry gained from an equal tailwind. That comparison is shot-specific; wind effects are nonlinear and vary with trajectory, spin, and hang time, so do not generalize to a single yards-per-m/s formula.')}</li>
+                  <li><strong className="text-sky-300">{t('옆바람:', 'Crosswind:')}</strong> {t('보편적으로 신뢰할 수 있는 고정 야드 환산값을 제시하기 어렵습니다. 목표선 대비 착지 편차는 풍속뿐 아니라 공의 체공시간, 스핀축, 높이에 따른 풍속 변화에 좌우됩니다.', 'No universally reliable fixed-yard conversion exists. Landing offset from the target line depends not only on wind speed but on hang time, spin axis, and how the wind changes with height.')}</li>
+                  <li><strong className="text-sky-300">{t('현장 적용:', 'On-course use:')}</strong> {t('풍속 1 m/s는 약 2.24 mph입니다. 이 환산은 단위 변환일 뿐, 비거리 변화가 풍속에 정비례한다는 뜻은 아닙니다. 런은 별도이며 이 기준은 캐리 참고입니다.', '1 m/s is about 2.24 mph. That is only a unit conversion, not a statement that carry change is proportional to wind speed. Rollout is separate; these notes concern carry.')}</li>
                 </ul>
                 <p className="mt-2 text-[10px] text-slate-400">
-                  샷 자료: <a href="https://www.trackman.com/blog/normalization-feature-explained" target="_blank" rel="noreferrer" className="text-sky-300 underline">TrackMan · The Normalization feature explained</a>
+                  {t('샷 자료: ', 'Shot data: ')}<a href="https://www.trackman.com/blog/normalization-feature-explained" target="_blank" rel="noreferrer" className="text-sky-300 underline">TrackMan · The Normalization feature explained</a>
                   {' · '}
-                  실측 궤적 연구: <a href="https://link.springer.com/content/pdf/10.1007/978-0-387-46050-5_27.pdf" target="_blank" rel="noreferrer" className="text-sky-300 underline">Naruo &amp; Mizota · Experimental Verification of Trajectory Analysis of Golf Ball under Atmospheric Boundary Layer</a>
+                  {t('실측 궤적 연구: ', 'Measured-trajectory study: ')}<a href="https://link.springer.com/content/pdf/10.1007/978-0-387-46050-5_27.pdf" target="_blank" rel="noreferrer" className="text-sky-300 underline">Naruo &amp; Mizota · Experimental Verification of Trajectory Analysis of Golf Ball under Atmospheric Boundary Layer</a>
                 </p>
               </section>
             </div>
@@ -2229,7 +2277,7 @@ export default function App() {
 
           <div className="space-y-2">
             <label className="block text-xs text-slate-300">
-              잔디 및 라이 (임팩트 추정 시나리오)
+              {t('잔디 및 라이 (임팩트 추정 시나리오)', 'Turf & lie (impact estimation scenario)')}
               <select aria-label="잔디 및 라이" value={lie}
                 onChange={(e) => {
                   const option = LIE_OPTIONS.find(item => item.id === e.target.value);
@@ -2237,22 +2285,20 @@ export default function App() {
                   setLie(option.id);
                 }}
                 className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
-                {LIE_OPTIONS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                {LIE_OPTIONS.map(option => <option key={option.id} value={option.id}>{t(option.label, LIE_TEXT_EN[option.id].label)}</option>)}
               </select>
             </label>
             <div className="text-[11px] text-slate-300 bg-slate-900 p-2.5 rounded-lg border border-slate-700">
-              <p className="font-bold text-sky-300">라이·강우 반영 전 → 반영 후 출발 조건</p>
-              <p data-testid="impact-speed">볼속도 {activeClub.speed.toFixed(1)} → {trajResult.appliedLaunch.ballSpeedMph.toFixed(1)} mph</p>
-              <p data-testid="impact-launch">발사각 {activeClub.launch.toFixed(1)} → {trajResult.appliedLaunch.launchAngleDeg.toFixed(1)}°</p>
-              <p data-testid="impact-spin">백스핀 {Math.round(activeClub.spin)} → {Math.round(trajResult.appliedLaunch.spinRateRpm)} rpm</p>
+              <p className="font-bold text-sky-300">{t('라이·강우 반영 전 → 반영 후 출발 조건', 'Launch conditions before → after lie/rain adjustment')}</p>
+              <p data-testid="impact-speed">{t('볼속도', 'Ball speed')} {activeClub.speed.toFixed(1)} → {trajResult.appliedLaunch.ballSpeedMph.toFixed(1)} mph</p>
+              <p data-testid="impact-launch">{t('발사각', 'Launch')} {activeClub.launch.toFixed(1)} → {trajResult.appliedLaunch.launchAngleDeg.toFixed(1)}°</p>
+              <p data-testid="impact-spin">{t('백스핀', 'Backspin')} {Math.round(activeClub.spin)} → {Math.round(trajResult.appliedLaunch.spinRateRpm)} rpm</p>
             </div>
-            <HelpDetails title="라이 보정 안내">
-            <p data-testid="lie-assumptions" className="text-[11px] text-amber-200">{getLie(lie).note}</p>
+            <HelpDetails title={t('라이 보정 안내', 'Lie adjustment help')}>
+            <p data-testid="lie-assumptions" className="text-[11px] text-amber-200">{t(getLie(lie).note, LIE_TEXT_EN[lie].note)}</p>
             <p className="text-[11px] text-slate-400">
-              라이 보정은 양 모드에 적용합니다. 개인 입력은 라이·강우 보정 전 기준 샷으로 입력하세요.
-              실측한 러프 샷을 이미 입력했다면 중립 라이를 선택해 중복 보정을 피하세요.
-              수치는 실측 보장값이 아닌 가정이며, 캐리 증감은 클럽·발사 조건별 계산 결과입니다.
-              런은 계산하지 않습니다.
+              {t('라이 보정은 양 모드에 적용합니다. 개인 입력은 라이·강우 보정 전 기준 샷으로 입력하세요. 실측한 러프 샷을 이미 입력했다면 중립 라이를 선택해 중복 보정을 피하세요. 수치는 실측 보장값이 아닌 가정이며, 캐리 증감은 클럽·발사 조건별 계산 결과입니다. 런은 계산하지 않습니다.',
+                'Lie adjustments apply in both modes. Enter personal data as a baseline shot before lie/rain adjustment. If you already entered a measured rough shot, choose the neutral lie to avoid double adjustment. The figures are assumptions, not measured guarantees; carry changes are computed per club and launch condition. Rollout is not computed.')}
             </p>
             </HelpDetails>
           </div>
@@ -2260,7 +2306,7 @@ export default function App() {
           {/* Temperature & Temp Unit Toggle */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400">기온 (Air Temp / Density)</span>
+              <span className="text-slate-400">{t('기온 (Air Temp / Density)', 'Air Temp / Density')}</span>
               <div className="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800">
                 {['C', 'F'].map((u) => (
                   <button
@@ -2291,9 +2337,9 @@ export default function App() {
           {/* Green Elevation Delta */}
           <div className="space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-400">그린 고도 차이 (ΔH)</span>
+              <span className="text-slate-400">{t('그린 고도 차이 (ΔH)', 'Green elevation difference (ΔH)')}</span>
               <span className={`font-bold font-mono ${elevationM >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {elevationM > 0 ? '+' : ''}{formatDistance(elevationM * M_TO_YDS, distanceUnit)} ({elevationM === 0 ? '평지' : elevationM > 0 ? '오르막' : '내리막'})
+                {elevationM > 0 ? '+' : ''}{formatDistance(elevationM * M_TO_YDS, distanceUnit)} ({elevationM === 0 ? t('평지', 'flat') : elevationM > 0 ? t('오르막', 'uphill') : t('내리막', 'downhill')})
               </span>
             </div>
             <input
@@ -2310,7 +2356,7 @@ export default function App() {
 
           {/* Rain / Moisture */}
           <div className="space-y-1.5">
-            <span className="text-xs text-slate-400 block">강우 (비행 항력·스핀 추정 보정)</span>
+            <span className="text-xs text-slate-400 block">{t('강우 (비행 항력·스핀 추정 보정)', 'Rain (estimated flight drag/spin adjustment)')}</span>
             <div className="grid grid-cols-3 gap-2">
               {(['NONE', 'LIGHT', 'HEAVY'] satisfies RainLevel[]).map((r) => (
                 <button
@@ -2322,7 +2368,7 @@ export default function App() {
                       : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
                   }`}
                 >
-                  {r === 'NONE' ? '건조 (Dry)' : r === 'LIGHT' ? '약한 비' : '강한 비'}
+                  {r === 'NONE' ? t('건조 (Dry)', 'Dry') : r === 'LIGHT' ? t('약한 비', 'Light rain') : t('강한 비', 'Heavy rain')}
                 </button>
               ))}
             </div>
@@ -2331,24 +2377,13 @@ export default function App() {
 
         {/* SECTION 3: SUMMARY FOOTER */}
         <div className="p-4 bg-slate-900/60 space-y-2">
-          <HelpDetails title="산출 방식과 한계">
+          <HelpDetails title={t('산출 방식과 한계', 'Methodology and limitations')}>
           <p className="text-xs text-slate-400 leading-relaxed">
-            기준은 무풍·20°C·해수면·평지·중립 페어웨이 캐리(런 제외)입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정하고,
-            상대풍속의 3차원 항력·마그누스 양력·중력·스핀 감쇠를 적분합니다.
-            출발점을 높이 0으로 두고 스핀축과 상대풍속의 각도에 따라 양력을 줄입니다.
-            레이저 거리와 고도 차이에서 수평 거리를 구해 예상캐리와 비교합니다.
-            예상캐리는 목표선 방향 수평 성분이며, 좌우 편차는 별도로 표시합니다. 목표 높이의 수평면과 하강 궤적의 교점을 착지로 봅니다.
-            조준점 좌우 이동은 핀 기준으로 입력하며, 음수는 좌측·양수는 우측입니다. 핀 위치와 높낮이, 조준점 이동을 반영해 궤적과 착지 편차를 계산합니다.
-            투어 모드는 클럽 평균 풀샷, 선수개별맞춤은 입력 샷의 환경반영 예상캐리를 표시합니다.
-            모든 거리·높이와 입력 단위는 화면 상단의 미터/야드 선택을 따릅니다.
-            자동 추천은 목표 도달 가능성을 역산해 클럽만 선택하며, 표시 샷의 속도·조준은 바꾸지 않습니다.
-            현재 공기밀도 {airDensityText} kg/m³.
-            라이 보정은 기준 모델 보정 이후 임팩트 볼속도·발사각·스핀에 한 번만 적용하며 강우 스핀 계수와 곱합니다.
-            순결·플라이어의 스핀 감소가 모든 클럽의 캐리 증가를 의미하지는 않으며 딥러프 손실도 고정 야드로 강제하지 않습니다.
-            캐리·최고 높이 두 값으로 공력 계수를 맞춘 경험적 모델이므로 체공 시간·낙하각·바람 반응의 실측 일치를 보증하지 않습니다.
-            부분 샷 추천 역산은 동일 발사각·스핀 가정이며, 강우는 항력 +3/+8%, 초기 스핀 -5/-15%의 추정 시나리오입니다.
-            고도 차이는 착지 높이이며 해발고도 입력이 아닙니다. 공기밀도는 해수면 표준기압과 선택 기온 기준입니다.
-            실제 경사면·중간 지형·습도·볼 온도·난류·돌풍·지면 런은 반영하지 않으며 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다.
+            {t('기준은 무풍·20°C·해수면·평지·중립 페어웨이 캐리(런 제외)입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정하고, 상대풍속의 3차원 항력·마그누스 양력·중력·스핀 감쇠를 적분합니다. 출발점을 높이 0으로 두고 스핀축과 상대풍속의 각도에 따라 양력을 줄입니다. 레이저 거리와 고도 차이에서 수평 거리를 구해 예상캐리와 비교합니다. 예상캐리는 목표선 방향 수평 성분이며, 좌우 편차는 별도로 표시합니다. 목표 높이의 수평면과 하강 궤적의 교점을 착지로 봅니다. 조준점 좌우 이동은 핀 기준으로 입력하며, 음수는 좌측·양수는 우측입니다. 핀 위치와 높낮이, 조준점 이동을 반영해 궤적과 착지 편차를 계산합니다. 투어 모드는 클럽 평균 풀샷, 선수개별맞춤은 입력 샷의 환경반영 예상캐리를 표시합니다. 모든 거리·높이와 입력 단위는 화면 상단의 미터/야드 선택을 따릅니다. 자동 추천은 목표 도달 가능성을 역산해 클럽만 선택하며, 표시 샷의 속도·조준은 바꾸지 않습니다.',
+              'The baseline is no-wind, 20°C, sea-level, flat, neutral-fairway carry (excluding rollout). Published carry and apex calibrate per-club drag/lift, and the model integrates 3D drag, Magnus lift, gravity, and spin decay against the relative wind. The launch point sits at height 0, and lift is reduced by the angle between the spin axis and the relative wind. Horizontal distance is derived from the laser distance and elevation difference and compared with the expected carry. Expected carry is the horizontal component along the target line; lateral miss is shown separately. Landing is the intersection of the descending trajectory with the target-height plane. The aim offset is entered relative to the pin — negative left, positive right — and the pin position, elevation, and offset feed the trajectory and landing deviation. Tour mode shows the club-average full shot; personal mode shows the env-adjusted expected carry of your entered shot. All distances and inputs follow the meter/yard selection at the top. Auto pick back-solves reachability and selects only the club, never changing the displayed shot’s speed or aim.')}
+            {' '}{t('현재 공기밀도', 'Current air density')} {airDensityText} kg/m³.{' '}
+            {t('라이 보정은 기준 모델 보정 이후 임팩트 볼속도·발사각·스핀에 한 번만 적용하며 강우 스핀 계수와 곱합니다. 순결·플라이어의 스핀 감소가 모든 클럽의 캐리 증가를 의미하지는 않으며 딥러프 손실도 고정 야드로 강제하지 않습니다. 캐리·최고 높이 두 값으로 공력 계수를 맞춘 경험적 모델이므로 체공 시간·낙하각·바람 반응의 실측 일치를 보증하지 않습니다. 부분 샷 추천 역산은 동일 발사각·스핀 가정이며, 강우는 항력 +3/+8%, 초기 스핀 -5/-15%의 추정 시나리오입니다. 고도 차이는 착지 높이이며 해발고도 입력이 아닙니다. 공기밀도는 해수면 표준기압과 선택 기온 기준입니다. 실제 경사면·중간 지형·습도·볼 온도·난류·돌풍·지면 런은 반영하지 않으며 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다.',
+              'Lie adjustments apply once to impact ball speed, launch, and spin after the baseline calibration and multiply with the rain spin factor. Down-grain/flyer spin reductions do not imply longer carry for every club, and deep-rough losses are not forced to fixed yards. Because the aero coefficients are fitted empirically from only carry and apex, measured agreement in hang time, landing angle, or wind response is not guaranteed. Partial-shot back-solving assumes identical launch and spin, and rain is an estimated scenario of +3/+8% drag and −5/−15% initial spin. The elevation difference is a landing height, not an altitude input; air density uses standard sea-level pressure at the selected temperature. Real slopes, intermediate terrain, humidity, ball temperature, turbulence, gusts, and ground rollout are not modeled, and no match with the actual TrackMan flight engine or measured prediction accuracy is guaranteed.')}
           </p>
           </HelpDetails>
         </div>

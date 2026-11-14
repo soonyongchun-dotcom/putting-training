@@ -123,13 +123,14 @@ const defaultPlayAsMatch = appMarkup.match(/data-testid="play-as"[^>]*>([\d.]+)y
 check(defaultPlayAsMatch !== null && Number(defaultPlayAsMatch[1]) > 150
   && appMarkup.includes('환경반영 권장거리'),
   'main recommendation shows the wind-adjusted play-as distance instead of full-club carry');
-check(appMarkup.includes('조준점 좌우 이동') && appMarkup.includes('좌측은 음수, 우측은 양수'),
-  'aim-point control explains signed lateral offsets');
+check(appMarkup.includes('조준점 좌우 이동') && appMarkup.includes('좌− / 우+'),
+  'aim-point control shows the signed lateral direction hint');
 check(appMarkup.includes('data-testid="aim-step-left"') && appMarkup.includes('조준점을 좌측으로 1yd 이동')
   && appMarkup.includes('data-testid="aim-step-right"') && appMarkup.includes('조준점을 우측으로 1yd 이동'),
   'aim-point direction buttons provide left and right input without relying on a minus key');
-check(appMarkup.includes('− 좌측') && appMarkup.includes('+ 우측') && appMarkup.includes('키보드에 음수 기호가 없으면'),
-  'aim-point direction is visible and explained on mobile');
+check(appMarkup.includes('− 좌측') && appMarkup.includes('+ 우측')
+  && source.includes('조준점 좌우 이동은 핀 기준으로 입력하며, 음수는 좌측·양수는 우측입니다.'),
+  'aim-point direction is visible on mobile and signed input is documented in the methodology note');
 check(!source.includes('그린 확대 · 핀 위치 설정')
   && source.includes('data-testid="green-map"')
   && source.includes('data-testid="green-pin"')

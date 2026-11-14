@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SY-SDE 샷거리 시뮬레이터 사용설명서</title>
+<style>
+  :root { color-scheme: light; --ink: #1c2429; --muted: #51616b; --blue: #17536b; --sky: #e8f0f3; --gold: #a36e19; --line: #d4dee2; --dark: #11303c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); background: #edf1f2; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; line-height: 1.8; }
+  .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; padding: 12px max(20px, calc((100% - 900px) / 2)); background: rgba(237,241,242,.94); border-bottom: 1px solid var(--line); }
+  button { border: 0; border-radius: 5px; padding: 10px 16px; background: var(--blue); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+  main { max-width: 1000px; margin: 36px auto 72px; padding: 64px 72px; background: #fff; box-shadow: 0 8px 28px rgba(18,45,56,.09); }
+  .eyebrow { margin: 0; color: var(--blue); font-size: .82rem; font-weight: 800; letter-spacing: .08em; }
+  h1 { margin: 5px 0 10px; font-size: 2.25rem; line-height: 1.3; }
+  .subtitle { margin: 0 0 30px; color: var(--muted); }
+  h2 { margin: 44px 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--blue); font-size: 1.38rem; line-height: 1.45; }
+  h3 { margin: 26px 0 9px; font-size: 1.08rem; line-height: 1.5; }
+  p { margin: 12px 0; }
+  ul, ol { margin: 12px 0; padding-left: 1.45rem; }
+  li { margin: 8px 0; }
+  .callout { margin: 20px 0; padding: 16px 18px; border-left: 4px solid var(--blue); background: var(--sky); }
+  .warning { border-color: var(--gold); background: #fbf4e8; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li { position: relative; min-height: 32px; margin: 10px 0; padding-left: 42px; }
+  .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: var(--blue); color: white; font-weight: 800; }
+  table { width: 100%; margin: 18px 0; border-collapse: collapse; font-size: .98rem; line-height: 1.7; }
+  th, td { padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #edf3f5; }
+  .small { color: var(--muted); font-size: .94rem; }
+  footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; }
+  .cover { min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; margin: -54px -64px 36px; padding: 64px; color: #f5fafc; background: linear-gradient(145deg, #11303c 0%, #1b4e63 58%, #8b6b35 150%); break-after: page; }
+  .cover .eyebrow { color: #bed5dd; }
+  .cover-stamp { display: inline-block; margin-top: 12px; padding: 6px 10px; border: 1px solid rgba(212,179,107,.75); color: #f2d99c; font-size: .76rem; font-weight: 800; }
+  .cover h1 { max-width: 640px; margin-top: 90px; color: white; font-family: Georgia, "Batang", serif; font-size: 3rem; line-height: 1.22; }
+  .cover-rights-row { display: flex; align-items: center; gap: 18px; max-width: 700px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.25); }
+  .cover-portrait { flex: 0 0 auto; width: 82px; height: 110px; object-fit: cover; object-position: center 35%; opacity: .7; filter: saturate(.82); border-radius: 2px; box-shadow: 0 8px 18px rgba(0,0,0,.14); }
+  .cover .subtitle { max-width: 540px; margin: 18px 0 50px; color: #d4e4ea; font-size: 1.08rem; }
+  .cover-mark { width: 62px; height: 4px; margin: 24px 0; background: #d4b36b; }
+  .cover-meta { color: #d4e4ea; font-size: .88rem; line-height: 1.45; }
+  .cover-copyright { min-width: 0; flex: 1; margin: 0; color: #e4edf0; font-size: .76rem; line-height: 1.55; }
+  .website-page { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 48px 24px; text-align: center; border-bottom: 1px solid var(--line); break-after: page; page-break-after: always; }
+  .website-page .eyebrow { color: var(--gold); }
+  .website-page h2 { margin: 0; padding: 0; border: 0; color: var(--dark); font-family: Georgia, "Batang", serif; font-size: 2rem; }
+  .website-url { max-width: 100%; color: var(--blue); font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+  .website-caption { margin: 0; color: var(--muted); }
+  .toc { display: flex; flex-direction: column; justify-content: center; margin-bottom: 48px; padding: 22px 26px; border: 1px solid var(--line); background: #f5f8f9; break-after: page; }
+  .toc h2 { margin-top: 0; }
+  .toc ol { columns: 2; column-gap: 40px; }
+  .toc li { break-inside: avoid; padding: 2px 0; }
+  .chapter-page { margin-top: 0; padding: 48px 0 56px; border-top: 1px solid var(--line); scroll-margin-top: 18px; }
+  .chapter-kicker { margin: 0 0 4px; color: var(--gold); font-size: .78rem; font-weight: 800; }
+  .chapter-page h2 { margin-top: 3px; }
+  .feature-screenshot { margin: 22px 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #f7fafa; }
+  .feature-screenshot figcaption { margin-bottom: 10px; color: var(--dark); font-size: .92rem; font-weight: 800; }
+  .feature-real-capture { display: block; width: 100%; height: auto; border: 1px solid #c7d4d9; border-radius: 6px; background: #0b1220; }
+  .feature-real-capture-note { margin: 10px 0 0; color: var(--muted); font-size: .88rem; }
+  @media print {
+    .toolbar { display: none; }
+    body { background: #fff; }
+    main { margin: 0; padding: 24px 8mm; box-shadow: none; max-width: none; }
+    .cover { margin: -24px -8mm 24px; }
+    .chapter-page { break-before: page; }
+  }
+  @media (max-width: 760px) {
+    main { padding: 40px 20px; }
+    .cover { margin: -40px -20px 28px; padding: 40px 24px; }
+    .cover h1 { margin-top: 48px; font-size: 2.2rem; }
+    .toc ol { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <label for="manualLanguage" id="languageLabel" style="font-weight:700; font-size:.9rem;">언어</label>
+    <select id="manualLanguage" aria-label="언어" style="min-height:40px; padding:6px 28px 6px 10px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--ink); font:inherit;">
+      <option value="ko" selected>한국어</option>
+      <option value="en">English</option>
+    </select>
+    <button type="button" id="printManualBtn" onclick="window.print()">인쇄 / PDF로 저장</button>
+  </div>
+</div>
+<main id="koManual" lang="ko">
+  <header class="cover">
+    <div><p class="eyebrow">SY-SDE · SHOT DISTANCE ESTIMATOR</p><div class="cover-mark"></div><span class="cover-stamp">원본 문서 · ORIGINAL EDITION</span></div>
+    <div><h1>SY-Shot Distance Estamater<br>샷거리 시뮬레이터 사용설명서</h1><p class="subtitle">투어 평균 또는 선수 개인의 발사 데이터에 바람·기온·고도·강우·라이 조건을 적용해, 목표 핀까지의 권장 캐리와 예상 궤적·좌우 편차·그린 위 굴림을 추정하는 물리 기반 샷 시뮬레이터 안내서</p></div>
+    <div class="cover-meta">제작자: S.Y. Chun<br>초판 제작일: 2026년 11월 14일<br>앱 기준 버전: ver26.1112-1f-ad
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>지식재산권 고지</strong><br>© 2026 S.Y. Chun. All rights reserved. 본 매뉴얼의 문안, 구성 및 편집물은 저작권 보호 대상입니다. 권리자의 사전 서면 허가 없이 본 문서의 전부 또는 일부를 복제·수정·배포·게시하거나 상업적으로 이용할 수 없습니다. TrackMan 등 제3자 상표·데이터에 관한 권리는 각 권리자에게 있습니다.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="매뉴얼 제작자 S.Y. Chun"></div>
+    </div>
+  </header>
+
+  <section class="website-page" aria-label="샷거리 시뮬레이터 웹사이트">
+    <p class="eyebrow">SY-SDE · OFFICIAL WEBSITE</p>
+    <h2>샷거리 시뮬레이터 바로가기</h2>
+    <a class="website-url" href="https://soonyongchun-dotcom.github.io/putting-training/shot-distance-simulator/dist/index.html" target="_blank" rel="noopener noreferrer">https://soonyongchun-dotcom.github.io/putting-training/shot-distance-simulator/dist/index.html</a>
+    <p class="website-caption">물리 추정 기반 골프 샷거리 시뮬레이터 · 앱 상단 거리 단위 옆 책 모양 아이콘으로 이 설명서를 열 수 있습니다</p>
+  </section>
+
+  <nav class="toc" aria-label="목차">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#sde-chapter-01">개요와 화면 구성</a></li>
+      <li><a href="#sde-chapter-02">시뮬레이션 모드와 클럽 선택</a></li>
+      <li><a href="#sde-chapter-03">목표·조준 설정</a></li>
+      <li><a href="#sde-chapter-04">환경 설정 · 바람, 기온, 고도, 강우, 라이</a></li>
+      <li><a href="#sde-chapter-05">그린·핀 설정과 굴림 모델</a></li>
+      <li><a href="#sde-chapter-06">결과 읽기와 샷 실행</a></li>
+      <li><a href="#sde-chapter-07">실전 바람 판단 가이드</a></li>
+      <li><a href="#sde-chapter-08">산출 방식과 한계, 문제 해결</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter-page" id="sde-chapter-01">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>개요와 화면 구성</h2>
+    <p><strong>SY-Shot Distance Estamater</strong>는 공개된 투어 평균 발사 데이터(TrackMan 기준) 또는 선수 개인이 입력한 클럽별 발사 데이터에 볼 비행 물리 모델을 적용해, 현재 환경에서 목표 핀을 공략하기 위한 <strong>권장 캐리</strong>와 <strong>예상 궤적·좌우 편차·그린 위 굴림</strong>을 추정하는 시뮬레이터입니다. 결과는 기준 자료와 모델 가정에 따른 추정치이며 실측 보장값이 아닙니다.</p>
+    <figure class="feature-screenshot">
+      <figcaption>실제 앱 화면 캡처 · 상단 헤더와 거리 단위 선택</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-header.png" alt="SY-Shot Distance Estamater 헤더. 제목과 버전, 거리 단위 미터·야드 버튼, 우측에 사용 안내 물음표 아이콘과 사용설명서 책 아이콘이 보임">
+      <p class="feature-real-capture-note">거리 단위 줄의 <strong>미터(m)/야드(yd)</strong> 버튼으로 모든 거리·높이의 입력과 표시 단위를 전환합니다. 단위를 바꿔도 저장된 실제 거리는 유지됩니다. 오른쪽 위 <strong>한국어/English</strong> 버튼으로 시뮬레이터 전체 표시 언어를 전환할 수 있으며, 선택한 언어는 이 기기에 저장됩니다. 거리 단위 줄 오른쪽 끝 <strong>책 아이콘</strong>은 이 사용설명서를 새 탭으로 엽니다.</p>
+    </figure>
+    <figure class="feature-screenshot">
+      <figcaption>실제 앱 화면 캡처 · 목표 요약 바와 측면 비행 궤적</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-main.png" alt="핀까지 레이저 거리, 핀 기준 조준점 좌우, 환경반영 권장거리 158.3yd, 예상 좌우 편차 카드와 측면 보기 비행 궤적 곡선">
+      <p class="feature-real-capture-note">화면 왼쪽(또는 위쪽)에는 목표 요약 카드 4종 — <strong>핀까지 레이저 거리 · 핀 기준 조준점 좌우 · 환경반영 권장거리 · 예상 좌우 편차</strong> — 와 궤적 화면이, 오른쪽(또는 아래쪽)에는 캐디 분석 엔진과 환경 설정 패널이 배치됩니다.</p>
+    </figure>
+    <h3>기본 사용 순서</h3>
+    <ol class="steps">
+      <li><strong>언어·단위·모드 선택:</strong> 오른쪽 위에서 한국어/English를, 거리 단위 줄에서 미터/야드를 고르고, 투어기준시뮬레이션 또는 선수개별맞춤시뮬레이션을 선택합니다.</li>
+      <li><strong>목표 입력:</strong> 핀까지 레이저 거리와 핀 기준 조준점 좌우 이동을 입력합니다.</li>
+      <li><strong>환경 입력:</strong> 풍속·풍향, 기온, 그린 고도 차이, 강우, 잔디·라이를 설정합니다.</li>
+      <li><strong>그린·핀 설정:</strong> 위에서 보기에서 그린 크기·스피드(Stimp)와 핀 위치를 조정합니다.</li>
+      <li><strong>결과 확인:</strong> 환경반영 권장거리와 상세 결과를 읽고, “샷 실행”으로 궤적·착지·굴림을 재생합니다.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-02">
+    <p class="chapter-kicker">CHAPTER 02</p><h2>시뮬레이션 모드와 클럽 선택</h2>
+    <figure class="feature-screenshot">
+      <figcaption>실제 앱 화면 캡처 · 캐디 분석 엔진</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-caddie.png" alt="캐디 분석 엔진 패널. 투어기준·선수개별맞춤 모드 버튼, 자동 추천 클럽 선택, LPGA 기준 5번 아이언의 환경반영예상캐리 145.9yd 결과 카드">
+      <p class="feature-real-capture-note">캐디 분석 엔진에서 모드·투어·클럽을 선택하면 아래 결과 카드에 레이저→수평 거리, 환경반영예상캐리(런 제외), 적용 볼속도, 라이, 조준점과 예상 착지 편차가 요약됩니다.</p>
+    </figure>
+    <h3>투어기준시뮬레이션</h3>
+    <ul>
+      <li><strong>LPGA·PGA:</strong> TrackMan이 공개한 투어 평균 클럽 스피드·볼 스피드·발사각·백스핀·캐리·최고 높이를 사용합니다. 갭/샌드/로브 웨지(GW·SW·LW)는 피칭 웨지 기반 추정입니다.</li>
+      <li><strong>KLPGA:</strong> 공식 평균이 아니라 LPGA 대비 볼·클럽속도 97%, 캐리·높이 96%를 가정한 전체 추정입니다.</li>
+      <li><strong>클럽 선택:</strong> 드라이버부터 로브 웨지까지 직접 고르거나 <strong>자동 추천</strong>을 사용합니다. 자동 추천은 현재 환경에서 목표에 도달 가능한 클럽만 역산해 선택하며, 표시 샷의 속도·조준은 바꾸지 않습니다. 목표가 최장 클럽 범위를 넘으면 경고와 함께 최장 클럽의 평균 샷을 표시합니다.</li>
+    </ul>
+    <h3>선수개별맞춤시뮬레이션</h3>
+    <ul>
+      <li>클럽별로 <strong>기준 캐리, 클럽 스피드, 볼 스피드, 발사각, 백스핀, 최고 높이, 스핀축</strong>을 입력할 수 있습니다. 입력값은 이 기기(브라우저)에만 저장되며 서버로 전송되지 않습니다.</li>
+      <li>기준 캐리는 <strong>무풍·20°C·평지의 런 제외 거리</strong>로 입력하세요. 캐리 또는 높이를 입력하면 개인 발사 데이터에 맞춰 항력·양력이 재보정되고, 모두 비어 있으면 투어 공력 모델에 입력 발사 데이터를 적용합니다.</li>
+      <li>클럽 스피드는 참고용이며 비행 계산은 볼 스피드를 사용합니다. “이 클럽 개인 입력 지우기”로 투어 평균을 복원할 수 있습니다.</li>
+      <li>라이·강우 보정은 두 모드 모두에 적용되므로, 개인 입력은 라이·강우 보정 전의 기준 샷으로 입력하세요.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-03">
+    <p class="chapter-kicker">CHAPTER 03</p><h2>목표·조준 설정</h2>
+    <ul>
+      <li><strong>핀까지 레이저 거리:</strong> 거리측정기로 잰 직선 거리를 입력합니다(50~350yd 범위, 선택 단위로 입력). 그린 고도 차이를 입력하면 레이저 거리와 고도 차이로 수평 거리를 역산해 계산에 사용합니다. 레이저 거리는 핀 고도 차이보다 커야 합니다.</li>
+      <li><strong>핀 기준 조준점 좌우:</strong> 핀을 기준으로 조준점을 좌우로 옮기는 거리입니다. <strong>음수는 좌측, 양수는 우측</strong>이며, 키보드에 음수 기호가 없으면 <strong>− 좌측 / + 우측</strong> 버튼으로 1단위씩 조절하고 “중앙” 버튼으로 0으로 되돌립니다.</li>
+      <li>핀 위치·높낮이와 선택한 조준점은 실제 궤적과 착지 편차 계산에 반영됩니다.</li>
+      <li>환경 설정의 “목표 그린 레이저 거리” 슬라이더로도 같은 값을 조절할 수 있습니다.</li>
+    </ul>
+    <div class="callout"><strong>단위 입력 팁:</strong> 모든 거리·높이 입력칸은 화면 상단에서 선택한 단위를 따릅니다. 쉼표(,)로 소수점을 입력해도 인식합니다.</div>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-04">
+    <p class="chapter-kicker">CHAPTER 04</p><h2>환경 설정 · 바람, 기온, 고도, 강우, 라이</h2>
+    <figure class="feature-screenshot">
+      <figcaption>실제 앱 화면 캡처 · 필드 환경 변수 설정</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-environment.png" alt="풍속 슬라이더와 m/s·mph·km/h 단위, 풍향 빠른 선택 4종 버튼, 잔디 및 라이 선택, 라이·강우 반영 전후 출발 조건, 기온·그린 고도 차이 슬라이더, 강우 3단계 버튼">
+      <p class="feature-real-capture-note">환경 패널에서 바람·라이·기온·고도·강우를 설정하면 결과와 궤적이 즉시 다시 계산됩니다. “라이·강우 반영 전 → 반영 후 출발 조건”에서 보정된 볼속도·발사각·백스핀을 확인할 수 있습니다.</p>
+    </figure>
+    <h3>바람</h3>
+    <ul>
+      <li><strong>풍속:</strong> 슬라이더로 조절하고 m/s · mph · km/h 단위를 전환할 수 있습니다.</li>
+      <li><strong>풍향 빠른 선택:</strong> 맞바람(목표→선수) · 뒷바람(선수→목표) · 훅바람(우측→좌측) · 슬라이스바람(좌측→우측)의 네 버튼을 조합해 선택합니다. 아래 풍향 슬라이더와 −5°/+5° 버튼으로 1° 단위 각도도 지정할 수 있습니다.</li>
+      <li><strong>풍향계 직접 조절:</strong> 궤적 화면 안의 풍향계를 클릭·드래그해 조절합니다. 화살표는 <strong>바람이 향하는 방향</strong>(목표 ↑ 기준)이며, 키보드 방향키로 1°, Shift+방향키로 15°씩 조정할 수 있습니다.</li>
+    </ul>
+    <h3>기온·고도·강우</h3>
+    <ul>
+      <li><strong>기온:</strong> 공기밀도 계산에 사용합니다(°C/°F 전환). 기온이 낮을수록 공기가 무거워져 캐리가 줄어듭니다.</li>
+      <li><strong>그린 고도 차이(ΔH):</strong> 선수 위치 대비 그린(착지 지점)의 높이 차이입니다. 해발고도 입력이 아니며, 공기밀도는 해수면 표준기압과 선택 기온 기준입니다.</li>
+      <li><strong>강우:</strong> 건조/약한 비/강한 비 3단계로, 비행 항력 +3%/+8%, 초기 스핀 −5%/−15%의 추정 시나리오를 적용합니다.</li>
+    </ul>
+    <h3>잔디 및 라이 (임팩트 추정 시나리오)</h3>
+    <table>
+      <thead><tr><th>라이</th><th>적용 보정</th></tr></thead>
+      <tbody>
+        <tr><td>페어웨이 · 중립</td><td>기준 라이. 볼속도·발사각·스핀을 변경하지 않습니다.</td></tr>
+        <tr><td>페어웨이 · 순결</td><td>스핀 20% 감소(제시 범위 15–25%의 중간값). 착지 후 런 증가 가능성.</td></tr>
+        <tr><td>페어웨이 · 역결</td><td>볼속도 3% 감소(제시 범위 2–4%의 중간값).</td></tr>
+        <tr><td>러프 · 약간 잠김 (25% / 플라이어)</td><td>스핀 35% 감소, 발사각 +2°(모델 가정). 런 증가 가능성이 있으나 캐리 증가는 보장하지 않습니다.</td></tr>
+        <tr><td>러프 · 반쯤 잠김 (50%)</td><td>볼속도 6% 감소, 스핀 50% 감소.</td></tr>
+        <tr><td>러프 · 완전히 잠김 (100%)</td><td>볼속도 15% 감소, 발사각 −3°, 스핀 50% 감소(모델 가정). 고정 거리 손실을 강제하지 않고 클럽·샷별로 계산합니다.</td></tr>
+      </tbody>
+    </table>
+    <p class="small">라이 보정은 기준 모델 보정 이후 임팩트 볼속도·발사각·스핀에 한 번만 적용하며 강우 스핀 계수와 곱합니다.</p>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-05">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>그린·핀 설정과 굴림 모델</h2>
+    <figure class="feature-screenshot">
+      <figcaption>실제 앱 화면 캡처 · 그린 확대 및 핀 위치 설정</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-green-pin.png" alt="그린 스피드 Stimp, 좌우 폭, 전후 길이 선택과 등고선이 그려진 그린 지도. 깃발 모양 핀과 높음·낮음 등고선 범례, 공중 착지점·굴림 후 정지점 안내">
+      <p class="feature-real-capture-note">“위에서 보기”를 선택하면 비행 평면도 아래에 그린 확대 지도가 나타납니다. 깃발을 드래그하거나 방향키로 핀 위치를 옮기고, “핀 중앙으로”로 되돌립니다.</p>
+    </figure>
+    <ul>
+      <li><strong>그린 스피드(Stimp):</strong> 2.0~4.0m에서 선택하며 <strong>착지 후 굴림 거리만</strong> 바꿉니다.</li>
+      <li><strong>그린 크기:</strong> 좌우 폭 20~60yd, 전후 길이 12~40yd를 선택합니다.</li>
+      <li><strong>등고선 지도:</strong> 등고선 간격은 4cm(선 사이 높이 차)입니다. 노란선은 높은 지역(H), 파란선은 낮은 지역(L)을 나타내는 모식 지형이며 실측 그린이 아닙니다.</li>
+      <li><strong>핀 위치:</strong> 핀 위치와 그 지점의 높낮이가 샷의 조준 목표와 착지 조건에 반영되며, 위치를 옮기면 지형에 따라 굴림 거리도 달라질 수 있습니다.</li>
+      <li><strong>착지·굴림 표시:</strong> 샷 실행 후 <strong>공중 착지점</strong>과 <strong>굴림 후 정지점</strong>을 지도에 표시하고, 공 정지점↔핀 직선거리와 굴림 거리를 안내합니다. 공중 착지가 그린 밖이면 굴림을 계산하지 않고, 굴림 중 그린을 벗어나면 경계까지의 굴림과 이탈 지점에서 핀까지 거리를 표시합니다.</li>
+    </ul>
+    <div class="callout warning"><strong>굴림 모델 한계:</strong> 클럽별 착지 속도·각도·백스핀, 선택한 Stimp, 지형 기울기와 비를 반영하지만, 충돌·스핀 감쇠는 실측 그린 보정 전 추정값이며 바운스·잔디결은 생략합니다.</div>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-06">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>결과 읽기와 샷 실행</h2>
+    <h3>두 가지 핵심 거리의 구분</h3>
+    <table>
+      <thead><tr><th>표시</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><strong>환경반영 권장거리</strong> (투어 모드)</td><td>현재 환경에서 목표를 맞추기 위해 필요한 <strong>평지 기준 캐리</strong>입니다. 맞바람이면 목표보다 커지고 뒷바람이면 작아집니다. 옆의 배지가 선택 클럽 평균과의 차이(“○yd 더 필요” 등)를 알려줍니다.</td></tr>
+        <tr><td><strong>환경반영예상캐리</strong> (상세 결과·선수개별 모드)</td><td>선택한 클럽 풀샷(또는 개인 입력 샷)에 현재 환경을 적용했을 때의 <strong>목표선 방향 수평 캐리</strong>(런 제외)입니다.</td></tr>
+      </tbody>
+    </table>
+    <h3>궤적 화면</h3>
+    <figure class="feature-screenshot">
+      <figcaption>실제 앱 화면 캡처 · 위에서 본 비행 궤적 (좌우 편차)</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-top-view.png" alt="위에서 본 비행 궤적. 목표 방향 위쪽, 좌우 ±160yd 눈금, 출발점에서 핀 140yd까지 직선 궤적과 착지·중앙 표시">
+      <p class="feature-real-capture-note"><strong>측면 보기</strong>는 높이·비행 모양과 최고 높이를, <strong>위에서 보기</strong>는 목표선 기준 좌우 편차를 가로·세로 동일 축척의 수평면 투영으로 보여줍니다.</p>
+    </figure>
+    <ul>
+      <li><strong>샷 실행 (Launch Shot):</strong> 계산된 궤적을 애니메이션으로 재생하고, 위에서 보기의 그린 지도에 공중 착지점과 굴림 후 정지점을 표시합니다. “리셋”으로 애니메이션을 초기화합니다.</li>
+      <li><strong>상세 결과:</strong> 수평 캐리(Carry) · 최고 높이(Apex) · 체공 시간(Hang Time) · 낙하 각도(Landing)를 표시합니다.</li>
+      <li><strong>예상 좌우 편차:</strong> 착지 지점의 목표선 기준 좌우 편차를 요약 카드와 조준 요약에 표시합니다.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-07">
+    <p class="chapter-kicker">CHAPTER 07</p><h2>실전 바람 판단 가이드</h2>
+    <p>풍향 설정 아래 <strong>“실전 바람 판단 가이드”</strong>를 펼치면 다음 참고 자료가 제공됩니다.</p>
+    <ul>
+      <li><strong>풍속별 관찰 단서:</strong> 보포트 풍력 계급의 지상 관측(깃발·나뭇가지 움직임 등)을 2 m/s 구간으로 묶어 풍속을 가늠하는 표입니다.</li>
+      <li><strong>잔디 드리프트 기록법:</strong> 마른 잔디를 어깨·얼굴 높이(약 1.5m)에서 던지지 말고 놓아, 옆 이동을 같은 방식으로 3회 관찰해 2회 이상 비슷할 때만 경향으로 기록하는 공통 기준입니다. 이동 거리를 풍속 수치로 환산하지 마세요.</li>
+      <li><strong>시합 현장 4단계 바람 추정법</strong>과 <strong>선수별 바람 결정 시퀀스</strong>(데이터 중심 Pattern A · 직관 중심 Pattern B 등)를 안내합니다.</li>
+      <li><strong>실전 비거리 보정 참고:</strong> 풍속 1 m/s ≈ 2.24 mph 환산과 함께, 맞바람·뒷바람 보정은 샷별 편차가 큰 참고값이고 옆바람은 신뢰할 수 있는 고정 환산값을 제시하기 어렵다는 점을 설명합니다.</li>
+    </ul>
+    <div class="callout"><strong>활용 원칙:</strong> 시뮬레이터는 볼 속도·발사각·스핀과 상대풍속에 따른 비행을 직접 계산합니다. 가이드의 보정값은 현장 감각 보조용이며, 시뮬레이션 결과를 실측 예측으로 간주하지 마세요.</div>
+  </section>
+
+  <section class="chapter-page" id="sde-chapter-08">
+    <p class="chapter-kicker">CHAPTER 08</p><h2>산출 방식과 한계, 문제 해결</h2>
+    <h3>산출 방식 요약</h3>
+    <ul>
+      <li>기준은 <strong>무풍·20°C·해수면·평지·중립 페어웨이 캐리(런 제외)</strong>입니다. 공개 캐리·최고 높이에 클럽별 항력·양력을 보정해 사용합니다.</li>
+      <li>예상캐리는 목표선 방향 수평 성분이며 좌우 편차는 별도 표시합니다. 목표 높이의 수평면과 하강 궤적의 교점을 착지로 봅니다.</li>
+      <li>부분 샷 추천 역산은 동일 발사각·스핀을 가정합니다. 자동 추천은 클럽만 선택하며 표시 샷의 속도·조준은 바꾸지 않습니다.</li>
+    </ul>
+    <h3>모델이 반영하지 않는 것</h3>
+    <p>실제 경사면·중간 지형·습도·볼 온도·난류·돌풍·지면 런(그린 밖)은 반영하지 않으며, 실제 TrackMan 비행 엔진이나 실측 예측 정확도를 보증하지 않습니다. 상세 가정은 앱 하단 <strong>“산출 방식과 한계”</strong>에서 확인하세요.</p>
+    <h3>문제 해결</h3>
+    <table>
+      <thead><tr><th>증상 / 메시지</th><th>확인할 것</th></tr></thead>
+      <tbody>
+        <tr><td>“레이저 거리는 핀 고도 차이보다 커야 합니다.”</td><td>그린 고도 차이(ΔH)가 레이저 거리보다 크게 입력되지 않았는지 확인하세요.</td></tr>
+        <tr><td>“샷이 그린 높이의 하강 착지점에 도달하지 못했습니다.”</td><td>목표 고도가 너무 높거나 클럽 거리가 부족한 경우입니다. 클럽·환경을 조정하세요.</td></tr>
+        <tr><td>자동 추천 범위 초과 경고</td><td>목표가 최장 클럽 평균보다 멉니다. 표시 궤적은 최장 클럽의 평균 샷입니다.</td></tr>
+        <tr><td>개인 클럽 데이터를 불러오지 못했다는 안내</td><td>브라우저 저장 데이터가 손상된 경우로, 투어 평균이 표시되며 새로 입력하면 저장 데이터가 교체됩니다.</td></tr>
+        <tr><td>입력값이 되돌아감</td><td>각 입력의 허용 범위(예: 레이저 거리 50~350yd, 기준 캐리 20~400yd)를 벗어나면 적용되지 않습니다.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>© 2026 S.Y. Chun. All rights reserved. 무단 복제·배포 및 상업적 이용 금지. · SY-Shot Distance Estamater ver26.1112-1f-ad 기준 · 초판: 2026년 11월 14일</footer>
+</main>
+
+<main id="enManual" lang="en" hidden>
+  <header class="cover">
+    <div><p class="eyebrow">SY-SDE · SHOT DISTANCE ESTIMATOR</p><div class="cover-mark"></div><span class="cover-stamp">ORIGINAL EDITION</span></div>
+    <div><h1>SY-Shot Distance Estamater<br>User Guide</h1><p class="subtitle">A physics-based shot simulator that applies wind, temperature, elevation, rain, and lie conditions to tour-average or personal launch data to estimate the play-as carry to the pin, the expected trajectory, lateral miss, and roll on the green.</p></div>
+    <div class="cover-meta">Created by: S.Y. Chun<br>First edition: November 14, 2026<br>App version: ver26.1112-1f-ad
+      <div class="cover-rights-row"><p class="cover-copyright"><strong>Intellectual property notice</strong><br>© 2026 S.Y. Chun. All rights reserved. The text, structure, and compilation of this manual are protected by copyright. No part of this document may be reproduced, modified, distributed, published, or used commercially without prior written permission. Rights to third-party marks and data such as TrackMan belong to their respective owners.</p><img class="cover-portrait" src="SY-GSAP-author-portrait.jpg" alt="Manual author S.Y. Chun"></div>
+    </div>
+  </header>
+
+  <section class="website-page" aria-label="Shot distance simulator website">
+    <p class="eyebrow">SY-SDE · OFFICIAL WEBSITE</p>
+    <h2>Open the Shot Distance Simulator</h2>
+    <a class="website-url" href="https://soonyongchun-dotcom.github.io/putting-training/shot-distance-simulator/dist/index.html" target="_blank" rel="noopener noreferrer">https://soonyongchun-dotcom.github.io/putting-training/shot-distance-simulator/dist/index.html</a>
+    <p class="website-caption">A physics-estimate golf shot distance simulator · the book icon next to the distance-unit row opens this guide</p>
+  </section>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#en-sde-chapter-01">Overview and screen layout</a></li>
+      <li><a href="#en-sde-chapter-02">Simulation modes and club selection</a></li>
+      <li><a href="#en-sde-chapter-03">Target and aim settings</a></li>
+      <li><a href="#en-sde-chapter-04">Environment · wind, temperature, elevation, rain, lie</a></li>
+      <li><a href="#en-sde-chapter-05">Green and pin settings, roll model</a></li>
+      <li><a href="#en-sde-chapter-06">Reading results and launching shots</a></li>
+      <li><a href="#en-sde-chapter-07">Practical wind judgment guide</a></li>
+      <li><a href="#en-sde-chapter-08">Methodology, limitations, troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <section class="chapter-page" id="en-sde-chapter-01">
+    <p class="chapter-kicker">CHAPTER 01</p><h2>Overview and Screen Layout</h2>
+    <p><strong>SY-Shot Distance Estamater</strong> applies a ball-flight physics model to published tour-average launch data (TrackMan) or to launch data you enter per club, estimating the <strong>play-as carry</strong> needed to attack the pin plus the <strong>expected trajectory, lateral miss, and roll on the green</strong> under current conditions. Results are estimates based on reference data and model assumptions, not guaranteed measurements.</p>
+    <figure class="feature-screenshot">
+      <figcaption>Actual app capture · header and distance-unit selection</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-header-en.png" alt="SY-Shot Distance Estamater header with the title and version, meter/yard unit buttons, Korean/English language buttons, and the user-guide book icon">
+      <p class="feature-real-capture-note">The <strong>Meters (m)/Yards (yd)</strong> buttons on the unit row switch every distance and height input and display; switching units keeps the stored real distances. The <strong>한국어/English</strong> buttons at the top right switch the entire simulator language, and the choice is saved on this device. The <strong>book icon</strong> at the right end of the unit row opens this guide in a new tab.</p>
+    </figure>
+    <figure class="feature-screenshot">
+      <figcaption>Actual app capture · target summary bar and side-view trajectory</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-main.png" alt="Cards for laser distance to pin, aim offset from pin, env-adjusted play-as distance 158.3yd, and expected lateral miss above the side-view trajectory curve">
+      <p class="feature-real-capture-note">The left (or upper) area holds four target summary cards — <strong>laser distance to pin · aim offset from pin · env-adjusted play-as distance · expected lateral miss</strong> — and the trajectory display; the right (or lower) area holds the caddie analysis engine and the environment panel. App captures in this guide show the Korean UI; every label has an English equivalent in English mode.</p>
+    </figure>
+    <h3>Basic workflow</h3>
+    <ol class="steps">
+      <li><strong>Language, unit, and mode:</strong> choose 한국어/English at the top right, meters/yards on the unit row, and tour-average or personal simulation.</li>
+      <li><strong>Target input:</strong> enter the laser distance to the pin and the lateral aim offset from the pin.</li>
+      <li><strong>Environment input:</strong> set wind speed/direction, temperature, green elevation difference, rain, and turf/lie.</li>
+      <li><strong>Green and pin:</strong> in top view, adjust green size, speed (Stimp), and the pin position.</li>
+      <li><strong>Read the results:</strong> check the play-as distance and detailed results, then replay the trajectory, landing, and roll with “Launch Shot.”</li>
+    </ol>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-02">
+    <p class="chapter-kicker">CHAPTER 02</p><h2>Simulation Modes and Club Selection</h2>
+    <figure class="feature-screenshot">
+      <figcaption>Actual app capture · caddie analysis engine</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-caddie.png" alt="Caddie analysis engine panel with tour-average and personal mode buttons, auto club pick, and an LPGA 5-iron result card showing a 145.9yd env-adjusted expected carry">
+      <p class="feature-real-capture-note">Select the mode, tour, and club in the caddie engine; the result card below summarizes laser→horizontal distance, env-adjusted expected carry (excluding rollout), applied ball speed, lie, aim, and the expected landing miss.</p>
+    </figure>
+    <h3>Tour-average simulation</h3>
+    <ul>
+      <li><strong>LPGA·PGA:</strong> uses TrackMan-published tour averages for club speed, ball speed, launch, backspin, carry, and apex. Gap/sand/lob wedges (GW·SW·LW) are estimated from the pitching wedge.</li>
+      <li><strong>KLPGA:</strong> not an official average — a full estimate assuming 97% of LPGA ball/club speed and 96% of carry/apex.</li>
+      <li><strong>Club selection:</strong> pick any club from driver to lob wedge or use <strong>auto pick</strong>, which back-solves reachability under current conditions and selects only the club, never changing the displayed shot’s speed or aim. If the target exceeds the longest club, a warning appears and the longest club’s average shot is displayed.</li>
+    </ul>
+    <h3>Personal player simulation</h3>
+    <ul>
+      <li>Per club you can enter <strong>base carry, club speed, ball speed, launch angle, backspin, apex height, and spin axis</strong>. Entries are saved only in this browser and never uploaded.</li>
+      <li>Enter base carry as the <strong>no-wind, 20°C, flat-ground distance excluding rollout</strong>. Entering carry or apex recalibrates drag/lift to your launch data; with both blank, your launch data runs on the tour aero model.</li>
+      <li>Club speed is informational — flight is computed from ball speed. “Clear this club’s personal entries” restores the tour average.</li>
+      <li>Lie and rain adjustments apply in both modes, so enter personal data as a baseline shot before those adjustments.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-03">
+    <p class="chapter-kicker">CHAPTER 03</p><h2>Target and Aim Settings</h2>
+    <ul>
+      <li><strong>Laser distance to pin:</strong> enter the rangefinder reading (50–350 yd range, in the selected unit). With a green elevation difference, the horizontal distance is back-computed from the laser distance and elevation. The laser distance must exceed the pin elevation difference.</li>
+      <li><strong>Aim offset from pin:</strong> how far the aim point moves left or right of the pin. <strong>Negative is left, positive is right</strong>; if your keyboard lacks a minus key, use the <strong>− Left / + Right</strong> buttons to step one unit, and “Center” to return to 0.</li>
+      <li>The pin position/elevation and the chosen aim offset feed the actual trajectory and landing-deviation computation.</li>
+      <li>The “target green laser distance” slider in the environment panel adjusts the same value.</li>
+    </ul>
+    <div class="callout"><strong>Input tip:</strong> every distance/height field follows the unit selected at the top, and a comma decimal separator is accepted.</div>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-04">
+    <p class="chapter-kicker">CHAPTER 04</p><h2>Environment · Wind, Temperature, Elevation, Rain, Lie</h2>
+    <figure class="feature-screenshot">
+      <figcaption>Actual app capture · field environment settings</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-environment.png" alt="Wind speed slider with m/s, mph, km/h units, four wind-direction quick buttons, turf and lie selection, before/after launch conditions, temperature and elevation sliders, and three rain buttons">
+      <p class="feature-real-capture-note">Changing wind, lie, temperature, elevation, or rain recomputes the results and trajectory immediately. “Launch conditions before → after lie/rain adjustment” shows the adjusted ball speed, launch, and backspin.</p>
+    </figure>
+    <h3>Wind</h3>
+    <ul>
+      <li><strong>Wind speed:</strong> adjust with the slider and switch between m/s, mph, and km/h.</li>
+      <li><strong>Quick directions:</strong> combine the four buttons — headwind (target→player), tailwind (player→target), hook wind (right→left), slice wind (left→right). The direction slider and −5°/+5° buttons set any angle in 1° steps.</li>
+      <li><strong>Direct dial control:</strong> click or drag the wind dial on the trajectory display. The arrow shows the direction the wind blows toward (target ↑ reference); arrow keys adjust 1°, Shift+arrow 15°.</li>
+    </ul>
+    <h3>Temperature, elevation, rain</h3>
+    <ul>
+      <li><strong>Temperature:</strong> used for air density (°C/°F). Colder air is denser and shortens carry.</li>
+      <li><strong>Green elevation difference (ΔH):</strong> the landing height relative to the player — not an altitude input; air density uses standard sea-level pressure at the selected temperature.</li>
+      <li><strong>Rain:</strong> three levels (dry/light/heavy) applying an estimated scenario of +3%/+8% drag and −5%/−15% initial spin.</li>
+    </ul>
+    <h3>Turf and lie (impact estimation scenarios)</h3>
+    <table>
+      <thead><tr><th>Lie</th><th>Applied adjustment</th></tr></thead>
+      <tbody>
+        <tr><td>Fairway · Neutral</td><td>Reference lie. Ball speed, launch, and spin are unchanged.</td></tr>
+        <tr><td>Fairway · Down-grain</td><td>Spin −20% (midpoint of the published 15–25% range). Rollout may increase after landing.</td></tr>
+        <tr><td>Fairway · Into-grain</td><td>Ball speed −3% (midpoint of the published 2–4% range).</td></tr>
+        <tr><td>Rough · Slightly sunk (25% / flyer)</td><td>Spin −35%, launch +2° (model assumption). Rollout may increase, but longer carry is not guaranteed.</td></tr>
+        <tr><td>Rough · Half sunk (50%)</td><td>Ball speed −6%, spin −50%.</td></tr>
+        <tr><td>Rough · Fully sunk (100%)</td><td>Ball speed −15%, launch −3°, spin −50% (model assumptions). No fixed distance loss is forced; each club and shot is computed.</td></tr>
+      </tbody>
+    </table>
+    <p class="small">Lie adjustments apply once to impact ball speed, launch, and spin after the baseline model calibration, multiplied with the rain spin factor.</p>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-05">
+    <p class="chapter-kicker">CHAPTER 05</p><h2>Green and Pin Settings, Roll Model</h2>
+    <figure class="feature-screenshot">
+      <figcaption>Actual app capture · green zoom and pin placement</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-green-pin.png" alt="Green speed (Stimp), width, and depth selectors above a contoured green map with a flag pin, high/low contour legend, and flight-landing and rest-point markers">
+      <p class="feature-real-capture-note">Selecting “Top view” reveals the green map below the flight plan view. Drag the flag or use arrow keys to move the pin, and “Center the pin” to reset it.</p>
+    </figure>
+    <ul>
+      <li><strong>Green speed (Stimp):</strong> choose 2.0–4.0 m; it changes <strong>only the post-landing roll distance</strong>.</li>
+      <li><strong>Green size:</strong> width 20–60 yd and depth 12–40 yd.</li>
+      <li><strong>Contour map:</strong> contour spacing is 4 cm of height per line — yellow marks high areas (H) and blue low areas (L) on a schematic terrain, not a surveyed green.</li>
+      <li><strong>Pin position:</strong> the pin location and its elevation feed the aim target and landing conditions; moving the pin can change the roll with the terrain.</li>
+      <li><strong>Landing and roll markers:</strong> after a shot, the map shows the <strong>flight landing point</strong> and the <strong>rest point after roll</strong>, with the rest-point↔pin distance and the roll distance. If the flight lands off the green, roll is not simulated; if the ball rolls off, the roll to the edge and the exit-to-pin distance are shown.</li>
+    </ul>
+    <div class="callout warning"><strong>Roll model limits:</strong> the roll uses each club’s landing speed, angle, and backspin, the selected Stimp, terrain slope, and rain, but impact and spin decay are estimates pending green calibration; bounce and grain are omitted.</div>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-06">
+    <p class="chapter-kicker">CHAPTER 06</p><h2>Reading Results and Launching Shots</h2>
+    <h3>Two key distances</h3>
+    <table>
+      <thead><tr><th>Display</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Env-adjusted play-as distance</strong> (tour mode)</td><td>The <strong>flat-ground carry</strong> needed to hit the target under current conditions — larger than the target into a headwind, smaller with a tailwind. The badge shows the gap to the selected club average (e.g., “18.3yd more needed”).</td></tr>
+        <tr><td><strong>Env-adjusted expected carry</strong> (detail card · personal mode)</td><td>The <strong>horizontal carry along the target line</strong> (excluding rollout) when the selected club’s full shot (or your entered shot) flies in current conditions.</td></tr>
+      </tbody>
+    </table>
+    <h3>Trajectory display</h3>
+    <figure class="feature-screenshot">
+      <figcaption>Actual app capture · top view (lateral miss)</figcaption>
+      <img class="feature-real-capture" src="manual-screenshots/actual-sde-top-view.png" alt="Top view of the flight with target direction upward, ±160yd lateral ticks, and a straight trajectory from the start point to the pin at 140yd marked landing center">
+      <p class="feature-real-capture-note"><strong>Side view</strong> shows height, flight shape, and apex; <strong>top view</strong> shows the lateral miss versus the target line in an equal-scale horizontal projection.</p>
+    </figure>
+    <ul>
+      <li><strong>Launch Shot:</strong> replays the computed trajectory and marks the flight landing and post-roll rest points on the green map in top view. “Reset” clears the animation.</li>
+      <li><strong>Detail readouts:</strong> Carry, Apex, Hang Time, and Landing Angle.</li>
+      <li><strong>Expected lateral miss:</strong> the landing offset from the target line, shown in the summary card and the aim summary.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-07">
+    <p class="chapter-kicker">CHAPTER 07</p><h2>Practical Wind Judgment Guide</h2>
+    <p>Expanding <strong>“Practical wind judgment guide”</strong> under the wind controls provides these references:</p>
+    <ul>
+      <li><strong>Observation cues by wind speed:</strong> Beaufort-scale ground observations (flags, branches) grouped in 2 m/s bands for estimating wind strength.</li>
+      <li><strong>Grass-drift logging:</strong> release dry grass from shoulder/face height (~1.5 m) without throwing, observe lateral drift three times the same way, and log a tendency only when two or more results agree. Never convert the drift distance to a wind speed.</li>
+      <li><strong>Four-step on-course estimation</strong> and <strong>player decision sequences</strong> (data-driven Pattern A, intuitive Pattern B, threat-management Pattern C).</li>
+      <li><strong>Distance-correction notes:</strong> 1 m/s ≈ 2.24 mph as a unit conversion only; head/tailwind corrections vary widely per shot and no reliable fixed crosswind conversion exists.</li>
+    </ul>
+    <div class="callout"><strong>How to use it:</strong> the simulator computes flight directly from ball speed, launch, spin, and relative wind. The guide’s figures support on-course feel; never treat simulation results as measured predictions.</div>
+  </section>
+
+  <section class="chapter-page" id="en-sde-chapter-08">
+    <p class="chapter-kicker">CHAPTER 08</p><h2>Methodology, Limitations, Troubleshooting</h2>
+    <h3>Methodology summary</h3>
+    <ul>
+      <li>The baseline is <strong>no-wind, 20°C, sea-level, flat, neutral-fairway carry (excluding rollout)</strong>; published carry and apex calibrate per-club drag and lift.</li>
+      <li>Expected carry is the horizontal component along the target line; lateral miss is shown separately. Landing is the intersection of the descending trajectory with the target-height plane.</li>
+      <li>Partial-shot back-solving assumes identical launch and spin. Auto pick selects only the club and never changes the displayed shot’s speed or aim.</li>
+    </ul>
+    <h3>What the model does not include</h3>
+    <p>Real slopes, intermediate terrain, humidity, ball temperature, turbulence, gusts, and off-green ground rollout are not modeled, and no match with the actual TrackMan flight engine or measured prediction accuracy is guaranteed. See <strong>“Methodology and limitations”</strong> at the bottom of the app for the full assumptions.</p>
+    <h3>Troubleshooting</h3>
+    <table>
+      <thead><tr><th>Symptom / message</th><th>What to check</th></tr></thead>
+      <tbody>
+        <tr><td>“The laser distance must exceed the pin elevation difference.”</td><td>Check whether the green elevation difference (ΔH) is larger than the laser distance.</td></tr>
+        <tr><td>“The shot never descends to the green height…”</td><td>The target is too high or the club too short — adjust the club or environment.</td></tr>
+        <tr><td>Auto pick out-of-range warning</td><td>The target exceeds the longest club’s average; the displayed trajectory uses the longest club’s average shot.</td></tr>
+        <tr><td>Saved personal club data could not be loaded</td><td>The browser-stored data is damaged; tour averages are shown and new entries replace the saved data.</td></tr>
+        <tr><td>An input snaps back</td><td>Values outside each field’s range (e.g., laser 50–350 yd, base carry 20–400 yd) are not applied.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>© 2026 S.Y. Chun. All rights reserved. No unauthorized reproduction, distribution, or commercial use. · Based on SY-Shot Distance Estamater ver26.1112-1f-ad · First edition: November 14, 2026</footer>
+</main>
+<script>
+  (function () {
+    var select = document.getElementById('manualLanguage');
+    var koMain = document.getElementById('koManual');
+    var enMain = document.getElementById('enManual');
+    var label = document.getElementById('languageLabel');
+    var printBtn = document.getElementById('printManualBtn');
+    function apply(lang) {
+      var en = lang === 'en';
+      koMain.hidden = en;
+      enMain.hidden = !en;
+      document.documentElement.lang = en ? 'en' : 'ko';
+      document.title = en ? 'SY-SDE Shot Distance Simulator User Guide' : 'SY-SDE 샷거리 시뮬레이터 사용설명서';
+      label.textContent = en ? 'Language' : '언어';
+      printBtn.textContent = en ? 'Print / Save as PDF' : '인쇄 / PDF로 저장';
+      select.value = en ? 'en' : 'ko';
+    }
+    select.addEventListener('change', function () { apply(select.value); });
+    var param = new URLSearchParams(location.search).get('lang');
+    apply(param === 'en' ? 'en' : 'ko');
+  })();
+</script>
+</body>
+</html>
