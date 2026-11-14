@@ -122,6 +122,7 @@
     .screen-tabs button:hover{background:#f1f5f9;border-color:#94a3b8}
     .screen-tabs button.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 0 0 2px rgba(22,163,74,0.2)}
     .schedule-link{
+      position:relative;
       display:inline-flex;align-items:center;justify-content:center;
       width:34px;height:34px;border:1px solid #a7f3d0;border-radius:8px;
       background:#ecfdf5;color:#047857;text-decoration:none;flex-shrink:0;
@@ -155,6 +156,12 @@
       font:600 13px Arial,"Malgun Gothic",sans-serif;
     }
     .schedule-link span{line-height:1}
+    .schedule-link .schedule-notification-badge{
+      position:absolute;top:-7px;right:-7px;display:inline-flex;align-items:center;justify-content:center;
+      min-width:18px;height:18px;padding:0 5px;border:2px solid #fff;border-radius:999px;
+      background:#dc2626;color:#fff;font:700 10px/1 Arial,sans-serif;
+    }
+    .schedule-link .schedule-notification-badge[hidden]{display:none}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(25,45,60,0.035)}
     .kpi{flex:1;min-width:180px}
     .kpi .label{color:var(--sub);font-size:12px}
@@ -551,6 +558,7 @@
                 <path d="M7.5 3v4M16.5 3v4M3.5 9.5h17M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"></path>
               </svg>
               <span>훈련 스케줄</span>
+              <span id="trainingScheduleBadge" class="schedule-notification-badge" aria-hidden="true" hidden>0</span>
             </a>
           </h3>
           <div class="match-actions">
@@ -942,6 +950,7 @@
 
     // ====== 디바이스 전용 (localStorage) ======
     const STORAGE_SESSION = "sytpt_session";
+    const STORAGE_TRAINING_SCHEDULE_SEEN_PREFIX = "sytpt_training_schedule_seen:";
     const STORAGE_COACH_SELECTED_PLAYER = "sytpt_coach_selected_player";
     const STORAGE_COMM_LAST_READ = "sytpt_comm_last_read";
     const STORAGE_SIGNUP_COOLDOWN_UNTIL = "sytpt_signup_cooldown_until";
@@ -956,6 +965,7 @@
     const expandedMissionIds = new Set();
     let showCompletedMissionSection = false;
     const expandedMatchPlayerIds = new Set();
+    let trainingScheduleBadgeRequestId = 0;
     let storageUploadAllowed = true;
     let coachDirectivesCache = [];
     let coachDirectivesByPlayerCache = {};
@@ -1046,6 +1056,43 @@
     function getSession(){ return JSON.parse(localStorage.getItem(STORAGE_SESSION)||"null"); }
     function setSession(s){ localStorage.setItem(STORAGE_SESSION, JSON.stringify(s)); }
     function clearSession(){ localStorage.removeItem(STORAGE_SESSION); }
+
+    async function updatePlayerTrainingScheduleBadge(){
+      const requestId=++trainingScheduleBadgeRequestId;
+      const session=getSession();
+      const badge=document.getElementById('trainingScheduleBadge');
+      const link=document.querySelector('.schedule-link');
+      if(!badge||!link) return;
+      if(!session||session.role!=='player'||!session.id){
+        badge.hidden=true;
+        return;
+      }
+
+      const seenKey=STORAGE_TRAINING_SCHEDULE_SEEN_PREFIX+String(session.id);
+      try{
+        let seenAt=localStorage.getItem(seenKey);
+        const initializeSeenAt=!seenAt;
+        if(!seenAt) seenAt=new Date().toISOString();
+        const {data,error}=await sb
+          .from('sytpt_training_schedules')
+          .select('schedule_id')
+          .gt('created_at',seenAt);
+        if(error) throw error;
+        if(initializeSeenAt&&!localStorage.getItem(seenKey)) localStorage.setItem(seenKey,seenAt);
+        const currentSession=getSession();
+        if(requestId!==trainingScheduleBadgeRequestId||!currentSession||currentSession.role!=='player'||String(currentSession.id)!==String(session.id)) return;
+        const count=(data||[]).length;
+        badge.textContent=String(count);
+        badge.hidden=count===0;
+        const label=appLanguage==='en'
+          ?'Open Training Schedule'+(count?' ('+count+' new)':'')
+          :'훈련 스케줄 열기'+(count?' (새 일정 '+count+'개)':'');
+        link.setAttribute('aria-label',label);
+        link.title=label;
+      }catch(error){
+        console.warn('훈련 스케줄 알림을 확인하지 못했습니다.',error);
+      }
+    }
 
     // ─── 코치 선택 선수 (localStorage) ───
     function getCoachSelectedPlayerId(){ return String(localStorage.getItem(STORAGE_COACH_SELECTED_PLAYER)||"").trim(); }
@@ -3252,12 +3299,15 @@
       var coachBtn=document.querySelector('.portal-tabs button[data-portal="coach"]');
       var playerBtn=document.querySelector('.portal-tabs button[data-portal="player"]');
       if(!session){
+        var trainingScheduleBadge=document.getElementById('trainingScheduleBadge');
+        if(trainingScheduleBadge) trainingScheduleBadge.hidden=true;
         authScreen.style.display='flex';sessionInfo.textContent='로그인 전';switchPortal('player');
         coachBtn.style.display='none';playerBtn.style.display='inline-block';setAuthPanel('login');return;
       }
       authScreen.style.display='none';
       sessionInfo.textContent=session.name+' ('+(session.role==='coach'?'코치':'선수')+')';
       if(session.role==='coach'){
+        updatePlayerTrainingScheduleBadge();
         playerBtn.style.display='inline-block';coachBtn.style.display='inline-block';switchPortal('coach');
         renderPendingApprovals();renderCoachAthleteBoard();renderCoachCompletedMissionList();
         renderCoachMatchBoard();syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();
@@ -3274,6 +3324,7 @@
       }else{
         playerBtn.style.display='inline-block';coachBtn.style.display='none';
         document.getElementById('coachPortal').style.display='none';switchPortal('player');
+        updatePlayerTrainingScheduleBadge();
         renderPlayerViewContext();
         // 접속 시 새로 저장된 라운드가 있으면 본인 경기력 %를 최신 라운드 기준으로 재산정
         (async function(){
@@ -3368,6 +3419,7 @@
         renderCoachDirectiveList();
         renderPlayerMessageThread();
         renderCoachInboxDynamic();
+        if(getSession()&&getSession().role==='player') updatePlayerTrainingScheduleBadge();
       }, 60 * 1000);
     }
 
@@ -3397,6 +3449,7 @@
       realtimeSubscriptionEnabled = true;
       setupRealtimeSubscriptions();
       startPeriodicUiRefresh();
+      if(getSession()&&getSession().role==='player') updatePlayerTrainingScheduleBadge();
     }
 
     function handleVisibilityChange(){
@@ -3474,6 +3527,9 @@
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_assigned_missions'},function(){
           renderMissionCardsForActivePlayer();renderCoachCompletedMissionList();
         })
+        .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_training_schedules'},function(){
+          if(getSession()&&getSession().role==='player') updatePlayerTrainingScheduleBadge();
+        })
         .on('postgres_changes',{event:'*',schema:'public',table:'sytpt_users'},function(){
           renderPlayerViewContext();renderCoachAthleteBoard();renderPendingApprovals();
           syncCoachAthleteSelectOptions();syncCoachDirectiveTargetOptions();renderCoachKPIs();
@@ -3503,6 +3559,12 @@
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage',function(event){
+      var session=getSession();
+      if(session&&session.role==='player'&&event.key===STORAGE_TRAINING_SCHEDULE_SEEN_PREFIX+String(session.id)){
+        updatePlayerTrainingScheduleBadge();
+      }
+    });
     ['pointerdown','keydown','touchstart','scroll'].forEach(function(eventName){
       document.addEventListener(eventName,handleUserActivity,{passive:true});
     });

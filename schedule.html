@@ -95,9 +95,6 @@
           <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
         </label>
         
-        <button class="coach-only px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="addNewRow()" hidden>
-          <i class="fa-solid fa-clock-plus"></i> 시간대 추가
-        </button>
         <button class="coach-only schedule-save-button px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="saveData()" hidden>
           <i class="fa-solid fa-floppy-disk"></i> 훈련 일정 저장
         </button>
@@ -158,14 +155,19 @@
             <div><label for="meta-end-date" class="block text-xs text-blue-100 mb-1">종료일</label><input type="date" id="meta-end-date" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium"></div>
           </div>
         </div>
-        <div>
+        <div class="md:pt-5">
           <label class="block text-xs font-semibold text-blue-200 mb-1"><i class="fa-solid fa-location-dot mr-1"></i> 주요 훈련 장소</label>
-          <input type="text" id="meta-location" oninput="updateMeta('location', this.value)" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium" placeholder="예: 경북 칠곡/구미 파3 및 드라이빙 레인지">
+          <input type="text" id="meta-location" oninput="updateMeta('location', this.value)" class="w-full min-h-[42px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm font-medium" placeholder="예: 경북 칠곡/구미 파3 및 드라이빙 레인지">
         </div>
       </div>
     </div>
 
     <!-- Editable Schedule Table -->
+    <div class="coach-only flex justify-end" hidden>
+      <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-sm transition" onclick="addNewRow()">
+        <i class="fa-solid fa-clock-plus"></i> 시간대 추가
+      </button>
+    </div>
     <div class="table-container bg-white rounded-xl border border-slate-200 overflow-hidden">
       <table class="w-full text-left border-collapse min-w-[950px]" id="schedule-table">
         <thead>
@@ -342,7 +344,7 @@
         if(!authData.session) throw new Error('로그인 세션이 없습니다. 다시 로그인한 뒤 새로고침해 주세요.');
         const {data,error}=await scheduleSupabase
           .from('sytpt_training_schedules')
-          .select('schedule_id,player_id,player_name,player_ids,schedule_payload')
+          .select('schedule_id,player_id,player_name,player_ids,schedule_payload,created_at')
           .order('schedule_id');
         if(error) throw error;
         if(loadRevision!==editRevision) return;
@@ -363,6 +365,7 @@
 
         if(loadRevision!==editRevision) return;
         appData=scheduleRecordsToData(records);
+        markVisibleTrainingSchedulesRead(records);
         localStorage.setItem('golfSeedAppConfigV5',JSON.stringify(appData));
         setScheduleDataStatus('');
         updateEditAccess();
@@ -385,6 +388,23 @@
       catch(error){
         console.error('Unable to read portal session; personalized schedules are unavailable.',error);
         return null;
+      }
+    }
+
+    function markVisibleTrainingSchedulesRead(records){
+      const session=getCurrentUser();
+      if(!session||session.role!=='player'||!session.id) return;
+      const latestCreatedAt=(records||[]).reduce((latest,record)=>{
+        const createdAt=record&&record.created_at;
+        return createdAt&&(!latest||createdAt>latest)?createdAt:latest;
+      },'');
+      if(!latestCreatedAt) return;
+      try{
+        const seenKey='sytpt_training_schedule_seen:'+String(session.id);
+        const seenAt=localStorage.getItem(seenKey);
+        if(!seenAt||latestCreatedAt>seenAt) localStorage.setItem(seenKey,latestCreatedAt);
+      }catch(error){
+        console.error('Unable to save the training schedule read state.',error);
       }
     }
 
@@ -554,10 +574,10 @@
           <td contenteditable="${editable}" onblur="updateRowData(${index}, 'date', this.innerText)" class="py-3 px-4 font-medium text-slate-900 border-r border-slate-200 text-center whitespace-nowrap">${row.date || ''}</td>
           <td contenteditable="${editable}" onblur="updateRowData(${index}, 'day', this.innerText)" class="py-3 px-3 font-semibold text-blue-700 border-r border-slate-200 text-center">${row.day || ''}</td>
           <td contenteditable="${editable}" onblur="updateRowData(${index}, 'time', this.innerText)" class="py-3 px-4 font-mono text-xs text-blue-900 bg-blue-50/30 font-semibold border-r border-slate-200 text-center">${row.time || ''}</td>
-          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'category', this.innerText)" class="py-3 px-4 font-bold text-slate-800 bg-amber-50/20 border-r border-slate-200">${row.category || ''}</td>
-          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'detail', this.innerText)" class="py-3 px-6 text-slate-700 border-r border-slate-200 leading-relaxed">${row.detail || ''}</td>
-          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'location', this.innerText)" class="py-3 px-4 text-slate-600 border-r border-slate-200">${row.location || ''}</td>
-          <td contenteditable="${editable}" onblur="updateRowData(${index}, 'note', this.innerText)" class="py-3 px-4 text-slate-500 border-r border-slate-200 text-xs">${row.note || ''}</td>
+          <td contenteditable="${editable}" onfocus="clearScheduleGuide(this)" onblur="handleScheduleCellBlur(${index}, 'category', this)" class="py-3 px-4 font-bold text-slate-800 bg-amber-50/20 border-r border-slate-200">${row.category || ''}</td>
+          <td contenteditable="${editable}" onfocus="clearScheduleGuide(this)" onblur="handleScheduleCellBlur(${index}, 'detail', this)" class="py-3 px-6 text-slate-700 border-r border-slate-200 leading-relaxed">${row.detail || ''}</td>
+          <td contenteditable="${editable}" onfocus="clearScheduleGuide(this)" onblur="handleScheduleCellBlur(${index}, 'location', this)" class="py-3 px-4 text-slate-600 border-r border-slate-200">${row.location || ''}</td>
+          <td contenteditable="${editable}" onfocus="clearScheduleGuide(this)" onblur="handleScheduleCellBlur(${index}, 'note', this)" class="py-3 px-4 text-slate-500 border-r border-slate-200 text-xs">${row.note || ''}</td>
           
           ${managementCell}
         `;
@@ -763,6 +783,26 @@
         appData[activeTabKey].rows[index][field] = nextValue;
         markScheduleChanged();
       }
+    }
+
+    function clearScheduleGuide(cell) {
+      const guideValues={
+        category:'새 소제목/주제',
+        detail:'세부 훈련 내용 입력',
+        location:'연습장',
+        note:'-'
+      };
+      const guide=guideValues[['date','day','time','category','detail','location','note'][cell.cellIndex]];
+      if(!guide||cell.innerText.trim()!==guide) return;
+      cell.dataset.scheduleGuide=guide;
+      cell.textContent='';
+    }
+
+    function handleScheduleCellBlur(index,field,cell) {
+      const guide=cell.dataset.scheduleGuide;
+      if(guide&&!cell.innerText.trim()) cell.textContent=guide;
+      delete cell.dataset.scheduleGuide;
+      updateRowData(index,field,cell.innerText);
     }
 
     function addNewRow() {
