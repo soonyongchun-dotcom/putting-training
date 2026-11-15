@@ -44,9 +44,11 @@
     .delete-schedule:hover{background:#fef2f2}
     .date-range-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     .date-range-fields input{width:100%;min-height:42px}
+    .table-scroll-hint{display:none}
     @media(max-width:520px){.date-range-fields{grid-template-columns:1fr}}
     @media(max-width:640px){
-      #schedule-table{width:100%;min-width:760px;table-layout:fixed}
+      .table-scroll-hint{display:block;color:#64748b;font-size:13px}
+      #schedule-table{width:100%;min-width:1100px;table-layout:fixed}
       #schedule-table th,#schedule-table td{padding-left:6px;padding-right:6px}
       #schedule-table th:nth-child(1),#schedule-table td:nth-child(1){width:8%}
       #schedule-table th:nth-child(2),#schedule-table td:nth-child(2){width:5%}
@@ -168,7 +170,8 @@
         <i class="fa-solid fa-clock-plus"></i> 시간대 추가
       </button>
     </div>
-    <div class="table-container bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <p id="table-scroll-hint" class="table-scroll-hint">표를 좌우로 밀어서 전체 내용을 확인하세요.</p>
+    <div class="table-container bg-white rounded-xl border border-slate-200" role="region" aria-label="훈련 일정표" aria-describedby="table-scroll-hint" tabindex="0">
       <table class="w-full text-left border-collapse min-w-[950px]" id="schedule-table">
         <thead>
           <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider font-semibold">
