@@ -373,7 +373,7 @@
   <h3>저장한 분석 JSON으로 선수별 변화 비교</h3>
   <p>같은 선수의 분석 JSON을 날짜별로 불러와 손·C7·코어 궤적 그래프와 이동량 표로 비교하는 선수별 스윙 변화 기능은 <a href="#chapter-04">CHAPTER 04</a>에서 실제 화면 캡처와 함께 자세히 설명합니다. 분석 1·2·3을 “분석 저장”으로 저장하면 비교 그래프가 별도 등록 없이 JSON에 함께 저장된다는 점만 기억하세요.</p>
 
-  <div class="callout warning"><strong>순서 주의:</strong> 모든 프레임 분석 전에 기준선이 필요하며, Frame 1을 먼저 완료해야 나머지 프레임의 기준이 만들어집니다. Frame 2의 탑 대비 압축 지표는 Frame 1 B(백스윙 탑)의 추가 그립·클럽헤드 포인트까지 입력해야 계산됩니다. Frame 6의 시퀀스 지표도 Frame 1 B 좌표를 참조합니다. 저장 프로젝트를 불러올 때도 저장 당시의 원본 영상을 먼저 열어야 합니다.</div>
+  <div class="callout warning"><strong>순서 주의:</strong> 모든 프레임 분석 전에 기준선이 필요하며, Frame 1을 먼저 완료해야 나머지 프레임의 기준이 만들어집니다. 탑 대비 압축 참고 지표는 Frame 1 B(백스윙 탑)의 추가 그립·클럽헤드 포인트가 필요하지만 F2 거리 채점에는 사용하지 않습니다. Frame 6의 시퀀스 지표도 Frame 1 B 좌표를 참조합니다. 저장 프로젝트를 불러올 때도 저장 당시의 원본 영상을 먼저 열어야 합니다.</div>
   </section>
 
   <section class="chapter-page" id="chapter-03">
@@ -901,7 +901,7 @@
       <thead><tr><th>프레임</th><th>주요 목적</th><th>시점 / 참고</th></tr></thead>
       <tbody>
         <tr><td>Frame 1</td><td>백스윙 탑의 축 안정, 어깨 회전, 샤프트 수평, C7 변위</td><td>A 어드레스 → B 백스윙 탑. 전체 분석의 기준 프레임</td></tr>
-        <tr><td>Frame 2</td><td>다운스윙 래깅, 골반 이동, 탑 대비 코어-손 압축</td><td>A 어드레스 → B 손이 허리 높이에 오는 다운스윙</td></tr>
+        <tr><td>Frame 2</td><td>다운스윙 래깅각, 골반 이동, 기준선 대비 코어-손 거리</td><td>A 어드레스 → B 손이 허리 높이에 오는 다운스윙</td></tr>
         <tr><td>Frame 3</td><td>다운스윙 신전, 축 이동, 지면반력 전환 proxy</td><td>다운스윙 후기. B 패널은 안내에 따라 추가 포인트 입력</td></tr>
         <tr><td>Frame 4</td><td>임팩트의 팔-샤프트 정렬, 반경 전개, C7 변위</td><td>A 어드레스 → B 임팩트</td></tr>
         <tr><td>Frame 5</td><td>어드레스 대비 다운스윙 중기 위치 일관성</td><td>A 어드레스 → B 손이 허리 높이에 오는 3/5 지점</td></tr>
@@ -911,7 +911,7 @@
     <h3>Frame 1~4 세부 지표 이해하기</h3>
     <ul>
       <li><strong>Frame 1 — 백스윙 탑:</strong> Spine-angle retention (Address → Top), Shoulder Turn (2D), Shaft Level (Top), C7 Displacement(X/Y)를 봅니다. 별도로 표시되는 C7–pelvis coupling은 변위와 다른 보조 지표이며, 기준을 벗어나면 최대 2점 감점에 반영됩니다.</li>
-      <li><strong>Frame 2 — 전환·압축:</strong> Lag-Angle Change, 탑에서 Frame 2까지 골반 중심–양손 중심 거리의 Core-to-Hand Compression, 그리고 Core Shift(C7 안정성 포함)를 표시합니다. Frame 1 탑의 필요한 포인트가 없으면 압축률을 계산할 수 없습니다.</li>
+      <li><strong>Frame 2 — 전환·거리:</strong> B의 클럽헤드–양손–어깨 내각 40%, B 골반 중심–양손 중심 거리를 기준선으로 나눈 값 20%, 골반 이동·C7 안정성 40%를 채점합니다. 각도는 55° 이하 만점·90° 이상 0점, 거리는 35% 이하 만점·50% 이상 0점이며 그 사이는 선형 감점합니다. 어드레스 몸통 길이 대비 골반 X 이동 크기는 0%에서 0점, 25% 이상에서 4점, 사이는 선형 보간합니다. C7 X 이동이 5%를 초과하면 초과 1%p당 0.1점씩 이 항목에서 감점하며 최저 0점입니다. 방향은 무시하고 C7이 없으면 감점을 보류합니다. 탑 대비 압축률은 참고값으로 남고 F2 점수에는 사용하지 않습니다.</li>
       <li><strong>Frame 3 — 다운스윙 후기:</strong> 골반·무릎·발목으로 계산한 Vertical-Extension Change와 어드레스 대비 Axis Hold를 표시합니다. Posture transition (not force) 점수는 브레이싱·고관절 하강·C7 조기 상승의 2D 관찰값이며, 토크나 지면반력을 측정한 결과가 아닙니다.</li>
       <li><strong>Frame 4 — 임팩트:</strong> 채점에는 B 임팩트 팔–샤프트 절대각이 사용됩니다. Arm-Shaft Alignment Change(A/B 변화), Angle-Radius Reference Index, Swing-Radius Expansion, Lateral-Tilt Change는 관찰용이며 실제 속도를 뜻하지 않습니다. Impact pelvis–C7 gap과 Downswing coupling은 실험적 임팩트 분리 감점에 반영될 수 있습니다. 같은 영상의 궤적 감점과 임팩트 분리 감점 합계는 최대 3점인 잠정 기준입니다.</li>
     </ul>
@@ -1149,7 +1149,7 @@
     <p>“Save Analysis” in Motion Analysis exports the frame selections, entered points, analysis results, and supporting R10 data as a JSON project. To resume, first load the same source videos into panels A and B, then choose the JSON with “Load Analysis.” The project does not contain the videos, and the app asks for confirmation before replacing the current analysis. The file-size limit is 25 MB.</p>
     <h3>Compare Player Swing Changes from Saved JSON</h3>
     <p>Comparing saved analysis JSON files by date with hand/C7/core path graphs and the displacement table is covered in detail, with actual screen captures, in <a href="#en-chapter-04">CHAPTER 04</a>. When you save analysis 1, 2 or 3 with “Save Analysis,” the comparison graphs are stored in the JSON without separate registration.</p>
-    <div class="callout warning"><strong>Sequence matters:</strong> Set the reference line and complete Frame 1 before analyzing later frames. The F2 top-to-downswing compression metric requires the additional grip and clubhead points in Frame 1 B. F6 sequence metrics also reference the Frame 1 B coordinates. Load the original videos used when the project was saved before restoring it.</div>
+    <div class="callout warning"><strong>Sequence matters:</strong> Set the reference line and complete Frame 1 before analyzing later frames. The top-to-downswing compression observation requires the additional grip and clubhead points in Frame 1 B, but is not used in the F2 distance score. F6 sequence metrics also reference the Frame 1 B coordinates. Load the original videos used when the project was saved before restoring it.</div>
   </section>
 
   <section class="chapter-page" id="en-chapter-03">
@@ -1660,7 +1660,7 @@
     <p class="chapter-kicker">CHAPTER 08</p><h2>Frame 1–6 Analysis Guide</h2>
     <table><thead><tr><th>Frame</th><th>Main focus</th><th>Moment / note</th></tr></thead><tbody>
       <tr><td>Frame 1</td><td>Axis stability, shoulder turn, shaft level, and C7 displacement at the top</td><td>A: address → B: top of backswing. Establishes the analysis baseline.</td></tr>
-      <tr><td>Frame 2</td><td>Downswing lag, pelvis shift, and top-to-downswing core-to-hand compression</td><td>A: address → B: hands at waist height during downswing.</td></tr>
+      <tr><td>Frame 2</td><td>Downswing lag angle, pelvis shift, and core-to-hands distance relative to the reference line</td><td>A: address → B: hands at waist height during downswing.</td></tr>
       <tr><td>Frame 3</td><td>Downswing extension, axis movement, and ground-force transition proxy</td><td>Late downswing. Follow the guide for any extra B-panel points.</td></tr>
       <tr><td>Frame 4</td><td>Impact arm-shaft alignment, radius expansion, and C7 displacement</td><td>A: address → B: impact.</td></tr>
       <tr><td>Frame 5</td><td>Position consistency from address to the middle downswing</td><td>A: address → B: hands at waist height, around the 3/5 point.</td></tr>
@@ -1669,7 +1669,7 @@
     <h3>Understanding the Frame 1–4 Metrics</h3>
     <ul>
       <li><strong>Frame 1 — Top of backswing:</strong> Reviews Spine-angle retention (Address → Top), Shoulder Turn (2D), Shaft Level (Top), and C7 Displacement (X/Y). The separately reported C7–pelvis coupling ratio is a distinct auxiliary metric and can contribute up to a 2-point deduction when outside its target range.</li>
-      <li><strong>Frame 2 — Transition and compression:</strong> Shows Lag-Angle Change, Core-to-Hand Compression (change in pelvis-center-to-hand-center distance from the top to Frame 2), and Core Shift with C7 stability. Compression is unavailable unless the required Frame 1 top points have been entered.</li>
+      <li><strong>Frame 2 — Transition and distance:</strong> Scores the B clubhead–hands–shoulder angle (40%), B pelvis-center–hands-center distance divided by the reference line (20%), and pelvis shift with C7 stability (40%). The angle earns full credit at 55° or less and zero at 90° or more; distance earns full credit at 35% or less and zero at 50% or more. Deductions between thresholds are linear. Pelvis X-shift magnitude relative to address torso length earns zero at 0% and four points at 25% or more, linearly between. C7 X-shift above 5% deducts 0.1 points per percentage point from that component, down to zero. Direction is ignored and the C7 deduction is withheld when C7 is missing. Top-to-F2 compression remains an observation and is not scored in F2.</li>
       <li><strong>Frame 3 — Late downswing:</strong> Shows Vertical-Extension Change calculated from pelvis, knee, and ankle points, plus Axis Hold relative to address. The Posture transition (not force) score summarizes 2D bracing, hip drop, and early C7 rise; it does not measure torque or ground force.</li>
       <li><strong>Frame 4 — Impact:</strong> The scored metric is the B-panel absolute arm–shaft angle at impact. Arm-Shaft Alignment Change (the A-to-B change), the Angle-Radius Reference Index, Swing-Radius Expansion, and Lateral-Tilt Change are observations, not actual speed. Impact pelvis–C7 gap and Downswing coupling can contribute to the experimental impact-separation deduction. The same-video trajectory and impact-separation deductions are provisional and capped at 3 points combined.</li>
     </ul>

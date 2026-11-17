@@ -2472,13 +2472,13 @@
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF2">
           <div class="analysis-segment-compare-title">Frame 2 — 래깅/코어이동</div>
           <div class="analysis-metric" id="analysisDeltaCardF2Score"
-            data-tooltip="F2 잠정점수: 실제 래깅각 40%·탑→F2 압축 20%·골반/C7 이동 적합도 40%. 선수 참고 범위 밖에서는 래깅·압축의 거리별 지수 감점이 빠르게 증가합니다. 표시 보간 없음.">점수: -</div>
+            data-tooltip="F2 잠정점수: 실제 래깅각 40%·기준선 대비 코어-손 거리 20%·골반/C7 이동 적합도 40%. 각도와 거리는 작을수록 높고 기준 구간 사이에서 선형 감점합니다.">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2LagAngle"
-               data-tooltip="채점은 B 실제 클럽헤드–양손–어깨 내각: 선수 참고 범위 30~66° 안은 무감점, 범위 밖은 거리별 지수형 감점(단위 각도당 0.10). 2D 투영의 잠정 기준입니다.">코킹(래깅)각도: -</div>
+               data-tooltip="B 실제 클럽헤드–양손–어깨 내각: 55° 이하 만점, 90° 이상 0점, 그 사이는 선형 감점합니다. 2D 투영의 잠정 기준입니다.">코킹(래깅)각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2RadiusCompression"
-            data-tooltip="백스윙 탑→Frame 2 다운스윙의 코어-양손 중심 거리 압축률&#10;산출: (탑 골반-양손 거리 − Frame 2 골반-양손 거리) / 탑 거리&#10;선수 4개 프로젝트 참고 범위: 35~50%&#10;범위 밖은 1%p마다 적합도가 약 16% 감소하는 지수 감점&#10;클럽헤드는 사용하지 않음">코어-손 압축: -</div>
+            data-tooltip="F2 골반 중심–양손 중심의 2D 거리 ÷ 기준선 길이&#10;35% 이하 만점, 50% 이상 0점, 그 사이는 선형 감점합니다.&#10;백스윙 탑 거리와 클럽헤드는 사용하지 않습니다.">코어-손 거리: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2CoreShift"
-            data-tooltip="선수 4개 프로젝트의 잠정 참고 범위: 골반 X 이동 크기 10~28%, C7 이동 크기 0~15%는 감점하지 않습니다. 이 범위 밖은 거리에 따라 지수형으로 감점합니다. C7/골반 이동 크기 비율도 표시하지만, 방향을 무시하므로 별도 동반 판정·감점에는 쓰지 않습니다.">코어(골반) 이동: -</div>
+            data-tooltip="어드레스 몸통 길이 대비 골반 X 이동 크기: 0%는 0점, 25% 이상은 4점, 사이는 선형 보간합니다. C7 X 이동이 5%를 초과하면 초과 1%p당 0.1점을 이 항목에서 감점하며, 최저 0점입니다. 방향은 무시합니다. C7이 없으면 감점을 보류합니다.">코어(골반) 이동: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
           <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
@@ -2692,7 +2692,7 @@
         <summary>프레임 채점·보완점수 상세</summary>
         <div id="analysisBonusReference" class="analysis-summary"></div>
         <div id="analysisThreePointSpread" class="analysis-summary" style="white-space:pre-wrap;text-align:left;"></div>
-        <div class="analysis-summary" style="text-align:left;">잠정 점수 구성 (세부 지표는 각 항목의 도움말 참고): F2 래깅 40%·압축 20%·골반/C7 이동 40%, F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐이 참고 범위를 벗어날 때만 F3/F4에서 감점하고, 범위 안의 보완도 동일 영상·순서 근거가 있을 때만 적용합니다. F4 3점 궤적·임팩트 분리 실험적 감점 합계는 최대 3점, F3/F4 측면 경로 보완은 10%입니다. F6는 상대 변위 100%, 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. 시간차와 Release Index는 미검증 관측값으로 점수에서 제외하며, 누락 항목은 재정규화합니다. 비거리 모션 평균은 F1–F4 점수 평균입니다. 모든 범위는 소표본 잠정 기준이며 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.</div>
+        <div class="analysis-summary" style="text-align:left;">잠정 점수 구성: F2 래깅각 40%·기준선 대비 코어-손 거리 20%·골반/C7 이동 40%. F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 세부 지표와 다른 프레임의 보완·감점은 각 항목의 도움말을 참고하세요. 누락 항목은 재정규화하며, 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.</div>
       </details>
     </details>
     <details class="analysis-reference-detail" data-workflow-for="swingtype">
@@ -3029,11 +3029,11 @@
     ' · 지표 기반 잠정점수 (표시 보간 없음 · 수행능력 검증 전)': ' · Provisional metric score (no display interpolation · performance unvalidated)',
     ' · 다른 영상 A/B 좌표 이동 채점 제외': ' · Cross-video A/B coordinate shifts excluded',
     ' · 잠정 지표 점수 포함': ' · Includes provisional metric scores',
-    'F2 잠정점수: 실제 래깅각 40%·탑→F2 압축 20%·골반/C7 이동 적합도 40%. 선수 참고 범위 밖에서는 래깅·압축의 거리별 지수 감점이 빠르게 증가합니다. 표시 보간 없음.': 'Provisional F2: actual lag 40%, top→F2 compression 20%, pelvis/C7-shift fit 40%. Lag and compression fit decrease rapidly and exponentially outside player-reference ranges. No display interpolation.',
-    '채점은 B 실제 클럽헤드–양손–어깨 내각: 선수 참고 범위 30~66° 안은 무감점, 범위 밖은 거리별 지수형 감점(단위 각도당 0.10). 2D 투영의 잠정 기준입니다.': 'Score the actual B clubhead–hands–shoulder angle: no deduction within the 30–66° player-reference band, then exponential decay at 0.10 per degree outside it. Provisional 2D-projection threshold.',
-    '백스윙 탑→Frame 2 다운스윙의 코어-양손 중심 거리 압축률\n산출: (탑 골반-양손 거리 − Frame 2 골반-양손 거리) / 탑 거리\n선수 4개 프로젝트 참고 범위: 35~50%\n범위 밖은 1%p마다 적합도가 약 16% 감소하는 지수 감점\n클럽헤드는 사용하지 않음': 'Top-of-backswing→Frame 2 downswing compression of the pelvis-to-hands center distance\nCalculation: (top pelvis-to-hands distance − Frame 2 distance) / top distance\nReference range from four player projects: 35–50%\nOutside this band, fit falls about 16% per percentage point\nClubhead is not used',
-    '선수 4개 프로젝트의 잠정 참고 범위: 골반 X 이동 크기 10~28%, C7 이동 크기 0~15%는 감점하지 않습니다. 이 범위 밖은 거리에 따라 지수형으로 감점합니다. C7/골반 이동 크기 비율도 표시하지만, 방향을 무시하므로 별도 동반 판정·감점에는 쓰지 않습니다.': 'Provisional reference ranges from four player projects: no deduction for pelvis X-shift magnitude 10–28% or C7 shift magnitude 0–15%. Outside these bands, fit decreases exponentially with distance. The C7/pelvis magnitude ratio is shown but is not separately scored because direction is ignored.',
-    '선수 4개 프로젝트의 잠정 참고 범위: 골반 X 이동 크기 10~28%, C7 이동 크기 0~15%는 감점하지 않습니다. 이 범위 밖은 거리에 따라 지수형으로 감점합니다. C7/골반 이동 크기 비율도 표시하지만, 방향을 무시하므로 별도 동반 판정·감점에는 쓰지 않습니다.': 'Provisional reference ranges from four player projects: no deduction for pelvis X-shift magnitude 10–28% or C7 shift magnitude 0–15%. Outside these bands, fit decreases exponentially with distance. C7/pelvis magnitude ratio is shown, but with direction ignored it is not used as a separate coupling deduction.',
+    'F2 잠정점수: 실제 래깅각 40%·기준선 대비 코어-손 거리 20%·골반/C7 이동 적합도 40%. 각도와 거리는 작을수록 높고 기준 구간 사이에서 선형 감점합니다.': 'Provisional F2: actual lag angle 40%, core-to-hands distance relative to the reference line 20%, pelvis/C7-shift fit 40%. Smaller angles and distances score higher, with linear deductions between thresholds.',
+    '잠정 점수 구성: F2 래깅각 40%·기준선 대비 코어-손 거리 20%·골반/C7 이동 40%. F3 신전 35%·축 안정 25%·자세 전환 40%, F4 정렬 70%·C7 X/Y 각 15%. 세부 지표와 다른 프레임의 보완·감점은 각 항목의 도움말을 참고하세요. 누락 항목은 재정규화하며, 2D 형상으로 힘·지면반력·속도를 측정하지 않습니다.': 'Provisional weights: F2 lag angle 40%, core-to-hands distance relative to the reference line 20%, pelvis/C7 shift 40%. F3 extension 35%, axis stability 25%, posture transition 40%; F4 alignment 70%, C7 X/Y 15% each. See each tooltip for details and other frame adjustments. Missing components are reweighted; 2D geometry does not measure force, ground reaction force, or speed.',
+    'B 실제 클럽헤드–양손–어깨 내각: 55° 이하 만점, 90° 이상 0점, 그 사이는 선형 감점합니다. 2D 투영의 잠정 기준입니다.': 'Actual B clubhead–hands–shoulder angle: full credit at 55° or less, zero at 90° or more, and linear deductions in between. Provisional 2D-projection thresholds.',
+    'F2 골반 중심–양손 중심의 2D 거리 ÷ 기준선 길이\n35% 이하 만점, 50% 이상 0점, 그 사이는 선형 감점합니다.\n백스윙 탑 거리와 클럽헤드는 사용하지 않습니다.': 'F2 2D pelvis-center–hands-center distance ÷ reference-line length\nFull credit at 35% or less, zero at 50% or more, linear deductions in between.\nThe backswing-top distance and clubhead are not used.',
+    '어드레스 몸통 길이 대비 골반 X 이동 크기: 0%는 0점, 25% 이상은 4점, 사이는 선형 보간합니다. C7 X 이동이 5%를 초과하면 초과 1%p당 0.1점을 이 항목에서 감점하며, 최저 0점입니다. 방향은 무시합니다. C7이 없으면 감점을 보류합니다.': 'Pelvis X-shift magnitude relative to address torso length: zero points at 0%, four points at 25% or more, linear in between. C7 X-shift above 5% deducts 0.1 points per percentage point from this component, down to zero. Direction is ignored. C7 deduction is withheld when C7 is missing.',
     'F3 잠정점수: 신전 상태/변화 35%·축 안정 25%·자세 전환 40%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐으로 초기 압축과 다운스윙 전개가 선수 참고 범위를 벗어나면 최대 1.5점 지수 감점합니다. 선수 범위 안의 보완점만 유지합니다. 실험적 2D 지표이며 토크·지면반력 측정이 아닙니다.': 'Provisional F3: extension state/change 35%, axis stability 25%, posture transition 40%. Ordered same-video F1–F4 B three-point spread incurs up to a 1.5-point exponential deduction when initial compression or downswing progression falls outside player references. The existing bonus applies only within player bands. Experimental 2D metric; not measured torque or ground force.',
     '신전 항목: 변화량(0→6° 램프) 75% + B 절대각(150→175° 램프) 25%. 어드레스부터 펴져 있던 무릎은 절대각만으로 만점을 받지 않습니다. 이 범위는 잠정 기준입니다.': 'Extension component: change (0→6° ramp) 75% + B angle (150→175° ramp) 25%. A knee already straight at address does not get full credit from the angle alone. Provisional ranges.',
     '축 고정: 어드레스 대비 C7의 타깃 쪽 이동 2% 이내 만점, 6%에서 0점(방향 미확인 시 절댓값). 어드레스 C7이 없으면 기존 C7 Sway(2→10%)를 씁니다. 잠정 기준입니다.': 'Axis hold: C7 drift toward the target from address — full credit within 2%, zero at 6% (absolute if direction is unknown). Falls back to C7 sway (2→10%) without an address C7. Provisional.',
@@ -3227,7 +3227,7 @@
     '반경 비율: -': 'Radius Ratio: -', '각도·반경: -': 'Angle · Radius: -',
     '척추각도: -': 'Spine Angle: -', 'X-Factor(어깨회전): -': 'X-Factor (Shoulder Turn): -',
     '샤프트 수평(탑): -': 'Shaft Level (Top): -', 'C7 변위(X/Y): -': 'C7 Displacement (X/Y): -',
-    '코킹(래깅)각도: -': 'Lag Angle: -', '코어-손 압축: -': 'Core-to-Hand Compression: -',
+    '코킹(래깅)각도: -': 'Lag Angle: -', '코어-손 압축: -': 'Core-to-Hand Compression: -', '코어-손 거리: -': 'Core-to-Hands Distance: -',
     '코어(골반) 이동: -': 'Core (Pelvis) Shift: -', '수직신장 각도: -': 'Vertical Extension: -',
     '축 고정 지수: -': 'Axis Stability Index: -', '지면반력 전환 지수: -': 'Ground-Force Transition Index: -',
     '각도·반경 참고 지수: -': 'Angle-Radius Reference Index: -', '스윙 반경 전개: -': 'Swing Radius Expansion: -',
@@ -6382,7 +6382,7 @@
 
   function scoreLagAngle(angle) {
     if (!hasMetric(angle) || angle < 0 || angle > 180) return null;
-    return scoreExponentialReferenceBand(angle, 30, 66, 0.10);
+    return clamp((90 - angle) / 35, 0, 1);
   }
 
   function scoreP6LagRetention(angle) {
@@ -6407,29 +6407,26 @@
     const lag = Object.hasOwn(fm, 'laggingAngleBDeg') ? fm.laggingAngleBDeg
       : frameSideMetricsHistory.frame2?.laggingAngleDeg;
     const lagScore = scoreLagAngle(lag);
-    const compressionScore = hasMetric(fm.radiusCompressionRatio)
-      ? scoreExponentialReferenceBand(fm.radiusCompressionRatio * 100, 35, 50, 0.18) : null;
+    const distanceScore = hasMetric(fm.coreHandReferenceRatio) && fm.coreHandReferenceRatio >= 0
+      ? clamp((0.50 - fm.coreHandReferenceRatio) / 0.15, 0, 1) : null;
     const pelvisShiftMagnitude = hasMetric(fm.pelvisLateralDelta) ? Math.abs(fm.pelvisLateralDelta) : null;
     const pelvisShiftScore = fm.distanceComparable !== false && hasMetric(pelvisShiftMagnitude)
-      ? scoreExponentialReferenceBand(pelvisShiftMagnitude * 100, 10, 28, 0.12)
+      ? clamp(pelvisShiftMagnitude / 0.25, 0, 1)
       : null;
-    const headDrift = fm.distanceComparable !== false
+    const headDrift = fm.distanceComparable !== false && hasMetric(fm.c7LateralDelta2)
       ? Math.abs(fm.c7LateralDelta2) : null;
-    const absoluteHeadStability = hasMetric(headDrift)
-      ? scoreExponentialReferenceBand(headDrift * 100, 0, 15, 0.12) : null;
+    const c7PenaltyPoints = hasMetric(headDrift)
+      ? Math.max(0, headDrift * 100 - 5) * 0.1 : null;
     const headPelvisCoupling = fm.distanceComparable !== false
       && hasMetric(fm.c7LateralDelta2) && hasMetric(fm.pelvisLateralDelta)
       ? Math.abs(fm.c7LateralDelta2) / Math.max(Math.abs(fm.pelvisLateralDelta), 0.03) : null;
-    const headPelvisSeparation = hasMetric(headPelvisCoupling)
-      ? scoreExponentialReferenceBand(headPelvisCoupling, 0, 0.95, 6) : null;
-    const headStability = absoluteHeadStability;
+    const appliedC7PenaltyPoints = hasMetric(pelvisShiftScore) && hasMetric(c7PenaltyPoints)
+      ? Math.min(pelvisShiftScore * 4, c7PenaltyPoints) : null;
     const coreShiftScore = hasMetric(pelvisShiftScore)
-      ? hasMetric(headStability) ? pelvisShiftScore * headStability : pelvisShiftScore
-      : headStability;
+      ? Math.max(0, pelvisShiftScore - (appliedC7PenaltyPoints ?? 0) / 4) : null;
     return {
-      lag, lagScore, compressionScore, pelvisShiftMagnitude, pelvisShiftScore, headDrift,
-      absoluteHeadStability, headPelvisCoupling, headPelvisSeparation,
-      headStability, coreShiftScore,
+      lag, lagScore, distanceScore, pelvisShiftMagnitude, pelvisShiftScore, headDrift,
+      headPelvisCoupling, c7PenaltyPoints, appliedC7PenaltyPoints, coreShiftScore,
     };
   }
 
@@ -6446,21 +6443,15 @@
     const currentC7 = hasMetric(fm.c7LateralDelta2) ? `${(Math.abs(fm.c7LateralDelta2) * 100).toFixed(1)}%` : null;
     const lagComparison = currentLag
       ? `${currentLag} vs ${references.map(reference => `${reference.name} ${reference.lag.toFixed(1)}°`).join(' / ')}`
-        + ` (${references.map(reference => `${signed(breakdown.lag - reference.lag)}°`).join(' / ')}; ${breakdown.lag > 66 || breakdown.lag < 30
-          ? getSwingUiText('프로 참고 상한 초과·거리별 지수 감점', 'above the player reference band; exponential distance penalty')
-          : getSwingUiText('프로 참고 범위 안', 'within the player reference band')})`
+        + ` (${references.map(reference => `${signed(breakdown.lag - reference.lag)}°`).join(' / ')})`
       : null;
     const compressionComparison = currentCompression
       ? `${currentCompression} vs ${references.map(reference => `${reference.name} ${reference.compression.toFixed(1)}%`).join(' / ')}`
-        + ` (${references.map(reference => `${signed(fm.radiusCompressionRatio * 100 - reference.compression)}%p`).join(' / ')}; ${fm.radiusCompressionRatio < 0.35 || fm.radiusCompressionRatio > 0.50
-          ? getSwingUiText('프로 참고 범위 이탈·거리별 지수 감점', 'outside the player reference band; exponential distance penalty')
-          : getSwingUiText('프로 참고 범위 안', 'within the player reference band')})`
+        + ` (${references.map(reference => `${signed(fm.radiusCompressionRatio * 100 - reference.compression)}%p`).join(' / ')}; ${getSwingUiText('탑→F2 압축은 F2 채점에 미사용', 'top→F2 compression is not scored in F2')})`
       : null;
     const shiftComparison = currentShift
       ? `${currentShift} vs ${references.map(reference => `${reference.name} ${reference.pelvisShift.toFixed(1)}%`).join(' / ')}`
-        + ` (${references.map(reference => `${signed(breakdown.pelvisShiftMagnitude * 100 - reference.pelvisShift)}%p`).join(' / ')}; ${breakdown.pelvisShiftMagnitude >= 0.10 && breakdown.pelvisShiftMagnitude <= 0.28
-          ? getSwingUiText('선수 참고 이동 크기 범위 안', 'within the player reference shift-magnitude band')
-          : getSwingUiText('범위 이탈·거리별 지수 감점', 'outside the band; exponential distance penalty')})`
+        + ` (${references.map(reference => `${signed(breakdown.pelvisShiftMagnitude * 100 - reference.pelvisShift)}%p`).join(' / ')})`
       : null;
     const comparisons = [
       lagComparison && getSwingUiText(`래깅 ${lagComparison}`, `lag ${lagComparison}`),
@@ -6471,8 +6462,8 @@
     if (currentC7 && hasMetric(fm.pelvisLateralDelta) && hasMetric(breakdown.headPelvisCoupling)) {
       const gap = Math.abs(breakdown.pelvisShiftMagnitude - Math.abs(fm.c7LateralDelta2)) * 100;
       comparisons.push(getSwingUiText(
-        `C7 이동 ${currentC7}·골반 이동 ${currentShift}: X 이동 크기 차 ${gap.toFixed(1)}%p, 동반률 ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (안정 계수 ${hasMetric(breakdown.headStability) ? breakdown.headStability.toFixed(2) : '—'}; 좌우 방향이 아닌 크기 기준; 프로 C7 비교자료 없음)`,
-        `C7 shift ${currentC7}·pelvis shift ${currentShift}: X magnitude difference ${gap.toFixed(1)} pp, co-movement ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (stability factor ${hasMetric(breakdown.headStability) ? breakdown.headStability.toFixed(2) : '—'}; magnitude only, direction ignored; no pro C7 reference data)`));
+        `C7 이동 ${currentC7}·골반 이동 ${currentShift}: X 이동 크기 차 ${gap.toFixed(1)}%p, 동반률 ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (방향 무시; 동반률은 참고값; 프로 C7 비교자료 없음)`,
+        `C7 shift ${currentC7}·pelvis shift ${currentShift}: X magnitude difference ${gap.toFixed(1)} pp, co-movement ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (direction ignored; co-movement is observational; no pro C7 reference data)`));
     }
     return getSwingUiText('프로 참고값 대비(별도 보고서 수치, 채점 가산 아님): ', 'Versus pro references (separate report measurements; no score bonus): ')
       + comparisons.join(' | ');
@@ -6495,10 +6486,11 @@
     if (segment === 'frame2') {
       const breakdown = getF2MetricBreakdown(fm);
       fm.headPelvisCouplingRatio2 = breakdown.headPelvisCoupling;
-      fm.headStableScore2 = breakdown.headStability;
+      fm.headStableScore2 = null;
+      fm.c7PenaltyPoints2 = breakdown.appliedC7PenaltyPoints;
       return [
         { value: breakdown.lagScore, weight: 0.40 },
-        { value: breakdown.compressionScore, weight: 0.20 },
+        { value: breakdown.distanceScore, weight: 0.20 },
         { value: breakdown.coreShiftScore, weight: 0.40 },
       ];
     }
@@ -6566,7 +6558,7 @@
     const observed = deltaResult.fm || {};
     if (observed.visibilityLimited) {
       const evidence = {
-        frame2: [observed.laggingAngleBDeg, observed.pelvisLateralDelta, observed.radiusCompressionRatio],
+        frame2: [observed.laggingAngleBDeg, observed.pelvisLateralDelta, observed.coreHandReferenceRatio],
         frame3: [observed.kneeExtDelta, observed.hipDropPercent, observed.leadLegBraceRatioB],
         frame4: [observed.armShaftAngleBDeg, observed.c7XPercent, observed.c7YPercent],
       }[segment];
@@ -6711,6 +6703,7 @@
       fm.laggingAngleDelta  = computeMetricDelta(fmA.laggingAngleDeg,
         fmB.crossCorrected ? fmB.projectedLaggingAngleDeg : fmB.laggingAngleDeg);
       fm.laggingAngleBDeg    = fmB.laggingAngleDeg ?? null; // B프레임(다운스윙) 실제 래깅각
+      fm.coreHandReferenceRatio = hasMetric(fmB.coreHandReferenceRatio) ? fmB.coreHandReferenceRatio : null;
       const frame1History = frameMetricsHistory['frame1'];
       fm.radiusTop = frame1History && hasMetric(frame1History._coreHandRadiusB) ? frame1History._coreHandRadiusB : null;
       // radiusTop이 없을 때 원인 구분: B패널(백스윙 탑) 자체에 그립/클럽헤드 포인트가 없는지(topShaftAngleDeg도 null),
@@ -7329,21 +7322,24 @@
             : 'C7 변위: 기준선 미지정(기준선 지정 버튼 필요)';
     } else if (segment === 'frame2') {
       if (analysisDeltaCardF2LagAngle) analysisDeltaCardF2LagAngle.textContent =
-        fm.laggingAngleDelta != null
-          ? `래깅각 변화: ${formatDelta(fm.laggingAngleDelta)}°${fm.laggingAngleBDeg != null ? ` (실제: ${fm.laggingAngleBDeg.toFixed(1)}°)` : ''}`
-          : '래깅각: 데이터 부족';
+        hasMetric(fm.laggingAngleBDeg)
+          ? getSwingUiText(`실제 래깅각: ${fm.laggingAngleBDeg.toFixed(1)}° (55° 이하 만점·90° 이상 0점)`,
+            `Actual lag angle: ${fm.laggingAngleBDeg.toFixed(1)}° (full credit ≤55°; zero ≥90°)`)
+          : getSwingUiText('래깅각: 데이터 부족', 'Lag angle: insufficient data');
       if (analysisDeltaCardF2RadiusCompression) analysisDeltaCardF2RadiusCompression.textContent =
-        hasMetric(fm.radiusCompressionRatio)
-          ? `코어-손 압축: ${formatPercent(fm.radiusCompressionRatio * 100)} (탑 ${fm.radiusTop.toFixed(3)}→F2 ${fm.radiusF2.toFixed(3)}; ${fm.radiusCompressionRatio >= 0.35 ? '만점 기준 충족' : fm.radiusCompressionRatio > 0 ? '압축' : '유지/확장'})`
-          : fm.radiusTopMissingReason === 'scaleIssue'
-            ? '코어-손 압축: Frame 1 포인트는 확인됨(정규화 오류) — Frame 1 A패널을 다시 분석해 기준 반경을 확정하세요'
-            : !hasMetric(fm.radiusTop)
-              ? '코어-손 압축: Frame 1 탑(B패널 6단계 그립/클럽헤드) 선행 분석 필요'
-              : '코어-손 압축: Frame 2 데이터 부족(양손 중심/골반 중심 클릭 필요)';
+        hasMetric(fm.coreHandReferenceRatio)
+          ? getSwingUiText(`코어-손 거리: ${(fm.coreHandReferenceRatio * 100).toFixed(1)}% (기준선 대비; 35% 이하 만점·50% 이상 0점)`,
+            `Core-to-hands distance: ${(fm.coreHandReferenceRatio * 100).toFixed(1)}% of reference line (full credit ≤35%; zero ≥50%)`)
+          : getSwingUiText('코어-손 거리: F2 양손·골반 중심 또는 기준선 데이터 부족',
+            'Core-to-hands distance: missing F2 hands/pelvis center or reference line');
       if (analysisDeltaCardF2CoreShift) analysisDeltaCardF2CoreShift.textContent =
-        fm.pelvisLateralDelta != null
-          ? `코어 X 이동 크기: ${formatPercent(Math.abs(fm.pelvisLateralDelta) * 100)} (방향 무시)${hasMetric(fm.c7LateralDelta2) ? ` · C7 이동 크기 ${formatPercent(Math.abs(fm.c7LateralDelta2) * 100)}${hasMetric(fm.headPelvisCouplingRatio2) ? ` · 동반률 ${(fm.headPelvisCouplingRatio2 * 100).toFixed(0)}%` : ''}${hasMetric(fm.headStableScore2) && fm.headStableScore2 < 1 ? ` (안정 계수 ×${fm.headStableScore2.toFixed(2)})` : ''}` : ''}`
-          : '코어 이동: 데이터 부족';
+        fm.distanceComparable === false
+          ? getSwingUiText('코어 이동: 서로 다른 영상은 이동 채점 보류', 'Core shift: scoring withheld for different videos')
+          : hasMetric(fm.pelvisLateralDelta)
+            ? getSwingUiText(
+              `코어 X 이동 크기: ${(Math.abs(fm.pelvisLateralDelta) * 100).toFixed(1)}% (방향 무시)${hasMetric(fm.c7LateralDelta2) ? ` · C7 이동 ${(Math.abs(fm.c7LateralDelta2) * 100).toFixed(1)}% · 감점 ${hasMetric(fm.c7PenaltyPoints2) ? fm.c7PenaltyPoints2.toFixed(2) : '—'}점` : ' · C7 미측정: 감점 보류'}`,
+              `Core X-shift magnitude: ${(Math.abs(fm.pelvisLateralDelta) * 100).toFixed(1)}% (direction ignored)${hasMetric(fm.c7LateralDelta2) ? ` · C7 shift ${(Math.abs(fm.c7LateralDelta2) * 100).toFixed(1)}% · deduction ${hasMetric(fm.c7PenaltyPoints2) ? fm.c7PenaltyPoints2.toFixed(2) : '—'} points` : ' · C7 missing: deduction withheld'}`)
+            : getSwingUiText('코어 이동: 데이터 부족', 'Core shift: insufficient data');
     } else if (segment === 'frame3') {
       const downswingEvidence = getDownswingSideEvidence();
       if (analysisDeltaCardF3Thrust) analysisDeltaCardF3Thrust.textContent =
@@ -7522,24 +7518,24 @@
         `Address→top C7–pelvis follow ratio ${hasMetric(fm.c7CouplingBack1) ? fm.c7CouplingBack1.toFixed(2) : '—'} (|C7 x shift| ÷ |pelvis x shift|; no penalty ≤0.10, max −2 at 0.40) → penalty ${hasMetric(fm.headPelvisPenalty1) ? fm.headPelvisPenalty1.toFixed(1) : '—'}. If C7 slides with the loading pelvis or reverse-pivots toward the target, the backswing lacks head–pelvis separation (amateur pattern; provisional, same video only).`));
     }
     else if (segment === 'frame2') {
-      lines.push(bold(getSwingUiText('F2 실제 래깅·압축·이동 — 잠정 지표', 'F2 actual lag, compression and shift — provisional')));
-      lines.push(getSwingUiText(
-        `채점 B 래깅각 ${deg(fm.laggingAngleBDeg)} (선수 참고 범위 30~66° 안 무감점, 범위 이탈은 지수형 감점). A→B 변화 ${deg(fm.laggingAngleDelta)}는 관측 전용.`,
-        `Scored B lag ${deg(fm.laggingAngleBDeg)} (no deduction in the 30–66° player-reference band; exponential deduction by distance outside it). A→B change ${deg(fm.laggingAngleDelta)} is observation only.`));
-      lines.push(getSwingUiText(
-        `몸통 대비 골반 X 이동 크기 ${pct(hasMetric(fm.pelvisLateralDelta) ? Math.abs(fm.pelvisLateralDelta) : null)} (방향 무시·선수 참고 범위 10~28%) × C7 안정 ${hasMetric(fm.headStableScore2) ? fm.headStableScore2.toFixed(2) : '—'} (선수 참고 이동 크기 0~15%; 범위 밖은 지수 감점). C7/골반 크기 비율 ${hasMetric(fm.headPelvisCouplingRatio2) ? (fm.headPelvisCouplingRatio2 * 100).toFixed(1) + '%' : '—'}은 참고 표시이며 방향을 무시하므로 별도 감점하지 않습니다. 코어 안정 항목은 F2 점수의 40%입니다.`,
-        `Torso-relative pelvis X-shift magnitude ${pct(hasMetric(fm.pelvisLateralDelta) ? Math.abs(fm.pelvisLateralDelta) : null)} (direction ignored; player reference band 10–28%) × C7 stability ${hasMetric(fm.headStableScore2) ? fm.headStableScore2.toFixed(2) : '—'} (player shift-magnitude range 0–15%; exponential deductions outside). C7/pelvis magnitude ratio ${hasMetric(fm.headPelvisCouplingRatio2) ? (fm.headPelvisCouplingRatio2 * 100).toFixed(1) + '%' : '—'} is observational; direction is ignored, so the ratio is not separately penalized. Core stability is 40% of F2.`));
-      lines.push(getSwingUiText(
-        `탑→F2 손 반경 압축 ${pct(fm.radiusCompressionRatio)} (선수 참고 범위 35~50%; 범위 밖은 지수 감점). 에너지 저장량·속도는 측정하지 않습니다.`,
-        `Top→F2 hand-radius compression ${pct(fm.radiusCompressionRatio)} (player reference band 35–50%; exponential deductions outside). Stored energy and speed are not measured.`));
       const f2Breakdown = getF2MetricBreakdown(fm);
-      if ([f2Breakdown.lagScore, f2Breakdown.compressionScore, f2Breakdown.coreShiftScore].every(hasMetric)) {
+      lines.push(bold(getSwingUiText('F2 실제 래깅각·코어-손 거리·이동 — 잠정 지표', 'F2 actual lag angle, core-to-hands distance and shift — provisional')));
+      lines.push(getSwingUiText(
+        `채점 B 래깅각 ${deg(fm.laggingAngleBDeg)} (55° 이하 만점, 90° 이상 0점, 그 사이는 선형 감점; 40%). A→B 변화 ${deg(fm.laggingAngleDelta)}는 관측 전용.`,
+        `Scored B lag ${deg(fm.laggingAngleBDeg)} (full credit ≤55°, zero ≥90°, linear in between; 40%). A→B change ${deg(fm.laggingAngleDelta)} is observation only.`));
+      lines.push(getSwingUiText(
+        `몸통 대비 골반 X 이동 크기 ${pct(f2Breakdown.pelvisShiftMagnitude)} (방향 무시; 0%에서 0점, 25% 이상에서 4점, 사이는 선형). C7 X 이동 ${pct(f2Breakdown.headDrift)}은 5% 초과 1%p당 0.1점 감점: 적용 감점 ${hasMetric(f2Breakdown.appliedC7PenaltyPoints) ? f2Breakdown.appliedC7PenaltyPoints.toFixed(2) + '점' : '보류'}, 항목 최저 0점. C7/골반 동반률은 참고값입니다.`,
+        `Torso-relative pelvis X-shift magnitude ${pct(f2Breakdown.pelvisShiftMagnitude)} (direction ignored; 0 points at 0%, 4 points at 25% or more, linear between). C7 X-shift ${pct(f2Breakdown.headDrift)} deducts 0.1 points per percentage point above 5%: applied deduction ${hasMetric(f2Breakdown.appliedC7PenaltyPoints) ? f2Breakdown.appliedC7PenaltyPoints.toFixed(2) + ' points' : 'withheld'}, component minimum zero. C7/pelvis co-movement is observational.`));
+      lines.push(getSwingUiText(
+        `B 골반–손 거리 ÷ 기준선 ${pct(fm.coreHandReferenceRatio)} (35% 이하 만점, 50% 이상 0점, 그 사이는 선형 감점; 20%). 탑→F2 압축 ${pct(fm.radiusCompressionRatio)}은 참고값이며 F2 채점에 사용하지 않습니다. 에너지·속도는 측정하지 않습니다.`,
+        `B pelvis–hands distance ÷ reference line ${pct(fm.coreHandReferenceRatio)} (full credit ≤35%, zero ≥50%, linear in between; 20%). Top→F2 compression ${pct(fm.radiusCompressionRatio)} is observational and not scored in F2. Energy and speed are not measured.`));
+      if ([f2Breakdown.lagScore, f2Breakdown.distanceScore, f2Breakdown.coreShiftScore].every(hasMetric)) {
         const lagDeduction = (1 - f2Breakdown.lagScore) * 4;
-        const compressionDeduction = (1 - f2Breakdown.compressionScore) * 2;
+        const distanceDeduction = (1 - f2Breakdown.distanceScore) * 2;
         const shiftDeduction = (1 - f2Breakdown.coreShiftScore) * 4;
         lines.push(getSwingUiText(
-          `감점 내역(10점 기준): 래깅 −${lagDeduction.toFixed(1)} + 압축 −${compressionDeduction.toFixed(1)} + 골반/C7 −${shiftDeduction.toFixed(1)} = F2 ${hasMetric(deltaResult.segmentScore) ? deltaResult.segmentScore.toFixed(1) : (10 - lagDeduction - compressionDeduction - shiftDeduction).toFixed(1)}점. 프로 비교는 아래 참고값을 확인하세요.`,
-          `Deduction breakdown (out of 10): lag −${lagDeduction.toFixed(1)} + compression −${compressionDeduction.toFixed(1)} + pelvis/C7 −${shiftDeduction.toFixed(1)} = F2 ${hasMetric(deltaResult.segmentScore) ? deltaResult.segmentScore.toFixed(1) : (10 - lagDeduction - compressionDeduction - shiftDeduction).toFixed(1)}. See the reference comparison below.`));
+          `감점 내역(10점 기준): 래깅각 −${lagDeduction.toFixed(1)} + 거리 −${distanceDeduction.toFixed(1)} + 골반/C7 −${shiftDeduction.toFixed(1)} = F2 ${hasMetric(deltaResult.segmentScore) ? deltaResult.segmentScore.toFixed(1) : (10 - lagDeduction - distanceDeduction - shiftDeduction).toFixed(1)}점. 프로 비교는 아래 참고값을 확인하세요.`,
+          `Deduction breakdown (out of 10): lag angle −${lagDeduction.toFixed(1)} + distance −${distanceDeduction.toFixed(1)} + pelvis/C7 −${shiftDeduction.toFixed(1)} = F2 ${hasMetric(deltaResult.segmentScore) ? deltaResult.segmentScore.toFixed(1) : (10 - lagDeduction - distanceDeduction - shiftDeduction).toFixed(1)}. See the reference comparison below.`));
       }
       const proComparison = formatF2ProReferenceComparison(fm, f2Breakdown);
       if (proComparison) lines.push(proComparison);
@@ -16777,7 +16773,7 @@
       ],
       frame2: [
         [r10Text('실제 래깅각', 'Measured lag angle'), hasMetric(f2.laggingAngleBDeg) ? `${f2.laggingAngleBDeg.toFixed(1)}°` : null],
-        [r10Text('탑→F2 압축', 'Top→F2 compression'), hasMetric(f2.radiusCompressionRatio) ? `${(f2.radiusCompressionRatio * 100).toFixed(1)}%` : null],
+        [r10Text('코어-손 거리 / 기준선', 'Core-to-hands distance / reference line'), hasMetric(f2.coreHandReferenceRatio) ? `${(f2.coreHandReferenceRatio * 100).toFixed(1)}%` : null],
         [r10Text('골반 이동', 'Pelvis shift'), hasMetric(f2.pelvisLateralDelta) ? `${(f2.pelvisLateralDelta * 100).toFixed(1)}%` : null],
       ],
       frame3: [
