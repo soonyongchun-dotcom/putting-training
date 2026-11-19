@@ -1918,7 +1918,25 @@
   .motion-definition-dialog { width: min(1440px, calc(100vw - 32px)); max-width: 1440px; max-height: calc(100vh - 32px); padding: 12px; overflow: auto; border: 1px solid rgba(142,219,199,0.42); border-radius: 12px; background: #102127; color: #f2fbf8; box-shadow: 0 18px 48px #00000070; }
   .motion-definition-dialog::backdrop { background: rgba(0,0,0,0.76); backdrop-filter: blur(2px); }
   .motion-definition-dialog .analysis-context-dialog-header { margin-bottom: 8px; }
-  .motion-definition-dialog img { display: block; width: 100%; max-height: calc(100vh - 100px); object-fit: contain; }
+  .motion-definition-content { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+  .motion-definition-dialog.has-motion-detail .motion-definition-content { grid-template-columns: minmax(0, 1fr) minmax(260px, 0.38fr); }
+  .motion-definition-instruction { margin: 0 0 8px; color: #c4d6d5; font-size: 0.85rem; text-align: left; }
+  .motion-definition-image-wrap { position: relative; width: 100%; aspect-ratio: 1400 / 740; }
+  .motion-definition-dialog img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .motion-definition-hotspots { position: absolute; inset: 0; }
+  .motion-definition-hotspot { position: absolute; min-width: 0; min-height: 0; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: transparent; cursor: pointer; }
+  .motion-definition-hotspot:hover, .motion-definition-hotspot[aria-pressed="true"] { border-color: rgba(135,224,203,0.9); background: rgba(135,224,203,0.16); }
+  .motion-definition-hotspot:focus-visible { outline: 3px solid #fff; outline-offset: -2px; background: rgba(135,224,203,0.2); }
+  .motion-definition-detail { padding: 14px; border: 1px solid rgba(142,219,199,0.3); border-radius: 9px; background: rgba(255,255,255,0.045); text-align: left; }
+  .motion-definition-detail[hidden] { display: none; }
+  .motion-definition-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .motion-definition-detail h3 { margin: 0; color: #a6e7d5; font-size: 1rem; }
+  .motion-definition-detail-close { flex: 0 0 auto; min-height: 34px; padding: 5px 9px; font-size: 0.75rem; white-space: nowrap; }
+  .motion-definition-detail p { margin: 0 0 10px; line-height: 1.65; }
+  .motion-definition-detail .motion-definition-caveat { margin: 0; color: #aebfc2; font-size: 0.78rem; }
+  @media (max-width: 760px) {
+    .motion-definition-dialog.has-motion-detail .motion-definition-content { grid-template-columns: minmax(0, 1fr); }
+  }
   body[data-swing-compare="active"] #analysisWorkflowFiles > :not(#swingCompareToggleBtn) { display: none !important; }
   body[data-swing-compare="active"] #analysisWorkflowFiles { justify-content: flex-end; }
   #analysisWorkflowProgress { gap: 5px; }
@@ -2095,7 +2113,21 @@
       <h2 id="motionDefinitionDialogTitle">모션 정의</h2>
       <button type="button" id="motionDefinitionDialogCloseBtn" aria-label="닫기" title="닫기">×</button>
     </div>
-    <img id="motionDefinitionImage" src="./motion-definition.png" alt="Golf Swing Motion Sequence">
+    <p id="motionDefinitionInstruction" class="motion-definition-instruction">그림의 모션 제목을 선택하면 해당 설명이 표시됩니다.(해당 설명은 현대 장타자들의 모션별 특징을 중심으로 함)</p>
+    <div class="motion-definition-content">
+      <div id="motionDefinitionImageWrap" class="motion-definition-image-wrap">
+        <img id="motionDefinitionImage" src="./motion-definition.png" alt="Golf Swing Motion Sequence">
+        <div id="motionDefinitionHotspots" class="motion-definition-hotspots" role="group" aria-label="모션 단계 선택"></div>
+      </div>
+      <section id="motionDefinitionDetail" class="motion-definition-detail" aria-live="polite" aria-labelledby="motionDefinitionDetailTitle" hidden>
+        <div class="motion-definition-detail-header">
+          <h3 id="motionDefinitionDetailTitle"></h3>
+          <button type="button" id="motionDefinitionDetailCloseBtn" class="motion-definition-detail-close" aria-label="사진 설명 접기" title="사진 설명 접기">사진 설명 접기</button>
+        </div>
+        <p id="motionDefinitionDetailText"></p>
+        <p id="motionDefinitionCaveat" class="motion-definition-caveat"></p>
+      </section>
+    </div>
   </dialog>
   <button id="logoutBtn" class="admin-btn" title="Logout" style="display:none;">Logout</button>
 </div>
@@ -9365,8 +9397,8 @@
     const r10Percent = r10Analysis && r10Analysis.consistencyPercent15;
     if (!hasMetric(r10Percent)) {
       analysisConsistencyAverage.textContent = motionAverage !== null
-        ? getSwingUiText(`일관성 모션 점수: ${motionAverage.toFixed(1)} / 10 (F5 ${((summary.weights.frame5 || 0) * 100).toFixed(0)}% · F6 ${((summary.weights.frame6 || 0) * 100).toFixed(0)}%)`,
-          `Consistency Motion Score: ${motionAverage.toFixed(1)} / 10 (F5 ${((summary.weights.frame5 || 0) * 100).toFixed(0)}% · F6 ${((summary.weights.frame6 || 0) * 100).toFixed(0)}%)`)
+        ? getSwingUiText(`일관성 모션 점수: ${motionAverage.toFixed(1)} / 10`,
+          `Consistency Motion Score: ${motionAverage.toFixed(1)} / 10`)
         : getSwingUiText(`일관성 모션 점수: ${analyzed ? '측정 불가' : '-'}`,
           `Consistency Motion Score: ${analyzed ? 'not measurable' : '-'}`);
       return;
@@ -14499,6 +14531,122 @@
   const motionDefinitionDialog = document.getElementById('motionDefinitionDialog');
   const motionDefinitionDialogCloseBtn = document.getElementById('motionDefinitionDialogCloseBtn');
   const motionDefinitionImage = document.getElementById('motionDefinitionImage');
+  const motionDefinitionHotspots = document.getElementById('motionDefinitionHotspots');
+  const motionDefinitionInstruction = document.getElementById('motionDefinitionInstruction');
+  const motionDefinitionDetail = document.getElementById('motionDefinitionDetail');
+  const motionDefinitionDetailTitle = document.getElementById('motionDefinitionDetailTitle');
+  const motionDefinitionDetailText = document.getElementById('motionDefinitionDetailText');
+  const motionDefinitionDetailCloseBtn = document.getElementById('motionDefinitionDetailCloseBtn');
+  const motionDefinitionCaveat = document.getElementById('motionDefinitionCaveat');
+  let selectedMotionDefinitionPhase = null;
+  const MOTION_DEFINITION_PHASES = [
+    {
+      code: 'A', nameKo: '어드레스', nameEn: 'Address', region: [34, 90, 210, 130],
+      descriptionKo: '역학적 특징: 기하학적 회전축의 정점인 C7과 골반 중심(COM)을 잇는 척추각(Spine Angle)을 설정하는 기준 프레임입니다. 양발 압력 중심(COP)은 50:50 균형을 이루며, 지면반력을 받아낼 수 있는 하체 탄성 준비 상태(Athletic Posture)를 형성합니다.',
+      descriptionEn: 'Dynamics: This is the reference frame for setting the spine angle between C7, treated here as the upper end of the rotation axis, and the pelvis center (COM). A balanced 50:50 foot-pressure distribution and an athletic lower-body posture prepare the body to accept ground forces.',
+    },
+    {
+      code: 'P1', nameKo: '테이크어웨이', nameEn: 'Takeaway', region: [226, 90, 402, 130],
+      descriptionKo: '역학적 특징: 손목의 독립적 조작 없이 C7 축을 중심으로 상체(어깨 삼각형)가 일체감 있게 회전(One-piece)하며 클럽을 낮고 길게 빼냅니다. 이때 질량 중심(COM)이 오른발 쪽으로 미세하게 이동하며 수평 지면반력(Fx) 축적을 시작합니다.',
+      descriptionEn: 'Dynamics: With no independent wrist manipulation, the upper body and shoulder triangle turn together around the C7 axis as the club moves back low and wide. The center of mass (COM) shifts slightly toward the trail foot as horizontal ground force (Fx) begins to build.',
+    },
+    {
+      code: 'P2', nameKo: '샤프트 지면 평행', nameEn: 'Shaft Parallel', region: [418, 90, 593, 130],
+      descriptionKo: '역학적 특징: 지면반력의 압력 중심(COP)이 오른발 뒤꿈치 방향으로 이동하며 지면을 누르기 시작합니다. 손목 코킹이 개시되면서 클럽 헤드의 위치 에너지 상승과 함께 회전 반경(r)을 제어할 준비를 합니다.',
+      descriptionEn: 'Dynamics: The center of pressure (COP) shifts toward the trail heel as pressure into the ground begins. Wrist cocking starts, raising the clubhead and beginning control of the swing radius (r).',
+    },
+    {
+      code: 'P3', nameKo: '왼팔 지면 평행', nameEn: 'Lead Arm Parallel', region: [609, 90, 784, 130],
+      descriptionKo: '역학적 특징: 장타자의 하체 압력 피크(Max Trail Foot Pressure)가 나타나는 시점입니다. 골반 회전이 둔화되기 시작하는 반면 어깨는 계속 회전하면서, 코어 중심의 상·하체 분리각(X-Factor)이 급격히 벌어져 내부 토크와 탄성 위치 에너지가 저장됩니다.',
+      descriptionEn: 'Dynamics: This phase is associated with peak trail-foot pressure in the described long-hitter pattern. Pelvis rotation begins to slow while the shoulders continue turning, increasing the upper/lower-body separation (X-Factor) and storing elastic energy through internal torque.',
+    },
+    {
+      code: 'P4', nameKo: '백스윙 탑 이전 손 어깨 높이', nameEn: 'Hands at Shoulder Height', region: [801, 90, 976, 130],
+      descriptionKo: '역학적 특징: 상체 회전이 정점에 다다르기 직전, 하체의 질량 중심(COM)은 이미 타깃 방향으로 미세한 선행 이동(Recentering)을 시작합니다. 백스윙 관성과 다운스윙 전환력이 교차하며 코어 스프링이 최대로 인장(X-Factor Stretch)되는 전환 준비 구간입니다.',
+      descriptionEn: 'Dynamics: Just before the upper-body turn peaks, the lower-body COM begins a small leadward recentering move. Backswing inertia and transition forces overlap as the core spring reaches a highly stretched state (X-Factor stretch).',
+    },
+    {
+      code: 'BT', nameKo: '백스윙 탑', nameEn: 'Backswing Top', region: [992, 90, 1167, 130],
+      descriptionKo: '역학적 특징: C7 고정축의 공간 변위를 최소화한 상태에서 최대 회전각과 위치 에너지를 확보한 정점입니다. 장타자는 탑에서 샤프트가 과도하게 처지지 않도록 유효한 경사각을 유지해, 다운스윙에서 중력과 토크를 이용해 클럽을 눕히며(Shallowing) 가속할 공간을 확보합니다.',
+      descriptionEn: 'Dynamics: The turn and stored positional energy reach their peak while minimizing displacement of the assumed C7 axis. A functional shaft angle at the top leaves room to shallow the club and accelerate it during the downswing.',
+    },
+    {
+      code: 'P5', nameKo: '다운스윙 손 허리 높이', nameEn: 'Downswing Hands at Waist Height', region: [1183, 90, 1359, 130],
+      descriptionKo: '역학적 특징(관성 모멘트 최소화 및 외부 토크 유입): 왼발로 지면을 강하게 밟아 수직 지면반력(Fz)의 피크를 만듭니다. 손목 코킹(래깅)을 예리하게 유지하고 클럽을 몸(C7 축)에 가깝게 두어 관성 모멘트(I = mr²)를 줄이고 상체 각속도(ω)를 높입니다.',
+      descriptionEn: 'Dynamics (reduced moment of inertia and applied torque): A forceful lead-foot push is described as creating a peak in vertical ground force (Fz). Retaining wrist cock (lag) and keeping the club close to the body/C7 axis reduces the moment of inertia (I = mr²), helping increase upper-body angular velocity (ω).',
+    },
+    {
+      code: 'P6', nameKo: '다운스윙 손 오른쪽 허벅지', nameEn: 'Downswing Hands at Right Thigh', region: [130, 364, 306, 404],
+      descriptionKo: '역학적 특징(하체 브레이크 및 에너지 위상 전이): 왼다리가 지면을 강하게 차올리며 펴지기 시작해 골반(COM)의 수평 이동을 급격히 감속(브레이크)시킵니다. 각운동량 보존에 따라 하체 에너지가 C7 축을 타고 상체와 팔로 전이되며, 샬로잉된 클럽 헤드가 몸 안쪽(In-to-Out) 궤도로 진입합니다.',
+      descriptionEn: 'Dynamics (lower-body braking and energy transfer): The lead leg pushes against the ground and begins to extend, sharply braking the pelvis COM’s horizontal motion. The described sequence transfers angular momentum through the C7 axis toward the upper body and arms as the shallowed clubhead approaches on an in-to-out path.',
+    },
+    {
+      code: 'P7', nameKo: '임팩트 직전 손목 릴리즈', nameEn: 'Just Before Impact', region: [322, 364, 498, 404],
+      descriptionKo: '역학적 특징(이중 진자 언코킹 및 회전 반경 확장): 손목의 래깅 각도가 풀리면서 손의 선형 속도는 감속하고 클럽 헤드로 에너지가 집중됩니다. 왼쪽 골반이 수직으로 솟고 척추 측면 꺾임(Side Bend)이 커지며, C7 축과 클럽 헤드 사이의 회전 반경(r)이 순간적으로 팽창합니다.',
+      descriptionEn: 'Dynamics (double-pendulum release and radius expansion): As the wrist-lag angle uncocks, hand speed is described as slowing while energy concentrates in the clubhead. The lead pelvis rises, side bend increases, and the radius (r) between the C7 axis and clubhead expands rapidly.',
+    },
+    {
+      code: 'I', nameKo: '임팩트', nameEn: 'Impact', region: [513, 364, 689, 404],
+      descriptionKo: '역학적 특징(최대 선속도 및 축 고정): C7 회전축이 공간상에 고정된 상태에서 확장된 회전 반경(rmax)과 정점의 각속도(ω)가 결합해 클럽 헤드 선속도(v = r·ω)가 최댓값에 도달합니다. 정면 기준 손 중심점이 어드레스보다 타깃 방향으로 앞선(핸드 퍼스트) 상태로 운동 에너지를 볼에 전달합니다.',
+      descriptionEn: 'Dynamics (peak linear speed and axis stability): With the C7 axis assumed stable in space, the expanded radius (rmax) combines with peak angular velocity (ω) to maximize clubhead linear speed (v = r·ω). In the face-on view, hands lead the address position toward the target as energy is transferred to the ball.',
+    },
+    {
+      code: 'P8', nameKo: '팔로우 스루 초기', nameEn: 'Post-Impact', region: [705, 364, 881, 404],
+      descriptionKo: '역학적 특징(최대 원심력 구속): 임팩트 직후 양팔과 샤프트가 타깃 방향으로 뻗어지며 클럽 헤드의 원심력이 커집니다. C7 축과 왼쪽 다리의 지지력이 구심력처럼 작용해 스윙 아크가 무너지지 않도록 지지합니다.',
+      descriptionEn: 'Dynamics (managing outward force): Immediately after impact, the arms and shaft extend toward the target as outward force on the clubhead increases. Support from the C7 axis and lead leg is described as providing the centripetal response that helps preserve the swing arc.',
+    },
+    {
+      code: 'P9', nameKo: '팔로우 스루 중기', nameEn: 'Follow-Through', region: [896, 364, 1072, 404],
+      descriptionKo: '역학적 특징(회전 운동 에너지의 자연스러운 감속): 상체와 골반이 타깃 방향으로 회전하며 남은 각운동량을 방출합니다. 스윙을 인위적으로 멈추지 않고 회전 반경을 크게 유지한 채 재코킹(Re-cocking)이 시작되며 관절 부하 없이 에너지를 소산시킵니다.',
+      descriptionEn: 'Dynamics (natural deceleration): The upper body and pelvis turn toward the target, releasing remaining angular momentum. Rather than stopping abruptly, the club maintains a wide radius as re-cocking begins and rotational energy dissipates.',
+    },
+    {
+      code: 'P10', nameKo: '피니시', nameEn: 'Finish', region: [1087, 364, 1263, 404],
+      descriptionKo: '역학적 특징(동적 평형 회복): 회전 운동이 감속되고 체중의 90% 이상이 왼발 위에 안정적으로 안착합니다. C7과 골반 중심이 수직 정렬을 이루는 자세를 스윙 전 과정의 역학적 균형을 확인하는 최종 참고 자세로 봅니다.',
+      descriptionEn: 'Dynamics (recovery of dynamic balance): As rotational motion decelerates, more than 90% of body weight settles over the lead foot. Vertical alignment of C7 and the pelvis is used as a final reference for balance through the swing.',
+    },
+  ];
+  function showMotionDefinitionPhase(phase) {
+    selectedMotionDefinitionPhase = phase;
+    const english = uiLanguage === 'en';
+    motionDefinitionDetailTitle.textContent = `${phase.code} — ${english ? phase.nameEn : phase.nameKo}`;
+    motionDefinitionDetailText.textContent = english ? phase.descriptionEn : phase.descriptionKo;
+    motionDefinitionDetail.hidden = false;
+    motionDefinitionDialog.classList.add('has-motion-detail');
+    motionDefinitionHotspots.querySelectorAll('[data-motion-phase]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.motionPhase === phase.code));
+    });
+  }
+  function clearMotionDefinitionPhase() {
+    selectedMotionDefinitionPhase = null;
+    motionDefinitionDetail.hidden = true;
+    motionDefinitionDialog.classList.remove('has-motion-detail');
+    motionDefinitionHotspots.querySelectorAll('[data-motion-phase]').forEach(button => {
+      button.setAttribute('aria-pressed', 'false');
+    });
+  }
+  function returnToMotionDiagram() {
+    const previousPhaseCode = selectedMotionDefinitionPhase && selectedMotionDefinitionPhase.code;
+    clearMotionDefinitionPhase();
+    const previousPhaseButton = Array.from(motionDefinitionHotspots.querySelectorAll('[data-motion-phase]'))
+      .find(button => button.dataset.motionPhase === previousPhaseCode);
+    if (previousPhaseButton) previousPhaseButton.focus();
+  }
+  MOTION_DEFINITION_PHASES.forEach(phase => {
+    const button = document.createElement('button');
+    const [left, top, right, bottom] = phase.region;
+    button.type = 'button';
+    button.className = 'motion-definition-hotspot';
+    button.dataset.motionPhase = phase.code;
+    button.setAttribute('aria-controls', 'motionDefinitionDetail');
+    button.setAttribute('aria-pressed', 'false');
+    button.style.left = `${left / 14}%`;
+    button.style.top = `${top / 7.4}%`;
+    button.style.width = `${(right - left) / 14}%`;
+    button.style.height = `${(bottom - top) / 7.4}%`;
+    button.addEventListener('click', () => showMotionDefinitionPhase(phase));
+    motionDefinitionHotspots.append(button);
+  });
   const swingChangePlayerIdSelect = document.getElementById('swingChangePlayerIdSelect');
   const analysisClubTypeSelect = document.getElementById('analysisClubTypeSelect');
   analysisClubTypeSelect.addEventListener('change', () => {
@@ -15377,6 +15525,25 @@
     motionDefinitionDialogCloseBtn.title = english ? 'Close' : '닫기';
     motionDefinitionDialogCloseBtn.setAttribute('aria-label', english ? 'Close' : '닫기');
     motionDefinitionImage.alt = english ? 'Golf Swing Motion Sequence' : '골프 스윙 모션 정의 순서';
+    motionDefinitionInstruction.textContent = english
+      ? 'Select a phase title in the diagram to view its description (focused on modern long hitters’ motion characteristics).'
+      : '그림의 모션 제목을 선택하면 해당 설명이 표시됩니다.(해당 설명은 현대 장타자들의 모션별 특징을 중심으로 함)';
+    motionDefinitionHotspots.setAttribute('aria-label', english ? 'Choose a swing phase' : '모션 단계 선택');
+    motionDefinitionHotspots.querySelectorAll('[data-motion-phase]').forEach(button => {
+      const phase = MOTION_DEFINITION_PHASES.find(item => item.code === button.dataset.motionPhase);
+      if (!phase) return;
+      const label = `${phase.code} — ${english ? phase.nameEn : phase.nameKo}`;
+      button.title = label;
+      button.setAttribute('aria-label', label);
+    });
+    const motionDefinitionBackLabel = english ? 'Back to diagram' : '사진 설명 접기';
+    motionDefinitionDetailCloseBtn.textContent = motionDefinitionBackLabel;
+    motionDefinitionDetailCloseBtn.title = motionDefinitionBackLabel;
+    motionDefinitionDetailCloseBtn.setAttribute('aria-label', motionDefinitionBackLabel);
+    motionDefinitionCaveat.textContent = english
+      ? 'Conceptual reference only. This 2D app does not directly measure C7 stability, COM/COP, ground-reaction forces, moment of inertia, or actual speed.'
+      : '개념 설명용 참고 자료입니다. 이 2D 프로그램은 C7 안정성, COM/COP, 지면반력, 관성 모멘트 또는 실제 속도를 직접 측정하지 않습니다.';
+    if (selectedMotionDefinitionPhase) showMotionDefinitionPhase(selectedMotionDefinitionPhase);
     document.getElementById('analysisContextDialogTitle').textContent = contextTitle;
     analysisContextDialogCloseBtn.title = english ? 'Close' : '닫기';
     analysisContextDialogCloseBtn.setAttribute('aria-label', english ? 'Close' : '닫기');
@@ -16108,11 +16275,16 @@
     motionDefinitionBtn.setAttribute('aria-expanded', 'true');
   });
   motionDefinitionDialogCloseBtn.addEventListener('click', () => motionDefinitionDialog.close());
+  motionDefinitionDetailCloseBtn.addEventListener('click', event => {
+    event.stopPropagation();
+    returnToMotionDiagram();
+  });
   motionDefinitionDialog.addEventListener('click', event => {
     if (event.target === motionDefinitionDialog) motionDefinitionDialog.close();
   });
   motionDefinitionDialog.addEventListener('close', () => {
     motionDefinitionBtn.setAttribute('aria-expanded', 'false');
+    clearMotionDefinitionPhase();
   });
   swingChangeLoadBtn.addEventListener('click', () => {
     swingChangeFolderInput.value = '';
