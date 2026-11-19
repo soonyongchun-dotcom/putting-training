@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const html = readFileSync(new URL('../index4.html', import.meta.url), 'utf8');
+let selectedClubType = 'iron';
 const context = vm.createContext({
   frameMetricsHistory: {},
   frameSideMetricsHistory: {},
@@ -13,10 +14,14 @@ const context = vm.createContext({
   getLockedReferenceLineLength: () => 1,
   getDownswingSideEvidence: () => null,
   getSwingTargetSign: () => null,
+  getSelectedAnalysisClubType: () => selectedClubType,
 });
 for (const name of [
-  'clamp', 'hasMetric', 'roundToStep', 'scoreExponentialReferenceBand',
-  'scoreLagAngle', 'getF2MetricBreakdown', 'getFrameScoreParts',
+  'clamp', 'hasMetric', 'roundToStep', 'smoothstep01', 'rampScore', 'bandScore', 'scoreExponentialReferenceBand',
+  'scoreDriverTrailShift', 'computeTempoSequenceReport',
+  'scoreLagAngle', 'scoreImpactAlignment', 'scoreImpactHeadPelvisGap', 'scoreImpactDownswingCoupling',
+  'getImpactAlignment', 'weightedAvg01', 'getF2MetricBreakdown', 'getFrameScoreParts', 'getLinearEngineEvidence',
+  'computeModernSwingProximity',
   'combineMetricScores', 'computeRawSegmentScore', 'computeSegmentScore',
   'computeFrameMetrics', 'computeThreePointSpread', 'getAnalysisAspect',
   'getPanelReferenceLength', 'referenceRatio', 'referencePositionX',
@@ -26,6 +31,9 @@ for (const name of [
   assert.ok(source, name);
   vm.runInContext(source[0], context);
 }
+context.getCompressionTransitionEvidence = () => ({ available: false, f4Bonus: 0 });
+context.getThreePointProfilePenalty = () => ({ fit: 0, penalty: 0 });
+context.getLateRadiusExpansion = () => null;
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} != ${expected}`);
 
@@ -78,6 +86,124 @@ test('F2 pelvis score and C7 deduction are linear and capped within the four-poi
     laggingAngleBDeg: 53.9, coreHandReferenceRatio: 0.336,
     pelvisLateralDelta: 0.499, c7LateralDelta2: 0.299,
   } }, 'frame2'), 7.5);
+});
+
+test('driver F2 pelvis-shift score and LSE fit use the 22–32% band with shared decay 4', () => {
+  const previousClubType = selectedClubType;
+  selectedClubType = 'driver';
+  try {
+    for (const shift of [0.22, 0.27, 0.32]) {
+      close(context.getF2MetricBreakdown({ pelvisLateralDelta: shift }).pelvisShiftScore, 1);
+      close(context.getLinearEngineEvidence({ pelvisLateralDelta: shift }, null, 1).fit, 1);
+    }
+    assert.equal(context.getLinearEngineEvidence({ pelvisLateralDelta: 0.27 }, null, 1).calibration, 'driver-shift-band-22-32');
+    close(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.308 }).pelvisShiftScore, 1);
+    const fitAt10Point3Percent = Math.exp(-4 * (0.22 - 0.103));
+    close(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.103 }).pelvisShiftScore, fitAt10Point3Percent);
+    close(context.getLinearEngineEvidence({ pelvisLateralDelta: 0.103 }, null, 1).fit, fitAt10Point3Percent);
+    assert.equal(context.computeSegmentScore({ fm: {
+      laggingAngleBDeg: 59.7,
+      coreHandReferenceRatio: 0.322,
+      pelvisLateralDelta: 0.103,
+      c7LateralDelta2: 0.116,
+      distanceComparable: true,
+    } }, 'frame2'), 7.5);
+    assert.equal(context.computeSegmentScore({ fm: {
+      laggingAngleBDeg: 46.90146198915187,
+      coreHandReferenceRatio: 0.3032924489966823,
+      pelvisLateralDelta: 0.3078737818387437,
+      c7LateralDelta2: 0.05742873998865057,
+      distanceComparable: true,
+    } }, 'frame2'), 10);
+    close(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.12 }).pelvisShiftScore, Math.exp(-0.4));
+    close(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.42 }).pelvisShiftScore, Math.exp(-0.4));
+  } finally {
+    selectedClubType = previousClubType;
+  }
+});
+
+test('F4 impact alignment uses the swapped driver and iron score ranges', () => {
+  const previousClubType = selectedClubType;
+  try {
+    selectedClubType = 'driver';
+    close(context.scoreImpactAlignment(140), 0);
+    close(context.scoreImpactAlignment(157.5), 0.5);
+    assert.ok(context.scoreImpactAlignment(160) < 1);
+    close(context.scoreImpactAlignment(175), 1);
+    selectedClubType = 'iron';
+    close(context.scoreImpactAlignment(140), 0);
+    close(context.scoreImpactAlignment(150), 0.5);
+    close(context.scoreImpactAlignment(160), 1);
+    close(context.scoreImpactAlignment(175), 1);
+  } finally {
+    selectedClubType = previousClubType;
+  }
+});
+
+test('modern swing proximity averages F1–F4 only and requires all four scores', () => {
+  const previousGetStoredSegmentScore = context.getStoredSegmentScore;
+  const requestedFrames = [];
+  const scores = { frame1: 4, frame2: 6, frame3: 8, frame4: 10, frame5: null, frame6: null };
+  try {
+    context.getStoredSegmentScore = frame => {
+      requestedFrames.push(frame);
+      return scores[frame];
+    };
+    assert.equal(context.computeModernSwingProximity(), 70);
+    assert.deepEqual(requestedFrames, ['frame1', 'frame2', 'frame3', 'frame4']);
+
+    scores.frame4 = null;
+    assert.equal(context.computeModernSwingProximity(), null);
+  } finally {
+    context.getStoredSegmentScore = previousGetStoredSegmentScore;
+  }
+});
+
+test('F6 keeps the driver Release Index observational and out of the score', () => {
+  const previousClubType = selectedClubType;
+  selectedClubType = 'driver';
+  try {
+    const fm = {
+      sequenceIndex: 3,
+      sequenceBasis6: 'address',
+      pelvisNetP6: 0.056,
+      c7NetP7: -0.062,
+      c7TopShift6: 0.008,
+      releaseIndex: 21,
+    };
+    const withReleaseIndex = context.computeTempoSequenceReport(fm, null);
+    const withoutReleaseIndex = context.computeTempoSequenceReport({ ...fm, releaseIndex: null }, null);
+    assert.equal(withReleaseIndex.sRelease, 100);
+    assert.equal(withReleaseIndex.releaseWeight, 0);
+    assert.equal(withReleaseIndex.score100, withoutReleaseIndex.score100);
+  } finally {
+    selectedClubType = previousClubType;
+  }
+});
+
+test('F4 applies the same head-pelvis separation deduction to drivers and irons', () => {
+  const previousClubType = selectedClubType;
+  const penalties = {};
+  const fm = {
+    armShaftAngleBDeg: 175.8,
+    c7XPercent: 6.2,
+    c7YPercent: 1.0,
+    impactSeparationDelta4: 0.7,
+    c7CouplingDown4: 0.57,
+    distanceComparable: true,
+  };
+  try {
+    for (const clubType of ['driver', 'iron']) {
+      selectedClubType = clubType;
+      const result = { fm: { ...fm } };
+      context.computeSegmentScore(result, 'frame4');
+      penalties[clubType] = result.fm.headPelvisPenalty4;
+    }
+    close(penalties.driver, penalties.iron);
+    close(penalties.driver, 3 * (2 - Math.exp(-0.6)) / 2);
+  } finally {
+    selectedClubType = previousClubType;
+  }
 });
 
 test('F2 carries the aspect-corrected pelvis–hands distance relative to the B reference line', () => {
