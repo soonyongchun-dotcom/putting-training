@@ -1154,6 +1154,46 @@
     border-color: rgba(82, 216, 150, 0.35);
     background: rgba(82, 216, 150, 0.06);
   }
+  .analysis-balance-result-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .analysis-balance-score-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    color: #d7e9e3;
+    font-size: 0.94rem;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .analysis-balance-score-line > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .analysis-balance-club {
+    color: #a9beb7;
+    font-size: 0.78em;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .analysis-balance-score-value {
+    flex: 0 0 auto;
+    color: #f0fff8;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .analysis-modern-proximity .analysis-balance-score-line {
+    color: #b7f5d6;
+  }
+  .analysis-modern-proximity .analysis-balance-score-value {
+    color: #63e3a5;
+    font-size: 1.04rem;
+  }
   .analysis-score-average-stack {
     display: flex;
     flex-direction: column;
@@ -2780,15 +2820,17 @@
         </div>
       </div>
       <div class="analysis-score-group analysis-score-group-balance">
-        <div class="analysis-distance-score-row">
-          <div class="analysis-score-items">
-            <span class="analysis-score-item" id="analysisSwingBalanceX">X(LSE): -</span>
-            <span class="analysis-score-item" id="analysisSwingBalanceY">Y(ATE): -</span>
-            <span class="analysis-score-item" id="analysisSwingBalanceZ">Z(VEE*): -</span>
+        <div class="analysis-distance-score-row analysis-balance-result-row">
+          <div class="analysis-balance-score-line" aria-live="polite">
+            <span><span id="analysisSwingBalanceLabel">스윙 밸런스</span> <small class="analysis-balance-club" id="analysisSwingBalanceClub"></small>:</span>
+            <strong class="analysis-balance-score-value" id="analysisSwingBalanceScore">드라이버/아이언 선택 후 표시</strong>
           </div>
         </div>
-        <div class="analysis-distance-score-row">
-          <span class="analysis-score-average" id="analysisSwingBalanceScore" aria-live="polite">스윙 밸런스: 드라이버/아이언 선택 후 표시</span>
+        <div class="analysis-distance-score-row analysis-balance-result-row analysis-modern-proximity">
+          <div class="analysis-balance-score-line" aria-live="polite">
+            <span><span id="analysisModernSwingProximityLabel">현대표준스윙근접도</span> <small class="analysis-balance-club" id="analysisModernSwingProximityClub"></small>:</span>
+            <strong class="analysis-balance-score-value" id="analysisModernSwingProximity">프레임 1–6 분석 후 표시</strong>
+          </div>
         </div>
       </div>
     </div>
@@ -9295,35 +9337,43 @@
 
   function updateSwingBalanceDisplay() {
     const scoreElement = document.getElementById('analysisSwingBalanceScore');
-    const axisElements = {
-      x: document.getElementById('analysisSwingBalanceX'),
-      y: document.getElementById('analysisSwingBalanceY'),
-      z: document.getElementById('analysisSwingBalanceZ'),
-    };
-    if (!scoreElement || Object.values(axisElements).some(element => !element)) return;
+    const scoreLabelElement = document.getElementById('analysisSwingBalanceLabel');
+    const scoreClubElement = document.getElementById('analysisSwingBalanceClub');
+    const proximityLabelElement = document.getElementById('analysisModernSwingProximityLabel');
+    const proximityClubElement = document.getElementById('analysisModernSwingProximityClub');
+    const proximityElement = document.getElementById('analysisModernSwingProximity');
+    if (!scoreElement || !scoreLabelElement || !scoreClubElement || !proximityLabelElement
+      || !proximityClubElement || !proximityElement) return;
+    scoreLabelElement.textContent = getSwingUiText('스윙 밸런스', 'Swing Balance');
+    proximityLabelElement.textContent = getSwingUiText('현대표준스윙근접도', 'Modern Standard Swing Proximity');
     const result = classifySwingType();
-    const sharesAvailable = result && !result.missingEngineEvidence?.length
-      && [result.pct?.type1, result.pct?.type2, result.pct?.type3].every(hasMetric);
-    axisElements.x.textContent = sharesAvailable ? `X(LSE): ${result.pct.type2.toFixed(1)}%` : 'X(LSE): -';
-    axisElements.y.textContent = sharesAvailable ? `Y(ATE): ${result.pct.type1.toFixed(1)}%` : 'Y(ATE): -';
-    axisElements.z.textContent = sharesAvailable ? `Z(VEE*): ${result.pct.type3.toFixed(1)}%` : 'Z(VEE*): -';
     const clubType = analysisClubTypeSelect?.value || '';
     const weights = SWING_BALANCE_WEIGHTS[clubType];
     if (!weights) {
-      scoreElement.textContent = getSwingUiText(
-        '스윙 밸런스: 드라이버/아이언 선택 후 표시',
-        'Swing Balance: select Driver or Iron');
+      scoreClubElement.textContent = '';
+      proximityClubElement.textContent = '';
+      scoreElement.textContent = getSwingUiText('클럽 선택 후 표시', 'Select a club to display');
+      proximityElement.textContent = getSwingUiText('클럽 선택 후 표시', 'Select a club to display');
       return;
     }
 
     const clubName = clubType === 'driver'
       ? getSwingUiText('드라이버', 'Driver') : getSwingUiText('아이언', 'Iron');
+    const clubLabel = `(${clubName})`;
+    scoreClubElement.textContent = clubLabel;
+    proximityClubElement.textContent = clubLabel;
     const score = computeSwingBalanceScore(result, clubType);
     scoreElement.textContent = hasMetric(score)
-      ? getSwingUiText(`스윙 밸런스 · ${clubName}: ${score.toFixed(1)} / 100`,
-        `Swing Balance · ${clubName}: ${score.toFixed(1)} / 100`)
-      : getSwingUiText(`스윙 밸런스 · ${clubName}: 측정 불가`,
-        `Swing Balance · ${clubName}: not measurable`);
+      ? `${score.toFixed(1)} / 100`
+      : getSwingUiText('측정 불가', 'Not measurable');
+    const frameScores = ['frame1', 'frame2', 'frame3', 'frame4', 'frame5', 'frame6']
+      .map(getStoredSegmentScore);
+    const proximity = frameScores.every(hasMetric)
+      ? frameScores.reduce((sum, frameScore) => sum + frameScore, 0) / frameScores.length * 10
+      : null;
+    proximityElement.textContent = hasMetric(proximity)
+      ? `${proximity.toFixed(1)}%`
+      : getSwingUiText('프레임 1–6 분석 후 표시', 'Complete frames 1–6 to display');
   }
 
   function updateSegmentScoresDisplay() {
@@ -9849,14 +9899,14 @@
     if (analysisConsistencyAverage) analysisConsistencyAverage.textContent = '일관성 모션 점수: -';
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 점수: -';
     const swingBalanceScore = document.getElementById('analysisSwingBalanceScore');
-    const swingBalanceX = document.getElementById('analysisSwingBalanceX');
-    const swingBalanceY = document.getElementById('analysisSwingBalanceY');
-    const swingBalanceZ = document.getElementById('analysisSwingBalanceZ');
-    if (swingBalanceScore) swingBalanceScore.textContent = getSwingUiText(
-      '스윙 밸런스: 분석 후 표시', 'Swing Balance: shown after analysis');
-    if (swingBalanceX) swingBalanceX.textContent = 'X(LSE): -';
-    if (swingBalanceY) swingBalanceY.textContent = 'Y(ATE): -';
-    if (swingBalanceZ) swingBalanceZ.textContent = 'Z(VEE*): -';
+    const swingBalanceClub = document.getElementById('analysisSwingBalanceClub');
+    const modernSwingProximity = document.getElementById('analysisModernSwingProximity');
+    const modernSwingProximityClub = document.getElementById('analysisModernSwingProximityClub');
+    if (swingBalanceScore) swingBalanceScore.textContent = getSwingUiText('분석 후 표시', 'Shown after analysis');
+    if (swingBalanceClub) swingBalanceClub.textContent = '';
+    if (modernSwingProximity) modernSwingProximity.textContent = getSwingUiText(
+      '프레임 1–6 분석 후 표시', 'Shown after frames 1–6 are analyzed');
+    if (modernSwingProximityClub) modernSwingProximityClub.textContent = '';
     const distanceBonus = document.getElementById('analysisDistanceBonus');
     if (distanceBonus) distanceBonus.textContent = '';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
