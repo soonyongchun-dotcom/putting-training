@@ -13,6 +13,8 @@ const context = vm.createContext({
   areVideoSourcesSame: () => true,
   getLockedReferenceLineLength: () => 1,
   getDownswingSideEvidence: () => null,
+  getF6DownswingSideEvidence: () => null,
+  getC7HandExtensionEvidence: () => ({ available: false }),
   getSwingTargetSign: () => null,
   getSelectedAnalysisClubType: () => selectedClubType,
 });
@@ -24,6 +26,7 @@ for (const name of [
   'computeModernSwingProximity',
   'combineMetricScores', 'computeRawSegmentScore', 'computeSegmentScore',
   'computeFrameMetrics', 'computeThreePointSpread', 'getAnalysisAspect',
+  'computeF6DisplacementObservation',
   'getPanelReferenceLength', 'referenceRatio', 'referencePositionX',
   'getThreePointSpreadChange', 'computeMetricDelta', 'createDeltaResult',
 ]) {
@@ -53,7 +56,7 @@ test('F2 angle and reference-line distance use the specified linear thresholds',
 test('F2 combines angle, distance and pelvis/C7 weights, independently of top compression', () => {
   const fm = {
     laggingAngleBDeg: 72.5, coreHandReferenceRatio: 0.425,
-    radiusCompressionRatio: 0.1, pelvisLateralDelta: 0.25, c7LateralDelta2: 0.05,
+    radiusCompressionRatio: 0.1, pelvisLateralDelta: 0.25, c7ReferenceDelta2: 0.02,
   };
   const result = { fm };
   assert.equal(context.computeSegmentScore(result, 'frame2'), 7);
@@ -65,27 +68,26 @@ test('F2 combines angle, distance and pelvis/C7 weights, independently of top co
   assert.equal(context.computeSegmentScore({ fm: { visibilityLimited: true, radiusCompressionRatio: 0.4 } }, 'frame2'), null);
 });
 
-test('F2 pelvis score and C7 deduction are linear and capped within the four-point component', () => {
+test('F2 C7 deduction follows the F1/F4 reference-line band and is capped by the pelvis score', () => {
   for (const [pelvis, expected] of [[0, 0], [0.125, 0.5], [0.25, 1], [0.499, 1], [-0.25, 1]]) {
-    close(context.getF2MetricBreakdown({ pelvisLateralDelta: pelvis, c7LateralDelta2: 0.05 }).coreShiftScore, expected);
+    close(context.getF2MetricBreakdown({ pelvisLateralDelta: pelvis, c7ReferenceDelta2: 0.02 }).coreShiftScore, expected);
   }
-  const sample = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.499, c7LateralDelta2: 0.299 });
-  close(sample.appliedC7PenaltyPoints, 2.49);
-  close(sample.coreShiftScore * 4, 1.51);
-  const fractional = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.25, c7LateralDelta2: -0.055 });
-  close(fractional.appliedC7PenaltyPoints, 0.05);
-  const capped = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.125, c7LateralDelta2: 0.5 });
+  for (const [shift, penalty] of [[0, 0], [0.02, 0], [0.07, 2], [-0.07, 2], [0.12, 4], [0.2, 4]]) {
+    const breakdown = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.25, c7ReferenceDelta2: shift });
+    close(breakdown.appliedC7PenaltyPoints, penalty);
+  }
+  const capped = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.125, c7ReferenceDelta2: 0.12 });
   close(capped.appliedC7PenaltyPoints, 2);
   close(capped.coreShiftScore, 0);
-  const noC7 = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.25, c7LateralDelta2: null });
+  const noC7 = context.getF2MetricBreakdown({ pelvisLateralDelta: 0.25, c7LateralDelta2: 0.3 });
   assert.equal(noC7.appliedC7PenaltyPoints, null);
   close(noC7.coreShiftScore, 1);
-  assert.equal(context.getF2MetricBreakdown({ c7LateralDelta2: 0.1 }).coreShiftScore, null);
-  assert.equal(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.25, c7LateralDelta2: 0.05, distanceComparable: false }).coreShiftScore, null);
+  assert.equal(context.getF2MetricBreakdown({ c7ReferenceDelta2: 0.1 }).coreShiftScore, null);
+  assert.equal(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.25, c7ReferenceDelta2: 0.05, distanceComparable: false }).coreShiftScore, null);
   assert.equal(context.computeSegmentScore({ fm: {
     laggingAngleBDeg: 53.9, coreHandReferenceRatio: 0.336,
-    pelvisLateralDelta: 0.499, c7LateralDelta2: 0.299,
-  } }, 'frame2'), 7.5);
+    pelvisLateralDelta: 0.499, c7ReferenceDelta2: 0.07,
+  } }, 'frame2'), 8);
 });
 
 test('driver F2 pelvis-shift score and LSE fit use the 22–32% band with shared decay 4', () => {
@@ -105,14 +107,14 @@ test('driver F2 pelvis-shift score and LSE fit use the 22–32% band with shared
       laggingAngleBDeg: 59.7,
       coreHandReferenceRatio: 0.322,
       pelvisLateralDelta: 0.103,
-      c7LateralDelta2: 0.116,
+      c7ReferenceDelta2: 0.02,
       distanceComparable: true,
-    } }, 'frame2'), 7.5);
+    } }, 'frame2'), 8);
     assert.equal(context.computeSegmentScore({ fm: {
       laggingAngleBDeg: 46.90146198915187,
       coreHandReferenceRatio: 0.3032924489966823,
       pelvisLateralDelta: 0.3078737818387437,
-      c7LateralDelta2: 0.05742873998865057,
+      c7ReferenceDelta2: 0.02,
       distanceComparable: true,
     } }, 'frame2'), 10);
     close(context.getF2MetricBreakdown({ pelvisLateralDelta: 0.12 }).pelvisShiftScore, Math.exp(-0.4));
@@ -222,4 +224,28 @@ test('F2 carries the aspect-corrected pelvis–hands distance relative to the B 
   context.getLockedReferenceLineLength = () => null;
   measured.coreHandReferenceRatio = context.referenceRatio(measured.coreHandRadiusRaw, 'side');
   assert.equal(context.createDeltaResult({ frameMetrics: {} }, { frameMetrics: measured }, 'frame2').fm.coreHandReferenceRatio, null);
+  context.getLockedReferenceLineLength = () => 1;
+});
+
+test('F2 scores C7 against the reference line while preserving torso-relative pelvis and coupling', () => {
+  const result = context.createDeltaResult(
+    { frameMetrics: { pelvisNormX: 0.4, c7NormX2: 0.4, torsoRefDist: 0.2 } },
+    { frameMetrics: { pelvisNormX: 0.45, c7NormX2: 0.42 } },
+    'frame2',
+  );
+  close(result.fm.pelvisLateralDelta, 0.5);
+  close(result.fm.pelvisReferenceDelta2, 0.1);
+  close(result.fm.c7LateralDelta2, 0.2);
+  close(result.fm.c7ReferenceDelta2, 0.04);
+  const breakdown = context.getF2MetricBreakdown(result.fm);
+  close(breakdown.headPelvisCoupling, 0.4);
+  close(breakdown.appliedC7PenaltyPoints, 4 * (1 - context.bandScore(4, 2, 12)));
+  context.getLockedReferenceLineLength = () => null;
+  const missing = context.createDeltaResult(
+    { frameMetrics: { pelvisNormX: 0.4, c7NormX2: 0.4, torsoRefDist: 0.2 } },
+    { frameMetrics: { pelvisNormX: 0.45, c7NormX2: 0.42 } },
+    'frame2',
+  );
+  assert.equal(missing.fm.c7ReferenceDelta2, null);
+  context.getLockedReferenceLineLength = () => 1;
 });

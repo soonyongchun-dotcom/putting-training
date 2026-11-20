@@ -1360,11 +1360,13 @@
     color: #ddd;
   }
   /* 지표 툴팁 */
-  .analysis-metric[data-tooltip] {
+  .analysis-metric[data-tooltip],
+  .analysis-score-hover[data-tooltip] {
     position: relative;
     cursor: help;
   }
-  .analysis-metric[data-tooltip]::before {
+  .analysis-metric[data-tooltip]::before,
+  .analysis-score-hover[data-tooltip]::before {
     content: attr(data-tooltip);
     position: absolute;
     bottom: calc(100% + 8px);
@@ -1387,8 +1389,15 @@
     box-shadow: 0 4px 18px rgba(0,0,0,0.55);
     text-align: left;
   }
-  .analysis-metric[data-tooltip]:hover::before {
+  .analysis-metric[data-tooltip]:hover::before,
+  .analysis-score-hover[data-tooltip]:hover::before,
+  .analysis-score-hover[data-tooltip]:focus::before {
     opacity: 1;
+  }
+  #analysisModernSwingProximity[data-tooltip]::before {
+    left: auto;
+    right: 0;
+    transform: none;
   }
   .analysis-detail {
     font-size: 0.85rem;
@@ -2550,13 +2559,13 @@
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF1">
           <div class="analysis-segment-compare-title">Frame 1 — 백스윙탑/축고정과 꼬임</div>
           <div class="analysis-metric" id="analysisDeltaCardF1Score"
-               data-tooltip="척추축/X-Factor/샤프트수평/C7변위 점수 (0~10점)&#10;가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%&#10;점수가 높을수록 A/B 기준선 길이 대비 C7 변위가 작고, 어깨를 충분히 회전하며, 탑에서 샤프트가 지면과 평행에 가까움">점수: -</div>
+               data-tooltip="척추축/X-Factor/샤프트수평/C7변위 점수 (0~10점)&#10;가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%&#10;클럽별 샤프트각 기준과 C7 변위, 어깨 회전 및 척추각 변화를 반영합니다.">점수: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1SpineAngle"
             data-tooltip="어드레스 → 백스윙 탑 척추각도 변화&#10;◎ |변화| ≤5°: 이 항목 만점&#10;◎ 5~18°: 완만한 감점&#10;◎ |변화| ≥18°: 이 항목 0점&#10;프레임 점수는 다른 4개 지표와 가중합&#10;음수: 앞으로 기울어짐 / 양수: 뒤로 기울어짐">척추각도: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1XFactor"
                data-tooltip="어드레스→백스윙 탑 어깨 회전각 (X-Factor, 측면 카메라 기준)&#10;산출 방식: B프레임 xFactorDeg − A프레임 xFactorDeg&#10;  회전 증가 → 오른어깨 x 증가 → 값이 음수로 커짐&#10;◎ ≤-150°: 만점 (충분한 상체 코일)&#10;◎ -150°~-60°: 선형 보간&#10;◎ ≥-60°: 0점 (회전 부족 또는 역회전)">X-Factor(어깨회전): -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1TopShaft"
-            data-tooltip="백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)&#10;산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각&#10;◎ 드라이버 만점: -3°~+5°&#10;◎ 아연 만점: -3°~+10°&#10;◎ 음수(−): 오버스윙(클럽헤드가 평행선 아래), 양수(+): 부족/레이드오프(평행선 위)&#10;만점 범위를 벗어나면 기존 S자 감점 곡선을 적용합니다.">샤프트 수평(탑): -</div>
+            data-tooltip="백스윙 탑 클럽 샤프트 각도 (영상 수평 = 0° 기준)&#10;산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각&#10;◎ 드라이버 만점: -3°~+5° (−20° 이하 / +20° 이상 0점)&#10;◎ 아이언 만점: 0°~+18° (−10° 이하 / +35° 이상 0점)&#10;음수는 화면상 오버스윙 주의, 양수는 수평에 못 미치는 컴팩트 탑입니다. 범위 밖은 S자 감점합니다.&#10;잠정 2D 기준이며 촬영 각도·카메라 기울기에 영향을 받습니다. 축 안정성, 실제 스윙 평면이나 정타율을 이 각도만으로 판정하지 않습니다.">샤프트 수평(탑): -</div>
           <div class="analysis-metric" id="analysisDeltaCardF1C7XY"
                data-tooltip="어드레스→백스윙 탑 C7 좌우(X)/상하(Y) 변위 — 기준선 길이 대비 %&#10;같은 파일 A/B는 A 기준선을 공통 사용하고, 다른 파일은 A/B 각 기준선을 적용합니다. 기준선은 크기만 보정하며 영상 구도·원점은 자동 정렬하지 않습니다.&#10;◎ 각 축 변위 2% 미만: 만점&#10;◎ 1% 증가마다 완만한 감점(12%에서 0점)">C7 변위(X/Y): -</div>
         </div>
@@ -2569,7 +2578,7 @@
           <div class="analysis-metric" id="analysisDeltaCardF2RadiusCompression"
             data-tooltip="F2 골반 중심–양손 중심의 2D 거리 ÷ 기준선 길이&#10;35% 이하 만점, 50% 이상 0점, 그 사이는 선형 감점합니다.&#10;백스윙 탑 거리와 클럽헤드는 사용하지 않습니다.">코어-손 거리: -</div>
           <div class="analysis-metric" id="analysisDeltaCardF2CoreShift"
-            data-tooltip="골반 X 이동(어드레스 몸통 길이 대비, 방향 무시): 드라이버는 22~32% 기준 구간에서 만점 적합도, 구간 밖은 지수 감쇠를 적용합니다. 아연은 0~25% 선형 램프입니다. C7 X 이동이 5%를 초과하면 초과 1%p당 최대 0.1점을 감점하며, C7이 없으면 감점을 보류합니다.">코어(골반) 이동: -</div>
+            data-tooltip="골반 X 이동(어드레스 몸통 길이 대비, 방향 무시): 드라이버는 22~32% 기준 구간에서 만점 적합도, 구간 밖은 지수 감쇠를 적용합니다. 아이언은 0~25% 선형 램프입니다. C7 X 이동은 머리–왼발 기준선 대비 2% 이하 감점 없음, 12% 이상 최대 4점 감점이며 그 사이는 F1·F4와 같은 S자 곡선입니다. 감점은 골반 항목 점수를 넘지 않으며 C7이 없으면 보류합니다. 잠정 2D 기준입니다.">코어(골반) 이동: -</div>
         </div>
         <div class="analysis-segment-compare-card" id="analysisDeltaCardF3">
           <div class="analysis-segment-compare-title">Frame 3 — 외부토크/지면반력</div>
@@ -2622,11 +2631,13 @@
                       data-tooltip="P6→P7 선택 시점 간 시간차 관측값입니다. 프레임레이트·시점 선택 오차와 수행능력 기준이 검증되지 않아 종합 점수에서는 제외합니다.">&#916;t 템포: -</div>
               <div class="analysis-metric" id="analysisDeltaCardF6Release"
                      data-tooltip="Release Index = (r_impact / r_downswing) × (180° − θ_lag). 기존 기준이 새 반경 정의에서 검증되지 않아 관측 참고치로만 표시하고 종합 점수에서는 제외합니다.">래깅-릴리즈: -</div>
+              <div class="analysis-metric" id="analysisDeltaCardF6Displacement"
+                     data-tooltip="P6→P7 손과 클럽헤드의 화면상 직선 변위 비율. 같은 영상·순서와 기준선이 필요하며 손 변위가 기준선의 1% 미만이면 보류합니다. 곡선 경로·가속도·실제 릴리즈 효율은 측정하지 않으며 점수에 반영하지 않습니다.">손 대비 헤드 2D 변위비: -</div>
               <div class="analysis-metric" id="analysisDeltaCardF6Sequence"
-                     data-tooltip="종합 점수의 주 지표. 같은 영상이면 F1 A 어드레스를 원점으로, 탑의 양손 위치로 타깃 방향을 정해 골반 순이동(P6)·C7 선행(P7)·탑 C7 역피벗을 부호 있게 계산합니다. 방향을 확인할 수 없으면 탑 기준 절댓값 비율만 쓰고 최대 8.0/10입니다. 실제 시간 순서나 힘 전달을 입증하지 않습니다.">상대 변위 비율: -</div>
+                     data-tooltip="골반과 C7의 상대 변위 비율이 잠정 점수의 주 지표입니다. 어드레스 기준 비율 2.0 이상과 골반 순이동 4% 이상을 모두 충족하면 만점입니다. C7 이동량의 별도 감점은 적용하지 않지만 비율 계산에는 사용합니다. 방향을 확인할 수 없으면 탑 기준 절댓값 비율만 쓰고 최대 8.0/10입니다. 실제 시간 순서나 힘 전달을 입증하지 않습니다.">상대 변위 비율: -</div>
             </div>
             <div class="analysis-f5-score-box" id="analysisDeltaCardF6Score"
-                   data-tooltip="F6 잠정점수: 상대 변위 100%. 측면 P5→P6 전달 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외합니다.">점수: -</div>
+                   data-tooltip="F6 잠정점수: 상대 변위 100%. 동일 영상에서 탑→P5→P6→P7 순서와 백스윙 P6·F6 A 시점 차이 0.1초 이하를 확인하면 측면 경로 10%를 보완합니다(잠정 규칙). C7 별도 감점, 시간차, Release Index 및 손 대비 헤드 2D 변위비는 점수에서 제외합니다.">점수: -</div>
           </div>
         </div>
       </div>
@@ -2783,7 +2794,7 @@
         <summary>프레임 채점·보완점수 상세</summary>
         <div id="analysisBonusReference" class="analysis-summary"></div>
         <div id="analysisThreePointSpread" class="analysis-summary" style="white-space:pre-wrap;text-align:left;"></div>
-        <div class="analysis-summary" style="text-align:left;">잠정 점수 구성: 프레임 내부 기준은 기존 항목을 사용합니다. 비거리 모션 점수는 아이언 F1–F4 구조 80%·F6 전달 10%·F3→F4 레버 10%, 드라이버 구조 60%·전달 25%·레버 15%로 결합합니다. 드라이버 F1–F4 내부 비중은 10/15/25/50%이며 F6 Release Index와 F3→F4 반경 전개를 포함합니다. 누락 항목은 재정규화하며 2D 형상으로 실제 속도를 직접 측정하지 않습니다.</div>
+        <div class="analysis-summary" style="text-align:left;">비거리 모션 기본점수는 아이언 구조 80%·F6 10%·F3→F4 레버 10%, 드라이버 60%·25%·15%로 결합합니다. F2 B→F4 B C7–양손 거리 변화가 유효하면 기본점수 70%와 새 지표 30%를 결합합니다. 기준선 대비 변화 +2%p 이하 0점, +6%p 이상 10점, 사이는 선형입니다. 동일 영상·순서·포인트·기준선이 부족하면 새 지표를 보류하고 기본점수를 유지합니다. 모든 기준은 잠정이며 2D 형상은 실제 속도나 비거리를 측정하지 않습니다.</div>
       </details>
     </details>
     <details class="analysis-reference-detail" data-workflow-for="swingtype">
@@ -2805,7 +2816,7 @@
             <span class="analysis-score-item" id="analysisSegmentScoreF4">F4: -</span>
           </div>
           <div class="analysis-score-average-stack">
-            <span class="analysis-score-average" id="analysisSegmentAverage">비거리 모션 점수: -</span>
+            <span class="analysis-score-average analysis-score-hover" id="analysisSegmentAverage" tabindex="0">비거리 모션 점수: -</span>
             <small class="analysis-score-note" id="analysisDistanceBonus"></small>
           </div>
         </div>
@@ -2829,8 +2840,9 @@
         <div class="analysis-distance-score-row analysis-balance-result-row analysis-modern-proximity">
           <div class="analysis-balance-score-line" aria-live="polite">
             <span><span id="analysisModernSwingProximityLabel">현대표준스윙근접도</span> <small class="analysis-balance-club" id="analysisModernSwingProximityClub"></small>:</span>
-            <strong class="analysis-balance-score-value" id="analysisModernSwingProximity">프레임 1–4 분석 후 표시</strong>
+            <strong class="analysis-balance-score-value analysis-score-hover" id="analysisModernSwingProximity" tabindex="0">프레임 1–4 분석 후 표시</strong>
           </div>
+          <small class="analysis-score-note" id="analysisModernSwingProximityNote"></small>
         </div>
       </div>
     </div>
@@ -3124,9 +3136,9 @@
     ' · 잠정 지표 점수 포함': ' · Includes provisional metric scores',
     'F2 잠정점수: 실제 래깅각 40%·기준선 대비 코어-손 거리 20%·골반/C7 이동 적합도 40%. 각도와 거리는 작을수록 높고 기준 구간 사이에서 선형 감점합니다.': 'Provisional F2: actual lag angle 40%, core-to-hands distance relative to the reference line 20%, pelvis/C7-shift fit 40%. Smaller angles and distances score higher, with linear deductions between thresholds.',
     '잠정 점수 구성: 프레임 내부 기준은 기존 항목을 사용합니다. 비거리 모션 점수는 아이언 F1–F4 구조 80%·F6 전달 10%·F3→F4 레버 10%, 드라이버 구조 60%·전달 25%·레버 15%로 결합합니다. 드라이버 F1–F4 내부 비중은 10/15/25/50%이며 F6 Release Index와 F3→F4 반경 전개를 포함합니다. 누락 항목은 재정규화하며 2D 형상으로 실제 속도를 직접 측정하지 않습니다.': 'Frame scoring retains its existing internal metrics. Distance Motion Score uses Iron structure 80%, F6 transfer 10%, and F3→F4 lever 10%; Driver uses 60% structure, 25% transfer, and 15% lever. Driver F1–F4 internal weights are 10/15/25/50%. Missing components are renormalized; 2D geometry does not directly measure speed.',
+    '비거리 모션 기본점수는 아이언 구조 80%·F6 10%·F3→F4 레버 10%, 드라이버 60%·25%·15%로 결합합니다. F2 B→F4 B C7–양손 거리 변화가 유효하면 기본점수 70%와 새 지표 30%를 결합합니다. 기준선 대비 변화 +2%p 이하 0점, +6%p 이상 10점, 사이는 선형입니다. 동일 영상·순서·포인트·기준선이 부족하면 새 지표를 보류하고 기본점수를 유지합니다. 모든 기준은 잠정이며 2D 형상은 실제 속도나 비거리를 측정하지 않습니다.': 'The base distance-motion score combines iron structure 80%, F6 10% and F3→F4 lever 10%, or driver 60%, 25% and 15%. When the F2 B→F4 B C7-to-hands distance change is valid, combine 70% base with 30% new metric. Relative to the reference line, changes ≤+2 percentage points score 0, ≥+6 score 10, with linear interpolation. If same-video timing, points or reference are unavailable, retain the base score and withhold the new metric. All thresholds are provisional; 2D geometry does not measure speed or distance.',
     'B 실제 클럽헤드–양손–어깨 내각: 55° 이하 만점, 90° 이상 0점, 그 사이는 선형 감점합니다. 2D 투영의 잠정 기준입니다.': 'Actual B clubhead–hands–shoulder angle: full credit at 55° or less, zero at 90° or more, and linear deductions in between. Provisional 2D-projection thresholds.',
     'F2 골반 중심–양손 중심의 2D 거리 ÷ 기준선 길이\n35% 이하 만점, 50% 이상 0점, 그 사이는 선형 감점합니다.\n백스윙 탑 거리와 클럽헤드는 사용하지 않습니다.': 'F2 2D pelvis-center–hands-center distance ÷ reference-line length\nFull credit at 35% or less, zero at 50% or more, linear deductions in between.\nThe backswing-top distance and clubhead are not used.',
-    '어드레스 몸통 길이 대비 골반 X 이동 크기: 0%는 0점, 25% 이상은 4점, 사이는 선형 보간합니다. C7 X 이동이 5%를 초과하면 초과 1%p당 0.1점을 이 항목에서 감점하며, 최저 0점입니다. 방향은 무시합니다. C7이 없으면 감점을 보류합니다.': 'Pelvis X-shift magnitude relative to address torso length: zero points at 0%, four points at 25% or more, linear in between. C7 X-shift above 5% deducts 0.1 points per percentage point from this component, down to zero. Direction is ignored. C7 deduction is withheld when C7 is missing.',
     'F3 잠정점수: 신전 상태/변화 35%·축 안정 25%·자세 전환 40%. 같은 영상의 순서화된 F1~F4 B 3점 퍼짐으로 초기 압축과 다운스윙 전개가 선수 참고 범위를 벗어나면 최대 1.5점 지수 감점합니다. 선수 범위 안의 보완점만 유지합니다. 실험적 2D 지표이며 토크·지면반력 측정이 아닙니다.': 'Provisional F3: extension state/change 35%, axis stability 25%, posture transition 40%. Ordered same-video F1–F4 B three-point spread incurs up to a 1.5-point exponential deduction when initial compression or downswing progression falls outside player references. The existing bonus applies only within player bands. Experimental 2D metric; not measured torque or ground force.',
     '신전 항목: 변화량(0→6° 램프) 75% + B 절대각(150→175° 램프) 25%. 어드레스부터 펴져 있던 무릎은 절대각만으로 만점을 받지 않습니다. 이 범위는 잠정 기준입니다.': 'Extension component: change (0→6° ramp) 75% + B angle (150→175° ramp) 25%. A knee already straight at address does not get full credit from the angle alone. Provisional ranges.',
     '축 고정: 어드레스 대비 C7의 타깃 쪽 이동 2% 이내 만점, 6%에서 0점(방향 미확인 시 절댓값). 어드레스 C7이 없으면 기존 C7 Sway(2→10%)를 씁니다. 잠정 기준입니다.': 'Axis hold: C7 drift toward the target from address — full credit within 2%, zero at 6% (absolute if direction is unknown). Falls back to C7 sway (2→10%) without an address C7. Provisional.',
@@ -3142,7 +3154,12 @@
     'Release Index = (r_impact / r_downswing) × (180° − θ_lag). 기존 기준이 새 반경 정의에서 검증되지 않아 관측 참고치로만 표시하고 종합 점수에서는 제외합니다.': 'Release Index = (r_impact / r_downswing) × (180° − θ_lag). Shown for reference only and excluded from the total score because the legacy threshold is unvalidated for the new radius definition.',
     '종합 점수의 주 지표. |골반의 탑→P6 수평 변위| / (|C7의 탑→P7 수평 변위| + ε), F1 B 탑 참조. 비율 ≥1.5는 감점이 없으며 실제 방향·시간 순서나 리드 동작을 입증하지 않습니다.': 'Primary total-score metric. |Pelvis shift top→P6| / (|C7 shift top→P7| + ε), referencing F1 B. Ratio ≥1.5 incurs no penalty; it does not establish actual direction, timing order or lead motion.',
     'F6 잠정점수: 상대 변위 100%. 측면 P5→P6 전달 경로가 있으면 상대 변위 90%·경로 10%. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외합니다.': 'Provisional F6: relative displacement 100%. With side P5→P6 path, displacement 90% and path 10%. Timing and Release Index are unvalidated observations excluded from scoring.',
-    '골반 X 이동(어드레스 몸통 길이 대비, 방향 무시): 드라이버는 22~32% 기준 구간에서 만점 적합도, 구간 밖은 지수 감쇠를 적용합니다. 아연은 0~25% 선형 램프입니다. C7 X 이동이 5%를 초과하면 초과 1%p당 최대 0.1점을 감점하며, C7이 없으면 감점을 보류합니다.': 'Pelvis X shift (relative to address torso length; direction ignored): drivers use a 22–32% full-fit band with exponential decay outside it. Irons use a 0–25% linear ramp. If C7 X shift exceeds 5%, deduct up to 0.1 points per excess percentage point; withhold the deduction when C7 is unavailable.',
+    'P6→P7 손과 클럽헤드의 화면상 직선 변위 비율. 같은 영상·순서와 기준선이 필요하며 손 변위가 기준선의 1% 미만이면 보류합니다. 곡선 경로·가속도·실제 릴리즈 효율은 측정하지 않으며 점수에 반영하지 않습니다.': 'P6→P7 ratio of screen-space straight-line displacements of clubhead and hands. Requires the same video, ordered phases and reference line; withheld if hand displacement is below 1% of the reference. It does not measure path length, acceleration or release efficiency and is not scored.',
+    '골반과 C7의 상대 변위 비율이 잠정 점수의 주 지표입니다. C7 이동량의 별도 감점은 적용하지 않지만 비율 계산에는 사용합니다. 방향을 확인할 수 없으면 탑 기준 절댓값 비율만 쓰고 최대 8.0/10입니다. 실제 시간 순서나 힘 전달을 입증하지 않습니다.': 'The provisional score primarily uses the pelvis/C7 relative displacement ratio. C7 shift has no separate deduction but remains in the ratio. If direction is unknown, the top-based absolute ratio is capped at 8.0/10. It does not establish timing or force transfer.',
+    '골반과 C7의 상대 변위 비율이 잠정 점수의 주 지표입니다. 어드레스 기준 비율 2.0 이상과 골반 순이동 4% 이상을 모두 충족하면 만점입니다. C7 이동량의 별도 감점은 적용하지 않지만 비율 계산에는 사용합니다. 방향을 확인할 수 없으면 탑 기준 절댓값 비율만 쓰고 최대 8.0/10입니다. 실제 시간 순서나 힘 전달을 입증하지 않습니다.': 'The provisional score primarily uses the pelvis/C7 relative displacement ratio. Full credit requires an address-based ratio of at least 2.0 and net pelvis shift of at least 4%. C7 shift has no separate deduction but remains in the ratio. If direction is unknown, the top-based absolute ratio is capped at 8.0/10. It does not establish timing or force transfer.',
+    'F6 잠정점수: 상대 변위 100%. 동일 영상과 일치하는 P6 시점의 측면 P5→P6 경로가 있으면 상대 변위 90%·경로 10%. C7 별도 감점, 시간차, Release Index 및 손 대비 헤드 2D 변위비는 점수에서 제외합니다.': 'Provisional F6: relative displacement 100%, or 90% displacement and 10% side path when the video and P6 checkpoint match. Separate C7 deductions, timing, Release Index and the head/hand 2D displacement ratio are excluded from scoring.',
+    'F6 잠정점수: 상대 변위 100%. 동일 영상에서 탑→P5→P6→P7 순서와 백스윙 P6·F6 A 시점 차이 0.1초 이하를 확인하면 측면 경로 10%를 보완합니다(잠정 규칙). C7 별도 감점, 시간차, Release Index 및 손 대비 헤드 2D 변위비는 점수에서 제외합니다.': 'Provisional F6: relative displacement 100%, with a 10% side-path adjustment only when the same video has ordered top→P5→P6→P7 and the backswing P6 and F6 A times differ by at most 0.1 seconds (provisional rule). Separate C7 deductions, timing, Release Index and the head/hand 2D displacement ratio are not scored.',
+    '골반 X 이동(어드레스 몸통 길이 대비, 방향 무시): 드라이버는 22~32% 기준 구간에서 만점 적합도, 구간 밖은 지수 감쇠를 적용합니다. 아이언은 0~25% 선형 램프입니다. C7 X 이동은 머리–왼발 기준선 대비 2% 이하 감점 없음, 12% 이상 최대 4점 감점이며 그 사이는 F1·F4와 같은 S자 곡선입니다. 감점은 골반 항목 점수를 넘지 않으며 C7이 없으면 보류합니다. 잠정 2D 기준입니다.': 'Pelvis X shift (relative to address torso length; direction ignored): drivers use a 22–32% full-fit band with exponential decay outside it; irons use a 0–25% linear ramp. C7 X shift relative to the head-to-left-foot reference line has no deduction at 2% or less and a maximum 4-point deduction at 12% or more, using the same S-curve as F1/F4 between. The deduction cannot exceed the pelvis component and is withheld when C7 is missing. Provisional 2D criteria.',
     '드라이버는 B 임팩트 팔–샤프트 절대각 140→175° 램프, 아연은 140→160° 램프로 채점합니다. A→B 변화는 관측 전용이며 음수라는 이유만으로 감점하지 않습니다. 실제 릴리즈 속도를 측정하지 않습니다.': 'For drivers, score the B impact arm–shaft angle on a 140→175° ramp; for irons, use 140→160°. A→B change is observation only; a negative change alone is not penalized. Release speed is not measured.',
     'C7→왼어깨 기울기 변화는 관측 전용이며 점수 미반영. 이 두 점의 각도만으로 척추 측굴·얼리 익스텐션을 확정하지 않습니다.': 'C7→left-shoulder lean change is observation only, not scored. This two-point angle cannot confirm spinal side bend or early extension.',
     '자세 전환 지수: -': 'Posture transition index: -',
@@ -3408,6 +3425,7 @@
     '종합 일관성 점수 (10점 만점)': 'Overall consistency score (out of 10)',
     '리듬/템포 종합 점수 (10점 만점)': 'Overall rhythm and tempo score (out of 10)',
     '가중치: 샤프트수평(탑) 30% | C7 변위(X+Y) 35%(17.5%+17.5%) | 꼬임량(X-Factor) 17.5% | 척추각도 17.5%': 'Weights: shaft level at top 30% | C7 displacement (X+Y) 35% (17.5% each) | coil (X-Factor) 17.5% | spine angle 17.5%',
+    '클럽별 샤프트각 기준과 C7 변위, 어깨 회전 및 척추각 변화를 반영합니다.': 'Uses club-specific shaft-angle criteria, C7 displacement, shoulder turn, and spine-angle change.',
     '가중치: 지면반력 전환 지수 50% | 수직신장 25% | 축 Sway 25%': 'Weights: ground-force transition 50% | vertical extension 25% | axis sway 25%',
     '가중치: 각도·반경 참고 지수 45% | 팔-샤프트 10% | 스윙 반경 전개 10% | 측면기울기 10% | C7 X변위 12.5% | C7 Y변위 12.5%': 'Weights: angle-radius reference index 45% | arm-shaft alignment 10% | swing-radius expansion 10% | lateral tilt 10% | C7 X displacement 12.5% | C7 Y displacement 12.5%',
     '래깅각도 35% + 코어(골반)좌측이동 35% + 코어-손 압축 30%': 'Lag angle 35% + leftward core (pelvis) shift 35% + core-to-hand compression 30%',
@@ -3634,10 +3652,11 @@
     '◎ 1% 증가마다 완만한 감점(12%에서 0점)': '◎ Gradual deduction for each 1% increase (0 at 12%)',
     '백스윙 탑 클럽 샤프트 각도 (지면 수평 = 0° 기준)': 'Club-shaft angle at the top (0° = level with the ground)',
     '산출: 양손 중심(그립)→클럽헤드 벡터의 수평 편각': 'Calculation: horizontal angle of the vector from hand center (grip) to clubhead',
-    '◎ 드라이버 만점: -3°~+5°': '◎ Driver full-score range: -3° to +5°',
-    '◎ 아연 만점: -3°~+10°': '◎ Iron full-score range: -3° to +10°',
-    '◎ 음수(−): 오버스윙(클럽헤드가 평행선 아래), 양수(+): 부족/레이드오프(평행선 위)': '◎ Negative: overswing (clubhead below parallel); positive: insufficient turn / laid off (clubhead above parallel)',
-    '만점 범위를 벗어나면 기존 S자 감점 곡선을 적용합니다.': 'The existing smooth S-curve deductions apply outside the full-score range.',
+    '백스윙 탑 클럽 샤프트 각도 (영상 수평 = 0° 기준)': 'Club-shaft angle at the top (0° = horizontal in the image)',
+    '◎ 드라이버 만점: -3°~+5° (−20° 이하 / +20° 이상 0점)': '◎ Driver full credit: -3° to +5° (zero at −20° or below / +20° or above)',
+    '◎ 아이언 만점: 0°~+18° (−10° 이하 / +35° 이상 0점)': '◎ Iron full credit: 0° to +18° (zero at −10° or below / +35° or above)',
+    '음수는 화면상 오버스윙 주의, 양수는 수평에 못 미치는 컴팩트 탑입니다. 범위 밖은 S자 감점합니다.': 'Negative angles warn of apparent overswing; positive angles indicate a compact, under-parallel top. S-curve deductions apply outside the full-credit range.',
+    '잠정 2D 기준이며 촬영 각도·카메라 기울기에 영향을 받습니다. 축 안정성, 실제 스윙 평면이나 정타율을 이 각도만으로 판정하지 않습니다.': 'These provisional 2D criteria are affected by camera angle and tilt. This angle alone does not establish axis stability, the actual swing plane, or smash factor.',
     '압축·전개 반경 = 선택된 랜드마크 중 가장 먼 두 점 사이 거리': 'Compression/expansion radius = distance between the two farthest selected landmarks',
     'Frame 1 어드레스 실측 반경으로 정규화해 프레임 간 비교': 'Normalized by the measured Frame 1 address radius for cross-frame comparison',
     '◎ 백스윙 탑→Frame 2 감소: 다운스윙 압축': '◎ Decrease from the top to Frame 2: downswing compression',
@@ -4259,6 +4278,7 @@
   const analysisDeltaCardF6Score      = document.getElementById('analysisDeltaCardF6Score');
   const analysisDeltaCardF6TimeDelta  = document.getElementById('analysisDeltaCardF6TimeDelta');
   const analysisDeltaCardF6Release    = document.getElementById('analysisDeltaCardF6Release');
+  const analysisDeltaCardF6Displacement = document.getElementById('analysisDeltaCardF6Displacement');
   const analysisDeltaCardF6Sequence   = document.getElementById('analysisDeltaCardF6Sequence');
   const analysisDeltaCardF6BSection   = document.getElementById('analysisDeltaCardF6BSection');
   const analysisSegmentScoreF6 = document.getElementById('analysisSegmentScoreF6');
@@ -4524,6 +4544,31 @@
   let computing2dCorrectionScenario = false;
   let cached2dCorrectionScenarioKey = null;
   let cached2dCorrectionScenario = null;
+  // 2D 왜곡 보정 결과가 유효한 동안 분석 2·3 화면의 동일 지표를 보정값으로 교체 표시한다. 저장·내보내기는 원본 유지.
+  let correction2dDisplayOverride = null;
+  let correction2dDisplayOverrideKey = 'null';
+  function getActive2dCorrectionOverride() {
+    return computing2dCorrectionScenario ? null : correction2dDisplayOverride;
+  }
+  function get2dCorrectionDisplayTag() {
+    return getSwingUiText('(2D보정)', ' (2D corr.)');
+  }
+  function sync2dCorrectionDisplayOverride(scenario) {
+    const payload = scenario && !scenario.unavailable ? {
+      scores: scenario.scores || null,
+      engineResult: scenario.engineResult || null,
+      backswingClassification: scenario.correctedBackswingClassification || null,
+      distanceMotion: scenario.distanceMotion || null,
+      modernProximity: hasMetric(scenario.modernProximity) ? scenario.modernProximity : null,
+      proximityEvidence: scenario.proximityEvidence || null,
+      crossCorrected: !!scenario.crossCorrected,
+    } : null;
+    const key = JSON.stringify(payload);
+    if (key === correction2dDisplayOverrideKey) return;
+    correction2dDisplayOverride = payload;
+    correction2dDisplayOverrideKey = key;
+    updateSegmentScoresDisplay();
+  }
   var analysisWorkflowState = null;
 
   // Frame-specific landmark type assignment
@@ -4736,6 +4781,7 @@
     const originalEngineResult = classifySwingType();
     const originalEngineDecision = originalEngineResult ? getPowerEngineDecision(originalEngineResult) : null;
     const available = correctionScenario && !correctionScenario.unavailable;
+    sync2dCorrectionDisplayOverride(available ? correctionScenario : null);
     const rows = frameIds.map((frameId, index) => {
       const scale = ['frame5', 'frame6'].includes(frameId) ? 10 : 1;
       return [`F${index + 1} /${scale === 10 ? 100 : 10}`,
@@ -5667,8 +5713,17 @@
       const correctedBackswing = correctedBackswingClassification?.error ? null : correctedBackswingClassification;
       const engineResult = classifySwingType();
       const engineDecision = engineResult ? getPowerEngineDecision(engineResult) : null;
+      // 분석 2·3 화면 교체 표시용: 보정 상태에서 산출한 동일 지표를 함께 내보낸다.
+      const correctedDistanceMotion = getDistanceMotionSummary();
+      const correctedProximity = computeModernSwingProximity();
+      const correctedProximityEvidence = getC7HandExtensionEvidence();
       result = {
         scores: clone(segmentScoreHistory),
+        engineResult: clone(engineResult),
+        correctedBackswingClassification: clone(correctedBackswing),
+        distanceMotion: clone(correctedDistanceMotion),
+        modernProximity: hasMetric(correctedProximity) ? correctedProximity : null,
+        proximityEvidence: clone(correctedProximityEvidence),
         engineCode: engineDecision?.code || null,
         engineMode: engineDecision?.mode || 'undetermined',
         engineShares: engineResult?.missingEngineEvidence?.length ? null : engineResult?.pct || null,
@@ -5994,8 +6049,7 @@
       // 백스윙탑(B패널) C7/골반 x좌표 저장 — Frame 6 토크 전환 지수(Sequence Index) 기준점으로 재사용
       if (p1) { m.c7NormX = p1.x; m.c7NormY = p1.y; }
       if (p4) m.pelvisNormX = p4.x;
-      // 백스윙 탑 샤프트-지면 수평 판정: 양손 중심(그립)→클럽헤드 벡터의 수평 편각
-      // 0°=지면과 평행, 음수=오버(클럽헤드가 평행선 아래), 양수=부족/레이드오프(평행선 위)
+      // 백스윙 탑 샤프트의 영상 수평 편각: 음수는 헤드가 그립보다 아래, 양수는 위.
       if (pHandMid && pClubTop) {
         const dx = Math.abs(pClubTop.x - pHandMid.x) * ar;
         const dyUp = pHandMid.y - pClubTop.y; // 화면좌표 y는 아래로 증가 → 클럽헤드가 그립보다 위(작은 y)면 양수
@@ -6140,6 +6194,8 @@
       // COM/C7 수평 좌표 — 토크 전환 지수의 변위 산출용 (정규화 좌표, F1 백스윙탑 기준점과 동일 기준)
       if (t1) m.c7NormX6 = t1.x;
       if (t2) m.comNormX6 = t2.x;
+      if (t3) { m.handNormX6 = t3.x; m.handNormY6 = t3.y; }
+      if (t4) { m.headNormX6 = t4.x; m.headNormY6 = t4.y; }
       // 척추 길이(스케일 참조) — 측면 척추 꺾임(Side Bend) 각도: C7→COM 벡터의 수직 편각
       if (t1 && t2) {
         m.sideBendDeg6 = Math.atan2(Math.abs(t2.x - t1.x) * ar, Math.abs(t2.y - t1.y)) * 180 / Math.PI;
@@ -6156,6 +6212,10 @@
     m.swingRadiusRaw = m.coreHandRadiusRaw;
     const c7 = frameId === 'frame1' || frameId === 'frame4' ? p1
       : frameId === 'frame3' ? p4 : points.find(p => p.type === 'c7');
+    if (['frame2', 'frame4', 'frame6'].includes(frameId) && c7 && pHandMid
+      && [c7.x, c7.y, pHandMid.x, pHandMid.y].every(hasMetric)) {
+      m.c7HandDistanceRaw = Math.hypot((c7.x - pHandMid.x) * ar, c7.y - pHandMid.y);
+    }
     m.threePointSpreadRaw = computeThreePointSpread(c7, core, pHandMid, ar);
     if (frameId === 'frame4') m.rMaxNorm = m.coreHandRadiusRaw;
     if (frameId === 'frame6') m.rotRadius6 = m.coreHandRadiusRaw;
@@ -6301,6 +6361,42 @@
     };
   }
 
+  function getF6DownswingSideEvidence(fm) {
+    if (!areVideoSourcesSame() || !backswingSourceIdentity
+      || backswingSourceIdentity !== videoFileIdentity.front) return null;
+    const top = backswingFrames.top?.time;
+    const p5 = backswingFrames.transition?.time;
+    const p6 = backswingFrames.downP6?.time;
+    const a = fm.phaseTimeA6;
+    const b = fm.phaseTimeB6;
+    if (![top, p5, p6, a, b].every(hasMetric)
+      || !(top < p5 && p5 < p6 && a < b && p6 < b)
+      || Math.abs(p6 - a) > 0.1 + 1e-9) return null;
+    return getDownswingSideEvidence();
+  }
+
+  function computeF6DisplacementObservation(a, b, deltaTime, sameVideo) {
+    const unavailable = reason => ({ ratio: null, handShift: null, headShift: null, reason });
+    if (!sameVideo) return unavailable('source');
+    if (!hasMetric(deltaTime) || deltaTime <= 0) return unavailable('time');
+    if (a.crossCorrected || b.crossCorrected) return unavailable('correction');
+    if (!frontVideo.videoWidth || !frontVideo.videoHeight || !sideVideo.videoWidth || !sideVideo.videoHeight
+      || Math.abs(frontVideo.videoWidth / frontVideo.videoHeight - sideVideo.videoWidth / sideVideo.videoHeight) > 1e-6) {
+      return unavailable('aspect');
+    }
+    const values = [a.handNormX6, a.handNormY6, a.headNormX6, a.headNormY6,
+      b.handNormX6, b.handNormY6, b.headNormX6, b.headNormY6];
+    if (!values.every(hasMetric)) return unavailable('points');
+    const reference = getPanelReferenceLength('front');
+    if (!hasMetric(reference) || reference <= 0.0005) return unavailable('reference');
+    const aspect = getAnalysisAspect(frontVideo);
+    const distance = (x1, y1, x2, y2) => Math.hypot((x2 - x1) * aspect, y2 - y1) / reference;
+    const handShift = distance(a.handNormX6, a.handNormY6, b.handNormX6, b.handNormY6);
+    const headShift = distance(a.headNormX6, a.headNormY6, b.headNormX6, b.headNormY6);
+    if (handShift < 0.01) return { ratio: null, handShift, headShift, reason: 'smallHand' };
+    return { ratio: headShift / handShift, handShift, headShift, reason: null };
+  }
+
   function getR10ConsistencyPercent(shots, ellipseAvailable, sigma = 1.5) {
     if (!Array.isArray(shots) || shots.length < 2 || !hasMetric(sigma) || sigma <= 0) return null;
     const inliers = shots.filter(shot => ellipseAvailable
@@ -6413,7 +6509,7 @@
    * 검증되지 않은 시간차와 Release Index는 관측 참고치로만 표시한다.
    * 종합점수는 상대 변위와 선택적 측면 전달 경로 근거로 산출한다.
    */
-  function computeTempoSequenceReport(fm, downswingEvidence = getDownswingSideEvidence()) {
+  function computeTempoSequenceReport(fm, downswingEvidence = getF6DownswingSideEvidence(fm)) {
     let sTempo = null;
     let tempoZone = null;
     const dt = hasMetric(fm.timeDeltaSec) ? fm.timeDeltaSec : null;
@@ -6434,34 +6530,20 @@
     const ramp = (value, start, end) => clamp((value - start) / (end - start), 0, 1);
     const addressBasis = fm.sequenceBasis6 === 'address';
     let sSequence = null;
-    if (hasMetric(fm.sequenceIndex)) {
-      const ratioCredit = clamp(fm.sequenceIndex / 1.5, 0, 1);
+    if (hasMetric(fm.sequenceIndex) && (!addressBasis || hasMetric(fm.pelvisNetP6))) {
+      const ratioCredit = clamp(fm.sequenceIndex / (addressBasis ? 2 : 1.5), 0, 1);
       sSequence = addressBasis
         ? (1 - Math.min(ratioCredit, ramp(fm.pelvisNetP6, 0.01, 0.04))) * 100
         // 방향을 확인할 수 없는 절댓값 비율은 스웨이 복귀와 구분되지 않아 최대 80%만 인정
         : (1 - Math.min(ratioCredit, 0.8)) * 100;
     }
-    // ④ C7 선행: P7에서 C7이 어드레스보다 타깃 쪽으로 2%↑ 이동하면 감점(8%에서 최대)
-    const c7TrailFit = scoreDriverTrailShift(hasMetric(fm.c7NetP7) ? fm.c7NetP7 * 100 : null, addressBasis);
-    const sHead = addressBasis && hasMetric(fm.c7NetP7)
-      ? driver && hasMetric(c7TrailFit) ? (1 - c7TrailFit) * 100
-        : ramp(fm.c7NetP7, 0.02, 0.08) * 100
-      : null;
-    // ⑤ 역피벗: 탑에서 C7이 타깃 쪽으로 1% 초과 이동하면 감점(5%에서 최대).
-    //    골반의 타깃 반대 이동은 숙련자에게도 흔한 트레일 측 로딩이어서 감점하지 않는다.
-    const sPivot = addressBasis && hasMetric(fm.c7TopShift6) ? ramp(fm.c7TopShift6, 0.01, 0.05) * 100 : null;
-
-    // Time and release thresholds are unvalidated, so they do not contribute to the score.
+    // C7 shifts, time and release are observations; C7 remains part of the displacement ratio.
     const sDownswing = downswingEvidence ? downswingEvidence.penalty : null;
-    // Release Index remains observational until its thresholds are validated.
-    const baseParts = [
-      { key: 'sequence', s: sSequence, w: 0.50 },
-      { key: 'head', s: sHead, w: 0.25 },
-      { key: 'pivot', s: sPivot, w: 0.25 },
-    ].filter(p => p.s != null);
-    const baseSum = baseParts.reduce((sum, p) => sum + p.w, 0);
-    const parts = baseParts.map(p => ({ ...p, w: p.w / baseSum * (downswingEvidence ? 0.90 : 1) }));
-    if (downswingEvidence && sDownswing != null) parts.push({ key: 'downswing', s: sDownswing, w: 0.10 });
+    const parts = hasMetric(sSequence)
+      ? [{ key: 'sequence', s: sSequence, w: downswingEvidence ? 0.90 : 1 }] : [];
+    if (hasMetric(sSequence) && downswingEvidence && hasMetric(sDownswing)) {
+      parts.push({ key: 'downswing', s: sDownswing, w: 0.10 });
+    }
     const wSum = parts.reduce((sum, p) => sum + p.w, 0);
     const weighted = hasMetric(sSequence) && wSum > 0
       ? parts.reduce((sum, p) => sum + p.w * p.s, 0) / wSum : null;
@@ -6474,13 +6556,13 @@
                 : score100 >= 70 ? 'C - Intermediate'
                 : 'D - Needs Improvement';
     const effectiveWeight = key => wSum > 0 ? (parts.find(p => p.key === key)?.w || 0) / wSum : 0;
-    return { score100, grade, sTempo, sRelease, sSequence, sHead, sPivot, sDownswing,
+    return { score100, grade, sTempo, sRelease, sSequence, sDownswing,
       downswingEvidenceActive: !!downswingEvidence, tempoWeight: effectiveWeight('tempo'),
       releaseWeight: effectiveWeight('release'), sequenceWeight: effectiveWeight('sequence'),
-      headWeight: effectiveWeight('head'), pivotWeight: effectiveWeight('pivot'),
+      headWeight: 0, pivotWeight: 0,
       downswingWeight: effectiveWeight('downswing'), addressBasis,
       provisional: true, tempoZone, availableMetrics: parts.length,
-      totalMetrics: (addressBasis ? 3 : 1) + (driver && hasMetric(fm.releaseIndex) ? 1 : 0) + (downswingEvidence ? 1 : 0) };
+      totalMetrics: 1 + (downswingEvidence ? 1 : 0) };
   }
 
   /**
@@ -6549,10 +6631,10 @@
         ? scoreExponentialReferenceBand(pelvisShiftMagnitude, 0.22, 0.32, 4)
         : clamp(pelvisShiftMagnitude / 0.25, 0, 1)
       : null;
-    const headDrift = fm.distanceComparable !== false && hasMetric(fm.c7LateralDelta2)
-      ? Math.abs(fm.c7LateralDelta2) : null;
+    const headDrift = fm.distanceComparable !== false && hasMetric(fm.c7ReferenceDelta2)
+      ? Math.abs(fm.c7ReferenceDelta2) : null;
     const c7PenaltyPoints = hasMetric(headDrift)
-      ? Math.max(0, headDrift * 100 - 5) * 0.1 : null;
+      ? 4 * (1 - bandScore(headDrift * 100, 2, 12)) : null;
     const headPelvisCoupling = fm.distanceComparable !== false
       && hasMetric(fm.c7LateralDelta2) && hasMetric(fm.pelvisLateralDelta)
       ? Math.abs(fm.c7LateralDelta2) / Math.max(Math.abs(fm.pelvisLateralDelta), 0.03) : null;
@@ -6576,7 +6658,7 @@
     const currentCompression = hasMetric(fm.radiusCompressionRatio) ? `${(fm.radiusCompressionRatio * 100).toFixed(1)}%` : null;
     const currentShift = hasMetric(breakdown.pelvisShiftMagnitude)
       ? `${(breakdown.pelvisShiftMagnitude * 100).toFixed(1)}%` : null;
-    const currentC7 = hasMetric(fm.c7LateralDelta2) ? `${(Math.abs(fm.c7LateralDelta2) * 100).toFixed(1)}%` : null;
+    const currentC7 = hasMetric(fm.c7ReferenceDelta2) ? `${(Math.abs(fm.c7ReferenceDelta2) * 100).toFixed(1)}%` : null;
     const lagComparison = currentLag
       ? `${currentLag} vs ${references.map(reference => `${reference.name} ${reference.lag.toFixed(1)}°`).join(' / ')}`
         + ` (${references.map(reference => `${signed(breakdown.lag - reference.lag)}°`).join(' / ')})`
@@ -6592,14 +6674,15 @@
     const comparisons = [
       lagComparison && getSwingUiText(`래깅 ${lagComparison}`, `lag ${lagComparison}`),
       compressionComparison && getSwingUiText(`압축 ${compressionComparison}`, `compression ${compressionComparison}`),
-      shiftComparison && getSwingUiText(`골반 이동 ${shiftComparison}`, `pelvis shift ${shiftComparison}`),
+      shiftComparison && getSwingUiText(`몸통 대비 골반 이동 ${shiftComparison}`, `torso-relative pelvis shift ${shiftComparison}`),
     ].filter(Boolean);
     if (!comparisons.length) return '';
-    if (currentC7 && hasMetric(fm.pelvisLateralDelta) && hasMetric(breakdown.headPelvisCoupling)) {
-      const gap = Math.abs(breakdown.pelvisShiftMagnitude - Math.abs(fm.c7LateralDelta2)) * 100;
+    if (currentC7 && hasMetric(fm.pelvisReferenceDelta2) && hasMetric(breakdown.headPelvisCoupling)) {
+      const pelvisReference = Math.abs(fm.pelvisReferenceDelta2) * 100;
+      const gap = Math.abs(Math.abs(fm.pelvisReferenceDelta2) - Math.abs(fm.c7ReferenceDelta2)) * 100;
       comparisons.push(getSwingUiText(
-        `C7 이동 ${currentC7}·골반 이동 ${currentShift}: X 이동 크기 차 ${gap.toFixed(1)}%p, 동반률 ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (방향 무시; 동반률은 참고값; 프로 C7 비교자료 없음)`,
-        `C7 shift ${currentC7}·pelvis shift ${currentShift}: X magnitude difference ${gap.toFixed(1)} pp, co-movement ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (direction ignored; co-movement is observational; no pro C7 reference data)`));
+        `기준선 대비 C7 이동 ${currentC7}·골반 이동 ${pelvisReference.toFixed(1)}%: X 이동 크기 차 ${gap.toFixed(1)}%p, 동반률 ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (방향 무시; 동반률은 몸통 대비 참고값; 프로 C7 비교자료 없음)`,
+        `Reference-line-relative C7 shift ${currentC7}·pelvis shift ${pelvisReference.toFixed(1)}%: X magnitude difference ${gap.toFixed(1)} pp, co-movement ${(breakdown.headPelvisCoupling * 100).toFixed(1)}% (direction ignored; co-movement is a torso-relative observation; no pro C7 reference data)`));
     }
     return getSwingUiText('프로 참고값 대비(별도 보고서 수치, 채점 가산 아님): ', 'Versus pro references (separate report measurements; no score bonus): ')
       + comparisons.join(' | ');
@@ -6758,16 +6841,17 @@
       // X-Factor: -60° = 0점, -150° 이하 = 만점 (완만한 램프)
       const xfDelta = deltaResult.fm && hasMetric(deltaResult.fm.xFactorDelta) ? deltaResult.fm.xFactorDelta : null;
       const xfScore = xfDelta != null ? rampScore(-xfDelta, 60, 150) : null;
-      // 백스윙 탑 샤프트각 만점 구간은 클럽별 비대칭 허용 범위를 사용한다.
-      // 기존 감점 곡선 폭은 유지한다: 드라이버 하한/상한 17°/15°, 아연 17°/17°.
+      // 아이언은 컴팩트 탑을 허용하고 수평을 넘는 각도에 더 가파른 감점을 적용한다.
       const driver = getSelectedAnalysisClubType() === 'driver';
       const topShaft = deltaResult.fm && hasMetric(deltaResult.fm.topShaftAngleDeg)
         ? deltaResult.fm.topShaftAngleDeg : null;
-      const topShaftUpperFullScore = driver ? 5 : 10;
+      const topShaftLowerFullScore = driver ? -3 : 0;
+      const topShaftLowerRamp = driver ? 17 : 10;
+      const topShaftUpperFullScore = driver ? 5 : 18;
       const topShaftUpperRamp = driver ? 15 : 17;
       const topShaftScore = topShaft != null
-        ? topShaft >= -3 && topShaft <= topShaftUpperFullScore ? 1
-          : topShaft < -3 ? 1 - rampScore(-3 - topShaft, 0, 17)
+        ? topShaft >= topShaftLowerFullScore && topShaft <= topShaftUpperFullScore ? 1
+          : topShaft < topShaftLowerFullScore ? 1 - rampScore(topShaftLowerFullScore - topShaft, 0, topShaftLowerRamp)
             : 1 - rampScore(topShaft - topShaftUpperFullScore, 0, topShaftUpperRamp)
         : null;
       // 어드레스→탑 C7 좌우/상하 변위(키 대비 %): 2% 미만 만점, 1%씩 감점폭 늘어남(12%에서 0점)
@@ -6883,8 +6967,11 @@
       // when the same-video backswing path establishes the target direction.
       fm.targetSign2 = getSwingTargetSign();
       if (fm.targetSign2 === -1 && fm.pelvisLateralDelta != null) fm.pelvisLateralDelta *= -1;
+      fm.pelvisReferenceDelta2 = hasMetric(pxDeltaPelvis) ? pxDeltaPelvis * (fm.targetSign2 ?? 1) : null;
       const c7A2 = referencePositionX(fmA.c7NormX2, 'front');
       const c7B2 = referencePositionX(fmB.c7NormX2, 'side');
+      fm.c7ReferenceDelta2 = hasMetric(c7A2) && hasMetric(c7B2)
+        ? (c7B2 - c7A2) * (fm.targetSign2 ?? 1) : null;
       fm.c7LateralDelta2 = hasMetric(c7A2) && hasMetric(c7B2) && torsoRef
         ? (c7B2 - c7A2) * (fm.targetSign2 ?? 1) / torsoRef : null;
     } else if (segment === 'frame3') {
@@ -7023,6 +7110,9 @@
       const tA = storedTimes ? storedTimes.a : isFinite(frontVideo.currentTime) ? frontVideo.currentTime : null;
       const tB = storedTimes ? storedTimes.b : isFinite(sideVideo.currentTime) ? sideVideo.currentTime : null;
       fm.timeDeltaSec = computePhaseTimeDelta(tA, tB, areVideoSourcesSame());
+      fm.phaseTimeA6 = hasMetric(tA) ? tA : null;
+      fm.phaseTimeB6 = hasMetric(tB) ? tB : null;
+      fm.displacementObservation6 = computeF6DisplacementObservation(fmA, fmB, fm.timeDeltaSec, areVideoSourcesSame());
 
       // ② 래깅-릴리즈 효율 지수: Release Index = (r_impact / r_downswing) × (180° − θ_lag)
       const rDown = referenceRatio(fmA.rotRadius6, 'front');
@@ -7470,7 +7560,7 @@
           : '어깨회전: 데이터 부족';
       if (analysisDeltaCardF1TopShaft) analysisDeltaCardF1TopShaft.textContent =
         fm.topShaftAngleDeg != null
-          ? `${getSwingUiText('샤프트 수평(탑)', 'Top shaft angle')}: ${formatDelta(fm.topShaftAngleDeg)}° (${getSwingUiText('만점 범위', 'full-score range')} -3°~+${getSelectedAnalysisClubType() === 'driver' ? 5 : 10}°)`
+          ? `${getSwingUiText('샤프트 수평(탑)', 'Top shaft angle')}: ${formatDelta(fm.topShaftAngleDeg)}° (${getSwingUiText('만점 범위', 'full-score range')} ${getSelectedAnalysisClubType() === 'driver' ? '-3°~+5°' : '0°~+18°'})${getSelectedAnalysisClubType() === 'iron' && fm.topShaftAngleDeg < 0 ? getSwingUiText(' · 화면상 오버스윙 주의', ' · Apparent overswing: review') : ''}`
           : '샤프트 수평(탑): 데이터 부족(6단계 그립/클럽헤드 필요)';
       if (analysisDeltaCardF1C7XY) analysisDeltaCardF1C7XY.textContent =
         (fm.c7XPercent != null && fm.c7YPercent != null)
@@ -7495,8 +7585,8 @@
           ? getSwingUiText('코어 이동: 서로 다른 영상은 이동 채점 보류', 'Core shift: scoring withheld for different videos')
           : hasMetric(fm.pelvisLateralDelta)
             ? getSwingUiText(
-              `코어 X 이동 크기: ${(Math.abs(fm.pelvisLateralDelta) * 100).toFixed(1)}% (방향 무시)${hasMetric(fm.c7LateralDelta2) ? ` · C7 이동 ${(Math.abs(fm.c7LateralDelta2) * 100).toFixed(1)}% · 감점 ${hasMetric(fm.c7PenaltyPoints2) ? fm.c7PenaltyPoints2.toFixed(2) : '—'}점` : ' · C7 미측정: 감점 보류'}`,
-              `Core X-shift magnitude: ${(Math.abs(fm.pelvisLateralDelta) * 100).toFixed(1)}% (direction ignored)${hasMetric(fm.c7LateralDelta2) ? ` · C7 shift ${(Math.abs(fm.c7LateralDelta2) * 100).toFixed(1)}% · deduction ${hasMetric(fm.c7PenaltyPoints2) ? fm.c7PenaltyPoints2.toFixed(2) : '—'} points` : ' · C7 missing: deduction withheld'}`)
+              `코어 X 이동 크기: ${(Math.abs(fm.pelvisLateralDelta) * 100).toFixed(1)}% (몸통 대비, 방향 무시)${hasMetric(fm.c7ReferenceDelta2) ? ` · C7 이동 ${(Math.abs(fm.c7ReferenceDelta2) * 100).toFixed(1)}% (기준선 대비) · 감점 ${hasMetric(fm.c7PenaltyPoints2) ? fm.c7PenaltyPoints2.toFixed(2) : '—'}점` : ' · C7 또는 기준선 미측정: 감점 보류'}`,
+              `Core X-shift magnitude: ${(Math.abs(fm.pelvisLateralDelta) * 100).toFixed(1)}% (relative to torso, direction ignored)${hasMetric(fm.c7ReferenceDelta2) ? ` · C7 shift ${(Math.abs(fm.c7ReferenceDelta2) * 100).toFixed(1)}% (relative to reference line) · deduction ${hasMetric(fm.c7PenaltyPoints2) ? fm.c7PenaltyPoints2.toFixed(2) : '—'} points` : ' · C7 or reference line missing: deduction withheld'}`)
             : getSwingUiText('코어 이동: 데이터 부족', 'Core shift: insufficient data');
     } else if (segment === 'frame3') {
       const downswingEvidence = getDownswingSideEvidence();
@@ -7594,18 +7684,33 @@
             `Release Index ${fm.releaseIndex.toFixed(0)} — 관측 참고치 (기존 기준 미검증, 점수 미반영; 코어-손 r ${fm.rotRadiusA6?.toFixed(4) ?? '—'}→${fm.rotRadiusB6?.toFixed(4) ?? '—'}, 래깅 ${fm.lagAngleA6?.toFixed(1) ?? '—'}°).`,
             `Release Index ${fm.releaseIndex.toFixed(0)} — observation only (legacy threshold unvalidated, not scored; core-hand r ${fm.rotRadiusA6?.toFixed(4) ?? '—'}→${fm.rotRadiusB6?.toFixed(4) ?? '—'}, lag ${fm.lagAngleA6?.toFixed(1) ?? '—'}°).`)
           : '래깅-릴리즈: 데이터 부족';
+      if (analysisDeltaCardF6Displacement) {
+        const observation = fm.displacementObservation6;
+        const reason = {
+          source: getSwingUiText('같은 영상 필요', 'same video required'),
+          time: getSwingUiText('P6→P7 시점 순서 확인 필요', 'check P6→P7 time order'),
+          points: getSwingUiText('양 시점 손·헤드 포인트 필요', 'hand and clubhead points required at both phases'),
+          reference: getSwingUiText('기준선 필요', 'reference line required'),
+          smallHand: getSwingUiText('손 변위가 기준선의 1% 미만', 'hand displacement below 1% of reference line'),
+          correction: getSwingUiText('교차 보정 좌표 비교 미지원', 'cross-corrected coordinate comparison unavailable'),
+          aspect: getSwingUiText('두 영상의 실제 화면 비율 확인 필요', 'matching actual video aspect ratios required'),
+        }[observation?.reason] || getSwingUiText('분석 재실행 필요', 'reanalyze to calculate');
+        analysisDeltaCardF6Displacement.textContent = hasMetric(observation?.ratio)
+          ? getSwingUiText(
+            `손 대비 헤드 2D 변위비: ${observation.ratio.toFixed(2)}배 (손 ${(observation.handShift * 100).toFixed(1)}% · 헤드 ${(observation.headShift * 100).toFixed(1)}%, 기준선 대비) · 관측 전용`,
+            `Head/hand 2D displacement ratio: ${observation.ratio.toFixed(2)}× (hands ${(observation.handShift * 100).toFixed(1)}% · head ${(observation.headShift * 100).toFixed(1)}%, relative to reference line) · observation only`)
+          : getSwingUiText(`손 대비 헤드 2D 변위비: 보류 (${reason})`, `Head/hand 2D displacement ratio: withheld (${reason})`);
+      }
       if (analysisDeltaCardF6Sequence) analysisDeltaCardF6Sequence.textContent =
-        fm.sequenceIndex != null
+        hasMetric(fm.sequenceIndex) && hasMetric(rep.sSequence)
           ? (rep.addressBasis
             ? getSwingUiText(
               `골반 리드 비율 ${fm.sequenceIndex.toFixed(2)}(어드레스→P6 골반 ${formatPercent(fm.pelvisNetP6 * 100)} / →P7 C7 ${formatPercent(fm.c7NetP7 * 100)}, 타깃 방향 +) → 감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round(rep.sequenceWeight * 100)}%`
-                + `${hasMetric(rep.sHead) ? ` · C7 선행 감점 ${rep.sHead.toFixed(0)}점 × ${Math.round(rep.headWeight * 100)}%` : ''}`
-                + `${hasMetric(rep.sPivot) ? ` · 탑 C7 역피벗(${formatPercent((fm.c7TopShift6 ?? 0) * 100)}) 감점 ${rep.sPivot.toFixed(0)}점 × ${Math.round(rep.pivotWeight * 100)}%` : ''}`
-                + `${rep.downswingEvidenceActive ? ` · 측면 P5→P6 전달 보조 감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%` : ''}`,
+                + `${hasMetric(fm.c7TopShift6) ? ` · 탑 C7 이동 ${formatPercent(fm.c7TopShift6 * 100)} (별도 감점 없음)` : ''}`
+                + `${rep.downswingEvidenceActive ? ` · 측면 P5→P6 전달 보조 감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%` : ' · 측면 경로 일치 미확인: 채점 제외'}`,
               `Pelvis-lead ratio ${fm.sequenceIndex.toFixed(2)} (address→P6 pelvis ${formatPercent(fm.pelvisNetP6 * 100)} / →P7 C7 ${formatPercent(fm.c7NetP7 * 100)}, + = toward target) → penalty ${rep.sSequence.toFixed(0)} × ${Math.round(rep.sequenceWeight * 100)}%`
-                + `${hasMetric(rep.sHead) ? ` · C7 drift penalty ${rep.sHead.toFixed(0)} × ${Math.round(rep.headWeight * 100)}%` : ''}`
-                + `${hasMetric(rep.sPivot) ? ` · top C7 reverse pivot (${formatPercent((fm.c7TopShift6 ?? 0) * 100)}) penalty ${rep.sPivot.toFixed(0)} × ${Math.round(rep.pivotWeight * 100)}%` : ''}`
-                + `${rep.downswingEvidenceActive ? ` · side P5→P6 path penalty ${rep.sDownswing.toFixed(0)} × ${Math.round(rep.downswingWeight * 100)}%` : ''}`)
+                + `${hasMetric(fm.c7TopShift6) ? ` · top C7 shift ${formatPercent(fm.c7TopShift6 * 100)} (no separate deduction)` : ''}`
+                + `${rep.downswingEvidenceActive ? ` · side P5→P6 path penalty ${rep.sDownswing.toFixed(0)} × ${Math.round(rep.downswingWeight * 100)}%` : ' · side path match unverified: excluded'}`)
             : getSwingUiText(
               `상대 변위 비율 ${fm.sequenceIndex.toFixed(2)}(탑 기준 골반 ${fm.comShiftTop6 != null ? (fm.comShiftTop6 * 100).toFixed(1) + '%' : '-'} / C7 ${fm.c7ShiftTop6 != null ? (fm.c7ShiftTop6 * 100).toFixed(1) + '%' : '-'}, 방향 미확인 → 최대 80%) → 감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round(rep.sequenceWeight * 100)}%${rep.downswingEvidenceActive ? ` · 측면 P5→P6 전달 보조 감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%` : ''}`,
               `Relative displacement ratio ${fm.sequenceIndex.toFixed(2)} (from top: pelvis ${fm.comShiftTop6 != null ? (fm.comShiftTop6 * 100).toFixed(1) + '%' : '-'} / C7 ${fm.c7ShiftTop6 != null ? (fm.c7ShiftTop6 * 100).toFixed(1) + '%' : '-'}, direction unknown → capped at 80%) → penalty ${rep.sSequence.toFixed(0)} × ${Math.round(rep.sequenceWeight * 100)}%${rep.downswingEvidenceActive ? ` · side P5→P6 path penalty ${rep.sDownswing.toFixed(0)} × ${Math.round(rep.downswingWeight * 100)}%` : ''}`))
@@ -7684,8 +7789,8 @@
         `채점 B 래깅각 ${deg(fm.laggingAngleBDeg)} (55° 이하 만점, 90° 이상 0점, 그 사이는 선형 감점; 40%). A→B 변화 ${deg(fm.laggingAngleDelta)}는 관측 전용.`,
         `Scored B lag ${deg(fm.laggingAngleBDeg)} (full credit ≤55°, zero ≥90°, linear in between; 40%). A→B change ${deg(fm.laggingAngleDelta)} is observation only.`));
       lines.push(getSwingUiText(
-        `몸통 대비 골반 X 이동 크기 ${pct(f2Breakdown.pelvisShiftMagnitude)} (방향 무시; 0%에서 0점, 25% 이상에서 4점, 사이는 선형). C7 X 이동 ${pct(f2Breakdown.headDrift)}은 5% 초과 1%p당 0.1점 감점: 적용 감점 ${hasMetric(f2Breakdown.appliedC7PenaltyPoints) ? f2Breakdown.appliedC7PenaltyPoints.toFixed(2) + '점' : '보류'}, 항목 최저 0점. C7/골반 동반률은 참고값입니다.`,
-        `Torso-relative pelvis X-shift magnitude ${pct(f2Breakdown.pelvisShiftMagnitude)} (direction ignored; 0 points at 0%, 4 points at 25% or more, linear between). C7 X-shift ${pct(f2Breakdown.headDrift)} deducts 0.1 points per percentage point above 5%: applied deduction ${hasMetric(f2Breakdown.appliedC7PenaltyPoints) ? f2Breakdown.appliedC7PenaltyPoints.toFixed(2) + ' points' : 'withheld'}, component minimum zero. C7/pelvis co-movement is observational.`));
+        `몸통 대비 골반 X 이동 크기 ${pct(f2Breakdown.pelvisShiftMagnitude)} (방향 무시; ${getSelectedAnalysisClubType() === 'driver' ? '22~32% 만점, 구간 밖 지수 감쇠' : '0%에서 0점, 25% 이상에서 4점, 사이는 선형'}). 기준선 대비 C7 X 이동 ${pct(f2Breakdown.headDrift)}은 2% 이하 감점 없음, 12% 이상 최대 4점, 사이는 S자 감점: 적용 감점 ${hasMetric(f2Breakdown.appliedC7PenaltyPoints) ? f2Breakdown.appliedC7PenaltyPoints.toFixed(2) + '점' : '보류'}, 항목 최저 0점. C7/골반 동반률은 참고값입니다.`,
+        `Torso-relative pelvis X-shift magnitude ${pct(f2Breakdown.pelvisShiftMagnitude)} (direction ignored; ${getSelectedAnalysisClubType() === 'driver' ? 'full credit at 22–32%, exponential decay outside' : '0 points at 0%, 4 points at 25% or more, linear between'}). Reference-line-relative C7 X-shift ${pct(f2Breakdown.headDrift)}: no deduction at ≤2%, up to 4 points at ≥12%, with an S-curve between: applied deduction ${hasMetric(f2Breakdown.appliedC7PenaltyPoints) ? f2Breakdown.appliedC7PenaltyPoints.toFixed(2) + ' points' : 'withheld'}, component minimum zero. C7/pelvis co-movement is observational.`));
       lines.push(getSwingUiText(
         `B 골반–손 거리 ÷ 기준선 ${pct(fm.coreHandReferenceRatio)} (35% 이하 만점, 50% 이상 0점, 그 사이는 선형 감점; 20%). 탑→F2 압축 ${pct(fm.radiusCompressionRatio)}은 참고값이며 F2 채점에 사용하지 않습니다. 에너지·속도는 측정하지 않습니다.`,
         `B pelvis–hands distance ÷ reference line ${pct(fm.coreHandReferenceRatio)} (full credit ≤35%, zero ≥50%, linear in between; 20%). Top→F2 compression ${pct(fm.radiusCompressionRatio)} is observational and not scored in F2. Energy and speed are not measured.`));
@@ -7778,27 +7883,29 @@
       lines.push(getSwingUiText(`Release Index ${relTxt ?? '—'} — 관측 참고치이며 기존 기준이 새 반경 정의에서 검증되지 않아 점수에 반영하지 않습니다.`,
         `Release Index ${relTxt ?? '—'} — observation only; excluded because the legacy threshold is unvalidated for the new radius definition.`));
       const seqTxt = fm.sequenceIndex != null ? fm.sequenceIndex.toFixed(2) : null;
-      if (rep.addressBasis) {
+      if (rep.addressBasis && hasMetric(rep.sSequence)) {
         lines.push(getSwingUiText(
-          `골반 리드 비율 ${seqTxt} [어드레스→P6 골반 ${formatPercent(fm.pelvisNetP6 * 100)} / (어드레스→P7 C7 ${formatPercent(fm.c7NetP7 * 100)}의 타깃 쪽 성분 + 1%), 타깃 방향 +; 비율 ≥1.5와 골반 순이동 ≥4%를 모두 충족해야 만점] — ${rep.sSequence <= 0 ? hl('골반 리드 만점', true) : hl('골반 리드 부분 점수', false)} — 감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}점`,
-          `Pelvis-lead ratio ${seqTxt} [address→P6 pelvis ${formatPercent(fm.pelvisNetP6 * 100)} / (target-side part of address→P7 C7 ${formatPercent(fm.c7NetP7 * 100)} + 1%), + = toward target; full credit needs ratio ≥1.5 and net pelvis shift ≥4%] — ${rep.sSequence <= 0 ? hl('full pelvis-lead credit', true) : hl('partial pelvis-lead credit', false)} — penalty ${rep.sSequence.toFixed(0)} × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}`));
-        if (hasMetric(rep.sHead)) lines.push(getSwingUiText(
-          `C7 선행(어드레스→P7) ${formatPercent(fm.c7NetP7 * 100)} [타깃 쪽 2% 초과부터 감점, 8%에서 최대] — 감점 ${rep.sHead.toFixed(0)}점 × ${Math.round(rep.headWeight * 100)}% = ${(rep.sHead * rep.headWeight).toFixed(1)}점`,
-          `C7 drift (address→P7) ${formatPercent(fm.c7NetP7 * 100)} [penalized beyond 2% toward target, max at 8%] — penalty ${rep.sHead.toFixed(0)} × ${Math.round(rep.headWeight * 100)}% = ${(rep.sHead * rep.headWeight).toFixed(1)}`));
-        if (hasMetric(rep.sPivot)) lines.push(getSwingUiText(
-          `백스윙 탑 역피벗: C7 ${formatPercent((fm.c7TopShift6 ?? 0) * 100)}(타깃 쪽 1→5% 감점, 골반 ${formatPercent((fm.pelvisTopShift6 ?? 0) * 100)}은 트레일 측 로딩으로 참고만) — 감점 ${rep.sPivot.toFixed(0)}점 × ${Math.round(rep.pivotWeight * 100)}% = ${(rep.sPivot * rep.pivotWeight).toFixed(1)}점`,
-          `Top-of-backswing reverse pivot: C7 ${formatPercent((fm.c7TopShift6 ?? 0) * 100)} (toward target, 1→5%; pelvis ${formatPercent((fm.pelvisTopShift6 ?? 0) * 100)} is trail-side loading, reference only) — penalty ${rep.sPivot.toFixed(0)} × ${Math.round(rep.pivotWeight * 100)}% = ${(rep.sPivot * rep.pivotWeight).toFixed(1)}`));
+          `골반 리드 비율 ${seqTxt} [어드레스→P6 골반 ${formatPercent(fm.pelvisNetP6 * 100)} / (어드레스→P7 C7 ${formatPercent(fm.c7NetP7 * 100)}의 타깃 쪽 성분 + 1%), 타깃 방향 +; 비율 ≥2.0과 골반 순이동 ≥4%를 모두 충족해야 만점] — ${rep.sSequence <= 0 ? hl('골반 리드 만점', true) : hl('골반 리드 부분 점수', false)} — 감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}점`,
+          `Pelvis-lead ratio ${seqTxt} [address→P6 pelvis ${formatPercent(fm.pelvisNetP6 * 100)} / (target-side part of address→P7 C7 ${formatPercent(fm.c7NetP7 * 100)} + 1%), + = toward target; full credit needs ratio ≥2.0 and net pelvis shift ≥4%] — ${rep.sSequence <= 0 ? hl('full pelvis-lead credit', true) : hl('partial pelvis-lead credit', false)} — penalty ${rep.sSequence.toFixed(0)} × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}`));
       } else {
         lines.push(getSwingUiText(
           `상대 변위 비율 ${seqTxt != null ? seqTxt : '—'} [|ΔX_COM(탑→P6)| / (|ΔX_C7(탑→P7)| + ε); 타깃 방향을 확인할 수 없어 백스윙 스웨이 복귀와 구분되지 않으므로 최대 80%만 인정] — ${seqTxt != null ? hl('방향 미확인 부분 점수', false) : 'Frame 1(어드레스 A·백스윙탑 B) 선행 분석 필요'}${rep.sSequence != null ? ` — 감점 ${rep.sSequence.toFixed(0)}점 × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}점` : ''}`,
           `Relative displacement ratio ${seqTxt ?? '—'} [|ΔX_COM(top→P6)| / (|ΔX_C7(top→P7)| + ε); target direction unknown, so it cannot be separated from sway recovery and is capped at 80%] — ${seqTxt != null ? hl('direction-unverified partial credit', false) : 'Frame 1 (address A and top B) analysis required'}${rep.sSequence != null ? ` — penalty ${rep.sSequence.toFixed(0)} × ${Math.round(rep.sequenceWeight * 100)}% = ${(rep.sSequence * rep.sequenceWeight).toFixed(1)}` : ''}`));
       }
+      if (hasMetric(fm.c7TopShift6)) lines.push(getSwingUiText(
+        `어드레스→탑 C7 이동 ${formatPercent(fm.c7TopShift6 * 100)} — 관측 전용, 별도 감점 없음.`,
+        `Address→top C7 shift ${formatPercent(fm.c7TopShift6 * 100)} — observation only, no separate deduction.`));
+      if (fm.displacementObservation6 && hasMetric(fm.displacementObservation6.ratio)) lines.push(getSwingUiText(
+        `P6→P7 손 대비 헤드 2D 직선 변위비 ${fm.displacementObservation6.ratio.toFixed(2)}배 — 관측 전용; 이동 경로·가속도·릴리즈 효율은 측정하지 않습니다.`,
+        `P6→P7 head/hand 2D endpoint displacement ratio ${fm.displacementObservation6.ratio.toFixed(2)}× — observation only; not path length, acceleration or release efficiency.`));
       if (rep.downswingEvidenceActive) lines.push(getSwingUiText(
         `측면 P5→P6 전달 경로 보조 감점 ${rep.sDownswing.toFixed(0)}점 × ${Math.round(rep.downswingWeight * 100)}%`,
         `Supplemental side P5→P6 path penalty ${rep.sDownswing.toFixed(0)} × ${Math.round(rep.downswingWeight * 100)}%`));
+      else lines.push(getSwingUiText('측면 P5→P6 경로: 동일 스윙 시점 일치 미확인 또는 경로 근거 부족으로 채점 제외.',
+        'Side P5→P6 path excluded: same-swing timing unverified or path evidence unavailable.'));
       if (fm.sideBendB6 != null) lines.push(`임팩트 Side Bend ${fm.sideBendB6.toFixed(1)}° — 측면 척추 꺾임 (방향성/스퀘어 임팩트 참고 지표)`);
-      lines.push(getSwingUiText('F6 점수는 같은 영상에서 어드레스 기준 타깃 방향을 확인할 수 있으면 골반 리드 50%·C7 선행 25%·탑 C7 역피벗 25%(측면 P5→P6 전달 경로가 있으면 전체 90%·경로 10%)로 계산합니다. 방향을 확인할 수 없으면 탑 기준 상대 변위만 사용하고 최대 80점으로 제한합니다. 시간차와 Release Index는 미검증 참고값으로 점수에서 제외하며, 이 점수도 검증된 수행능력·에너지 전달 등급은 아닙니다.',
-        'When the same video provides an address-based target direction, F6 scores pelvis lead 50%, C7 drift 25% and top C7 reverse pivot 25% (90% overall and 10% side P5→P6 path when available). Without a direction, only the top-based displacement ratio is used and the score is capped at 80. Timing and Release Index remain unvalidated observations and are excluded; this is not a validated performance or energy-transfer grade.'));
+      lines.push(getSwingUiText('F6 잠정점수는 골반/C7 상대 변위 100%, 일치하는 측면 경로가 있으면 상대 변위 90%·경로 10%입니다. C7 이동의 별도 감점은 없지만 C7은 상대 변위 비율에 사용됩니다. 방향 미확인 시 최대 80점입니다. 시간차·Release Index·2D 변위비는 점수에 반영하지 않으며, 수행능력이나 에너지 전달을 검증한 점수는 아닙니다.',
+        'The provisional F6 score uses pelvis/C7 relative displacement (100%, or 90% plus 10% for a matching side path). C7 shifts have no separate deduction, but C7 remains in the displacement ratio. Without direction, the score is capped at 80. Time, Release Index and the 2D displacement ratio are unscored observations; this is not a validated performance or energy-transfer score.'));
     }
 
     // 공통 — 레버 시퀀스 요약 (F4에서만)
@@ -8265,7 +8372,10 @@
     if (!analysisSwingType) return;
     const previousDistanceEstimate = analysisSwingType.querySelector('#distanceEstimateResult');
     const keepDistanceEstimateOpen = Boolean(previousDistanceEstimate && !previousDistanceEstimate.hidden);
-    const result = classifySwingType();
+    // 2D 왜곡 보정 결과가 유효하면 매핑 가능한 동일 지표(엔진 결과·백스윙 분류·모션 점수)를 보정값으로 교체 표시한다.
+    const correctionOverride = getActive2dCorrectionOverride();
+    const result = correctionOverride?.engineResult || classifySwingType();
+    const activeBackswingClassification = correctionOverride?.backswingClassification || backswingClassification;
     const downswingEvidence = getDownswingSideEvidence();
     const labels = uiLanguage === 'en'
       ? { type1: 'Type 1 · ATE · Axial-Torque Engine', type2: 'Type 2 · LSE · Linear-Shift Engine', type3: 'Type 3 · VEE* · Lag/Extension/Vertical Composite' }
@@ -8290,13 +8400,19 @@
     const powerEstimates = computeExperimentalPowerEstimates(powerEvidence);
     const r10SpeedEvidence = getR10SpeedHeightEvidence();
     const physicalReference = getPhysicalDistanceReference();
-    const motionScore = getDistanceMotionSummary().score;
+    const motionScore = correctionOverride?.distanceMotion && hasMetric(correctionOverride.distanceMotion.score)
+      ? correctionOverride.distanceMotion.score : getDistanceMotionSummary().score;
     renderPhysicalDistanceReference(physicalReference, motionScore);
+    if (correctionOverride) {
+      rows.push(`<section class="analysis-type-section analysis-profile-warning"><div class="analysis-type-heading">${getSwingUiText('2D 왜곡 보정 적용', '2D Distortion Correction Applied')}</div><div>${getSwingUiText(
+        '아래 유형·적합도·점수는 2D 왜곡 보정 결과 기준으로 표시 중입니다. 저장·내보내기·선수 비교는 원본 분석값을 유지하며, 보정 패널을 닫으면 원본 표시로 돌아갑니다.',
+        'Swing-type fits and scores below reflect the 2D distortion-correction result. Saved, exported and comparison values keep the original analysis; close the correction panel to restore the original display.')}</div></section>`);
+    }
     rows.push(formatEngineUtilizationSummary(result, physicalReference, motionScore));
     referenceRows.push(`<section class="analysis-type-section analysis-profile-warning"><div class="analysis-type-heading">${getSwingUiText('동력 추정용 관측 자료', 'Observations for Power Calibration')}</div>`
       + formatExperimentalPowerEstimates(powerEstimates)
       + `<em class="analysis-power-evidence-line">${getSwingUiText('실험 산식 v1 · 실측 보정 전', 'Experimental formulas v1 · uncalibrated')} · ${hasMetric(powerEvidence.leanMassKg) ? getSwingUiText('골격근량 포함', 'lean mass included') : getSwingUiText('골격근량 미측정·제외', 'lean mass not measured; excluded')} · ${formatPowerCalibrationEvidence(powerEvidence)}</em>`
-      + formatMotionUtilizationAssumption(getDistanceMotionSummary().score) + '</section>');
+      + formatMotionUtilizationAssumption(motionScore) + '</section>');
     const distanceInputValue = analysisKnownDistanceInput?.value.trim();
     const observedDistance = distanceInputValue ? Number(distanceInputValue) : NaN;
     const knownDistanceLabel = Number.isFinite(observedDistance) && observedDistance >= 0
@@ -8400,11 +8516,11 @@
       rows.push(`<section class="analysis-type-section"><div class="analysis-type-heading">${getSwingUiText('스윙 파워 엔진 판정 보류', 'Swing Power Engine Undetermined')}</div>`
         + reasons.map(reason => `<div>${reason}</div>`).join('') + `</section>`);
     }
-    if (backswingClassification || result) {
-      const backswingCode = getBackswingProfileCode(backswingClassification);
+    if (activeBackswingClassification || result) {
+      const backswingCode = getBackswingProfileCode(activeBackswingClassification);
       const backswingIndex = SWING_BACKSWING_CODES.findIndex(item => item.code === backswingCode);
-      const backswingLabel = backswingClassification && backswingClassification.type
-        ? `${translateUiText(backswingClassification.type)}${backswingClassification.nearMatch ? (uiLanguage === 'en' ? ' (near match)' : ' (근접)') : ''}`
+      const backswingLabel = activeBackswingClassification && activeBackswingClassification.type
+        ? `${translateUiText(activeBackswingClassification.type)}${activeBackswingClassification.nearMatch ? (uiLanguage === 'en' ? ' (near match)' : ' (근접)') : ''}`
         : uiLanguage === 'en' ? 'Unclassified' : '판정 보류';
       const engine = engineDecision && engineDecision.code
         ? SWING_POWER_ENGINES.find(item => item.code === engineDecision.code) : null;
@@ -8427,10 +8543,10 @@
           : '')
         + `</div></div></section>`);
     }
-    const matchedProfile = getMatchedSwingProfile(backswingClassification, result);
+    const matchedProfile = getMatchedSwingProfile(activeBackswingClassification, result);
     if (matchedProfile) {
       const profileName = getMatchedSwingProfileName(matchedProfile);
-      const isNearMatch = Boolean(backswingClassification && backswingClassification.nearMatch);
+      const isNearMatch = Boolean(activeBackswingClassification && activeBackswingClassification.nearMatch);
       const basis = isNearMatch
         ? uiLanguage === 'en' ? 'Nearest profile candidate based on the backswing path and swing power-engine classifications.' : '백스윙 궤적의 근접 후보와 스윙 파워 엔진 분류를 조합한 가장 가까운 프로필 후보'
         : uiLanguage === 'en' ? 'Matched from the backswing path and swing power-engine classifications.' : '백스윙 궤적 분류와 스윙 파워 엔진 분류를 조합한 결과';
@@ -8438,7 +8554,7 @@
         + `<div class="analysis-profile-code">Profile ${String(matchedProfile.n).padStart(2, '0')} · [${matchedProfile.g} :: ${matchedProfile.e}]</div>`
         + `<div class="analysis-profile-name">${profileName}</div><span class="analysis-profile-basis">${basis}</span></section>`);
     }
-    const profileWarnings = getSwingProfileWarnings(backswingClassification, result);
+    const profileWarnings = getSwingProfileWarnings(activeBackswingClassification, result);
     const profileWarningRows = [];
     if (profileWarnings.length) {
       profileWarningRows.push(`<section class="analysis-type-section analysis-profile-warning"><div class="analysis-type-heading">${getSwingUiText('매칭 스윙 프로필 판정 안내', 'Matched Swing Profile Diagnostic')}</div>`
@@ -9259,6 +9375,75 @@
     return { speeds, clubTypeCount: new Set(r10Analysis.shots.map(shot => shot.clubType).filter(Boolean)).size };
   }
 
+  function getC7HandExtensionEvidence(history = frameSideMetricsHistory, frontHistory = frameMetricsHistory) {
+    // 같은 지점 이중 측정(3/5: F2 B·F6 A, 임팩트: F4 B·F6 B)의 허용 거리 차이(%p). 초과 시 지표 보류.
+    const duplicateGatePoints = 5;
+    const unavailable = reason => ({ available: false, reason });
+    if (!areVideoSourcesSame()) return unavailable('source');
+    const start = frameStateHistory.side.frame2;
+    const end = frameStateHistory.side.frame4;
+    if (!hasMetric(start?.videoTime) || !hasMetric(end?.videoTime) || start.videoTime >= end.videoTime) {
+      return unavailable('time');
+    }
+    if (!sideVideo.videoWidth || !sideVideo.videoHeight) return unavailable('aspect');
+    const aspect = sideVideo.videoWidth / sideVideo.videoHeight;
+    if (!hasMetric(start.aspectRatio) || !hasMetric(end.aspectRatio)
+      || Math.abs(start.aspectRatio - aspect) > 1e-6 || Math.abs(end.aspectRatio - aspect) > 1e-6) {
+      return unavailable('aspect');
+    }
+    const a = history.frame2, b = history.frame4;
+    if (a?.crossCorrected || b?.crossCorrected) return unavailable('correction');
+    if (!hasMetric(a?.c7HandDistanceRaw) || !hasMetric(b?.c7HandDistanceRaw)
+      || a.c7HandDistanceRaw <= 0.0005 || b.c7HandDistanceRaw <= 0.0005) return unavailable('points');
+    const reference = getPanelReferenceLength('side');
+    if (!hasMetric(reference) || reference <= 0.0005) return unavailable('reference');
+    // F6에서 같은 지점(3/5·임팩트)을 다시 선택하므로, 유효한 F6 측정을 평균해 단일 선택·점찍기 오차를 줄인다.
+    const duplicateRatio = (state, metrics, video) => {
+      const videoAspect = video && video.videoWidth && video.videoHeight
+        ? video.videoWidth / video.videoHeight : null;
+      return state && metrics && !metrics.crossCorrected
+        && hasMetric(state.videoTime) && hasMetric(state.aspectRatio)
+        && hasMetric(videoAspect) && Math.abs(state.aspectRatio - videoAspect) <= 1e-6
+        && hasMetric(metrics.c7HandDistanceRaw) && metrics.c7HandDistanceRaw > 0.0005
+        ? { time: state.videoTime, ratio: metrics.c7HandDistanceRaw / reference } : null;
+    };
+    const p6Duplicate = duplicateRatio(frameStateHistory.front?.frame6, frontHistory.frame6, frontVideo);
+    const p7Duplicate = duplicateRatio(frameStateHistory.side?.frame6, history.frame6, sideVideo);
+    const startSamples = [a.c7HandDistanceRaw / reference];
+    if (p6Duplicate && p6Duplicate.time < end.videoTime) startSamples.push(p6Duplicate.ratio);
+    const endSamples = [b.c7HandDistanceRaw / reference];
+    if (p7Duplicate && p7Duplicate.time > start.videoTime) endSamples.push(p7Duplicate.ratio);
+    const spreadPoints = samples => samples.length > 1 ? Math.abs(samples[0] - samples[1]) * 100 : null;
+    const startSpreadPoints = spreadPoints(startSamples);
+    const endSpreadPoints = spreadPoints(endSamples);
+    if ((startSpreadPoints != null && startSpreadPoints > duplicateGatePoints + 1e-9)
+      || (endSpreadPoints != null && endSpreadPoints > duplicateGatePoints + 1e-9)) {
+      return unavailable('mismatch');
+    }
+    const mean = samples => samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    const startRatio = mean(startSamples);
+    const endRatio = mean(endSamples);
+    const changePoints = (endRatio - startRatio) * 100;
+    const score = changePoints <= 2 + 1e-9 ? 0
+      : changePoints >= 6 - 1e-9 ? 10 : 10 * (changePoints - 2) / 4;
+    return { available: true, reason: null, startRatio, endRatio, changePoints, score,
+      startSampleCount: startSamples.length, endSampleCount: endSamples.length,
+      startSpreadPoints, endSpreadPoints };
+  }
+
+  function getC7HandExtensionReason(reason) {
+    return {
+      source: getSwingUiText('A/B 동일 영상 필요', 'same A/B source video required'),
+      time: getSwingUiText('F2 B→F4 B 시점 순서 필요', 'ordered F2 B→F4 B times required'),
+      aspect: getSwingUiText('실제 영상과 두 저장 프레임의 화면 비율 확인 필요', 'actual video and both saved frame aspects must match'),
+      correction: getSwingUiText('교차 보정 좌표 비교 미지원', 'cross-corrected coordinate comparison unavailable'),
+      points: getSwingUiText('두 시점의 C7·양손 중심 포인트 필요', 'C7 and hand-center points required at both phases'),
+      reference: getSwingUiText('머리–왼발 기준선 필요', 'head-to-left-foot reference line required'),
+      mismatch: getSwingUiText('같은 지점 이중 측정(3/5: F2 B·F6 A, 임팩트: F4 B·F6 B) 차이 5%p 초과 · 시점·포인트 재확인 필요',
+        'duplicate measurements at the same phase (3/5: F2 B·F6 A, impact: F4 B·F6 B) differ by more than 5 pp · recheck phases and points'),
+    }[reason] || getSwingUiText('분석 데이터 부족', 'analysis data unavailable');
+  }
+
   function getDistanceMotionSummary(scores = ['frame1', 'frame2', 'frame3', 'frame4'].map(getStoredSegmentScore),
     history = frameSideMetricsHistory) {
     const valid = scores.filter(hasMetric);
@@ -9293,18 +9478,21 @@
     const expansionFit = available ? linearFit(expansion) : null;
     const proposedBonus = complete && available ? (compressionFit + expansionFit) / 2 : 0;
     const eligible = proposedBonus > 0;
-    const score = scoreWeight > 0 ? scoreParts.reduce((sum, part) => sum + part.value * part.weight, 0) / scoreWeight : null;
+    const existingScore = scoreWeight > 0 ? scoreParts.reduce((sum, part) => sum + part.value * part.weight, 0) / scoreWeight : null;
+    const c7HandExtension = getC7HandExtensionEvidence(history);
+    const score = hasMetric(existingScore) && c7HandExtension.available
+      ? existingScore * 0.7 + c7HandExtension.score * 0.3 : existingScore;
     const effectiveWeights = Object.fromEntries(scoreParts.map(part => [part.key, scoreWeight > 0 ? part.weight / scoreWeight : 0]));
     const coverage = { available: frameParts.length + scoreParts.slice(1).length, total: 6,
       structure: frameParts.length, transfer: hasMetric(transferScore), lever: hasMetric(leverFit) };
-    return { base, score, eligible, proposedBonus, compressionFit, expansionFit, bonus: proposedBonus,
+    return { base, existingScore, score, c7HandExtension, eligible, proposedBonus, compressionFit, expansionFit, bonus: proposedBonus,
       complete, available, compression, expansion, clubType, transferScore, lateRadiusExpansion, leverFit,
       effectiveWeights, coverage };
   }
 
   function formatDistanceMotionSummary(summary) {
     const { base, score, proposedBonus, compressionFit, expansionFit, eligible, complete, available, compression, expansion,
-      clubType, transferScore, lateRadiusExpansion, leverFit, effectiveWeights, coverage } = summary;
+      clubType, transferScore, lateRadiusExpansion, leverFit, effectiveWeights, coverage, existingScore, c7HandExtension } = summary;
     if (!hasMetric(score)) return getSwingUiText('비거리 모션 점수: 측정 불가', 'Distance Motion Score: not measurable');
     const detail = value => Number.isInteger(value * 10) ? value.toFixed(1) : value.toFixed(3).replace(/0+$/, '');
     const changes = available
@@ -9321,9 +9509,20 @@
     const clubLabel = clubType === 'driver' ? getSwingUiText('드라이버', 'Driver') : getSwingUiText('아이언', 'Iron');
     const weightText = `구조 ${Math.round((effectiveWeights.structure || 0) * 100)}% · 전달 ${Math.round((effectiveWeights.transfer || 0) * 100)}% · 레버 ${Math.round((effectiveWeights.lever || 0) * 100)}%`;
     const componentText = `F1–F4 ${hasMetric(base) ? base.toFixed(1) : '—'} · F6 ${hasMetric(transferScore) ? transferScore.toFixed(1) : '—'} · F3→F4 반경 ${hasMetric(lateRadiusExpansion) ? formatPercent(lateRadiusExpansion * 100) : '—'}(${hasMetric(leverFit) ? leverFit.toFixed(1) : '—'}/10 · -30% 기준 5점)`;
+    const extensionReason = getC7HandExtensionReason(c7HandExtension.reason);
+    const startLabelKo = c7HandExtension.startSampleCount > 1 ? '3/5(F2 B·F6 A 평균)' : '3/5(F2 B)';
+    const endLabelKo = c7HandExtension.endSampleCount > 1 ? '임팩트(F4 B·F6 B 평균)' : '임팩트(F4 B)';
+    const startLabelEn = c7HandExtension.startSampleCount > 1 ? '3/5 (F2 B·F6 A mean)' : '3/5 (F2 B)';
+    const endLabelEn = c7HandExtension.endSampleCount > 1 ? 'impact (F4 B·F6 B mean)' : 'impact (F4 B)';
+    const extensionText = c7HandExtension.available
+      ? getSwingUiText(
+        `C7–양손 ${startLabelKo} ${(c7HandExtension.startRatio * 100).toFixed(1)}% → ${endLabelKo} ${(c7HandExtension.endRatio * 100).toFixed(1)}%, 변화 ${formatPercent(c7HandExtension.changePoints)}p · 새 지표 ${c7HandExtension.score.toFixed(1)}/10. 기존 ${existingScore.toFixed(1)} × 70% + 새 지표 × 30%`,
+        `C7–hands ${startLabelEn} ${(c7HandExtension.startRatio * 100).toFixed(1)}% → ${endLabelEn} ${(c7HandExtension.endRatio * 100).toFixed(1)}%, change ${formatPercent(c7HandExtension.changePoints)}p · new metric ${c7HandExtension.score.toFixed(1)}/10. Existing ${existingScore.toFixed(1)} × 70% + new metric × 30%`)
+      : getSwingUiText(`C7–양손 거리 변화 보류 (${extensionReason}); 기존 점수 유지`,
+        `C7–hands distance change withheld (${extensionReason}); existing score retained`);
     return getSwingUiText(
-      `비거리 모션 점수: ${score.toFixed(1)} / 10 · ${clubLabel} 가중치 ${weightText} · ${componentText} · 반영 ${coverage.available}/${coverage.total}. ${changes}. 참고 보완 +${detail(proposedBonus)} (미반영). ${reason}. ${rule}. 수행능력 검증 전`,
-      `Distance Motion Score: ${score.toFixed(1)} / 10 · ${clubLabel} weights ${weightText} · ${componentText} · ${coverage.available}/${coverage.total} inputs. ${changes}. Reference bonus +${detail(proposedBonus)} (not added). ${reason}. ${rule}. Performance unvalidated`);
+      `비거리 모션 점수: ${score.toFixed(1)} / 10 · 기존 ${clubLabel} 가중치 ${weightText} · ${componentText} · 반영 ${coverage.available}/${coverage.total}. ${extensionText}. 새 지표 잠정 기준: +2%p 이하 0점, +6%p 이상 10점, 사이는 선형. ${changes}. 참고 보완 +${detail(proposedBonus)} (미반영). ${reason}. ${rule}. 수행능력 검증 전`,
+      `Distance Motion Score: ${score.toFixed(1)} / 10 · existing ${clubLabel} weights ${weightText} · ${componentText} · ${coverage.available}/${coverage.total} inputs. ${extensionText}. New provisional metric: ≤+2 pp = 0, ≥+6 pp = 10, linear between. ${changes}. Reference bonus +${detail(proposedBonus)} (not added). ${reason}. ${rule}. Performance unvalidated`);
   }
 
   const SWING_BALANCE_WEIGHTS = {
@@ -9334,9 +9533,11 @@
 
   function computeModernSwingProximity() {
     const frameScores = ['frame1', 'frame2', 'frame3', 'frame4'].map(getStoredSegmentScore);
-    return frameScores.every(hasMetric)
-      ? frameScores.reduce((sum, frameScore) => sum + frameScore, 0) / frameScores.length * 10
-      : null;
+    if (!frameScores.every(hasMetric)) return null;
+    const frameAverage = frameScores.reduce((sum, frameScore) => sum + frameScore, 0) / frameScores.length;
+    const c7HandExtension = getC7HandExtensionEvidence();
+    return (c7HandExtension.available
+      ? frameAverage * 0.8 + c7HandExtension.score * 0.2 : frameAverage) * 10;
   }
 
   function computeSwingBalanceScore(engineResult, clubType) {
@@ -9349,6 +9550,17 @@
     return clamp(100 - deviation * SWING_BALANCE_DEVIATION_PENALTY, 0, 100);
   }
 
+  function setScoreExplanation(element, explanation) {
+    if (!element) return;
+    if (explanation) {
+      element.setAttribute('data-tooltip', explanation);
+      element.setAttribute('aria-label', `${element.textContent}. ${explanation}`);
+    } else {
+      element.removeAttribute('data-tooltip');
+      element.removeAttribute('aria-label');
+    }
+  }
+
   function updateSwingBalanceDisplay() {
     const scoreElement = document.getElementById('analysisSwingBalanceScore');
     const scoreLabelElement = document.getElementById('analysisSwingBalanceLabel');
@@ -9356,10 +9568,13 @@
     const proximityLabelElement = document.getElementById('analysisModernSwingProximityLabel');
     const proximityClubElement = document.getElementById('analysisModernSwingProximityClub');
     const proximityElement = document.getElementById('analysisModernSwingProximity');
+    const proximityNoteElement = document.getElementById('analysisModernSwingProximityNote');
     if (!scoreElement || !scoreLabelElement || !scoreClubElement || !proximityLabelElement
       || !proximityClubElement || !proximityElement) return;
     scoreLabelElement.textContent = getSwingUiText('스윙 밸런스', 'Swing Balance');
     proximityLabelElement.textContent = getSwingUiText('현대표준스윙근접도', 'Modern Standard Swing Proximity');
+    const override = getActive2dCorrectionOverride();
+    const correctedTag = get2dCorrectionDisplayTag();
     const result = classifySwingType();
     const clubType = analysisClubTypeSelect?.value || '';
     const weights = SWING_BALANCE_WEIGHTS[clubType];
@@ -9368,6 +9583,8 @@
       proximityClubElement.textContent = '';
       scoreElement.textContent = getSwingUiText('클럽 선택 후 표시', 'Select a club to display');
       proximityElement.textContent = getSwingUiText('클럽 선택 후 표시', 'Select a club to display');
+      if (proximityNoteElement) proximityNoteElement.textContent = '';
+      setScoreExplanation(proximityElement, '');
       return;
     }
 
@@ -9376,14 +9593,30 @@
     const clubLabel = `(${clubName})`;
     scoreClubElement.textContent = clubLabel;
     proximityClubElement.textContent = clubLabel;
-    const score = computeSwingBalanceScore(result, clubType);
+    const correctedBalance = override?.engineResult ? computeSwingBalanceScore(override.engineResult, clubType) : null;
+    const score = hasMetric(correctedBalance) ? correctedBalance : computeSwingBalanceScore(result, clubType);
     scoreElement.textContent = hasMetric(score)
-      ? `${score.toFixed(1)} / 100`
+      ? `${score.toFixed(1)} / 100${hasMetric(correctedBalance) ? correctedTag : ''}`
       : getSwingUiText('측정 불가', 'Not measurable');
-    const proximity = computeModernSwingProximity();
+    const correctedProximity = override && hasMetric(override.modernProximity) ? override.modernProximity : null;
+    const proximity = correctedProximity != null ? correctedProximity : computeModernSwingProximity();
     proximityElement.textContent = hasMetric(proximity)
-      ? `${proximity.toFixed(1)}%`
+      ? `${proximity.toFixed(1)}%${correctedProximity != null ? correctedTag : ''}`
       : getSwingUiText('프레임 1–4 분석 후 표시', 'Complete frames 1–4 to display');
+    const evidence = hasMetric(proximity)
+      ? correctedProximity != null
+        ? override.proximityEvidence || { available: false, reason: null }
+        : getC7HandExtensionEvidence()
+      : null;
+    const correctionPrefix = correctedProximity != null
+      ? getSwingUiText('2D 왜곡 보정 기준 · ', '2D distortion-corrected basis · ') : '';
+    const explanation = !evidence ? '' : correctionPrefix + (evidence.available
+        ? getSwingUiText(`F1–F4 평균 80% (각 20%) + C7–양손 변화 ${formatPercent(evidence.changePoints)}p (${evidence.score.toFixed(1)}/10) 20% · 잠정`,
+          `F1–F4 mean 80% (20% each) + C7–hands change ${formatPercent(evidence.changePoints)}p (${evidence.score.toFixed(1)}/10) 20% · provisional`)
+        : getSwingUiText(`C7–양손 지표 보류 (${getC7HandExtensionReason(evidence.reason)}) · 기존 F1–F4 평균 유지`,
+          `C7–hands metric withheld (${getC7HandExtensionReason(evidence.reason)}) · F1–F4 mean retained`));
+    setScoreExplanation(proximityElement, explanation);
+    if (proximityNoteElement) proximityNoteElement.textContent = evidence && !evidence.available ? explanation : '';
   }
 
   function updateSegmentScoresDisplay() {
@@ -9396,9 +9629,15 @@
     syncSegmentScoreSnapshots();
     if (computing2dCorrectionScenario) return;
     refreshSwingClassificationViews();
-    const scoreLabel = (frame, scale = 1) => hasMetric(getStoredSegmentScore(frame))
-      ? (getStoredSegmentScore(frame) * scale).toFixed(1)
-      : segmentDeltaHistory[frame] ? '측정 불가' : '-';
+    const override = getActive2dCorrectionOverride();
+    const correctedTag = get2dCorrectionDisplayTag();
+    const scoreLabel = (frame, scale = 1) => {
+      const corrected = override && hasMetric(override.scores?.[frame]) ? override.scores[frame] : null;
+      if (corrected != null) return `${(corrected * scale).toFixed(1)}${correctedTag}`;
+      return hasMetric(getStoredSegmentScore(frame))
+        ? (getStoredSegmentScore(frame) * scale).toFixed(1)
+        : segmentDeltaHistory[frame] ? '측정 불가' : '-';
+    };
     if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = `F1: ${scoreLabel('frame1')}`;
     if (analysisSegmentScoreF2) analysisSegmentScoreF2.textContent = `F2: ${scoreLabel('frame2')}`;
     if (analysisSegmentScoreF3) analysisSegmentScoreF3.textContent = `F3: ${scoreLabel('frame3')}`;
@@ -9409,20 +9648,32 @@
     updateConsistencyAverageDisplay();
     updateSwingBalanceDisplay();
     if (analysisSegmentAverage) {
-      const summary = getDistanceMotionSummary();
+      const correctedSummary = override && override.distanceMotion
+        && hasMetric(override.distanceMotion.score) ? override.distanceMotion : null;
+      const summary = correctedSummary || getDistanceMotionSummary();
+      const summaryTag = correctedSummary ? correctedTag : '';
       const analyzed = ['frame1', 'frame2', 'frame3', 'frame4'].some(id => segmentDeltaHistory[id]);
       analysisSegmentAverage.textContent = hasMetric(summary.score) || analyzed
         ? hasMetric(summary.score)
-          ? getSwingUiText(`비거리 모션 점수: ${summary.score.toFixed(1)} / 10`,
-            `Distance Motion Score: ${summary.score.toFixed(1)} / 10`)
+          ? getSwingUiText(`비거리 모션 점수: ${summary.score.toFixed(1)} / 10${summaryTag}`,
+            `Distance Motion Score: ${summary.score.toFixed(1)} / 10${summaryTag}`)
           : getSwingUiText('비거리 모션 점수: 측정 불가', 'Distance Motion Score: not measurable')
         : getSwingUiText('비거리 모션 점수: -', 'Distance Motion Score: -');
       const bonusElement = document.getElementById('analysisDistanceBonus');
-      if (bonusElement) bonusElement.textContent = hasMetric(summary.score)
-        ? getSwingUiText(`가점 참고 +${summary.bonus.toFixed(2)} (미반영)`,
-          `Bonus reference +${summary.bonus.toFixed(2)} (not added)`) : '';
+      const explanation = hasMetric(summary.score)
+        ? summary.c7HandExtension.available
+          ? getSwingUiText(`C7–양손 변화 ${formatPercent(summary.c7HandExtension.changePoints)}p · ${summary.c7HandExtension.score.toFixed(1)}/10 × 30%`,
+            `C7–hands change ${formatPercent(summary.c7HandExtension.changePoints)}p · ${summary.c7HandExtension.score.toFixed(1)}/10 × 30%`)
+          : getSwingUiText(`C7–양손 변화 보류 (${getC7HandExtensionReason(summary.c7HandExtension.reason)}) · 기존 점수 유지`,
+            `C7–hands change withheld (${getC7HandExtensionReason(summary.c7HandExtension.reason)}) · existing score retained`)
+        : '';
+      setScoreExplanation(analysisSegmentAverage, explanation);
+      if (bonusElement) bonusElement.textContent = hasMetric(summary.score) && !summary.c7HandExtension.available ? explanation : '';
       const reference = document.getElementById('analysisBonusReference');
-      if (reference) reference.textContent = hasMetric(summary.score) || analyzed ? formatDistanceMotionSummary(summary) : '';
+      if (reference) reference.textContent = hasMetric(summary.score) || analyzed
+        ? (correctedSummary ? getSwingUiText('2D 왜곡 보정 적용 — 저장·내보내기는 원본 점수를 유지합니다. ',
+          '2D distortion correction applied — saved and exported scores remain original. ') : '')
+          + formatDistanceMotionSummary(summary) : '';
     }
     refreshAnalysisWorkflow();
   }
@@ -9484,6 +9735,7 @@
     if (!deltaResult) {
       analysisSummary.textContent = 'A/B 영상 중 하나 이상의 분석 버튼을 눌러 평가를 시작하세요. 선택 프레임에 맞는 랜드마크를 찍으면 지표가 업데이트됩니다.';
       if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 점수: -';
+      setScoreExplanation(analysisSegmentAverage, '');
       const bonusElement = document.getElementById('analysisDistanceBonus');
       if (bonusElement) bonusElement.textContent = '';
       return;
@@ -9534,8 +9786,8 @@
       if (id === 'frame6') {
         const tempo = metrics._tempo || {};
         lines.push(getSwingUiText(
-          `리듬/템포 잠정 ${formatGeminiMetric(tempo.score100)} / 100 (상대 변위·측면 경로 기준; 시간차·Release Index는 참고값), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, 상대 변위 비율 ${formatGeminiMetric(metrics.sequenceIndex, 2)} (수행능력 등급 아님)`,
-          `Provisional sequence ${formatGeminiMetric(tempo.score100)} / 100 (based on relative displacement and optional side path; Δt and Release Index are observation-only), Δt ${formatGeminiMetric(metrics.timeDeltaSec * 1000, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, relative displacement ${formatGeminiMetric(metrics.sequenceIndex, 2)} (not a performance grade)`));
+          `리듬/템포 잠정 ${formatGeminiMetric(tempo.score100)} / 100 (골반/C7 상대 변위와 일치 시 측면 경로 기준; C7 별도 감점 없음), Δt ${formatGeminiMetric(hasMetric(metrics.timeDeltaSec) ? metrics.timeDeltaSec * 1000 : null, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, 손 대비 헤드 2D 직선 변위비 ${formatGeminiMetric(metrics.displacementObservation6?.ratio, 2)} (모두 점수 미반영; 변위비는 가속도·경로·릴리즈 효율 아님), 상대 변위 비율 ${formatGeminiMetric(metrics.sequenceIndex, 2)} (수행능력 등급 아님)`,
+          `Provisional sequence ${formatGeminiMetric(tempo.score100)} / 100 (pelvis/C7 relative displacement and matching side path when available; no separate C7 penalty), Δt ${formatGeminiMetric(hasMetric(metrics.timeDeltaSec) ? metrics.timeDeltaSec * 1000 : null, 0, 'ms')}, Release Index ${formatGeminiMetric(metrics.releaseIndex, 0)}, head/hand 2D endpoint displacement ratio ${formatGeminiMetric(metrics.displacementObservation6?.ratio, 2)} (all unscored observations; the ratio is not acceleration, path length or release efficiency), relative displacement ${formatGeminiMetric(metrics.sequenceIndex, 2)} (not a performance grade)`));
       }
       return lines.join('; ');
     }).join('\n');
@@ -9897,7 +10149,7 @@
     resetCard(analysisDeltaCardF3Score, analysisDeltaCardF3Thrust, analysisDeltaCardF3AxisSway, analysisDeltaCardF3GroundForceTransition);
     resetCard(analysisDeltaCardF4Score, analysisDeltaCardF4Arc, analysisDeltaCardF4RMax, analysisDeltaCardF4ArmShaft, analysisDeltaCardF4Lean, analysisDeltaCardF4C7XY);
     resetCard(analysisDeltaCardF5Score, analysisDeltaCardF5HandOffset, analysisDeltaCardF5C7, analysisDeltaCardF5Pelvis, analysisDeltaCardF5ClubHead);
-    resetCard(analysisDeltaCardF6Score, analysisDeltaCardF6TimeDelta, analysisDeltaCardF6Release, analysisDeltaCardF6Sequence);
+    resetCard(analysisDeltaCardF6Score, analysisDeltaCardF6TimeDelta, analysisDeltaCardF6Release, analysisDeltaCardF6Displacement, analysisDeltaCardF6Sequence);
     [analysisDeltaCardF1BSection, analysisDeltaCardF2BSection, analysisDeltaCardF3BSection, analysisDeltaCardF4BSection, analysisDeltaCardF5BSection, analysisDeltaCardF6BSection]
       .forEach(function(el) { if (el) el.innerHTML = ''; });
     if (analysisSegmentScoreF1) analysisSegmentScoreF1.textContent = 'F1: -';
@@ -9908,15 +10160,19 @@
     if (analysisSegmentScoreF6) analysisSegmentScoreF6.textContent = 'F6: -';
     if (analysisConsistencyAverage) analysisConsistencyAverage.textContent = '일관성 모션 점수: -';
     if (analysisSegmentAverage) analysisSegmentAverage.textContent = '비거리 모션 점수: -';
+    setScoreExplanation(analysisSegmentAverage, '');
     const swingBalanceScore = document.getElementById('analysisSwingBalanceScore');
     const swingBalanceClub = document.getElementById('analysisSwingBalanceClub');
     const modernSwingProximity = document.getElementById('analysisModernSwingProximity');
     const modernSwingProximityClub = document.getElementById('analysisModernSwingProximityClub');
+    const modernSwingProximityNote = document.getElementById('analysisModernSwingProximityNote');
     if (swingBalanceScore) swingBalanceScore.textContent = getSwingUiText('분석 후 표시', 'Shown after analysis');
     if (swingBalanceClub) swingBalanceClub.textContent = '';
     if (modernSwingProximity) modernSwingProximity.textContent = getSwingUiText(
       '프레임 1–4 분석 후 표시', 'Shown after frames 1–4 are analyzed');
+    setScoreExplanation(modernSwingProximity, '');
     if (modernSwingProximityClub) modernSwingProximityClub.textContent = '';
+    if (modernSwingProximityNote) modernSwingProximityNote.textContent = '';
     const distanceBonus = document.getElementById('analysisDistanceBonus');
     if (distanceBonus) distanceBonus.textContent = '';
     if (analysisSummary) analysisSummary.textContent = '프레임을 선택하고 랜드마크를 입력하세요.';
@@ -14840,7 +15096,7 @@
         : classifyBackswing(frames);
       if (classification.error) return null;
       return { frames, classification, key,
-        sourceIdentity: typeof cached.backswingSourceIdentity === 'string' ? cached.backswingSourceIdentity : media.front };
+        sourceIdentity: typeof cached.backswingSourceIdentity === 'string' ? cached.backswingSourceIdentity : null };
     } catch (error) {
       reportBackswingCacheError('읽기', error);
       return null;
@@ -16138,7 +16394,7 @@
     }
     backswingClassificationCacheKey = null;
     backswingFrames = copyProjectValue(state.backswingFrames || {});
-    backswingSourceIdentity = state.backswingSourceIdentity || project.media.front || null;
+    backswingSourceIdentity = state.backswingSourceIdentity || null;
     backswingClassification = null;
     if (state.backswingClassified) {
       // Legacy checkpoints have no source aspect ratio; retain their saved decision.

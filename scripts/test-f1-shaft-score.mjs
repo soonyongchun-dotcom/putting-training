@@ -22,7 +22,7 @@ const scoreShaftAngle = angle => context.computeRawSegmentScore({
   fm: { topShaftAngleDeg: angle },
 }, 'frame1');
 
-test('F1 top-shaft full-score ranges vary by club while retaining ramp widths', () => {
+test('driver F1 top-shaft scoring remains unchanged', () => {
   context.getSelectedAnalysisClubType = () => 'driver';
   assert.equal(scoreShaftAngle(-3), 10);
   assert.equal(scoreShaftAngle(5), 10);
@@ -30,12 +30,31 @@ test('F1 top-shaft full-score ranges vary by club while retaining ramp widths', 
   assert.equal(scoreShaftAngle(12.5), 5);
   assert.equal(scoreShaftAngle(-20), 0);
   assert.equal(scoreShaftAngle(20), 0);
+});
 
+test('iron F1 accepts compact tops and penalizes overswing more steeply', () => {
   context.getSelectedAnalysisClubType = () => 'iron';
-  assert.equal(scoreShaftAngle(-3), 10);
-  assert.equal(scoreShaftAngle(10), 10);
-  assert.equal(scoreShaftAngle(-11.5), 5);
-  assert.equal(scoreShaftAngle(18.5), 5);
+  assert.equal(scoreShaftAngle(0), 10);
+  assert.equal(scoreShaftAngle(15), 10);
+  assert.equal(scoreShaftAngle(18), 10);
+  assert.equal(scoreShaftAngle(20), 9.5);
+  assert.equal(scoreShaftAngle(-1), 9.5);
+  assert.equal(scoreShaftAngle(-5), 5);
+  assert.equal(scoreShaftAngle(-10), 0);
   assert.equal(scoreShaftAngle(-20), 0);
-  assert.equal(scoreShaftAngle(27), 0);
+  assert.equal(scoreShaftAngle(26.5), 5);
+  assert.equal(scoreShaftAngle(35), 0);
+  assert.equal(scoreShaftAngle(60), 0);
+  assert.equal(scoreShaftAngle(null), null);
+});
+
+test('iron shaft overswing affects its 30% share of the complete F1 score', () => {
+  context.getSelectedAnalysisClubType = () => 'iron';
+  const fm = {
+    spineAngleDelta: 0, xFactorDelta: -150,
+    c7XPercent: 0, c7YPercent: 0, topShaftAngleDeg: -5,
+  };
+  assert.equal(context.computeRawSegmentScore({ fm }, 'frame1'), 8.5);
+  fm.topShaftAngleDeg = 15;
+  assert.equal(context.computeRawSegmentScore({ fm }, 'frame1'), 10);
 });

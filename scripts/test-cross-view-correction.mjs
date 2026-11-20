@@ -460,6 +460,20 @@ function loadCalculators(c) {
 
 test('real scoring preserves temporal movement evidence while correcting only matched B geometry', () => {
   const c = setup(); loadCalculators(c);
+  Object.assign(c.frontVideo, { videoWidth: 1, videoHeight: 1 });
+  Object.assign(c.sideVideo, { videoWidth: 1, videoHeight: 1 });
+  // Make the synthetic F6 duplicate selections measure the same C7–hands geometry as F2 B/F4 B,
+  // as reselecting the same phase would, so the duplicate consistency gate does not fire.
+  for (const [panel, sourceFrame, sourceType] of [['front', 'frame2', 'c7'], ['side', 'frame4', 'wrist']]) {
+    const duplicate = c.frameStateHistory[panel].frame6;
+    const source = c.frameStateHistory.side[sourceFrame];
+    const sourceC7 = source.points.find(p => p.type === sourceType);
+    const sourceHand = source.points.find(p => p.type === 'handMid');
+    const duplicateC7 = duplicate.points.find(p => p.type === 'c7');
+    const duplicateHand = duplicate.points.find(p => p.type === 'handMid');
+    duplicateHand.x = duplicateC7.x + (sourceHand.x - sourceC7.x);
+    duplicateHand.y = duplicateC7.y + (sourceHand.y - sourceC7.y);
+  }
   for (const [index, frame] of frames.entries()) {
     for (const point of c.frameStateHistory.side[frame].points) point.x += 0.06 + index * 0.01;
     c.crossViewCorrectionData.entries[frame].frontPoints =
@@ -474,8 +488,10 @@ test('real scoring preserves temporal movement evidence while correcting only ma
   const original = JSON.stringify(c.frameStateHistory);
   const classify = c.classifySwingType;
   const deltas = [];
+  const distanceSummaries = [];
   c.classifySwingType = () => {
     deltas.push(structuredClone(c.segmentDeltaHistory));
+    distanceSummaries.push(c.getDistanceMotionSummary());
     return classify();
   };
   c.computing2dCorrectionScenario = false;
@@ -483,10 +499,23 @@ test('real scoring preserves temporal movement evidence while correcting only ma
   const crossed = c.getCrossCorrectionScenario();
   assert.equal(rolled.unavailable, undefined);
   assert.equal(crossed.unavailable, undefined);
+  assert.ok(Number.isFinite(rolled.distanceMotion?.score),
+    'the corrected scenario exports the distance-motion summary for display mapping');
+  assert.ok(rolled.engineResult, 'the corrected scenario exports the engine result for display mapping');
+  assert.ok(rolled.proximityEvidence, 'the corrected scenario exports the proximity evidence for display mapping');
+  assert.equal(deltas[1].frame6.fm.displacementObservation6.reason, 'correction',
+    'F6 endpoint displacement is withheld when only B uses a corrected projection');
+  assert.equal(distanceSummaries[0].c7HandExtension.available, true);
+  assert.equal(distanceSummaries[0].c7HandExtension.startSampleCount, 2,
+    'the F6 A duplicate measurement participates in the 3/5 average');
+  assert.equal(distanceSummaries[0].c7HandExtension.endSampleCount, 2,
+    'the F6 B duplicate measurement participates in the impact average');
+  assert.equal(distanceSummaries[1].c7HandExtension.reason, 'correction',
+    'C7–hands distance scoring must not mix original and cross-corrected coordinates');
   assert.ok(crossed.engineShares.type2 > 0, 'real F2 movement must not become zero LSE');
   const fields = {
     frame1: ['spineAngleDelta', 'xFactorDelta', 'c7XPercent', 'c7YPercent'],
-    frame2: ['pelvisLateralDelta', 'c7LateralDelta2', 'laggingAngleDelta'],
+    frame2: ['pelvisLateralDelta', 'pelvisReferenceDelta2', 'c7LateralDelta2', 'c7ReferenceDelta2', 'laggingAngleDelta'],
     frame3: ['kneeExtDelta', 'leadHipRiseBodyPercent', 'c7RisePercent'],
     frame4: ['armShaftDelta', 'c7XPercent', 'c7YPercent'],
     frame5: ['handOffsetDelta', 'handAlongDelta', 'c7SwayRatio', 'c7RiseRatio', 'pelvisShiftRatio'],
