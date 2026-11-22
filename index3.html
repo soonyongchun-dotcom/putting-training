@@ -382,7 +382,7 @@
     .topbar #logoutBtn:hover{background:rgba(127,29,29,.5)}
     .screen-tabs button,.auth-tabs button{min-height:42px;border-color:#d6e0e5;color:#334155;transition:background .16s ease,border-color .16s ease,color .16s ease}
     .screen-tabs button.active{background:#087f5b;border-color:#087f5b;box-shadow:0 2px 7px rgba(8,127,91,.2)}
-    .match-actions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .match-actions{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
     .match-actions .btn{
       width:100%;min-height:46px;padding:10px 12px;
       display:inline-flex;align-items:center;justify-content:center;gap:6px;
@@ -433,7 +433,10 @@
       #coachPortal .kpi .value{font-size:18px}
       .screen-tabs{margin-top:10px}
     }
-    @media (max-width:900px){
+    @media (max-width:1050px){
+      .match-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
+    @media (max-width:720px){
       .match-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
     @media (max-width:560px){
@@ -579,6 +582,14 @@
                 <circle cx="12" cy="11" r="2.5"></circle>
               </svg>
               <span>스핀샷시뮬레이터</span>
+            </a>
+            <a id="virtualRoundTrainingLink" class="btn" href="./sy_play&greenside_simulator.html" target="_blank" rel="noopener noreferrer" title="가상라운드훈련 (새 탭)" aria-label="가상라운드훈련 열기 (새 탭)" style="background:#15803d">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19h16"></path>
+                <path d="M7 19V5l9 3.5-9 3.5"></path>
+                <circle cx="16.5" cy="16.5" r="2"></circle>
+              </svg>
+              <span>가상라운드훈련</span>
             </a>
             <button class="btn" type="button" onclick="openIndex1WithSession('https://soonyongchun-dotcom.github.io/putting-training/index1.html')">오늘경기데이터 입력</button>
             <button class="btn" type="button" id="openPastMatchBtn">지난경기</button>
@@ -4537,6 +4548,8 @@
       '샷거리시뮬레이터 열기 (새 탭)':'Open Shot Distance Simulator (New Tab)',
       '스핀샷시뮬레이터':'Spin Shot Simulator','스핀샷시뮬레이터 (새 탭)':'Spin Shot Simulator (New Tab)',
       '스핀샷시뮬레이터 열기 (새 탭)':'Open Spin Shot Simulator (New Tab)',
+      '가상라운드훈련':'Virtual Round Training','가상라운드훈련 (새 탭)':'Virtual Round Training (New Tab)',
+      '가상라운드훈련 열기 (새 탭)':'Open Virtual Round Training (New Tab)',
       '오늘경기데이터 입력':'Enter Today’s Round Data','지난경기':'Past Rounds','지난경기 히스토리':'Past Round History',
       'Player Dashboard':'Player Dashboard','Self Evaluation':'Self-Evaluation','Coach Communication':'Coach Communication',
       'Mission Dashboard':'Mission Dashboard','Putting Training':'Putting Training','Putting Evaluation':'Putting Evaluation',
