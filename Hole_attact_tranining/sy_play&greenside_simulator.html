@@ -1,0 +1,3641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SY 골프경기력 평가 분석 연구소 | KLPGA·무안CC·군산CC 코스 매니지먼트 & 칩샷 3D 시뮬레이터</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .touch-safe-panel {
+      touch-action: pan-y;
+    }
+    input[type="range"].touch-safe-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"].touch-safe-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #10b981;
+      border: 2px solid #ecfdf5;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <!-- 상단 헤더 & 모드 전환 -->
+  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-30">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 font-extrabold text-sm">
+        SY
+      </div>
+      <div>
+        <h1 class="text-xs sm:text-sm font-extrabold tracking-tight text-white">투어 코스 매니지먼트 & 야디지북 3D/2D 시뮬레이터</h1>
+        <p class="text-[10px] text-slate-400">가변 폭 PBR 곡선 페어웨이 · 96×96 입체 투그린 · 선택 그린 확대 · 곡선 공구름 리플레이</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg p-0.5">
+        <button id="btn-mode-round" type="button" class="px-2.5 py-1 rounded-md text-[11px] font-extrabold bg-emerald-600 text-white transition">
+          🏌️ 18H 라운드
+        </button>
+        <button id="btn-mode-chip-lab" type="button" class="px-2.5 py-1 rounded-md text-[11px] font-extrabold text-amber-300 hover:text-white transition">
+          🎯 칩샷 집중 훈련
+        </button>
+      </div>
+      <span id="round-score-summary" class="text-[11px] font-mono-num px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-emerald-300">
+        라운드 기록: 0/18H 완료
+      </span>
+      <button id="btn-open-bag" type="button" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 transition">
+        🏌️ 클럽 백 설정
+      </button>
+      <button id="btn-next-hole" type="button" class="px-3 py-1.5 rounded-lg text-[11px] font-extrabold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
+        다음 홀 ▶
+      </button>
+    </div>
+  </header>
+
+  <!-- 칩샷 집중 훈련 모드 전용 상단 배너 -->
+  <div id="chip-lab-banner" class="hidden border-b border-amber-500/40 bg-gradient-to-r from-amber-950/75 via-slate-900 to-amber-950/75 px-3 sm:px-5 py-2">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase">CHIP LAB MODE</span>
+        <span class="text-xs font-bold text-amber-200">시나리오:</span>
+        <select id="sel-chip-scenario" class="bg-slate-950 border border-amber-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold text-white">
+          <option value="RANDOM">🎲 랜덤 실전 그린 미스 상황</option>
+          <option value="SHORT_SIDE_ROUGH">1. 앞핀 숏사이드 러프 (띄우기 vs 바운스)</option>
+          <option value="UPHILL_TIER">2. 2단 그린 오르막 에이프런 (런닝샷 훈련)</option>
+          <option value="FAST_DOWNHILL">3. 빠른 내리막 스팀프 3.6m 유리알 그린</option>
+          <option value="WET_DEW_LIE">4. 습윤·이슬 역결 라이 (플라이어 주의)</option>
+          <option value="TIGHT_HARDPAN">5. 타이트 맨땅(Hardpan) 핀 공략</option>
+        </select>
+        <span class="text-[11px] text-cyan-300 font-semibold">💡 상단 3D 그린뷰를 직접 클릭하면 해당 지점(프린지/세미·딥러프/벙커)에 공이 놓입니다</span>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <label class="flex items-center gap-1.5 text-[11px] text-slate-200 bg-slate-950/80 border border-slate-700 rounded-lg px-2.5 py-1 cursor-pointer">
+          <input id="chk-chip-repeat-spot" type="checkbox" checked class="accent-amber-400" />
+          <span>동일 위치 반복 비교</span>
+        </label>
+        <button id="btn-chip-next-drill" type="button" class="px-3 py-1 rounded-lg text-[11px] font-extrabold bg-amber-500 hover:bg-amber-400 text-slate-950 transition">
+          🔄 다음 시나리오
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 워크스페이스 -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3 max-w-[1600px] w-full mx-auto">
+
+    <!-- 좌측 컨트롤 패널 (4 cols) -->
+    <aside class="lg:col-span-4 space-y-2.5 touch-safe-panel">
+
+      <!-- 1. 골프장 & 1~18H 코스 셋업 -->
+      <section class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">1. 골프장 & 1~18H 코스 셋업</h2>
+          <button id="btn-reroll-virtual" type="button" class="hidden px-2 py-0.5 rounded bg-purple-600/30 border border-purple-400/50 text-[10px] font-bold text-purple-200 hover:bg-purple-600/50">
+            🎲 가상 코스 재생성
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="sel-venue" class="block text-[10px] text-slate-400 mb-1">골프장 선택</label>
+            <select id="sel-venue" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-white">
+              <option value="MUAN">무안 CC (동·남·서 54H)</option>
+              <option value="GUNSAN">군산 CC (토너먼트 · 부안·남원)</option>
+              <option value="HAESLEY">해슬리 나인브릿지</option>
+              <option value="JACK">잭니클라우스 GC 코리아</option>
+              <option value="VIRTUAL">가상 랜덤 골프장 (18H)</option>
+            </select>
+          </div>
+          <div>
+            <label for="sel-course" class="block text-[10px] text-slate-400 mb-1">세부 코스</label>
+            <select id="sel-course" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-white"></select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="sel-hole" class="block text-[10px] text-slate-400 mb-1">홀 선택 (1H ~ 18H)</label>
+            <select id="sel-hole" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-300"></select>
+          </div>
+          <div>
+            <label for="sel-tee" class="block text-[10px] text-slate-400 mb-1">티박스 선택 (5색 야디지)</label>
+            <select id="sel-tee" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-emerald-300">
+              <option value="BLACK">Black Championship</option>
+              <option value="BLUE" selected>Blue Back</option>
+              <option value="WHITE">White Regular</option>
+              <option value="YELLOW">Yellow Senior</option>
+              <option value="RED">Red Ladies</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 좌/우 투그린 선택 & 9분할 복합 핀 위치 -->
+        <div class="grid grid-cols-2 gap-2 items-end">
+          <div>
+            <span class="block text-[10px] text-slate-400 mb-1">투그린 (Left / Right)</span>
+            <div class="grid grid-cols-2 gap-1 bg-slate-950 border border-slate-700 rounded-lg p-0.5">
+              <button type="button" data-green-side="LEFT" class="green-side-btn py-1 rounded-md text-[11px] font-extrabold text-slate-300 hover:text-white transition">
+                좌그린 (Left)
+              </button>
+              <button type="button" data-green-side="RIGHT" class="green-side-btn py-1 rounded-md text-[11px] font-extrabold bg-emerald-600 text-white transition">
+                우그린 (Right)
+              </button>
+            </div>
+          </div>
+          <div>
+            <label for="sel-pin" class="block text-[10px] text-slate-400 mb-1">핀 위치 (9분할 복합)</label>
+            <select id="sel-pin" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-cyan-300">
+              <option value="FRONT_LEFT">앞-좌측 (Front-Left)</option>
+              <option value="FRONT_CENTER">앞-중앙 (Front-Center)</option>
+              <option value="FRONT_RIGHT">앞-우측 (Front-Right)</option>
+              <option value="MID_LEFT">중-좌측 (Mid-Left)</option>
+              <option value="CENTER" selected>정중앙 (Center)</option>
+              <option value="MID_RIGHT">중-우측 (Mid-Right)</option>
+              <option value="BACK_LEFT">뒤-좌측 (Back-Left)</option>
+              <option value="BACK_CENTER">뒤-중앙 (Back-Center)</option>
+              <option value="BACK_RIGHT">뒤-우측 (Back-Right)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/90 border border-slate-800 rounded-lg px-2.5 py-1.5 space-y-1">
+          <div class="flex items-center justify-between text-[10px]">
+            <span class="text-slate-400">선택 홀 제원:</span>
+            <span id="disp-hole-meta" class="font-mono-num font-bold text-amber-300">4H · PAR 4 · HDCP 2 · 좌 363m / 우 399m</span>
+          </div>
+          <p id="disp-pro-tip" class="text-[10px] text-slate-300 leading-snug">
+            무안 East-B 4번홀 PRO TIP: 드라이버 IP 지점 좌우 워터해저드를 피해 페어웨이 중앙을 공략 후 우그린 2단 그린 앞쪽 오르막 랜딩존을 노리십시오.
+          </p>
+        </div>
+      </section>
+
+      <!-- 2. 정타율 고정 & 기후/그린 환경 -->
+      <section class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold text-cyan-400 uppercase tracking-wider">2. 정타율 고정 & 기후/그린 환경</h2>
+          <button id="btn-reroll-env" type="button" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-semibold text-cyan-300">
+            🌬️ 바람/기온 변경
+          </button>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-amber-300">🎯 정타율 등급 (스매쉬 노이즈)</span>
+            <button id="btn-lock-impact" type="button" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 border border-amber-400/50 text-amber-300">
+              🔒 고정됨
+            </button>
+          </div>
+          <select id="sel-impact-grade" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-white">
+            <option value="0.03">95% 이상 · 투어 엘리트 (노이즈 ±3%)</option>
+            <option value="0.05" selected>90% ~ 94% · 상급 투어 (노이즈 ±5%)</option>
+            <option value="0.07">85% ~ 89% · 준프로급 (노이즈 ±7%)</option>
+            <option value="0.09">80% ~ 84% · 싱글 핸디 (노이즈 ±9%)</option>
+            <option value="0.11">75% ~ 79% · 중상급자 (노이즈 ±11%)</option>
+            <option value="0.13">70% ~ 74% · 보기 플레이 (노이즈 ±13%)</option>
+            <option value="0.15">70% 이하 · 하이핸디캡 (노이즈 ±15%)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5 text-center font-mono-num">
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5">
+            <div class="text-[9px] text-slate-400">풍향 / 풍속</div>
+            <div id="env-wind" class="text-[11px] font-bold text-cyan-300 mt-0.5">맞바람 3.1m/s</div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5">
+            <div class="text-[9px] text-slate-400">기온 / 표면</div>
+            <div id="env-temp" class="text-[11px] font-bold text-emerald-300 mt-0.5">20°C · 건조</div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5">
+            <div class="text-[9px] text-slate-400">그린 고저차</div>
+            <div id="env-elev" class="text-[11px] font-bold text-amber-300 mt-0.5">+2m 오르막</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-2 items-center">
+          <label for="sel-chip-surface" class="col-span-5 text-[10px] text-slate-400">잔디 · 기후 표면 상태:</label>
+          <select id="sel-chip-surface" class="col-span-7 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-semibold text-cyan-300">
+            <option value="DRY_BENT">건조한 양잔디 (Dry Bent)</option>
+            <option value="WET_DEW">습윤·이슬 젖음 (Dew/Wet)</option>
+            <option value="KOREAN_FLUFFY">한국잔디 뜬 라이 (Zoysia Fluffy)</option>
+            <option value="TIGHT_HARDPAN">타이트 맨땅 (Tight Hardpan)</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 3. 통합 클럽 선택 & 에이밍 전략 -->
+      <section class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">3. 통합 클럽 선택 & 에이밍 전략</h2>
+          <span id="disp-current-lie" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-bold text-emerald-300">
+            현재 라이: TEE
+          </span>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-slate-400">클럽 카테고리 (3분할 연동)</span>
+            <span id="disp-club-spec" class="font-mono-num text-[10px] text-emerald-300 font-semibold">[드라이버] 캐리 255m (100%)</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <div>
+              <label for="sel-club-wood" class="block text-[10px] text-slate-400 mb-1">드라이버 / 우드</label>
+              <select id="sel-club-wood" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1.5 text-[11px] font-bold text-white"></select>
+            </div>
+            <div>
+              <label for="sel-club-iron" class="block text-[10px] text-slate-400 mb-1">유틸 / 아이언</label>
+              <select id="sel-club-iron" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1.5 text-[11px] font-bold text-white"></select>
+            </div>
+            <div>
+              <label for="sel-club-wedge" class="block text-[10px] text-slate-400 mb-1">웨지 (48°~60°)</label>
+              <select id="sel-club-wedge" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1.5 text-[11px] font-bold text-white"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 좌우 에이밍 각도 슬라이더(-35°~+35°) & 스윙 파워(20%~105%) -->
+        <div class="grid grid-cols-12 gap-2 items-center pt-0.5">
+          <div class="col-span-6 space-y-1">
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-slate-400">에이밍 각도</span>
+              <span id="disp-aim-offset" class="font-mono-num font-bold text-amber-300">0° (중앙)</span>
+            </div>
+            <input id="slider-aim" type="range" min="-35" max="35" step="1" value="0" class="w-full touch-safe-slider" />
+          </div>
+          <div class="col-span-6 space-y-1">
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-slate-400">캐리 파워</span>
+              <span id="disp-swing-power" class="font-mono-num font-bold text-cyan-300">100%</span>
+            </div>
+            <input id="slider-power" type="range" min="20" max="105" step="1" value="100" class="w-full touch-safe-slider" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1 pt-0.5">
+          <button type="button" data-shape="DRAW" class="shape-btn py-1 rounded text-[10px] font-bold border border-slate-700 bg-slate-800 text-slate-300">드로우 (Draw)</button>
+          <button type="button" data-shape="STRAIGHT" class="shape-btn py-1 rounded text-[10px] font-bold border border-cyan-500 bg-cyan-500/20 text-cyan-300">스트레이트</button>
+          <button type="button" data-shape="FADE" class="shape-btn py-1 rounded text-[10px] font-bold border border-slate-700 bg-slate-800 text-slate-300">페이드 (Fade)</button>
+        </div>
+      </section>
+
+      <!-- 4. 그린주변칩샷 패널 -->
+      <section id="chip-control-panel" class="bg-slate-900/90 border border-amber-500/40 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold text-amber-300 uppercase tracking-wider">4. 그린주변칩샷</h2>
+          <button id="btn-sim-green-miss" type="button" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-[10px] font-bold text-amber-200">
+            🧪 그린 미스 세팅
+          </button>
+        </div>
+
+        <!-- 그린 스팀프미터 슬라이더 & 프리셋 (2.4m ~ 3.8m) -->
+        <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-emerald-300">🟢 그린 스피드 (스팀프미터)</span>
+            <span id="disp-stimp-val" class="font-mono-num text-xs font-bold text-amber-300">3.0 m (투어 표준)</span>
+          </div>
+          <input id="slider-stimp" type="range" min="2.4" max="3.8" step="0.1" value="3.0" class="w-full touch-safe-slider" />
+          <div class="grid grid-cols-3 gap-1">
+            <button type="button" data-stimp="2.5" class="stimp-preset-btn py-0.5 rounded text-[10px] font-semibold border border-slate-700 bg-slate-800 text-slate-300">느림 2.5m</button>
+            <button type="button" data-stimp="3.0" class="stimp-preset-btn py-0.5 rounded text-[10px] font-semibold border border-emerald-500 bg-emerald-500/20 text-emerald-300">표준 3.0m</button>
+            <button type="button" data-stimp="3.6" class="stimp-preset-btn py-0.5 rounded text-[10px] font-semibold border border-slate-700 bg-slate-800 text-slate-300">빠름 3.6m</button>
+          </div>
+        </div>
+
+        <!-- 4대 칩샷 타법 -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <button type="button" data-chiptech="RUNNING" class="chip-tech-btn py-1.5 px-2 rounded-lg text-left border border-amber-400 bg-amber-500/20 text-amber-200">
+            <div class="text-[11px] font-extrabold">① 런닝샷 (굴리기)</div>
+            <div class="text-[9px] text-slate-300">선택 클럽 로프트 연동</div>
+          </button>
+          <button type="button" data-chiptech="LOB" class="chip-tech-btn py-1.5 px-2 rounded-lg text-left border border-slate-700 bg-slate-800 text-slate-300">
+            <div class="text-[11px] font-extrabold">② 로브 / 플롭샷</div>
+            <div class="text-[9px] text-slate-400">고탄도 최소 런</div>
+          </button>
+          <button type="button" data-chiptech="BOUNCE" class="chip-tech-btn py-1.5 px-2 rounded-lg text-left border border-slate-700 bg-slate-800 text-slate-300">
+            <div class="text-[11px] font-extrabold">③ 바운스 슬라이딩</div>
+            <div class="text-[9px] text-slate-400">솔 바운스 미끄러짐</div>
+          </button>
+          <button type="button" data-chiptech="EDGE" class="chip-tech-btn py-1.5 px-2 rounded-lg text-left border border-slate-700 bg-slate-800 text-slate-300">
+            <div class="text-[11px] font-extrabold">④ 리딩에지 다운블로</div>
+            <div class="text-[9px] text-slate-400">핸드퍼스트 체크스핀</div>
+          </button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- 우측 3D 뷰포트 & 야디지북 맵 · 확대 투그린 맵 · 코칭 결과 바 (8 cols) -->
+    <section class="lg:col-span-8 flex flex-col gap-3">
+
+      <!-- 상단 3D 뷰포트 -->
+      <div class="relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden h-[300px] sm:h-[345px]">
+        <canvas id="course-3d-canvas" class="w-full h-full block"></canvas>
+
+        <!-- 좌상단 홀 상태 & 공략 체감 거리 -->
+        <div class="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 pointer-events-none">
+          <span id="hole-status-badge" class="px-2.5 py-1 rounded-lg bg-slate-950/85 border border-emerald-500/40 text-xs font-extrabold text-emerald-300 backdrop-blur">
+            티샷 준비
+          </span>
+          <span id="disp-play-as" class="px-2.5 py-1 rounded-lg bg-slate-950/85 border border-slate-700 text-xs font-mono-num font-bold text-white backdrop-blur">
+            목표 399.0m · 체감 405.2m
+          </span>
+        </div>
+
+        <!-- 우상단 3대 카메라 시점 전환 -->
+        <div class="absolute top-3 right-3 flex items-center gap-1 bg-slate-950/85 border border-slate-800 rounded-lg p-1 backdrop-blur">
+          <button type="button" data-cam="DTL" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition">3D 전체 홀 시점</button>
+          <button type="button" data-cam="SIDE" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition">3D 티샷 트래킹</button>
+          <button type="button" data-cam="GREEN" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition">3D 그린/칩샷 시점</button>
+        </div>
+
+        <!-- 하단 가이드 & 누적 타수 -->
+        <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-[10px] text-slate-300 bg-slate-950/80 border border-slate-800/80 rounded-lg px-3 py-1.5 backdrop-blur pointer-events-none">
+          <span id="cam-guide-hint">🖱️ 드래그: 3D 회전 · 휠: 줌 · 칩샷 모드 시 3D 그린 주변 클릭으로 공 위치 직접 배치</span>
+          <span id="shot-history-count" class="font-mono-num text-emerald-300 font-bold">누적 샷: 0타</span>
+        </div>
+      </div>
+
+      <!-- 중단: 공식 야디지북 홀 코스 맵 (6 cols) + 선택 그린 확대/투그린 랜딩존 맵 (6 cols) -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+
+        <!-- 1) 하단 좌측: 야디지북 홀 코스 맵 (HiDPI 2.5x) -->
+        <div class="md:col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex flex-col">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[11px] font-extrabold text-amber-300">📘 야디지북 홀 코스 맵 (가변 폭 · IP 좌우 폭)</span>
+            <span class="text-[9px] text-slate-400">터치로 에이밍 지정</span>
+          </div>
+          <div class="relative flex-1 min-h-[300px] sm:min-h-[335px] rounded-lg overflow-hidden border border-slate-700 bg-[#ebe6d8]">
+            <canvas id="yardage-map-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+          </div>
+        </div>
+
+        <!-- 2) 하단 우측: 야디지북 그린 랜딩존 맵 (선택 그린 확대 기본 + 공구름 리플레이/재샷) -->
+        <div class="md:col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex flex-col">
+          <div class="flex items-center justify-between gap-1 mb-1.5">
+            <span class="text-[11px] font-extrabold text-emerald-300">🗺️ 야디지북 그린 랜딩존 맵</span>
+            <div class="flex items-center gap-1.5">
+              <span id="green-slope-tag" class="text-[9px] font-mono-num text-cyan-300">우그린 · 2단 그린</span>
+              <button id="btn-toggle-green-zoom" type="button" class="px-2 py-0.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-400/50 text-[10px] font-extrabold text-emerald-200 transition">
+                🔍 선택 그린 확대
+              </button>
+            </div>
+          </div>
+          <div class="relative flex-1 min-h-[300px] sm:min-h-[335px] rounded-lg overflow-hidden border border-slate-700 bg-[#244d20]">
+            <canvas id="green-map-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-400 mt-1.5 font-mono-num">
+            <span>랜딩존: <strong id="disp-landing-zone" class="text-cyan-300">Center Point</strong></span>
+            <span>런: <strong id="disp-land-stop-delta" class="text-amber-300">대기 중</strong></span>
+            <span>거리: <strong id="disp-landing-dist" class="text-emerald-300">399.0m</strong></span>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-1.5 mt-1.5 pt-1.5 border-t border-slate-800">
+            <div class="flex items-center gap-1.5">
+              <button id="btn-replay-roll" type="button" disabled class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-cyan-500/20 hover:bg-cyan-500/30 disabled:opacity-40 disabled:cursor-not-allowed border border-cyan-400/50 text-cyan-200 transition">
+                ▶ 공구름 리플레이
+              </button>
+              <button id="btn-rehit-same-spot" type="button" disabled class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed border border-amber-400/50 text-amber-200 transition">
+                🔁 동일 위치 재샷
+              </button>
+            </div>
+            <span id="disp-land-stop-coords" class="text-[9px] font-mono-num text-slate-300">
+              LAND → STOP: 샷 후 자동 계측
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 결과 & 투어 캐디 전략 피드백 바 + 실행 버튼 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-extrabold text-white">📊 샷 계측 결과 & 투어 캐디 전략 피드백</span>
+            <span id="badge-decision-grade" class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-800 text-slate-300">판정 대기</span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-undo-shot" type="button" disabled class="px-3 py-2 rounded-xl font-bold text-xs bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed border border-amber-400/50 text-amber-200 transition">
+              ↩ 이전 샷 초기화
+            </button>
+            <button id="btn-reset-hole" type="button" class="px-3 py-2 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
+              ↺ 홀 초기화
+            </button>
+            <button id="btn-hit-shot" type="button" class="px-5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition">
+              ⛳ 샷 실행 (HIT SHOT)
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono-num">
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2">
+            <div class="text-[9px] text-slate-400">실현 스매쉬 팩터</div>
+            <div id="res-smash" class="text-xs font-bold text-amber-300 mt-0.5">-</div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2">
+            <div class="text-[9px] text-slate-400">캐리 / 총거리 (런)</div>
+            <div id="res-dist" class="text-xs font-bold text-emerald-300 mt-0.5">-</div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2">
+            <div class="text-[9px] text-slate-400">최종 정지 라이</div>
+            <div id="res-landing-lie" class="text-xs font-bold text-cyan-300 mt-0.5">-</div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2">
+            <div class="text-[9px] text-slate-400">핀까지 잔여 거리</div>
+            <div id="res-rem-dist" class="text-xs font-bold text-white mt-0.5">-</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+          <div class="md:col-span-7 bg-slate-950/90 border border-emerald-500/30 rounded-lg p-2.5">
+            <div class="text-[10px] font-bold text-emerald-400 mb-0.5">🎙️ 투어 캐디 전략 평가 코멘트</div>
+            <p id="coach-feedback-text" class="text-[11px] text-slate-200 leading-relaxed">
+              티박스에서 드라이버 랜딩존(IP)의 가변 폭과 좌우 해저드 거리를 확인하고 샷을 실행하십시오. 어프로치 또는 그린 주변 칩샷 시에는 우측 확대된 그린 맵에서 목표 랜딩존을 찍어 공구름(LAND → STOP)과 리플레이를 확인하십시오.
+            </p>
+          </div>
+          <div id="shot-log-strip" class="md:col-span-5 text-[10px] font-mono-num text-slate-400 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 space-y-1 max-h-[76px] overflow-y-auto">
+            <span>홀 진행 로그: 티박스 대기 중</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 클럽 백 커스텀 모달 -->
+  <div id="bag-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-4 space-y-3 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="text-sm font-extrabold text-white">🏌️ 선수 개인 클럽 백 스펙 설정 (미설정 시 투어 평균치 적용)</h3>
+        <button id="btn-close-bag" type="button" class="text-slate-400 hover:text-white text-sm font-bold px-2">✕</button>
+      </div>
+      <div id="bag-editor-list" class="max-h-[340px] overflow-y-auto space-y-1.5 pr-1"></div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+        <button id="btn-reset-bag" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300">투어 평균 초기화</button>
+        <button id="btn-save-bag" type="button" class="px-4 py-1.5 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950">저장 및 적용</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================
+    // 1. Web Audio API 효과음 엔진
+    // =========================================================
+    const SoundFX = (() => {
+      let ctx = null;
+      function getCtx() {
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) ctx = new AudioCtx();
+        }
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      }
+      return {
+        tap(freq = 780) {
+          try {
+            const c = getCtx();
+            if (!c) return;
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, c.currentTime);
+            gain.gain.setValueAtTime(0.055, c.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.055);
+            osc.connect(gain);
+            gain.connect(c.destination);
+            osc.start();
+            osc.stop(c.currentTime + 0.06);
+          } catch (e) {}
+        },
+        impact(isWood = true) {
+          try {
+            const c = getCtx();
+            if (!c) return;
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = isWood ? 'triangle' : 'sawtooth';
+            osc.frequency.setValueAtTime(isWood ? 310 : 195, c.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(68, c.currentTime + 0.16);
+            gain.gain.setValueAtTime(0.18, c.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.17);
+            osc.connect(gain);
+            gain.connect(c.destination);
+            osc.start();
+            osc.stop(c.currentTime + 0.18);
+          } catch (e) {}
+        },
+        result(good = true) {
+          try {
+            const c = getCtx();
+            if (!c) return;
+            const notes = good ? [587.33, 880] : [260, 196];
+            notes.forEach((f, idx) => {
+              const osc = c.createOscillator();
+              const gain = c.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(f, c.currentTime + idx * 0.09);
+              gain.gain.setValueAtTime(0.08, c.currentTime + idx * 0.09);
+              gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + idx * 0.09 + 0.2);
+              osc.connect(gain);
+              gain.connect(c.destination);
+              osc.start(c.currentTime + idx * 0.09);
+              osc.stop(c.currentTime + idx * 0.09 + 0.22);
+            });
+          } catch (e) {}
+        }
+      };
+    })();
+
+    // =========================================================
+    // 2. 투어 평균 클럽 백 (드라이버/우드 · 유틸/아이언 · 웨지 48°~60°)
+    // =========================================================
+    const TOUR_DEFAULT_BAG = [
+      { id: 'DRIVER', name: '드라이버 (DR · 9.5°)', carry: 255, launch: 11.2, spin: 2550, smashBase: 1.50, isWood: true, chipRollMult: 1.95 },
+      { id: '3W', name: '3번 우드 (3W · 15°)', carry: 232, launch: 12.0, spin: 3450, smashBase: 1.48, isWood: true, chipRollMult: 1.85 },
+      { id: '5W', name: '5번 우드 (5W · 18°)', carry: 218, launch: 13.2, spin: 3900, smashBase: 1.46, isWood: true, chipRollMult: 1.80 },
+      { id: '3U', name: '3번 유틸리티 (3U · 20°)', carry: 208, launch: 14.2, spin: 4300, smashBase: 1.45, isWood: true, chipRollMult: 1.75 },
+      { id: '4I', name: '4번 아이언 (4I · 23°)', carry: 196, launch: 13.5, spin: 4600, smashBase: 1.42, isWood: false, chipRollMult: 1.95 },
+      { id: '5I', name: '5번 아이언 (5I · 26°)', carry: 184, launch: 14.8, spin: 5200, smashBase: 1.40, isWood: false, chipRollMult: 1.85 },
+      { id: '6I', name: '6번 아이언 (6I · 29°)', carry: 172, launch: 16.2, spin: 6000, smashBase: 1.38, isWood: false, chipRollMult: 1.75 },
+      { id: '7I', name: '7번 아이언 (7I · 33°)', carry: 160, launch: 17.8, spin: 6900, smashBase: 1.36, isWood: false, chipRollMult: 1.65 },
+      { id: '8I', name: '8번 아이언 (8I · 37°)', carry: 148, launch: 19.5, spin: 7800, smashBase: 1.34, isWood: false, chipRollMult: 1.55 },
+      { id: '9I', name: '9번 아이언 (9I · 41°)', carry: 136, launch: 21.5, spin: 8600, smashBase: 1.32, isWood: false, chipRollMult: 1.45 },
+      { id: 'PW', name: '피칭 웨지 (PW · 46°)', carry: 124, launch: 24.5, spin: 9300, smashBase: 1.29, isWood: false, chipRollMult: 1.25 },
+      { id: 'W48', name: '48° 피칭/갭 웨지', carry: 116, launch: 26.0, spin: 9600, smashBase: 1.27, isWood: false, chipRollMult: 1.12 },
+      { id: 'W50', name: '50° 갭 웨지 (GW)', carry: 110, launch: 27.0, spin: 9850, smashBase: 1.26, isWood: false, chipRollMult: 1.00 },
+      { id: 'W52', name: '52° 어프로치 웨지 (AW)', carry: 104, launch: 28.0, spin: 10100, smashBase: 1.25, isWood: false, chipRollMult: 0.88 },
+      { id: 'W54', name: '54° 샌드 웨지 (SW · 12°)', carry: 96, launch: 29.5, spin: 10350, smashBase: 1.24, isWood: false, chipRollMult: 0.74 },
+      { id: 'W56', name: '56° 샌드 웨지 (SW · 14°)', carry: 88, launch: 31.0, spin: 10600, smashBase: 1.23, isWood: false, chipRollMult: 0.60 },
+      { id: 'W58', name: '58° 로브 웨지 (LW · 8°)', carry: 80, launch: 32.8, spin: 10850, smashBase: 1.21, isWood: false, chipRollMult: 0.45 },
+      { id: 'W60', name: '60° 하이스핀 로브 웨지', carry: 72, launch: 34.5, spin: 11100, smashBase: 1.20, isWood: false, chipRollMult: 0.34 }
+    ];
+
+    // =========================================================
+    // 3. 골프장별 1~18H 공식 코스 데이터베이스 & 비겹침 기하학 검증
+    // =========================================================
+    const VENUE_COURSES = {
+      MUAN: [
+        { key: 'EAST', label: '동코스 (East 18H)' },
+        { key: 'SOUTH', label: '남코스 (South 18H)' },
+        { key: 'WEST', label: '서코스 (West 18H)' }
+      ],
+      GUNSAN: [
+        { key: 'TOURNAMENT', label: '토너먼트 OUT/IN (6,957m 18H)' },
+        { key: 'BUAN_NAMWON', label: '부안·남원 KLPGA 토너먼트 18H' }
+      ],
+      HAESLEY: [
+        { key: 'CHAMP', label: '챔피언십 18H 코스' }
+      ],
+      JACK: [
+        { key: 'SONGS', label: '송도 챔피언십 18H' }
+      ],
+      VIRTUAL: [
+        { key: 'RANDOM', label: '프로시저럴 랜덤 18H' }
+      ]
+    };
+
+    const MUAN_SIGNATURES = {
+      'EAST-4': {
+        par: 4, hdcp: 2,
+        teesLeft: { BLACK: 378, BLUE: 363, WHITE: 350, YELLOW: 321, RED: 298 },
+        teesRight: { BLACK: 416, BLUE: 399, WHITE: 376, YELLOW: 347, RED: 324 },
+        ipZ: 236, ipX: -6, ipLeftW: 19, ipRightW: 21,
+        curveAmp: -18, doglegX: 10,
+        leftGreen: { offsetX: -17, offsetZ: -28, width: 22, depth: 28, topo: { slopeZ: 1.1, slopeX: -0.5, tier: 0.35, bowl: 0.15 } },
+        rightGreen: { offsetX: 18, offsetZ: 8, width: 24, depth: 31, topo: { slopeZ: 1.45, slopeX: 0.65, tier: 0.85, bowl: 0.2 } },
+        proTip: '무안 East-B 4번홀 (PAR 4 · HDCP 2) PRO TIP: 드라이버 IP 지점(Blue 좌 236m/우 261m) 좌우 워터해저드를 피해 페어웨이 중앙을 공략 후, 우그린 사용 시 2단 그린 앞쪽 오르막 랜딩존을 노리십시오.',
+        hazards: [
+          { x: -46, z: 215, w: 28, d: 130, name: '좌측 대형 호수 해저드' },
+          { x: 48, z: 265, w: 30, d: 88, name: '우측 수변 워터해저드' }
+        ],
+        bunkers: [
+          { x: -24, z: 322, r: 6.2, label: '29/63' },
+          { x: 2, z: 346, r: 5.2, label: '27/44' },
+          { x: 38, z: 378, r: 6.5, label: '50/38' },
+          { x: 18, z: 432, r: 5.8, label: '52/21' }
+        ]
+      },
+      'SOUTH-2': {
+        par: 4, hdcp: 3,
+        teesLeft: { BLACK: 398, BLUE: 382, WHITE: 360, YELLOW: 330, RED: 302 },
+        teesRight: { BLACK: 414, BLUE: 396, WHITE: 372, YELLOW: 342, RED: 314 },
+        ipZ: 225, ipX: 8, ipLeftW: 18, ipRightW: 20,
+        curveAmp: 16, doglegX: -14,
+        leftGreen: { offsetX: -18, offsetZ: -12, width: 23, depth: 29, topo: { slopeZ: 1.2, slopeX: -0.4, tier: 0.75, bowl: 0.1 } },
+        rightGreen: { offsetX: 16, offsetZ: 4, width: 23, depth: 30, topo: { slopeZ: 1.0, slopeX: 0.5, tier: 0.4, bowl: 0.2 } },
+        proTip: '무안 South-A 2번홀 PRO TIP: 252m 지점 수변 해저드와 벙커를 피해 IP 지점(225m) 이내 레이업 후 숏아이언으로 2단 그린을 공략하십시오.',
+        hazards: [{ x: -44, z: 248, w: 34, d: 44, name: '좌측 수변 워터해저드' }],
+        bunkers: [
+          { x: -34, z: 365, r: 6.0, label: '24/49' },
+          { x: 34, z: 385, r: 6.0, label: '43/25' }
+        ]
+      },
+      'WEST-2': {
+        par: 4, hdcp: 4,
+        teesLeft: { BLACK: 372, BLUE: 356, WHITE: 336, YELLOW: 308, RED: 282 },
+        teesRight: { BLACK: 388, BLUE: 372, WHITE: 350, YELLOW: 322, RED: 295 },
+        ipZ: 220, ipX: -10, ipLeftW: 20, ipRightW: 18,
+        curveAmp: -15, doglegX: 12,
+        leftGreen: { offsetX: -16, offsetZ: -14, width: 22, depth: 27, topo: { slopeZ: 0.95, slopeX: -0.6, tier: 0.35, bowl: 0.25 } },
+        rightGreen: { offsetX: 17, offsetZ: 6, width: 24, depth: 29, topo: { slopeZ: 1.25, slopeX: 0.4, tier: 0.8, bowl: 0.15 } },
+        proTip: '무안 West-A 2번홀 PRO TIP: 우측 계류지 해저드를 피해 IP 좌측 페어웨이를 확보하고, 앞핀 시 스핀 컨트롤이 필수입니다.',
+        hazards: [{ x: 44, z: 225, w: 26, d: 82, name: '우측 계류지 해저드' }],
+        bunkers: [
+          { x: -34, z: 235, r: 6.5, label: 'IP 좌측' },
+          { x: 36, z: 362, r: 6.0, label: '48/20' }
+        ]
+      }
+    };
+
+    const GUNSAN_TOURNAMENT_18H = [
+      { no: 1, par: 4, hdcp: 5, black: 418, blue: 400, white: 372, yellow: 344, red: 312, curveAmp: -14, doglegX: 10, ipZ: 245, ipLeftW: 18, ipRightW: 19, tip: '군산CC 토너먼트 1번홀 (PAR 4 · 400m) PRO TIP: 모래 언덕을 따라 우측으로 휘는 오프닝 홀. IP(245m) 우측 웨이스트 벙커를 피해 좌측 페어웨이를 확보하십시오.' },
+      { no: 2, par: 4, hdcp: 11, black: 410, blue: 393, white: 365, yellow: 336, red: 304, curveAmp: 12, doglegX: -8, ipZ: 240, ipLeftW: 19, ipRightW: 17, tip: '군산CC 토너먼트 2번홀 (PAR 4 · 393m) PRO TIP: 갈대밭과 해풍이 교차하는 홀. IP 중앙 좌측에서 2단 그린 앞쪽을 노리십시오.' },
+      { no: 3, par: 5, hdcp: 3, black: 545, blue: 525, white: 492, yellow: 458, red: 418, curveAmp: -20, doglegX: 16, ipZ: 255, ipLeftW: 20, ipRightW: 21, tip: '군산CC 토너먼트 3번홀 (PAR 5 · 525m) PRO TIP: 사막형 웨이스트 벙커가 길게 이어지는 파5. 세컨드샷은 100m 지점 레이업 후 웨지로 핀 하이 공략이 안전합니다.' },
+      { no: 4, par: 4, hdcp: 9, black: 398, blue: 382, white: 354, yellow: 326, red: 294, curveAmp: 16, doglegX: -12, ipZ: 235, ipLeftW: 17, ipRightW: 18, tip: '군산CC 토너먼트 4번홀 (PAR 4 · 382m) PRO TIP: 그린 전방 50m 지점 가드 벙커와 워터해저드를 피해 2단 그린 하단에 떨어뜨리십시오.' },
+      { no: 5, par: 3, hdcp: 15, black: 218, blue: 205, white: 184, yellow: 164, red: 142, curveAmp: 0, doglegX: 0, ipZ: 145, ipLeftW: 16, ipRightW: 16, tip: '군산CC 토너먼트 5번홀 (PAR 3 · 205m) PRO TIP: 긴 파3 아일랜드성 그린. 맞바람 시 한 클럽 길게 선택해 그린 중앙을 노리십시오.' },
+      { no: 6, par: 4, hdcp: 1, black: 435, blue: 416, white: 388, yellow: 356, red: 320, curveAmp: -18, doglegX: 14, ipZ: 250, ipLeftW: 17, ipRightW: 18, tip: '군산CC 토너먼트 6번홀 (PAR 4 · 416m · HDCP 1) PRO TIP: OUT 코스 최고 난이도 홀. 좌우 대형 호수와 갈대 해저드 사이의 좁은 IP(좌 17m/우 18m) 공략이 관건입니다.' },
+      { no: 7, par: 3, hdcp: 17, black: 168, blue: 156, white: 142, yellow: 128, red: 112, curveAmp: 0, doglegX: 0, ipZ: 110, ipLeftW: 16, ipRightW: 16, tip: '군산CC 토너먼트 7번홀 (PAR 3 · 156m) PRO TIP: 그린 좌우 깊은 듀라 벙커가 포진한 숏홀. 핀 위치(9분할)에 맞춘 정밀 스핀 컨트롤이 필수입니다.' },
+      { no: 8, par: 4, hdcp: 7, black: 420, blue: 403, white: 374, yellow: 344, red: 310, curveAmp: 15, doglegX: -10, ipZ: 242, ipLeftW: 18, ipRightW: 19, tip: '군산CC 토너먼트 8번홀 (PAR 4 · 403m) PRO TIP: 우측에서 좌측으로 흐르는 그린 경사를 감안해 핀 우측 하단 랜딩존을 공략하십시오.' },
+      { no: 9, par: 5, hdcp: 13, black: 590, blue: 570, white: 532, yellow: 492, red: 446, curveAmp: -22, doglegX: 18, ipZ: 260, ipLeftW: 21, ipRightW: 22, tip: '군산CC 토너먼트 9번홀 (PAR 5 · 570m) PRO TIP: S자 페어웨이와 사막 모래언덕이 어우러진 롱 파5. 3온 전략 시 그린 앞 벙커를 넘기는 탄도가 필요합니다.' },
+      { no: 10, par: 4, hdcp: 6, black: 416, blue: 398, white: 370, yellow: 342, red: 308, curveAmp: 14, doglegX: -10, ipZ: 242, ipLeftW: 18, ipRightW: 19, tip: '군산CC 토너먼트 10번홀 (PAR 4 · 398m) PRO TIP: IN 코스 시작 홀. IP(242m) 좌측 갈대 해저드를 피해 우측 페어웨이에서 세컨드샷을 준비하십시오.' },
+      { no: 11, par: 5, hdcp: 10, black: 530, blue: 512, white: 480, yellow: 446, red: 406, curveAmp: -16, doglegX: 12, ipZ: 250, ipLeftW: 20, ipRightW: 20, tip: '군산CC 토너먼트 11번홀 (PAR 5 · 512m) PRO TIP: 투온 가능 파5. 드라이버 IP 우측 벙커만 피하면 롱아이언/우드로 그린 공략이 가능합니다.' },
+      { no: 12, par: 4, hdcp: 4, black: 430, blue: 412, white: 382, yellow: 352, red: 316, curveAmp: 18, doglegX: -14, ipZ: 248, ipLeftW: 17, ipRightW: 18, tip: '군산CC 토너먼트 12번홀 (PAR 4 · 412m) PRO TIP: 전장이 긴 파4. 그린 뒤쪽 내리막 경사가 빠르므로 핀 앞쪽 오르막에 세워야 합니다.' },
+      { no: 13, par: 3, hdcp: 16, black: 184, blue: 172, white: 156, yellow: 140, red: 122, curveAmp: 0, doglegX: 0, ipZ: 120, ipLeftW: 16, ipRightW: 16, tip: '군산CC 토너먼트 13번홀 (PAR 3 · 172m) PRO TIP: 수면 위 해풍 영향을 크게 받는 파3. 깃발 방향과 풍속을 확인해 에이밍하십시오.' },
+      { no: 14, par: 4, hdcp: 8, black: 392, blue: 376, white: 348, yellow: 320, red: 288, curveAmp: -14, doglegX: 8, ipZ: 232, ipLeftW: 18, ipRightW: 19, tip: '군산CC 토너먼트 14번홀 (PAR 4 · 376m) PRO TIP: 정교한 세컨드 샷이 요구되는 미들홀. 2단 그린의 상단 핀일 경우 한 클럽 길게 공략하십시오.' },
+      { no: 15, par: 5, hdcp: 12, black: 576, blue: 556, white: 518, yellow: 478, red: 432, curveAmp: 20, doglegX: -16, ipZ: 258, ipLeftW: 20, ipRightW: 21, tip: '군산CC 토너먼트 15번홀 (PAR 5 · 556m) PRO TIP: 우측 워터해저드와 사막 벙커가 길게 이어지는 파5. 좌측 페어웨이 루트가 안전합니다.' },
+      { no: 16, par: 4, hdcp: 2, black: 440, blue: 422, white: 392, yellow: 360, red: 324, curveAmp: -18, doglegX: 14, ipZ: 252, ipLeftW: 17, ipRightW: 18, tip: '군산CC 토너먼트 16번홀 (PAR 4 · 422m · HDCP 2) PRO TIP: 챔피언십 승부처 홀. IP 존을 지킨 뒤 롱아이언/유틸리티로 그린 중앙을 공략하십시오.' },
+      { no: 17, par: 3, hdcp: 18, black: 178, blue: 165, white: 150, yellow: 135, red: 118, curveAmp: 0, doglegX: 0, ipZ: 115, ipLeftW: 16, ipRightW: 16, tip: '군산CC 토너먼트 17번홀 (PAR 3 · 165m) PRO TIP: 그린 좌우 벙커 사이 입구가 좁으므로 하이 탄도 샷으로 직접 핀을 노리십시오.' },
+      { no: 18, par: 4, hdcp: 14, black: 512, blue: 494, white: 460, yellow: 424, red: 382, curveAmp: 16, doglegX: -12, ipZ: 255, ipLeftW: 19, ipRightW: 20, tip: '군산CC 토너먼트 18번홀 (PAR 4 · 494m 피니싱 홀) PRO TIP: 국내 최장급 피니싱 파4. 대형 호수를 끼고 도는 아일랜드성 그린을 향해 과감한 티샷이 필요합니다.' }
+    ];
+
+    function getFairwaySpineAtZ(hole, z, maxZ) {
+      const t = Math.max(0, Math.min(1, z / Math.max(1, maxZ)));
+      const sCurve = Math.sin(t * Math.PI * 1.45) * hole.curveAmp;
+      const dogleg = Math.pow(t, 1.35) * hole.doglegX;
+      const centerX = sCurve + dogleg;
+
+      const neckFactor = Math.exp(-Math.pow((z - 25) / 48, 2));
+      const ipBelly = Math.exp(-Math.pow((z - hole.ipZ) / 62, 2));
+      const waistFactor = Math.exp(-Math.pow((z - (maxZ - 75)) / 42, 2));
+
+      const shapeScale = 1.0 - 0.34 * neckFactor + 0.28 * ipBelly - 0.24 * waistFactor;
+      const leftW = Math.max(8.5, hole.ipLeftW * shapeScale);
+      const rightW = Math.max(8.5, hole.ipRightW * shapeScale);
+      return { centerX, leftW, rightW };
+    }
+
+    function resolveNonOverlappingFeatures(hole) {
+      const maxHoleZ = Math.max(hole.teesLeft.BLUE, hole.teesRight.BLUE);
+      const lgX = hole.doglegX + hole.leftGreen.offsetX;
+      const lgZ = hole.teesLeft.BLUE;
+      const rgX = hole.doglegX + hole.rightGreen.offsetX;
+      const rgZ = hole.teesRight.BLUE;
+
+      hole.hazards.forEach(hz => {
+        const sp = getFairwaySpineAtZ(hole, hz.z, maxHoleZ);
+        const halfHzW = hz.w * 0.5;
+        if (hz.x <= sp.centerX) {
+          const maxAllowedX = sp.centerX - sp.leftW - halfHzW - 6.0;
+          if (hz.x > maxAllowedX) hz.x = maxAllowedX;
+        } else {
+          const minAllowedX = sp.centerX + sp.rightW + halfHzW + 6.0;
+          if (hz.x < minAllowedX) hz.x = minAllowedX;
+        }
+      });
+
+      hole.bunkers.forEach(bk => {
+        const sp = getFairwaySpineAtZ(hole, bk.z, maxHoleZ);
+        const relX = bk.x - sp.centerX;
+        if (relX > -sp.leftW - bk.r - 2.5 && relX < sp.rightW + bk.r + 2.5) {
+          bk.x = relX <= 0
+            ? sp.centerX - sp.leftW - bk.r - 3.5
+            : sp.centerX + sp.rightW + bk.r + 3.5;
+        }
+        const pushAwayFromGreen = (gx, gz, gw, gd) => {
+          const safeR = Math.max(gw, gd) * 0.5 + bk.r + 4.5;
+          const dx = bk.x - gx;
+          const dz = bk.z - gz;
+          const d = Math.hypot(dx, dz);
+          if (d < safeR) {
+            const ang = d > 0.1 ? Math.atan2(dz, dx) : 0.4;
+            bk.x = gx + Math.cos(ang) * safeR;
+            bk.z = gz + Math.sin(ang) * safeR;
+          }
+        };
+        pushAwayFromGreen(lgX, lgZ, hole.leftGreen.width, hole.leftGreen.depth);
+        pushAwayFromGreen(rgX, rgZ, hole.rightGreen.width, hole.rightGreen.depth);
+      });
+
+      return hole;
+    }
+
+    function build18HolesForCourse(venueKey, courseKey, seedOffset = 0) {
+      const parPattern = [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 3, 4, 5];
+      const holes = [];
+      for (let i = 1; i <= 18; i++) {
+        const sigKey = `${courseKey}-${i}`;
+        if (venueKey === 'MUAN' && MUAN_SIGNATURES[sigKey]) {
+          holes.push(resolveNonOverlappingFeatures(JSON.parse(JSON.stringify({ no: i, ...MUAN_SIGNATURES[sigKey] }))));
+          continue;
+        }
+
+        if (venueKey === 'GUNSAN') {
+          const gData = GUNSAN_TOURNAMENT_18H[i - 1];
+          const courseDelta = courseKey === 'BUAN_NAMWON' ? -14 : 0;
+          const bL = gData.blue + courseDelta;
+          const bR = bL + 14;
+          const rawHole = {
+            no: i,
+            par: gData.par,
+            hdcp: gData.hdcp,
+            teesLeft: {
+              BLACK: gData.black + courseDelta,
+              BLUE: bL,
+              WHITE: gData.white + courseDelta,
+              YELLOW: gData.yellow + courseDelta,
+              RED: gData.red + courseDelta
+            },
+            teesRight: {
+              BLACK: gData.black + courseDelta + 14,
+              BLUE: bR,
+              WHITE: gData.white + courseDelta + 14,
+              YELLOW: gData.yellow + courseDelta + 14,
+              RED: gData.red + courseDelta + 14
+            },
+            ipZ: gData.ipZ,
+            ipX: Math.round(gData.curveAmp * 0.5),
+            ipLeftW: gData.ipLeftW,
+            ipRightW: gData.ipRightW,
+            curveAmp: gData.curveAmp,
+            doglegX: gData.doglegX,
+            leftGreen: {
+              offsetX: -17,
+              offsetZ: -16,
+              width: 23,
+              depth: 29,
+              topo: { slopeZ: 1.15, slopeX: -0.45, tier: i % 2 === 0 ? 0.78 : 0.3, bowl: 0.18 }
+            },
+            rightGreen: {
+              offsetX: 18,
+              offsetZ: 6,
+              width: 24,
+              depth: 31,
+              topo: { slopeZ: 1.35, slopeX: 0.55, tier: i % 2 === 1 ? 0.85 : 0.35, bowl: 0.2 }
+            },
+            hazards: [
+              { x: -46, z: Math.round(gData.ipZ * 0.92), w: 28, d: gData.par === 3 ? 36 : 105, name: '군산 갈대·워터해저드' },
+              { x: 48, z: Math.round(bR - 55), w: 26, d: 72, name: '그린 우측 호수 해저드' }
+            ],
+            bunkers: [
+              { x: gData.doglegX - 30, z: bL - 22, r: 6.2, label: '24/49' },
+              { x: gData.doglegX + 34, z: bR - 14, r: 6.5, label: '48/20' },
+              { x: gData.doglegX + 18, z: bR + 24, r: 5.5, label: '52/21' }
+            ],
+            proTip: courseKey === 'BUAN_NAMWON'
+              ? gData.tip.replace('토너먼트', '부안·남원 KLPGA')
+              : gData.tip
+          };
+          holes.push(resolveNonOverlappingFeatures(rawHole));
+          continue;
+        }
+
+        const par = parPattern[(i - 1) % 18];
+        const hdcp = ((i * 7 + seedOffset) % 18) + 1;
+        const hash = Math.sin(i * 19.37 + seedOffset * 7.13 + venueKey.charCodeAt(0) * 3.1) * 10000;
+        const r1 = hash - Math.floor(hash);
+        const hash2 = Math.cos(i * 11.71 + seedOffset * 5.29) * 10000;
+        const r2 = hash2 - Math.floor(hash2);
+
+        const baseBlue = par === 3
+          ? Math.round(148 + r1 * 45)
+          : par === 4
+          ? Math.round(358 + r1 * 52)
+          : Math.round(485 + r1 * 55);
+
+        const rightBlue = baseBlue + Math.round(12 + r2 * 22);
+        const doglegX = par === 3 ? 0 : Math.round((r2 - 0.5) * 36);
+        const curveAmp = par === 3 ? (r1 - 0.5) * 8 : Math.round((r1 - 0.5) * 34);
+        const ipZ = par === 3 ? Math.round(baseBlue * 0.65) : Math.round(220 + r1 * 28);
+        const ipX = Math.round(curveAmp * 0.55);
+        const ipLeftW = 18;
+        const ipRightW = 20;
+
+        const hazards = [];
+        if (r1 > 0.35) {
+          const hzSide = r2 > 0.5 ? 1 : -1;
+          hazards.push({
+            x: ipX + hzSide * (ipLeftW + 28),
+            z: Math.round(ipZ * 0.95),
+            w: 26,
+            d: par === 3 ? 34 : 88,
+            name: '수변 워터해저드'
+          });
+        }
+
+        const bunkers = [
+          { x: doglegX - 32, z: baseBlue - 22, r: 6.2, label: '24/49' },
+          { x: doglegX + 34, z: rightBlue - 14, r: 6.2, label: '43/25' },
+          { x: doglegX + 18, z: rightBlue + 22, r: 5.5, label: '52/21' }
+        ];
+
+        const proTip = venueKey === 'VIRTUAL'
+          ? `가상 랜덤 코스 ${i}번홀 (PAR ${par} · HDCP ${hdcp}) PRO TIP: 가변 폭 곡선 페어웨이의 IP 존 좌우 폭(좌 ${ipLeftW}m / 우 ${ipRightW}m)을 확인하고, 투그린의 high→low 등고선 하단을 공략하십시오.`
+          : `${VENUE_COURSES[venueKey][0].label} ${i}번홀 (PAR ${par} · HDCP ${hdcp}) PRO TIP: IP 존을 확보한 뒤 핀 방향에 맞춰 좌/우 투그린 오르막 퍼팅 지점을 노리십시오.`;
+
+        const rawHole = {
+          no: i,
+          par,
+          hdcp,
+          teesLeft: {
+            BLACK: Math.round(baseBlue * 1.05),
+            BLUE: baseBlue,
+            WHITE: Math.round(baseBlue * 0.94),
+            YELLOW: Math.round(baseBlue * 0.86),
+            RED: Math.round(baseBlue * 0.79)
+          },
+          teesRight: {
+            BLACK: Math.round(rightBlue * 1.05),
+            BLUE: rightBlue,
+            WHITE: Math.round(rightBlue * 0.94),
+            YELLOW: Math.round(rightBlue * 0.86),
+            RED: Math.round(rightBlue * 0.79)
+          },
+          ipZ,
+          ipX,
+          ipLeftW,
+          ipRightW,
+          curveAmp,
+          doglegX,
+          leftGreen: {
+            offsetX: -17,
+            offsetZ: -16,
+            width: 22,
+            depth: 28,
+            topo: {
+              slopeZ: Number(((r1 - 0.35) * 2.0).toFixed(2)),
+              slopeX: Number(((r2 - 0.5) * 1.5).toFixed(2)),
+              tier: r1 > 0.52 ? 0.75 : 0.25,
+              bowl: 0.15
+            }
+          },
+          rightGreen: {
+            offsetX: 18,
+            offsetZ: 6,
+            width: 24,
+            depth: 30,
+            topo: {
+              slopeZ: Number(((r2 - 0.3) * 2.2).toFixed(2)),
+              slopeX: Number(((r1 - 0.5) * 1.6).toFixed(2)),
+              tier: r2 > 0.48 ? 0.85 : 0.3,
+              bowl: 0.2
+            }
+          },
+          hazards,
+          bunkers,
+          proTip
+        };
+        holes.push(resolveNonOverlappingFeatures(rawHole));
+      }
+      return holes;
+    }
+
+    // =========================================================
+    // 4. 시뮬레이터 통합 상태 & 히스토리 · 공구름 리플레이 상태
+    // =========================================================
+    const SURFACE_PRESETS = {
+      DRY_BENT: { id: 'DRY_BENT', label: '건조한 양잔디', wet: false, friction: 1.0 },
+      WET_DEW: { id: 'WET_DEW', label: '습윤·이슬 젖음', wet: true, friction: 0.65 },
+      KOREAN_FLUFFY: { id: 'KOREAN_FLUFFY', label: '한국잔디 뜬 라이', wet: false, friction: 0.92 },
+      TIGHT_HARDPAN: { id: 'TIGHT_HARDPAN', label: '타이트 맨땅', wet: false, friction: 1.05 }
+    };
+
+    function createRandomEnv() {
+      const dirs = [
+        { deg: 0, label: '정맞바람' },
+        { deg: 45, label: '우측 맞바람' },
+        { deg: 90, label: '우측 횡풍' },
+        { deg: 135, label: '우측 뒷바람' },
+        { deg: 180, label: '정뒷바람' },
+        { deg: 225, label: '좌측 뒷바람' },
+        { deg: 270, label: '좌측 횡풍' },
+        { deg: 315, label: '좌측 맞바람' }
+      ];
+      const d = dirs[Math.floor(Math.random() * dirs.length)];
+      const speed = Number((1.2 + Math.random() * 4.6).toFixed(1));
+      const tempC = Math.round(14 + Math.random() * 16);
+      const surfKeys = Object.keys(SURFACE_PRESETS);
+      const surface = SURFACE_PRESETS[surfKeys[Math.floor(Math.random() * surfKeys.length)]];
+      const elevDelta = Math.round((Math.random() - 0.42) * 8);
+      return {
+        windDirDeg: d.deg,
+        windDirLabel: d.label,
+        windSpeed: speed,
+        tempC,
+        surface,
+        elevDelta,
+        greenSpeedStimp: 3.0
+      };
+    }
+
+    const simState = {
+      trainingMode: 'ROUND',
+      chipScenario: 'RANDOM',
+      chipRepeatSameSpot: true,
+      chipSavedSpot: null,
+      chipDrillCount: 0,
+      chipSuccessCount: 0,
+      venueKey: 'MUAN',
+      courseKey: 'EAST',
+      virtualSeed: 1,
+      currentHoleNo: 4,
+      teeKey: 'BLUE',
+      activeGreenSide: 'RIGHT',
+      greenZoomSingle: true, // 선택 그린 확대 뷰(기본 true: 캔버스 80% 꽉 찬 확대)
+      pinKey: 'CENTER',
+      smashNoiseSpan: 0.05,
+      impactLocked: true,
+      selectedClubId: 'DRIVER',
+      shotShape: 'STRAIGHT',
+      aimOffsetX: 0,
+      swingPowerPct: 100,
+      chipModeActive: false,
+      chipTechnique: 'RUNNING',
+      greenLandingTarget: { x: 0, zOffset: 0, customSelected: false },
+      ballPos: { x: 0, z: 0 },
+      currentLie: 'TEE',
+      env: createRandomEnv(),
+      bag: JSON.parse(JSON.stringify(TOUR_DEFAULT_BAG)),
+      roundScores: {},
+      shotLogs: [],
+      shotMarkers: [],
+      lastShotMarker: null,
+      preLastShotState: null,
+      historyStack: [],
+      isFlying: false,
+      flightProg: 0,
+      activeFlight: null,
+      isReplayingRoll: false,
+      rollAnimProg: 1.0,
+      cameraMode: 'DTL',
+      camOrbitYaw: 0,
+      camOrbitPitch: 0.28,
+      camZoom: 1.0
+    };
+
+    function getCurrentHole() {
+      const list = build18HolesForCourse(simState.venueKey, simState.courseKey, simState.virtualSeed);
+      return list[simState.currentHoleNo - 1] || list[0];
+    }
+
+    function getActiveGreenInfo() {
+      const hole = getCurrentHole();
+      const isLeft = simState.activeGreenSide === 'LEFT';
+      const gSpec = isLeft ? hole.leftGreen : hole.rightGreen;
+      const dist = isLeft ? hole.teesLeft[simState.teeKey] : hole.teesRight[simState.teeKey];
+      return {
+        side: simState.activeGreenSide,
+        centerX: hole.doglegX + gSpec.offsetX,
+        centerZ: dist,
+        width: gSpec.width,
+        depth: gSpec.depth,
+        topo: gSpec.topo,
+        holeDist: dist
+      };
+    }
+
+    function classifyPointLie(wx, wz) {
+      const hole = getCurrentHole();
+      const maxHoleZ = Math.max(hole.teesLeft[simState.teeKey], hole.teesRight[simState.teeKey]);
+
+      for (const hz of hole.hazards) {
+        if (Math.abs(wx - hz.x) <= hz.w * 0.5 && Math.abs(wz - hz.z) <= hz.d * 0.5) {
+          return { lie: 'HAZARD', hazardName: hz.name };
+        }
+      }
+      for (const bk of hole.bunkers) {
+        if (Math.hypot(wx - bk.x, wz - bk.z) <= bk.r) {
+          return { lie: 'BUNKER', hazardName: '' };
+        }
+      }
+
+      const lgX = hole.doglegX + hole.leftGreen.offsetX;
+      const lgZ = hole.teesLeft[simState.teeKey];
+      const rgX = hole.doglegX + hole.rightGreen.offsetX;
+      const rgZ = hole.teesRight[simState.teeKey];
+
+      const checkGreenProximity = (gx, gz, gw, gd) => {
+        const rNorm = Math.hypot((wx - gx) / (gw * 0.5), (wz - gz) / (gd * 0.5));
+        if (rNorm <= 1.0) return 'GREEN';
+        if (rNorm <= 1.24) return 'FRINGE';
+        return null;
+      };
+
+      const gLeftCheck = checkGreenProximity(lgX, lgZ, hole.leftGreen.width, hole.leftGreen.depth);
+      if (gLeftCheck) return { lie: gLeftCheck, hazardName: '' };
+      const gRightCheck = checkGreenProximity(rgX, rgZ, hole.rightGreen.width, hole.rightGreen.depth);
+      if (gRightCheck) return { lie: gRightCheck, hazardName: '' };
+
+      const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+      const relX = wx - sp.centerX;
+      if (wz >= 12 && wz <= maxHoleZ - 10) {
+        if (relX >= -sp.leftW && relX <= sp.rightW) {
+          return { lie: 'FAIRWAY', hazardName: '' };
+        }
+        if (relX >= -(sp.leftW + 7.5) && relX <= (sp.rightW + 7.5)) {
+          return { lie: 'SEMI-ROUGH', hazardName: '' };
+        }
+      }
+      return { lie: 'DEEP-ROUGH', hazardName: '' };
+    }
+
+    function saveHistorySnapshot() {
+      simState.historyStack.push({
+        ballPos: { ...simState.ballPos },
+        currentLie: simState.currentLie,
+        chipModeActive: simState.chipModeActive,
+        cameraMode: simState.cameraMode,
+        shotLogs: JSON.parse(JSON.stringify(simState.shotLogs)),
+        shotMarkers: JSON.parse(JSON.stringify(simState.shotMarkers)),
+        lastShotMarker: simState.lastShotMarker ? JSON.parse(JSON.stringify(simState.lastShotMarker)) : null,
+        roundScores: { ...simState.roundScores },
+        chipDrillCount: simState.chipDrillCount,
+        chipSuccessCount: simState.chipSuccessCount,
+        ui: {
+          holeStatus: document.getElementById('hole-status-badge').textContent,
+          decisionGrade: document.getElementById('badge-decision-grade').textContent,
+          resSmash: document.getElementById('res-smash').textContent,
+          resDist: document.getElementById('res-dist').textContent,
+          resLie: document.getElementById('res-landing-lie').textContent,
+          resRem: document.getElementById('res-rem-dist').textContent,
+          coachText: document.getElementById('coach-feedback-text').textContent,
+          landStopDelta: document.getElementById('disp-land-stop-delta').textContent,
+          landStopCoords: document.getElementById('disp-land-stop-coords').textContent
+        }
+      });
+    }
+
+    function undoLastShot() {
+      if (simState.isFlying || simState.isReplayingRoll || simState.historyStack.length === 0) return;
+      const snap = simState.historyStack.pop();
+      simState.ballPos = snap.ballPos;
+      simState.currentLie = snap.currentLie;
+      simState.chipModeActive = snap.chipModeActive;
+      simState.cameraMode = snap.cameraMode;
+      simState.shotLogs = snap.shotLogs;
+      simState.shotMarkers = snap.shotMarkers;
+      simState.lastShotMarker = snap.lastShotMarker;
+      simState.roundScores = snap.roundScores;
+      simState.chipDrillCount = snap.chipDrillCount;
+      simState.chipSuccessCount = snap.chipSuccessCount;
+
+      updateBall3DHeight();
+      drawFlightTrail(null, 0);
+
+      document.querySelectorAll('.cam-btn').forEach(x => {
+        x.className = x.dataset.cam === simState.cameraMode
+          ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition'
+          : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+      });
+
+      document.getElementById('hole-status-badge').textContent = snap.ui.holeStatus;
+      document.getElementById('badge-decision-grade').textContent = snap.ui.decisionGrade;
+      document.getElementById('res-smash').textContent = snap.ui.resSmash;
+      document.getElementById('res-dist').textContent = snap.ui.resDist;
+      document.getElementById('res-landing-lie').textContent = snap.ui.resLie;
+      document.getElementById('res-rem-dist').textContent = snap.ui.resRem;
+      document.getElementById('coach-feedback-text').textContent = snap.ui.coachText;
+      document.getElementById('disp-land-stop-delta').textContent = snap.ui.landStopDelta;
+      document.getElementById('disp-land-stop-coords').textContent = snap.ui.landStopCoords;
+      document.getElementById('shot-history-count').textContent = `누적 샷: ${simState.shotLogs.length}타`;
+
+      const logStrip = document.getElementById('shot-log-strip');
+      if (simState.shotLogs.length === 0) {
+        logStrip.innerHTML = '<span>홀 진행 로그: 이전 샷이 초기화되어 대기 중입니다</span>';
+      } else {
+        logStrip.innerHTML = simState.shotLogs
+          .map(l => `<div>#${l.no} [${l.club}] 캐리 ${l.carry}m · 런 ${l.roll}m → <strong>${l.lie}</strong> (잔여 ${l.rem}m)</div>`)
+          .join('');
+      }
+
+      syncAllUI();
+      SoundFX.tap(660);
+    }
+
+    function getPinWorldPos() {
+      const g = getActiveGreenInfo();
+      const pk = simState.pinKey || 'CENTER';
+      let zRatio = 0;
+      if (pk.startsWith('FRONT')) zRatio = -0.54;
+      else if (pk.startsWith('BACK')) zRatio = 0.54;
+
+      let xRatio = 0;
+      if (pk.endsWith('LEFT')) xRatio = -0.52;
+      else if (pk.endsWith('RIGHT')) xRatio = 0.52;
+
+      return {
+        x: g.centerX + xRatio * (g.width * 0.5),
+        z: g.centerZ + zRatio * (g.depth * 0.5)
+      };
+    }
+
+    function getTargetWorldPos() {
+      const g = getActiveGreenInfo();
+      const pin = getPinWorldPos();
+      if (simState.greenLandingTarget.customSelected) {
+        return {
+          x: g.centerX + simState.greenLandingTarget.x,
+          z: g.centerZ + simState.greenLandingTarget.zOffset
+        };
+      }
+      return {
+        x: pin.x + simState.aimOffsetX,
+        z: pin.z
+      };
+    }
+
+    function sampleGreenElevation(normX, normZ, topo) {
+      const nx = Math.max(-1.2, Math.min(1.2, normX));
+      const nz = Math.max(-1.2, Math.min(1.2, normZ));
+      const linearSlope = nz * topo.slopeZ * 0.68 + nx * topo.slopeX * 0.58;
+      const tierStep = topo.tier > 0.45 ? (Math.tanh(nz * 4.5) * 0.48 * topo.tier) : 0;
+      const bowlEffect = (nx * nx + nz * nz) * topo.bowl * 0.36;
+      return linearSlope + tierStep + bowlEffect;
+    }
+
+    function getGreenSurface3DY(normX, normZ, topo) {
+      const rawElev = sampleGreenElevation(normX, normZ, topo);
+      return 0.78 + rawElev * 0.85;
+    }
+
+    function getYardageGreenBandColor(elev) {
+      if (elev > 0.42) return { hex: 0x1b5e20, css: '#1b5e20' };
+      if (elev > 0.18) return { hex: 0x2e7d32, css: '#2e7d32' };
+      if (elev > -0.04) return { hex: 0x43a047, css: '#43a047' };
+      if (elev > -0.24) return { hex: 0x66bb6a, css: '#66bb6a' };
+      if (elev > -0.45) return { hex: 0xa5d6a7, css: '#a5d6a7' };
+      return { hex: 0xdcedc8, css: '#dcedc8' };
+    }
+
+    // =========================================================
+    // 5. Three.js 입체 PBR 3D 코스 & 가변 폭 곡선 페어웨이 · 96×96 투그린 엔진
+    // =========================================================
+    const canvas3D = document.getElementById('course-3d-canvas');
+    const yardageCanvas = document.getElementById('yardage-map-canvas');
+    const greenCanvas = document.getElementById('green-map-canvas');
+
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas3D, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b192c);
+    scene.fog = new THREE.FogExp2(0x0b192c, 0.00085);
+
+    const camera = new THREE.PerspectiveCamera(44, 16 / 9, 0.5, 2800);
+
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x14532d, 0.65);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.25);
+    dirLight.position.set(185, 165, -75);
+    scene.add(dirLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.42);
+    rimLight.position.set(-150, 95, 160);
+    scene.add(rimLight);
+
+    const courseGroup = new THREE.Group();
+    scene.add(courseGroup);
+
+    const trailGroup = new THREE.Group();
+    scene.add(trailGroup);
+
+    let groundRaycastPlane = null;
+
+    const ballMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.45, 20, 20),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.1, emissive: 0x38bdf8, emissiveIntensity: 0.28 })
+    );
+    scene.add(ballMesh);
+
+    const landingRingMesh = new THREE.Mesh(
+      new THREE.RingGeometry(0.85, 1.35, 36),
+      new THREE.MeshBasicMaterial({ color: 0x22d3ee, side: THREE.DoubleSide })
+    );
+    landingRingMesh.rotation.x = -Math.PI / 2;
+    scene.add(landingRingMesh);
+
+    function buildContinuousRibbonMesh(zStart, zEnd, steps, getBoundsAtZ, yLevel, colorEven, colorOdd, roughness = 0.85) {
+      const positions = [];
+      const colors = [];
+      const indices = [];
+
+      const cEven = new THREE.Color(colorEven);
+      const cOdd = new THREE.Color(colorOdd);
+
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const z = zStart + t * (zEnd - zStart);
+        const b = getBoundsAtZ(z, t);
+        const col = (Math.floor(i / 2) % 2 === 0) ? cEven : cOdd;
+
+        positions.push(-b.leftX, yLevel, z);
+        positions.push(-b.rightX, yLevel, z);
+        colors.push(col.r, col.g, col.b);
+        colors.push(col.r, col.g, col.b);
+
+        if (i < steps) {
+          const r0 = i * 2;
+          const r1 = r0 + 1;
+          const r2 = r0 + 2;
+          const r3 = r0 + 3;
+          indices.push(r0, r2, r1);
+          indices.push(r1, r2, r3);
+        }
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+
+      return new THREE.Mesh(
+        geo,
+        new THREE.MeshStandardMaterial({
+          vertexColors: true,
+          roughness,
+          metalness: 0.04,
+          side: THREE.DoubleSide
+        })
+      );
+    }
+
+    function createTreeMesh(x, z, scale = 1.0) {
+      const grp = new THREE.Group();
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28 * scale, 0.48 * scale, 3.2 * scale, 8),
+        new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 })
+      );
+      trunk.position.y = 1.6 * scale;
+      grp.add(trunk);
+
+      const foliageColors = [0x14532d, 0x166534, 0x15803d, 0x1e6b38];
+      for (let i = 0; i < 4; i++) {
+        const radius = (3.2 - i * 0.58) * scale;
+        const height = (3.8 - i * 0.42) * scale;
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry(radius, height, 10),
+          new THREE.MeshStandardMaterial({ color: foliageColors[i % 4], roughness: 0.82 })
+        );
+        cone.position.y = (3.6 + i * 2.0) * scale;
+        grp.add(cone);
+      }
+      grp.position.set(-x, 0, z);
+      return grp;
+    }
+
+    function create3DSculptedBunker(x, z, r) {
+      const grp = new THREE.Group();
+      const res = 28;
+      const bowlGeo = new THREE.CircleGeometry(r, res);
+      bowlGeo.rotateX(-Math.PI / 2);
+      const pos = bowlGeo.attributes.position;
+      const cols = [];
+      const cDeepSand = new THREE.Color(0xeab308);
+      const cBrightSand = new THREE.Color(0xfef9c3);
+
+      for (let i = 0; i < pos.count; i++) {
+        const vx = pos.getX(i);
+        const vz = pos.getZ(i);
+        const distNorm = Math.min(1, Math.hypot(vx, vz) / r);
+        const dishY = 0.06 + Math.pow(distNorm, 1.8) * 0.28;
+        pos.setY(i, dishY);
+
+        const c = cDeepSand.clone().lerp(cBrightSand, 0.45 + distNorm * 0.55);
+        cols.push(c.r, c.g, c.b);
+      }
+      bowlGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+      bowlGeo.computeVertexNormals();
+
+      const sandMesh = new THREE.Mesh(
+        bowlGeo,
+        new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, side: THREE.DoubleSide })
+      );
+      grp.add(sandMesh);
+
+      const lipMesh = new THREE.Mesh(
+        new THREE.TorusGeometry(r + 0.25, 0.42, 10, 32),
+        new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.85 })
+      );
+      lipMesh.rotation.x = Math.PI / 2;
+      lipMesh.position.y = 0.26;
+      grp.add(lipMesh);
+
+      grp.position.set(-x, 0, z);
+      return grp;
+    }
+
+    function create3DOrganicWaterHazard(hz) {
+      const grp = new THREE.Group();
+      const shape = new THREE.Shape();
+      const hw = hz.w * 0.5;
+      const hd = hz.d * 0.5;
+      const segs = 36;
+      for (let i = 0; i <= segs; i++) {
+        const ang = (i / segs) * Math.PI * 2;
+        const wobble = 1.0 + 0.14 * Math.sin(ang * 3) + 0.08 * Math.cos(ang * 5);
+        const px = Math.cos(ang) * hw * wobble;
+        const py = Math.sin(ang) * hd * wobble;
+        if (i === 0) shape.moveTo(px, py);
+        else shape.lineTo(px, py);
+      }
+
+      const waterGeo = new THREE.ShapeGeometry(shape);
+      waterGeo.rotateX(-Math.PI / 2);
+      const waterMesh = new THREE.Mesh(
+        waterGeo,
+        new THREE.MeshStandardMaterial({
+          color: 0x1d4ed8,
+          emissive: 0x0f172a,
+          emissiveIntensity: 0.25,
+          roughness: 0.12,
+          metalness: 0.65
+        })
+      );
+      waterMesh.position.y = 0.09;
+      grp.add(waterMesh);
+
+      const bankGeo = new THREE.ShapeGeometry(shape);
+      bankGeo.rotateX(-Math.PI / 2);
+      const bankMesh = new THREE.Mesh(
+        bankGeo,
+        new THREE.MeshStandardMaterial({ color: 0x713f12, roughness: 0.95 })
+      );
+      bankMesh.scale.set(1.07, 1, 1.04);
+      bankMesh.position.y = 0.07;
+      grp.add(bankMesh);
+
+      grp.position.set(-hz.x, 0, hz.z);
+      return grp;
+    }
+
+    function buildSingle3DGreen(hole, gSpec, centerX, centerZ, isActive) {
+      const gHalfW = gSpec.width * 0.5;
+      const gHalfD = gSpec.depth * 0.5;
+
+      const collarGeo = new THREE.CylinderGeometry(1.22, 1.26, 0.12, 48);
+      collarGeo.scale(gHalfW, 1, gHalfD);
+      const collarMesh = new THREE.Mesh(
+        collarGeo,
+        new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.82 })
+      );
+      collarMesh.position.set(-centerX, 0.08, centerZ);
+      courseGroup.add(collarMesh);
+
+      const gridRes = 96;
+      const greenGeo = new THREE.PlaneGeometry(gSpec.width, gSpec.depth, gridRes, gridRes);
+      greenGeo.rotateX(-Math.PI / 2);
+      const posAttr = greenGeo.attributes.position;
+      const colors = [];
+
+      for (let i = 0; i < posAttr.count; i++) {
+        const vx = posAttr.getX(i);
+        const vz = posAttr.getZ(i);
+        let nx = vx / gHalfW;
+        let nz = vz / gHalfD;
+        const rNorm = Math.hypot(nx, nz);
+
+        const kidneyIndent = 1.0 - 0.10 * Math.sin(nx * Math.PI) * Math.cos(nz * Math.PI * 0.5);
+        if (rNorm > kidneyIndent) {
+          nx = (nx / rNorm) * kidneyIndent;
+          nz = (nz / rNorm) * kidneyIndent;
+          posAttr.setX(i, nx * gHalfW);
+          posAttr.setZ(i, nz * gHalfD);
+        }
+
+        const worldNormX = -nx;
+        const elev = sampleGreenElevation(worldNormX, nz, gSpec.topo);
+        const surfY = Math.max(0.18, getGreenSurface3DY(worldNormX, nz, gSpec.topo));
+        posAttr.setY(i, surfY);
+
+        const band = getYardageGreenBandColor(elev);
+        const c = new THREE.Color(band.hex);
+
+        const stripe = Math.sin(vx * 1.4) * 0.04;
+        c.offsetHSL(0, 0, stripe);
+
+        if (gSpec.topo.tier > 0.45 && Math.abs(nz) < 0.032) {
+          c.lerp(new THREE.Color(0xfef08a), 0.55);
+        }
+
+        if (!isActive) c.multiplyScalar(0.8);
+        colors.push(c.r, c.g, c.b);
+      }
+
+      greenGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      greenGeo.computeVertexNormals();
+
+      const greenMesh = new THREE.Mesh(
+        greenGeo,
+        new THREE.MeshStandardMaterial({
+          vertexColors: true,
+          roughness: 0.48,
+          metalness: 0.04,
+          side: THREE.DoubleSide
+        })
+      );
+      greenMesh.position.set(-centerX, 0, centerZ);
+      courseGroup.add(greenMesh);
+
+      const contourLevels = [-0.35, -0.15, 0.05, 0.25, 0.45];
+      contourLevels.forEach(lvl => {
+        const loopPts = [];
+        const segs = 64;
+        for (let s = 0; s <= segs; s++) {
+          const ang = (s / segs) * Math.PI * 2;
+          const rScale = Math.max(0.22, Math.min(0.88, 0.58 - lvl * 0.55));
+          const lx = Math.cos(ang) * gHalfW * rScale;
+          const lz = Math.sin(ang) * gHalfD * rScale;
+          const ly = Math.max(0.20, getGreenSurface3DY(-lx / gHalfW, lz / gHalfD, gSpec.topo)) + 0.025;
+          loopPts.push(new THREE.Vector3(-(centerX + lx), ly, centerZ + lz));
+        }
+        courseGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(loopPts),
+          new THREE.LineBasicMaterial({ color: 0x052e16, transparent: true, opacity: 0.65 })
+        ));
+      });
+
+      const flowLen = 4.5;
+      const fx = -Math.sign(gSpec.topo.slopeX || 0.01) * flowLen * 0.4;
+      const fz = -Math.sign(gSpec.topo.slopeZ || 0.01) * flowLen * 0.6;
+      const y1 = Math.max(0.22, getGreenSurface3DY(-fx / gHalfW, -fz / gHalfD, gSpec.topo)) + 0.06;
+      const y2 = Math.max(0.22, getGreenSurface3DY(fx / gHalfW, fz / gHalfD, gSpec.topo)) + 0.06;
+      const arrowPts = [
+        new THREE.Vector3(-(centerX - fx), y1, centerZ - fz),
+        new THREE.Vector3(-(centerX + fx), y2, centerZ + fz)
+      ];
+      courseGroup.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(arrowPts),
+        new THREE.LineBasicMaterial({ color: 0x38bdf8 })
+      ));
+
+      const cpY = Math.max(0.22, getGreenSurface3DY(0, 0, gSpec.topo)) + 0.04;
+      const cpDot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.26, 0.26, 0.06, 20),
+        new THREE.MeshBasicMaterial({ color: 0x0f172a })
+      );
+      cpDot.position.set(-centerX, cpY, centerZ);
+      courseGroup.add(cpDot);
+    }
+
+    function rebuild3DCourse() {
+      while (courseGroup.children.length > 0) {
+        courseGroup.remove(courseGroup.children[0]);
+      }
+
+      const hole = getCurrentHole();
+      const leftDist = hole.teesLeft[simState.teeKey];
+      const rightDist = hole.teesRight[simState.teeKey];
+      const maxHoleZ = Math.max(leftDist, rightDist);
+      const activeG = getActiveGreenInfo();
+      const pinPos = getPinWorldPos();
+
+      const groundMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1100, 1400),
+        new THREE.MeshStandardMaterial({ color: 0x163822, roughness: 0.94 })
+      );
+      groundMesh.rotation.x = -Math.PI / 2;
+      groundMesh.position.set(-hole.doglegX * 0.4, 0, maxHoleZ * 0.55);
+      courseGroup.add(groundMesh);
+      groundRaycastPlane = groundMesh;
+
+      for (let m = -5; m <= 5; m++) {
+        const mh = 72 + Math.abs(m % 3) * 28;
+        const mtn = new THREE.Mesh(
+          new THREE.ConeGeometry(145 + Math.abs(m) * 18, mh, 9),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.96 })
+        );
+        mtn.position.set(-m * 145 - hole.doglegX, mh * 0.45, maxHoleZ + 410 + Math.abs(m) * 22);
+        courseGroup.add(mtn);
+      }
+
+      const teeSpecs = [
+        { color: 0xef4444, z: 0 },
+        { color: 0xfacc15, z: -11 },
+        { color: 0xf8fafc, z: -22 },
+        { color: 0x2563eb, z: -33 },
+        { color: 0x0f172a, z: -44 }
+      ];
+      teeSpecs.forEach(ts => {
+        const tb = new THREE.Mesh(
+          new THREE.BoxGeometry(7.5, 0.32, 6.5),
+          new THREE.MeshStandardMaterial({ color: ts.color, roughness: 0.6 })
+        );
+        tb.position.set(0, 0.16, ts.z);
+        courseGroup.add(tb);
+      });
+
+      const semiRoughMesh = buildContinuousRibbonMesh(
+        10,
+        maxHoleZ - 12,
+        64,
+        (z) => {
+          const sp = getFairwaySpineAtZ(hole, z, maxHoleZ);
+          return {
+            leftX: sp.centerX - sp.leftW - 7.5,
+            rightX: sp.centerX + sp.rightW + 7.5
+          };
+        },
+        0.03,
+        0x22543d,
+        0x276749,
+        0.90
+      );
+      courseGroup.add(semiRoughMesh);
+
+      const fairwayMesh = buildContinuousRibbonMesh(
+        14,
+        maxHoleZ - 16,
+        64,
+        (z) => {
+          const sp = getFairwaySpineAtZ(hole, z, maxHoleZ);
+          return {
+            leftX: sp.centerX - sp.leftW,
+            rightX: sp.centerX + sp.rightW
+          };
+        },
+        0.06,
+        0x38a169,
+        0x48bb78,
+        0.78
+      );
+      courseGroup.add(fairwayMesh);
+
+      [100, 150, 200].forEach(rem => {
+        const mz = maxHoleZ - rem;
+        if (mz > 35) {
+          const sp = getFairwaySpineAtZ(hole, mz, maxHoleZ);
+          const stake = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.14, 0.14, 1.35, 8),
+            new THREE.MeshStandardMaterial({ color: rem === 100 ? 0xef4444 : rem === 150 ? 0xffffff : 0xfacc15 })
+          );
+          stake.position.set(-(sp.centerX + sp.rightW + 2.2), 0.68, mz);
+          courseGroup.add(stake);
+        }
+      });
+
+      const ipSpine = getFairwaySpineAtZ(hole, hole.ipZ, maxHoleZ);
+      const ipMarker = new THREE.Mesh(
+        new THREE.RingGeometry(1.1, 1.85, 28),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, side: THREE.DoubleSide })
+      );
+      ipMarker.rotation.x = -Math.PI / 2;
+      ipMarker.position.set(-ipSpine.centerX, 0.11, hole.ipZ);
+      courseGroup.add(ipMarker);
+
+      hole.hazards.forEach(hz => {
+        courseGroup.add(create3DOrganicWaterHazard(hz));
+      });
+
+      hole.bunkers.forEach(bk => {
+        courseGroup.add(create3DSculptedBunker(bk.x, bk.z, bk.r));
+      });
+
+      buildSingle3DGreen(
+        hole,
+        hole.leftGreen,
+        hole.doglegX + hole.leftGreen.offsetX,
+        leftDist,
+        simState.activeGreenSide === 'LEFT'
+      );
+      buildSingle3DGreen(
+        hole,
+        hole.rightGreen,
+        hole.doglegX + hole.rightGreen.offsetX,
+        rightDist,
+        simState.activeGreenSide === 'RIGHT'
+      );
+
+      const pNormX = (pinPos.x - activeG.centerX) / (activeG.width * 0.5);
+      const pNormZ = (pinPos.z - activeG.centerZ) / (activeG.depth * 0.5);
+      const pinBaseY = Math.max(0.18, getGreenSurface3DY(pNormX, pNormZ, activeG.topo));
+
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 4.0, 10),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc })
+      );
+      pole.position.set(-pinPos.x, pinBaseY + 2.0, pinPos.z);
+      courseGroup.add(pole);
+
+      const flagColor = simState.pinKey.startsWith('FRONT') ? 0xef4444 : simState.pinKey.startsWith('BACK') ? 0x3b82f6 : 0xfbbf24;
+      const flag = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 0.82, 0.08),
+        new THREE.MeshStandardMaterial({ color: flagColor })
+      );
+      flag.position.set(-pinPos.x - 0.7, pinBaseY + 3.55, pinPos.z);
+      courseGroup.add(flag);
+
+      for (let z = 25; z < maxHoleZ + 45; z += 30) {
+        const sp = getFairwaySpineAtZ(hole, z, maxHoleZ);
+        const leftTreeX = sp.centerX - sp.leftW - 18 - (z % 9);
+        const rightTreeX = sp.centerX + sp.rightW + 18 + ((z + 5) % 11);
+        const nearLeftG = Math.hypot(leftTreeX - (hole.doglegX + hole.leftGreen.offsetX), z - leftDist) < 28;
+        const nearRightG = Math.hypot(rightTreeX - (hole.doglegX + hole.rightGreen.offsetX), z - rightDist) < 28;
+        if (!nearLeftG) courseGroup.add(createTreeMesh(leftTreeX, z, 0.95 + (z % 5) * 0.07));
+        if (!nearRightG) courseGroup.add(createTreeMesh(rightTreeX, z + 12, 1.0 + (z % 4) * 0.07));
+      }
+
+      updateBall3DHeight();
+    }
+
+    function updateBall3DHeight() {
+      const activeG = getActiveGreenInfo();
+      const gNormX = (simState.ballPos.x - activeG.centerX) / (activeG.width * 0.5);
+      const gNormZ = (simState.ballPos.z - activeG.centerZ) / (activeG.depth * 0.5);
+      let ballY = 0.45;
+      if (Math.hypot(gNormX, gNormZ) <= 1.0) {
+        ballY = Math.max(0.18, getGreenSurface3DY(gNormX, gNormZ, activeG.topo)) + 0.35;
+      }
+      ballMesh.position.set(-simState.ballPos.x, ballY, simState.ballPos.z);
+    }
+
+    function drawFlightTrail(pts, progress = 1.0, colorHex = 0x38bdf8, shotInfo = null) {
+      while (trailGroup.children.length > 0) {
+        trailGroup.remove(trailGroup.children[0]);
+      }
+
+      simState.shotMarkers.forEach(mk => {
+        const landRing = new THREE.Mesh(
+          new THREE.RingGeometry(0.42, 0.75, 22),
+          new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide })
+        );
+        landRing.rotation.x = -Math.PI / 2;
+        landRing.position.set(-mk.landX, Math.max(0.25, mk.landY + 0.12), mk.landZ);
+        trailGroup.add(landRing);
+
+        const stopSphere = new THREE.Mesh(
+          new THREE.SphereGeometry(0.42, 14, 14),
+          new THREE.MeshBasicMaterial({ color: 0x10b981 })
+        );
+        stopSphere.position.set(-mk.finalX, Math.max(0.28, mk.finalY + 0.15), mk.finalZ);
+        trailGroup.add(stopSphere);
+
+        const rollSrc = mk.rollPath && mk.rollPath.length >= 2
+          ? mk.rollPath
+          : [{ x: mk.landX, y: mk.landY, z: mk.landZ }, { x: mk.finalX, y: mk.finalY, z: mk.finalZ }];
+        const rollPts = rollSrc.map(rp => new THREE.Vector3(-rp.x, Math.max(0.26, rp.y + 0.14), rp.z));
+        trailGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(rollPts),
+          new THREE.LineBasicMaterial({ color: 0xfacc15 })
+        ));
+      });
+
+      if (!pts || pts.length < 2) return;
+      const limit = Math.max(2, Math.floor(pts.length * progress));
+      const vecs = [];
+      for (let i = 0; i < limit; i++) {
+        vecs.push(new THREE.Vector3(-pts[i].x, Math.max(0.32, pts[i].y), pts[i].z));
+      }
+      trailGroup.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(vecs),
+        new THREE.LineBasicMaterial({ color: colorHex })
+      ));
+
+      if (shotInfo && progress >= 0.72) {
+        const landMk = new THREE.Mesh(
+          new THREE.RingGeometry(0.42, 0.75, 22),
+          new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide })
+        );
+        landMk.rotation.x = -Math.PI / 2;
+        landMk.position.set(-shotInfo.landX, Math.max(0.25, shotInfo.landY + 0.12), shotInfo.landZ);
+        trailGroup.add(landMk);
+      }
+    }
+
+    function update3DCamera() {
+      const activeG = getActiveGreenInfo();
+      const pinPos = getPinWorldPos();
+      const aspect = Math.max(0.6, camera.aspect || 1.6);
+
+      if (simState.cameraMode === 'GREEN' || simState.trainingMode === 'CHIP_LAB' || (simState.chipModeActive && simState.cameraMode !== 'SIDE')) {
+        const bx = -simState.ballPos.x;
+        const bz = simState.ballPos.z;
+        const gx = -activeG.centerX;
+        const gz = activeG.centerZ;
+
+        const lookX = gx * 0.75 + bx * 0.25;
+        const lookZ = gz * 0.75 + bz * 0.25;
+        const dx = gx - bx;
+        const dz = gz - bz;
+        const spanDist = Math.max(18, Math.hypot(dx, dz));
+        const ux = dx / spanDist;
+        const uz = dz / spanDist;
+
+        const greenSpan = Math.max(activeG.width, activeG.depth);
+        const camDist = ((greenSpan * 1.48 + Math.min(26, spanDist * 0.65)) / Math.min(1.2, aspect * 0.75)) * simState.camZoom;
+        const camHeight = (greenSpan * 0.96 + simState.camOrbitPitch * 18) * simState.camZoom;
+
+        const rawCamX = lookX - ux * camDist;
+        const rawCamZ = lookZ - uz * camDist;
+        const relX = rawCamX - lookX;
+        const relZ = rawCamZ - lookZ;
+        const cosY = Math.cos(simState.camOrbitYaw);
+        const sinY = Math.sin(simState.camOrbitYaw);
+
+        camera.position.set(
+          lookX + relX * cosY - relZ * sinY,
+          Math.max(10.0, camHeight),
+          lookZ + relX * sinY + relZ * cosY
+        );
+        camera.lookAt(lookX, 0.6, lookZ);
+        return;
+      }
+
+      if (simState.cameraMode === 'SIDE') {
+        const midZ = (simState.ballPos.z + pinPos.z) * 0.5;
+        const midX = -(simState.ballPos.x + pinPos.x) * 0.5;
+        const span = Math.max(85, Math.abs(pinPos.z - simState.ballPos.z) * 0.85);
+        const sideDist = (span / Math.min(1.2, aspect * 0.75)) * simState.camZoom;
+        camera.position.set(midX + sideDist, Math.max(32, sideDist * 0.35), midZ);
+        camera.lookAt(midX, 12, midZ);
+        return;
+      }
+
+      const bx = -simState.ballPos.x;
+      const bz = simState.ballPos.z;
+      const tx = -pinPos.x;
+      const tz = pinPos.z;
+      const dx = tx - bx;
+      const dz = tz - bz;
+      const dist = Math.max(14, Math.hypot(dx, dz));
+      const ux = dx / dist;
+      const uz = dz / dist;
+
+      const flightApex = simState.isFlying && simState.activeFlight ? simState.activeFlight.apex : 24;
+      const backDist = Math.max(24, flightApex * 0.78) * simState.camZoom;
+      const height = (Math.max(13, flightApex * 0.5) + simState.camOrbitPitch * 22) * simState.camZoom;
+      const rawX = bx - ux * backDist;
+      const rawZ = bz - uz * backDist;
+      const cosY = Math.cos(simState.camOrbitYaw);
+      const sinY = Math.sin(simState.camOrbitYaw);
+      const rx = rawX - bx;
+      const rz = rawZ - bz;
+
+      camera.position.set(bx + rx * cosY - rz * sinY, height, bz + rx * sinY + rz * cosY);
+      camera.lookAt(bx + ux * Math.min(115, dist * 0.55), Math.max(4, flightApex * 0.25), bz + uz * Math.min(115, dist * 0.55));
+    }
+
+    // =========================================================
+    // 6. 물리 궤적 & 스팀프미터 곡선 공구름 시뮬레이션 엔진
+    // =========================================================
+    function simulateShotWithNoise() {
+      const hole = getCurrentHole();
+      const activeG = getActiveGreenInfo();
+      const pinPos = getPinWorldPos();
+      const targetPos = getTargetWorldPos();
+
+      const startX = simState.ballPos.x;
+      const startZ = simState.ballPos.z;
+      const dx = targetPos.x - startX;
+      const dz = targetPos.z - startZ;
+      const targetDist = Math.max(1.5, Math.hypot(dx, dz));
+      const dirX = dx / targetDist;
+      const dirZ = dz / targetDist;
+
+      const isChipShot = simState.trainingMode === 'CHIP_LAB' || simState.chipModeActive || targetDist <= 42;
+      const club = simState.bag.find(c => c.id === simState.selectedClubId) || simState.bag[0];
+      const powerRatio = simState.swingPowerPct / 100;
+
+      const noisePctRaw = (Math.random() - 0.5) * 2 * simState.smashNoiseSpan * 100;
+      const noisePct = Number(noisePctRaw.toFixed(1));
+      const baseSmash = isChipShot ? 1.18 : club.smashBase;
+      const effectiveSmash = Number((baseSmash * (1 + noisePct / 100)).toFixed(3));
+      const smashRatio = effectiveSmash / baseSmash;
+
+      const windRad = (simState.env.windDirDeg * Math.PI) / 180;
+      const headWind = Math.cos(windRad) * simState.env.windSpeed;
+      const crossWind = Math.sin(windRad) * simState.env.windSpeed;
+      const shapeCurveX = simState.shotShape === 'DRAW' ? -10 : simState.shotShape === 'FADE' ? 10 : 0;
+
+      let actualCarry = 0;
+      let rollDist = 0;
+      let apex = 4;
+      let clubLabel = club.name.split(' (')[0];
+      let latDispersion = (Math.random() - 0.5) * simState.smashNoiseSpan * (isChipShot ? 12 : 92) + shapeCurveX * (targetDist / 240);
+
+      if (isChipShot) {
+        actualCarry = Math.max(1.0, targetDist * smashRatio - headWind * 0.16);
+        const stimpFactor = simState.env.greenSpeedStimp / 3.0;
+        const isWet = simState.env.surface.wet;
+        const baseRollMult = club.chipRollMult || 0.65;
+
+        if (simState.chipTechnique === 'RUNNING') {
+          clubLabel = `런닝샷 [${clubLabel}]`;
+          rollDist = actualCarry * baseRollMult * stimpFactor * (isWet ? 0.88 : 1.0);
+          apex = Math.max(1.2, actualCarry * (0.18 + (club.launch / 180)));
+        } else if (simState.chipTechnique === 'LOB') {
+          clubLabel = `로브/플롭 [${clubLabel}]`;
+          rollDist = Math.max(0.35, actualCarry * Math.min(0.26, baseRollMult * 0.34) * stimpFactor);
+          apex = Math.max(3.6, actualCarry * 0.68);
+        } else if (simState.chipTechnique === 'BOUNCE') {
+          clubLabel = `바운스 슬라이딩 [${clubLabel}]`;
+          rollDist = actualCarry * Math.max(0.3, baseRollMult * 0.72) * stimpFactor;
+          apex = Math.max(2.4, actualCarry * 0.42);
+        } else {
+          clubLabel = `리딩에지 다운블로 [${clubLabel}]`;
+          const flyerMult = isWet ? Math.max(1.45, baseRollMult * 1.9) : Math.max(0.22, baseRollMult * 0.45);
+          rollDist = actualCarry * flyerMult * stimpFactor;
+          apex = Math.max(1.6, actualCarry * 0.28);
+        }
+      } else {
+        const lieMult = simState.currentLie === 'DEEP-ROUGH' ? 0.84
+          : simState.currentLie === 'SEMI-ROUGH' ? 0.93
+          : simState.currentLie === 'BUNKER' ? 0.76
+          : 1.0;
+        const scaledCarry = club.carry * powerRatio;
+        const desiredCarry = Math.min(scaledCarry, targetDist * 1.02);
+        const rawCarry = (simState.currentLie === 'TEE' ? scaledCarry : desiredCarry) * smashRatio * lieMult;
+        const windDrag = headWind * (rawCarry * 0.011);
+        actualCarry = Math.max(15, rawCarry - windDrag - simState.env.elevDelta * 0.8);
+        apex = Math.max(12, actualCarry * (0.14 + (club.launch / 120)));
+        latDispersion += crossWind * (actualCarry * 0.014);
+
+        const baseRoll = club.isWood ? 18 * powerRatio : Math.max(2, (14 - club.launch * 0.42) * powerRatio);
+        rollDist = Math.max(1.5, baseRoll * (simState.env.greenSpeedStimp / 3.0));
+      }
+
+      const perpX = -dirZ;
+      const perpZ = dirX;
+      const landX = startX + dirX * actualCarry + perpX * latDispersion;
+      const landZ = startZ + dirZ * actualCarry + perpZ * latDispersion;
+
+      const gHalfW = activeG.width * 0.5;
+      const gHalfD = activeG.depth * 0.5;
+      const landNormX = (landX - activeG.centerX) / gHalfW;
+      const landNormZ = (landZ - activeG.centerZ) / gHalfD;
+      const landOnGreen = Math.hypot(landNormX, landNormZ) <= 1.0;
+      const landY = landOnGreen ? Math.max(0.20, getGreenSurface3DY(landNormX, landNormZ, activeG.topo)) : 0.20;
+
+      // 단계별 경사 브레이크 곡선 공구름 시뮬레이션 (LAND -> STOP)
+      const rollSteps = 18;
+      const rollPath = [{ x: landX, y: landY, z: landZ }];
+      let curRx = landX;
+      let curRz = landZ;
+      const stepLen = rollDist / rollSteps;
+      const stimpSlopeMult = (simState.env.greenSpeedStimp / 3.0) * 0.055;
+
+      for (let j = 1; j <= rollSteps; j++) {
+        const progress = j / rollSteps;
+        const decel = 1.35 - 0.7 * progress; // 초반 직진 -> 후반 경사 휘어짐 증가
+        const curNormX = (curRx - activeG.centerX) / gHalfW;
+        const curNormZ = (curRz - activeG.centerZ) / gHalfD;
+        const onG = Math.hypot(curNormX, curNormZ) <= 1.08;
+
+        const slopeDriftX = onG ? -activeG.topo.slopeX * stepLen * stimpSlopeMult * (0.4 + progress * 1.4) * 14 : 0;
+        const slopeDriftZ = onG ? -activeG.topo.slopeZ * stepLen * stimpSlopeMult * (0.4 + progress * 1.4) * 14 : 0;
+
+        curRx += dirX * stepLen * decel + slopeDriftX;
+        curRz += dirZ * stepLen * decel + slopeDriftZ;
+
+        const pNormX = (curRx - activeG.centerX) / gHalfW;
+        const pNormZ = (curRz - activeG.centerZ) / gHalfD;
+        const py = Math.hypot(pNormX, pNormZ) <= 1.0
+          ? Math.max(0.20, getGreenSurface3DY(pNormX, pNormZ, activeG.topo))
+          : 0.20;
+        rollPath.push({ x: curRx, y: py, z: curRz });
+      }
+
+      const finalPt = rollPath[rollPath.length - 1];
+      const finalX = finalPt.x;
+      const finalZ = finalPt.z;
+      const finalY = finalPt.y;
+
+      const lieEval = classifyPointLie(finalX, finalZ);
+      const newLie = lieEval.lie;
+      const hazardHitName = lieEval.hazardName;
+
+      const actualRoll = Math.hypot(finalX - landX, finalZ - landZ);
+      const totalShotDist = Math.hypot(finalX - startX, finalZ - startZ);
+      const remPinDist = Math.hypot(pinPos.x - finalX, pinPos.z - finalZ);
+
+      const pts = [];
+      const airSteps = 32;
+      for (let i = 0; i <= airSteps; i++) {
+        const t = i / airSteps;
+        const px = startX + (landX - startX) * t + perpX * (shapeCurveX * 0.45 * Math.sin(t * Math.PI));
+        const pz = startZ + (landZ - startZ) * t;
+        const py = 0.45 + 4 * apex * t * (1 - t) + landY * t;
+        pts.push({ x: px, y: py, z: pz, phase: 'AIR' });
+      }
+      for (let j = 1; j < rollPath.length; j++) {
+        pts.push({ x: rollPath[j].x, y: rollPath[j].y, z: rollPath[j].z, phase: 'ROLL' });
+      }
+
+      let grade = '양호 (GOOD)';
+      let feedback = '';
+      if (newLie === 'HAZARD') {
+        grade = '위험 (HAZARD)';
+        feedback = `${hazardHitName}에 빠졌습니다. IP 지점의 좌우 페어웨이 폭(${hole.ipLeftW}m / ${hole.ipRightW}m)과 정타율 분산(${noisePct > 0 ? '+' : ''}${noisePct}%)을 고려해 반대편으로 에이밍하십시오.`;
+      } else if (newLie === 'GREEN' && remPinDist <= 3.0) {
+        grade = '최적 공략 (TOUR PRO)';
+        feedback = `완벽합니다! ${simState.activeGreenSide === 'LEFT' ? '좌그린' : '우그린'} 착지 후 스팀프 ${simState.env.greenSpeedStimp.toFixed(1)}m 경사를 타고 핀 ${remPinDist.toFixed(1)}m 이내에 정지했습니다. [▶ 공구름 리플레이]로 구름 궤적을 다시 확인해 보십시오.`;
+      } else if (isChipShot) {
+        if (simState.chipTechnique === 'EDGE' && simState.env.surface.wet) {
+          grade = '플라이어 주의';
+          feedback = `습윤·이슬 잔디에서 리딩에지 다운블로를 구사해 역회전 마찰이 줄어 공구름(${actualRoll.toFixed(1)}m)이 길어졌습니다. [🔁 동일 위치 재샷]을 눌러 바운스 슬라이딩이나 54° 런닝샷으로 비교해 보십시오.`;
+        } else {
+          grade = remPinDist <= 4.5 ? '안정적 온그린' : '거리 보정 필요';
+          feedback = `[${clubLabel}] 캐리 ${actualCarry.toFixed(1)}m 착지(LAND) 후 스팀프 ${simState.env.greenSpeedStimp.toFixed(1)}m 경사를 타고 ${actualRoll.toFixed(1)}m 굴러 핀 ${remPinDist.toFixed(1)}m에 정지(STOP)했습니다.`;
+        }
+      } else if (newLie === 'FAIRWAY') {
+        grade = 'IP 전략 적중';
+        feedback = `가변 폭 곡선 페어웨이 안착 성공! 핀까지 ${remPinDist.toFixed(1)}m 남았으며, ${simState.activeGreenSide === 'LEFT' ? '좌그린' : '우그린'}을 공략하기 좋은 앵글입니다.`;
+      } else {
+        grade = `${newLie} 안착`;
+        feedback = `${newLie}에 멈췄습니다(핀 잔여 ${remPinDist.toFixed(1)}m). 우측 확대된 그린 맵에서 high→low 등고선을 보고 목표 랜딩존을 찍어 공략하십시오.`;
+      }
+
+      return {
+        pts,
+        rollPath,
+        apex,
+        startX,
+        startZ,
+        landX,
+        landZ,
+        landY,
+        finalX,
+        finalZ,
+        finalY,
+        actualCarry,
+        rollDist: actualRoll,
+        totalShotDist,
+        remPinDist,
+        newLie,
+        hazardHitName,
+        effectiveSmash,
+        noisePct,
+        clubLabel,
+        isWood: !isChipShot && club.isWood,
+        isChipShot,
+        grade,
+        feedback
+      };
+    }
+
+    // =========================================================
+    // 7. 초고해상도 HiDPI (2.5x Super-Sampling) 야디지북 코스 맵 & 선택 그린 확대 맵
+    // =========================================================
+    function getHiDPIScale() {
+      return Math.max(window.devicePixelRatio || 1, 2.5);
+    }
+
+    function drawTreeIcon2D(ctx, x, y, r = 5.5) {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
+      ctx.beginPath();
+      ctx.arc(x + 1.2, y + 1.5, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#166534';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.arc(x - r * 0.25, y - r * 0.25, r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function renderYardageCourseMap() {
+      const rect = yardageCanvas.parentElement.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const dpr = getHiDPIScale();
+      const w = rect.width;
+      const h = rect.height;
+      yardageCanvas.width = Math.round(w * dpr);
+      yardageCanvas.height = Math.round(h * dpr);
+
+      const ctx = yardageCanvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+
+      const hole = getCurrentHole();
+      const leftDist = hole.teesLeft[simState.teeKey];
+      const rightDist = hole.teesRight[simState.teeKey];
+      const maxHoleZ = Math.max(leftDist, rightDist);
+      const targetPos = getTargetWorldPos();
+
+      ctx.fillStyle = '#ebe6d8';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(120, 113, 108, 0.14)';
+      ctx.lineWidth = 0.6;
+      for (let gx = 0; gx < w; gx += 18) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, h);
+        ctx.stroke();
+      }
+      for (let gy = 0; gy < h; gy += 18) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+
+      const toCanvasX = (wx) => w * 0.56 + ((wx - hole.doglegX * 0.35) / 145) * (w - 44);
+      const toCanvasY = (wz) => h - 30 - (wz / (maxHoleZ + 42)) * (h - 54);
+
+      ctx.fillStyle = '#254e21';
+      ctx.beginPath();
+      for (let i = 0; i <= 36; i++) {
+        const t = i / 36;
+        const wz = -12 + t * (maxHoleZ + 28);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const wx = sp.centerX - sp.leftW - 18;
+        if (i === 0) ctx.moveTo(toCanvasX(wx), toCanvasY(wz));
+        else ctx.lineTo(toCanvasX(wx), toCanvasY(wz));
+      }
+      for (let i = 36; i >= 0; i--) {
+        const t = i / 36;
+        const wz = -12 + t * (maxHoleZ + 28);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const wx = sp.centerX + sp.rightW + 20;
+        ctx.lineTo(toCanvasX(wx), toCanvasY(wz));
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#143211';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#3f7d34';
+      ctx.beginPath();
+      for (let i = 0; i <= 36; i++) {
+        const t = i / 36;
+        const wz = 10 + t * (maxHoleZ - 32);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const wx = sp.centerX - sp.leftW - 6.5;
+        if (i === 0) ctx.moveTo(toCanvasX(wx), toCanvasY(wz));
+        else ctx.lineTo(toCanvasX(wx), toCanvasY(wz));
+      }
+      for (let i = 36; i >= 0; i--) {
+        const t = i / 36;
+        const wz = 10 + t * (maxHoleZ - 32);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const wx = sp.centerX + sp.rightW + 6.5;
+        ctx.lineTo(toCanvasX(wx), toCanvasY(wz));
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      hole.hazards.forEach(hz => {
+        const hx = toCanvasX(hz.x - hz.w * 0.5);
+        const hy = toCanvasY(hz.z + hz.d * 0.5);
+        const hw = (hz.w / 145) * (w - 44);
+        const hd = (hz.d / (maxHoleZ + 42)) * (h - 54);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(hx, hy, hw, hd, 14);
+        ctx.fillStyle = '#7c93d6';
+        ctx.fill();
+        ctx.clip();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 0.8;
+        for (let wy = hy + 6; wy < hy + hd; wy += 7) {
+          ctx.beginPath();
+          ctx.moveTo(hx + 4, wy);
+          ctx.lineTo(hx + hw - 4, wy);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = '#3b4e8c';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.roundRect(hx, hy, hw, hd, 14);
+        ctx.stroke();
+      });
+
+      ctx.save();
+      ctx.beginPath();
+      for (let i = 0; i <= 40; i++) {
+        const t = i / 40;
+        const wz = 14 + t * (maxHoleZ - 42);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const wx = sp.centerX - sp.leftW;
+        if (i === 0) ctx.moveTo(toCanvasX(wx), toCanvasY(wz));
+        else ctx.lineTo(toCanvasX(wx), toCanvasY(wz));
+      }
+      for (let i = 40; i >= 0; i--) {
+        const t = i / 40;
+        const wz = 14 + t * (maxHoleZ - 42);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const wx = sp.centerX + sp.rightW;
+        ctx.lineTo(toCanvasX(wx), toCanvasY(wz));
+      }
+      ctx.closePath();
+      ctx.fillStyle = '#6db349';
+      ctx.fill();
+      ctx.clip();
+
+      for (let sx = 0; sx < w; sx += 6) {
+        if (Math.floor(sx / 6) % 2 === 0) {
+          ctx.fillStyle = 'rgba(236, 253, 245, 0.28)';
+          ctx.fillRect(sx, 0, 3, h);
+        }
+      }
+      ctx.restore();
+      ctx.strokeStyle = '#14532d';
+      ctx.lineWidth = 1.25;
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      for (let i = 0; i <= 24; i++) {
+        const t = i / 24;
+        const wz = 4 + t * (maxHoleZ - 14);
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        const cx = toCanvasX(sp.centerX + sp.rightW + 8);
+        const cy = toCanvasY(wz);
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+
+      for (let wz = 30; wz < maxHoleZ; wz += 44) {
+        const sp = getFairwaySpineAtZ(hole, wz, maxHoleZ);
+        drawTreeIcon2D(ctx, toCanvasX(sp.centerX - sp.leftW - 13), toCanvasY(wz), 4.6);
+        drawTreeIcon2D(ctx, toCanvasX(sp.centerX + sp.rightW + 14), toCanvasY(wz + 14), 4.8);
+      }
+
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.58)';
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1.0;
+      [50, 100, 150].forEach(rem => {
+        if (rem < maxHoleZ) {
+          const ay = toCanvasY(maxHoleZ - rem);
+          ctx.beginPath();
+          ctx.arc(toCanvasX(hole.doglegX), toCanvasY(maxHoleZ), (rem / (maxHoleZ + 42)) * (h - 54), Math.PI * 0.26, Math.PI * 0.74);
+          ctx.stroke();
+          ctx.fillStyle = '#dc2626';
+          ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+          ctx.fillText(`${rem}m`, w - 34, ay + 3);
+        }
+      });
+      ctx.setLineDash([]);
+
+      const ipSpine = getFairwaySpineAtZ(hole, hole.ipZ, maxHoleZ);
+      const ipCx = toCanvasX(ipSpine.centerX);
+      const ipCy = toCanvasY(hole.ipZ);
+      const ipLx = toCanvasX(ipSpine.centerX - ipSpine.leftW);
+      const ipRx = toCanvasX(ipSpine.centerX + ipSpine.rightW);
+
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(ipLx, ipCy);
+      ctx.lineTo(ipRx, ipCy);
+      ctx.moveTo(ipLx, ipCy - 4.5);
+      ctx.lineTo(ipLx, ipCy + 4.5);
+      ctx.moveTo(ipRx, ipCy - 4.5);
+      ctx.lineTo(ipRx, ipCy + 4.5);
+      ctx.stroke();
+
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(ipCx, ipCy, 4.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+      ctx.fillText(`IP 좌:${Math.round(ipSpine.leftW)}m/우:${Math.round(ipSpine.rightW)}m`, ipCx + 6, ipCy - 5);
+
+      hole.bunkers.forEach(bk => {
+        const bx = toCanvasX(bk.x);
+        const by = toCanvasY(bk.z);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(bx, by, 5.5, 3.8, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+      });
+
+      const lgX = toCanvasX(hole.doglegX + hole.leftGreen.offsetX);
+      const lgY = toCanvasY(leftDist);
+      const rgX = toCanvasX(hole.doglegX + hole.rightGreen.offsetX);
+      const rgY = toCanvasY(rightDist);
+
+      ctx.fillStyle = simState.activeGreenSide === 'LEFT' ? '#4ade80' : '#86efac';
+      ctx.beginPath();
+      ctx.ellipse(lgX, lgY, 9.5, 12.5, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#14532d';
+      ctx.lineWidth = simState.activeGreenSide === 'LEFT' ? 2.1 : 1.1;
+      ctx.stroke();
+
+      ctx.fillStyle = simState.activeGreenSide === 'RIGHT' ? '#4ade80' : '#86efac';
+      ctx.beginPath();
+      ctx.ellipse(rgX, rgY, 10.5, 13.5, 0.25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#14532d';
+      ctx.lineWidth = simState.activeGreenSide === 'RIGHT' ? 2.1 : 1.1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#c2410c';
+      ctx.font = '800 21px Inter, sans-serif';
+      ctx.fillText(String(hole.no), 10, 25);
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.fillStyle = '#7c2d12';
+      ctx.fillText(`PAR ${hole.par} · HDCP ${hole.hdcp}`, 32, 23);
+
+      const legW = 94;
+      const legH = 66;
+      const legX = 7;
+      const legY = h - legH - 7;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.roundRect(legX, legY, legW, legH, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 8px Inter, sans-serif';
+      ctx.fillText('Left   /  Right', legX + 20, legY + 11);
+
+      const teeRows = [
+        { color: '#0f172a', l: hole.teesLeft.BLACK, r: hole.teesRight.BLACK },
+        { color: '#2563eb', l: hole.teesLeft.BLUE, r: hole.teesRight.BLUE },
+        { color: '#cbd5e1', l: hole.teesLeft.WHITE, r: hole.teesRight.WHITE },
+        { color: '#facc15', l: hole.teesLeft.YELLOW, r: hole.teesRight.YELLOW },
+        { color: '#ef4444', l: hole.teesLeft.RED, r: hole.teesRight.RED }
+      ];
+      teeRows.forEach((tr, idx) => {
+        const ry = legY + 21 + idx * 10.2;
+        ctx.fillStyle = tr.color;
+        ctx.beginPath();
+        ctx.arc(legX + 9.5, ry - 3, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+        ctx.fillText(`${tr.l} / ${tr.r}m`, legX + 17, ry);
+      });
+
+      simState.shotMarkers.forEach(mk => {
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(toCanvasX(mk.startX), toCanvasY(mk.startZ));
+        ctx.lineTo(toCanvasX(mk.landX), toCanvasY(mk.landZ));
+        ctx.lineTo(toCanvasX(mk.finalX), toCanvasY(mk.finalZ));
+        ctx.stroke();
+      });
+
+      const bx = toCanvasX(simState.ballPos.x);
+      const by = toCanvasY(simState.ballPos.z);
+      const tx = toCanvasX(targetPos.x);
+      const ty = toCanvasY(targetPos.z);
+
+      ctx.strokeStyle = '#2563eb';
+      ctx.setLineDash([3.5, 3]);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(bx, by, 4.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // 선택 그린 확대 모드(simState.greenZoomSingle === true) vs 투그린 전체 모드 투영기
+    function createGreenMapProjector(w, h) {
+      const hole = getCurrentHole();
+      const leftDist = hole.teesLeft[simState.teeKey];
+      const rightDist = hole.teesRight[simState.teeKey];
+      const lgX = hole.doglegX + hole.leftGreen.offsetX;
+      const lgZ = leftDist;
+      const rgX = hole.doglegX + hole.rightGreen.offsetX;
+      const rgZ = rightDist;
+
+      let minX, maxX, minZ, maxZ;
+
+      if (simState.greenZoomSingle) {
+        const activeG = getActiveGreenInfo();
+        minX = activeG.centerX - activeG.width * 0.56;
+        maxX = activeG.centerX + activeG.width * 0.56;
+        minZ = activeG.centerZ - activeG.depth * 0.56;
+        maxZ = activeG.centerZ + activeG.depth * 0.56;
+
+        // 선택 그린 바로 인접 가드 벙커만 포함
+        hole.bunkers.forEach(bk => {
+          if (Math.hypot(bk.x - activeG.centerX, bk.z - activeG.centerZ) < 28) {
+            minX = Math.min(minX, bk.x - bk.r - 1.5);
+            maxX = Math.max(maxX, bk.x + bk.r + 1.5);
+            minZ = Math.min(minZ, bk.z - bk.r - 1.5);
+            maxZ = Math.max(maxZ, bk.z + bk.r + 1.5);
+          }
+        });
+
+        // 그린 주변에 공이 있을 경우 공 위치도 함께 확대 뷰에 수용
+        if (Math.hypot(simState.ballPos.x - activeG.centerX, simState.ballPos.z - activeG.centerZ) < 42) {
+          minX = Math.min(minX, simState.ballPos.x - 3.5);
+          maxX = Math.max(maxX, simState.ballPos.x + 3.5);
+          minZ = Math.min(minZ, simState.ballPos.z - 3.5);
+          maxZ = Math.max(maxZ, simState.ballPos.z + 3.5);
+        }
+      } else {
+        minX = Math.min(lgX - hole.leftGreen.width * 0.72, rgX - hole.rightGreen.width * 0.72);
+        maxX = Math.max(lgX + hole.leftGreen.width * 0.72, rgX + hole.rightGreen.width * 0.72);
+        minZ = Math.min(lgZ - hole.leftGreen.depth * 0.72, rgZ - hole.rightGreen.depth * 0.72);
+        maxZ = Math.max(lgZ + hole.leftGreen.depth * 0.72, rgZ + hole.rightGreen.depth * 0.72);
+
+        const midZAll = (minZ + maxZ) * 0.5;
+        hole.bunkers.forEach(bk => {
+          if (Math.abs(bk.z - midZAll) < 65) {
+            minX = Math.min(minX, bk.x - bk.r - 3);
+            maxX = Math.max(maxX, bk.x + bk.r + 3);
+            minZ = Math.min(minZ, bk.z - bk.r - 3);
+            maxZ = Math.max(maxZ, bk.z + bk.r + 3);
+          }
+        });
+      }
+
+      const midZ = (minZ + maxZ) * 0.5;
+      const minSpan = simState.greenZoomSingle ? 28 : 48;
+      const spanX = Math.max(minSpan, maxX - minX);
+      const spanZ = Math.max(minSpan, maxZ - minZ);
+      const cxWorld = (minX + maxX) * 0.5;
+      const czWorld = (minZ + maxZ) * 0.5;
+
+      const padLeft = 18;
+      const padRight = 44;
+      const padTop = 18;
+      const padBottom = 18;
+      const availW = Math.max(100, w - padLeft - padRight);
+      const availH = Math.max(100, h - padTop - padBottom);
+      const scale = Math.min(availW / spanX, availH / spanZ);
+
+      const cxCanvas = padLeft + availW * 0.5;
+      const cyCanvas = padTop + availH * 0.5;
+
+      const worldToCanvas = (wx, wz) => ({
+        x: cxCanvas + (wx - cxWorld) * scale,
+        y: cyCanvas - (wz - czWorld) * scale
+      });
+
+      const canvasToWorld = (px, py) => ({
+        x: cxWorld + (px - cxCanvas) / scale,
+        z: czWorld - (py - cyCanvas) / scale
+      });
+
+      return { worldToCanvas, canvasToWorld, scale, lgX, lgZ, rgX, rgZ, midZ };
+    }
+
+    function renderGreenLandingMap() {
+      const rect = greenCanvas.parentElement.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const dpr = getHiDPIScale();
+      const w = rect.width;
+      const h = rect.height;
+      greenCanvas.width = Math.round(w * dpr);
+      greenCanvas.height = Math.round(h * dpr);
+
+      const ctx = greenCanvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+
+      const hole = getCurrentHole();
+      const activeG = getActiveGreenInfo();
+      const pinPos = getPinWorldPos();
+      const targetPos = getTargetWorldPos();
+      const proj = createGreenMapProjector(w, h);
+
+      ctx.fillStyle = '#244d20';
+      ctx.fillRect(0, 0, w, h);
+
+      const drawYardageGreenShape = (gxWorld, gzWorld, gSpec, isSelected) => {
+        const cPt = proj.worldToCanvas(gxWorld, gzWorld);
+        const rx = (gSpec.width * 0.5) * proj.scale;
+        const ry = (gSpec.depth * 0.5) * proj.scale;
+
+        ctx.fillStyle = '#38762e';
+        ctx.beginPath();
+        ctx.ellipse(cPt.x, cPt.y, rx * 1.15, ry * 1.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cPt.x, cPt.y - ry);
+        ctx.bezierCurveTo(cPt.x + rx * 1.15, cPt.y - ry, cPt.x + rx * 1.1, cPt.y + ry * 0.2, cPt.x + rx * 0.7, cPt.y + ry * 0.85);
+        ctx.bezierCurveTo(cPt.x + rx * 0.3, cPt.y + ry * 1.1, cPt.x - rx * 0.5, cPt.y + ry * 1.05, cPt.x - rx * 0.85, cPt.y + ry * 0.55);
+        ctx.bezierCurveTo(cPt.x - rx * 1.15, cPt.y - ry * 0.1, cPt.x - rx * 0.85, cPt.y - ry, cPt.x, cPt.y - ry);
+        ctx.closePath();
+        ctx.save();
+        ctx.clip();
+
+        const gridN = 40;
+        const cellW = (rx * 2.3) / gridN;
+        const cellH = (ry * 2.2) / gridN;
+        for (let gx = 0; gx < gridN; gx++) {
+          for (let gy = 0; gy < gridN; gy++) {
+            const normX = -1.1 + (gx + 0.5) * (2.2 / gridN);
+            const normZ = 1.1 - (gy + 0.5) * (2.2 / gridN);
+            const elev = sampleGreenElevation(normX, normZ, gSpec.topo);
+            const band = getYardageGreenBandColor(elev);
+            ctx.fillStyle = band.css;
+            ctx.fillRect(cPt.x - rx * 1.15 + gx * cellW, cPt.y - ry * 1.1 + gy * cellH, cellW + 0.5, cellH + 0.5);
+          }
+        }
+
+        if (gSpec.topo.tier > 0.45) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+          ctx.setLineDash([4, 2.5]);
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(cPt.x - rx, cPt.y - 2);
+          ctx.quadraticCurveTo(cPt.x, cPt.y + 4, cPt.x + rx, cPt.y - 4);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 10px Inter, sans-serif';
+          ctx.fillText('2단 그린', cPt.x - 24, cPt.y - 8);
+        }
+
+        ctx.restore();
+
+        ctx.strokeStyle = isSelected ? '#fef08a' : '#143d12';
+        ctx.lineWidth = isSelected ? 2.6 : 1.8;
+        ctx.stroke();
+
+        // 확대 모드 시 5m 보조 격자 + 10m 주 격자 표시
+        if (simState.greenZoomSingle && isSelected) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+          ctx.setLineDash([1.5, 2.5]);
+          ctx.lineWidth = 0.75;
+          [-0.75, -0.25, 0.25, 0.75].forEach(r => {
+            ctx.beginPath();
+            ctx.moveTo(cPt.x + r * rx * 1.1, cPt.y - ry * 1.05);
+            ctx.lineTo(cPt.x + r * rx * 1.1, cPt.y + ry * 1.05);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cPt.x - rx * 1.05, cPt.y + r * ry);
+            ctx.lineTo(cPt.x + rx * 1.05, cPt.y + r * ry);
+            ctx.stroke();
+          });
+        }
+
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.62)';
+        ctx.setLineDash([2.5, 2.5]);
+        ctx.lineWidth = 1.05;
+        [-0.5, 0, 0.5].forEach(r => {
+          ctx.beginPath();
+          ctx.moveTo(cPt.x + r * rx * 1.4, cPt.y - ry * 1.08);
+          ctx.lineTo(cPt.x + r * rx * 1.4, cPt.y + ry * 1.08);
+          ctx.stroke();
+        });
+        [1, 0.33, -0.33, -1].forEach((r, idx) => {
+          const gy = cPt.y + r * ry;
+          ctx.beginPath();
+          ctx.moveTo(cPt.x - rx * 1.08, gy);
+          ctx.lineTo(cPt.x + rx * 1.08, gy);
+          ctx.stroke();
+          if (isSelected) {
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 9px JetBrains Mono, monospace';
+            const labelX = simState.activeGreenSide === 'RIGHT' ? cPt.x + rx * 1.1 : cPt.x - rx * 1.1 - 24;
+            ctx.fillText(`${idx * 10}m`, labelX, gy + 3);
+          }
+        });
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(cPt.x, cPt.y, 3.0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.fillText('Center Point', cPt.x + 5, cPt.y + 9);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cPt.x, cPt.y + ry, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 10px JetBrains Mono, monospace';
+        ctx.fillText(gSpec === hole.leftGreen ? '18' : '19', cPt.x - 6, cPt.y + ry + 12);
+
+        ctx.restore();
+      };
+
+      if (simState.greenZoomSingle) {
+        if (simState.activeGreenSide === 'LEFT') {
+          drawYardageGreenShape(proj.lgX, proj.lgZ, hole.leftGreen, true);
+        } else {
+          drawYardageGreenShape(proj.rgX, proj.rgZ, hole.rightGreen, true);
+        }
+      } else {
+        drawYardageGreenShape(proj.lgX, proj.lgZ, hole.leftGreen, simState.activeGreenSide === 'LEFT');
+        drawYardageGreenShape(proj.rgX, proj.rgZ, hole.rightGreen, simState.activeGreenSide === 'RIGHT');
+      }
+
+      hole.bunkers.forEach(bk => {
+        const distCheck = simState.greenZoomSingle
+          ? Math.hypot(bk.x - activeG.centerX, bk.z - activeG.centerZ) < 28
+          : Math.abs(bk.z - proj.midZ) < 65;
+        if (distCheck) {
+          const bPt = proj.worldToCanvas(bk.x, bk.z);
+          const br = Math.max(7, bk.r * proj.scale);
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.ellipse(bPt.x, bPt.y, br * 1.15, br * 0.85, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.3;
+          ctx.stroke();
+
+          ctx.fillStyle = '#dc2626';
+          ctx.font = 'bold 9px JetBrains Mono, monospace';
+          ctx.fillText(bk.label.split('/')[0], bPt.x - 6, bPt.y + 3);
+        }
+      });
+
+      const legX = w - 34;
+      const legY = h - 70;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 0.8;
+      ctx.fillRect(legX - 2, legY - 10, 30, 72);
+      ctx.strokeRect(legX - 2, legY - 10, 30, 72);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 8.5px Inter, sans-serif';
+      ctx.fillText('high', legX + 3, legY - 2);
+      const bandHexes = ['#1b5e20', '#2e7d32', '#43a047', '#66bb6a', '#a5d6a7', '#dcedc8'];
+      bandHexes.forEach((cHex, idx) => {
+        ctx.fillStyle = cHex;
+        ctx.fillRect(legX + 2, legY + idx * 8, 22, 7.5);
+      });
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('low', legX + 5, legY + 58);
+
+      const tCanvas = proj.worldToCanvas(targetPos.x, targetPos.z);
+      const pCanvas = proj.worldToCanvas(pinPos.x, pinPos.z);
+      const bCanvas = proj.worldToCanvas(simState.ballPos.x, simState.ballPos.z);
+
+      const clampedBallX = Math.max(12, Math.min(w - 42, bCanvas.x));
+      const clampedBallY = Math.max(12, Math.min(h - 12, bCanvas.y));
+
+      // 공 -> 목표 랜딩존 공략 라인
+      ctx.strokeStyle = '#fef08a';
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1.7;
+      ctx.beginPath();
+      ctx.moveTo(clampedBallX, clampedBallY);
+      ctx.lineTo(tCanvas.x, tCanvas.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 목표 랜딩존에서 그린 경사 및 스팀프미터에 따른 예상 브레이크 가이드라인
+      const stimpEst = (simState.env.greenSpeedStimp / 3.0) * 3.8;
+      const estEndPt = proj.worldToCanvas(
+        targetPos.x - activeG.topo.slopeX * stimpEst,
+        targetPos.z + (targetPos.z - simState.ballPos.z) * 0.14 - activeG.topo.slopeZ * stimpEst
+      );
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.75)';
+      ctx.setLineDash([2.5, 2.5]);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(tCanvas.x, tCanvas.y);
+      ctx.quadraticCurveTo(
+        (tCanvas.x + estEndPt.x) * 0.5,
+        tCanvas.y,
+        estEndPt.x,
+        estEndPt.y
+      );
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(clampedBallX, clampedBallY, 4.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.fillStyle = '#fef08a';
+      ctx.font = 'bold 9.5px Inter, sans-serif';
+      ctx.fillText(`BALL (${simState.currentLie})`, clampedBallX + 7, clampedBallY + 3);
+
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(tCanvas.x, tCanvas.y, 6.2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(pCanvas.x, pCanvas.y, 4.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('PIN', pCanvas.x + 7, pCanvas.y - 3);
+
+      // 착지점(LAND) -> 곡선 공구름 궤적(rollPath) -> 최종 정지점(STOP) & 리플레이 애니메이션 마커
+      if (simState.lastShotMarker) {
+        const mk = simState.lastShotMarker;
+        const lPt = proj.worldToCanvas(mk.landX, mk.landZ);
+        const sPt = proj.worldToCanvas(mk.finalX, mk.finalZ);
+        const rPath = mk.rollPath && mk.rollPath.length >= 2
+          ? mk.rollPath
+          : [{ x: mk.landX, z: mk.landZ }, { x: mk.finalX, z: mk.finalZ }];
+
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        rPath.forEach((rp, idx) => {
+          const cPt = proj.worldToCanvas(rp.x, rp.z);
+          if (idx === 0) ctx.moveTo(cPt.x, cPt.y);
+          else ctx.lineTo(cPt.x, cPt.y);
+        });
+        ctx.stroke();
+
+        // 착지점(LAND) + 바운스 링
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.6)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(lPt.x, lPt.y, 8.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(lPt.x, lPt.y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+        ctx.fillText('LAND', lPt.x + 7, lPt.y - 4);
+
+        // 최종 정지점(STOP)
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(sPt.x, sPt.y, 5.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        ctx.fillStyle = '#a7f3d0';
+        ctx.fillText('STOP', sPt.x + 7, sPt.y + 10);
+
+        // 리플레이 진행 중 이동 중인 공 표시
+        if (simState.isReplayingRoll) {
+          const animIdx = Math.min(rPath.length - 1, Math.floor(simState.rollAnimProg * (rPath.length - 1)));
+          const animWorld = rPath[animIdx];
+          const animCanvas = proj.worldToCanvas(animWorld.x, animWorld.z);
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(animCanvas.x, animCanvas.y, 6.0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2.0;
+          ctx.stroke();
+        }
+
+        const rollM = Math.hypot(mk.finalX - mk.landX, mk.finalZ - mk.landZ).toFixed(1);
+        document.getElementById('disp-land-stop-delta').textContent = `${rollM}m 구름`;
+        document.getElementById('disp-land-stop-coords').textContent =
+          `LAND (${(mk.landX - activeG.centerX).toFixed(1)}m, ${(mk.landZ - activeG.centerZ).toFixed(1)}m) → STOP (${(mk.finalX - activeG.centerX).toFixed(1)}m, ${(mk.finalZ - activeG.centerZ).toFixed(1)}m)`;
+      }
+    }
+
+    // =========================================================
+    // 8. 전체 UI 동기화 (syncAllUI)
+    // =========================================================
+    function syncAllUI() {
+      const hole = getCurrentHole();
+      const activeG = getActiveGreenInfo();
+      const pinPos = getPinWorldPos();
+      const targetPos = getTargetWorldPos();
+
+      const lDist = hole.teesLeft[simState.teeKey];
+      const rDist = hole.teesRight[simState.teeKey];
+      document.getElementById('disp-hole-meta').textContent =
+        `${hole.no}H · PAR ${hole.par} · HDCP ${hole.hdcp} · 좌 ${lDist}m / 우 ${rDist}m`;
+      document.getElementById('disp-pro-tip').textContent = hole.proTip;
+
+      const completedCount = Object.keys(simState.roundScores).length;
+      document.getElementById('round-score-summary').textContent = simState.trainingMode === 'CHIP_LAB'
+        ? `칩샷 훈련: ${simState.chipSuccessCount}/${simState.chipDrillCount}회 핀 3m 이내`
+        : `라운드 기록: ${completedCount}/18H 완료`;
+
+      const btnUndo = document.getElementById('btn-undo-shot');
+      if (btnUndo) {
+        btnUndo.disabled = simState.isFlying || simState.isReplayingRoll || simState.historyStack.length === 0;
+      }
+
+      const btnReplay = document.getElementById('btn-replay-roll');
+      const btnRehit = document.getElementById('btn-rehit-same-spot');
+      if (btnReplay) btnReplay.disabled = simState.isFlying || simState.isReplayingRoll || !simState.lastShotMarker;
+      if (btnRehit) btnRehit.disabled = simState.isFlying || simState.isReplayingRoll || !simState.preLastShotState;
+
+      const btnZoomToggle = document.getElementById('btn-toggle-green-zoom');
+      if (btnZoomToggle) {
+        btnZoomToggle.textContent = simState.greenZoomSingle ? '🔍 선택 그린 확대' : '🗺️ 투그린 전체';
+      }
+
+      const btnRound = document.getElementById('btn-mode-round');
+      const btnChipLab = document.getElementById('btn-mode-chip-lab');
+      const chipBanner = document.getElementById('chip-lab-banner');
+      const isLab = simState.trainingMode === 'CHIP_LAB';
+      btnRound.className = !isLab
+        ? 'px-2.5 py-1 rounded-md text-[11px] font-extrabold bg-emerald-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-[11px] font-extrabold text-slate-300 hover:text-white transition';
+      btnChipLab.className = isLab
+        ? 'px-2.5 py-1 rounded-md text-[11px] font-extrabold bg-amber-500 text-slate-950 transition'
+        : 'px-2.5 py-1 rounded-md text-[11px] font-extrabold text-amber-300 hover:text-white transition';
+      chipBanner.classList.toggle('hidden', !isLab);
+
+      const allHoles = build18HolesForCourse(simState.venueKey, simState.courseKey, simState.virtualSeed);
+      const selHole = document.getElementById('sel-hole');
+      selHole.innerHTML = '';
+      for (let h = 1; h <= 18; h++) {
+        const hInfo = allHoles[h - 1];
+        const parTag = hInfo ? `P${hInfo.par}` : 'P4';
+        const sKey = `${simState.venueKey}-${simState.courseKey}-${h}`;
+        const doneScore = simState.roundScores[sKey];
+        const opt = document.createElement('option');
+        opt.value = String(h);
+        opt.textContent = doneScore ? `${h}H(${parTag}) · ✓ ${doneScore}타` : `${h}H(${parTag})`;
+        if (h === simState.currentHoleNo) opt.selected = true;
+        selHole.appendChild(opt);
+      }
+
+      const selTee = document.getElementById('sel-tee');
+      selTee.options[0].text = `Black Championship (${hole.teesLeft.BLACK}/${hole.teesRight.BLACK}m)`;
+      selTee.options[1].text = `Blue Back (${hole.teesLeft.BLUE}/${hole.teesRight.BLUE}m)`;
+      selTee.options[2].text = `White Regular (${hole.teesLeft.WHITE}/${hole.teesRight.WHITE}m)`;
+      selTee.options[3].text = `Yellow Senior (${hole.teesLeft.YELLOW}/${hole.teesRight.YELLOW}m)`;
+      selTee.options[4].text = `Red Ladies (${hole.teesLeft.RED}/${hole.teesRight.RED}m)`;
+      selTee.value = simState.teeKey;
+
+      document.querySelectorAll('.green-side-btn').forEach(btn => {
+        const active = btn.dataset.greenSide === simState.activeGreenSide;
+        btn.className = active
+          ? 'green-side-btn py-1 rounded-md text-[11px] font-extrabold bg-emerald-600 text-white transition'
+          : 'green-side-btn py-1 rounded-md text-[11px] font-extrabold text-slate-300 hover:text-white transition';
+      });
+
+      document.getElementById('sel-pin').value = simState.pinKey;
+
+      const selImpact = document.getElementById('sel-impact-grade');
+      const lockBtn = document.getElementById('btn-lock-impact');
+      selImpact.disabled = simState.impactLocked;
+      lockBtn.textContent = simState.impactLocked ? '🔒 고정됨' : '🔓 변경가능';
+      lockBtn.className = simState.impactLocked
+        ? 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 border border-amber-400/50 text-amber-300'
+        : 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-600 text-slate-300';
+
+      document.getElementById('env-wind').textContent = `${simState.env.windDirLabel} ${simState.env.windSpeed}m/s`;
+      document.getElementById('env-temp').textContent = `${simState.env.tempC}°C · ${simState.env.surface.wet ? '습윤' : '건조'}`;
+      document.getElementById('env-elev').textContent = `${simState.env.elevDelta >= 0 ? '+' : ''}${simState.env.elevDelta}m ${simState.env.elevDelta >= 0 ? '오르막' : '내리막'}`;
+
+      const selWood = document.getElementById('sel-club-wood');
+      const selIron = document.getElementById('sel-club-iron');
+      const selWedge = document.getElementById('sel-club-wedge');
+      const woodIds = ['DRIVER', '3W', '5W'];
+      const ironIds = ['3U', '4I', '5I', '6I', '7I', '8I', '9I', 'PW'];
+      const wedgeIds = ['W48', 'W50', 'W52', 'W54', 'W56', 'W58', 'W60'];
+
+      const fillCatSelect = (el, ids, placeholder) => {
+        el.innerHTML = '';
+        const phOpt = document.createElement('option');
+        phOpt.value = '';
+        phOpt.textContent = placeholder;
+        el.appendChild(phOpt);
+
+        let matched = false;
+        ids.forEach(id => {
+          const c = simState.bag.find(item => item.id === id);
+          if (!c) return;
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.name.split(' (')[0]} (${c.carry}m)`;
+          if (c.id === simState.selectedClubId) {
+            opt.selected = true;
+            matched = true;
+          }
+          el.appendChild(opt);
+        });
+        if (!matched) phOpt.selected = true;
+        el.className = matched
+          ? 'w-full bg-slate-950 border border-emerald-500 rounded-lg px-1.5 py-1.5 text-[11px] font-bold text-emerald-300'
+          : 'w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold text-slate-400';
+      };
+
+      fillCatSelect(selWood, woodIds, '-- 우드 --');
+      fillCatSelect(selIron, ironIds, '-- 유틸/아이언 --');
+      fillCatSelect(selWedge, wedgeIds, '-- 웨지 --');
+
+      const curClub = simState.bag.find(c => c.id === simState.selectedClubId) || simState.bag[0];
+      const scaledC = Math.round(curClub.carry * (simState.swingPowerPct / 100));
+      document.getElementById('disp-club-spec').textContent = `[${curClub.name.split(' (')[0]}] 캐리 ${scaledC}m (${simState.swingPowerPct}%)`;
+
+      document.getElementById('slider-aim').value = String(simState.aimOffsetX);
+      document.getElementById('disp-aim-offset').textContent = simState.aimOffsetX === 0
+        ? '0° (중앙)'
+        : `${simState.aimOffsetX > 0 ? '우측 +' : '좌측 '}${simState.aimOffsetX}°`;
+
+      document.getElementById('slider-power').value = String(simState.swingPowerPct);
+      document.getElementById('disp-swing-power').textContent = `${simState.swingPowerPct}%`;
+
+      document.querySelectorAll('.shape-btn').forEach(b => {
+        b.className = b.dataset.shape === simState.shotShape
+          ? 'shape-btn py-1 rounded text-[10px] font-bold border border-cyan-500 bg-cyan-500/20 text-cyan-300'
+          : 'shape-btn py-1 rounded text-[10px] font-bold border border-slate-700 bg-slate-800 text-slate-300';
+      });
+
+      document.getElementById('disp-current-lie').textContent = `현재 라이: ${simState.currentLie}`;
+
+      document.getElementById('sel-chip-surface').value = simState.env.surface.id;
+      const st = Number(simState.env.greenSpeedStimp || 3.0);
+      document.getElementById('slider-stimp').value = st.toFixed(1);
+      const speedDesc = st <= 2.6 ? '느린 그린' : st <= 3.1 ? '투어 표준' : st <= 3.4 ? '빠른 그린' : '토너먼트 빠름';
+      document.getElementById('disp-stimp-val').textContent = `${st.toFixed(1)} m (${speedDesc})`;
+
+      document.querySelectorAll('.stimp-preset-btn').forEach(b => {
+        const diff = Math.abs(Number(b.dataset.stimp) - st);
+        b.className = diff < 0.06
+          ? 'stimp-preset-btn py-0.5 rounded text-[10px] font-semibold border border-emerald-500 bg-emerald-500/20 text-emerald-300'
+          : 'stimp-preset-btn py-0.5 rounded text-[10px] font-semibold border border-slate-700 bg-slate-800 text-slate-300';
+      });
+
+      document.querySelectorAll('.chip-tech-btn').forEach(b => {
+        b.className = b.dataset.chiptech === simState.chipTechnique
+          ? 'chip-tech-btn py-1.5 px-2 rounded-lg text-left border border-amber-400 bg-amber-500/20 text-amber-200'
+          : 'chip-tech-btn py-1.5 px-2 rounded-lg text-left border border-slate-700 bg-slate-800 text-slate-300';
+      });
+
+      const distToPin = Math.hypot(pinPos.x - simState.ballPos.x, pinPos.z - simState.ballPos.z);
+      const distToTarget = Math.hypot(targetPos.x - simState.ballPos.x, targetPos.z - simState.ballPos.z);
+      const windRad = (simState.env.windDirDeg * Math.PI) / 180;
+      const headTail = Math.cos(windRad) * simState.env.windSpeed;
+      const playAs = Math.max(1, distToTarget + headTail * (distToTarget * 0.011) + simState.env.elevDelta * 0.85);
+
+      document.getElementById('disp-play-as').textContent = `핀 실측 ${distToPin.toFixed(1)}m · 체감 ${playAs.toFixed(1)}m`;
+      document.getElementById('disp-landing-zone').textContent = simState.greenLandingTarget.customSelected
+        ? `(${simState.greenLandingTarget.x >= 0 ? '+' : ''}${simState.greenLandingTarget.x.toFixed(1)}m, ${simState.greenLandingTarget.zOffset >= 0 ? '+' : ''}${simState.greenLandingTarget.zOffset.toFixed(1)}m)`
+        : `Center (${simState.pinKey})`;
+      document.getElementById('disp-landing-dist').textContent = `${distToTarget.toFixed(1)}m`;
+
+      const topo = activeG.topo;
+      document.getElementById('green-slope-tag').textContent =
+        `${simState.activeGreenSide === 'LEFT' ? '좌그린' : '우그린'} · ${topo.tier > 0.45 ? '2단 그린' : '완만'}`;
+
+      const tNormX = (targetPos.x - activeG.centerX) / (activeG.width * 0.5);
+      const tNormZ = (targetPos.z - activeG.centerZ) / (activeG.depth * 0.5);
+      const tElev = Math.max(0.20, getGreenSurface3DY(tNormX, tNormZ, activeG.topo)) + 0.05;
+      landingRingMesh.position.set(-targetPos.x, tElev, targetPos.z);
+
+      renderYardageCourseMap();
+      renderGreenLandingMap();
+    }
+
+    function populateCourseDropdown() {
+      const selCourse = document.getElementById('sel-course');
+      const list = VENUE_COURSES[simState.venueKey] || [];
+      selCourse.innerHTML = '';
+      list.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.key;
+        opt.textContent = c.label;
+        selCourse.appendChild(opt);
+      });
+      simState.courseKey = list[0]?.key || 'EAST';
+      document.getElementById('btn-reroll-virtual').classList.toggle('hidden', simState.venueKey !== 'VIRTUAL');
+    }
+
+    function resetHolePlay(rerollEnv = false) {
+      if (rerollEnv) simState.env = createRandomEnv();
+      simState.ballPos = { x: 0, z: 0 };
+      simState.currentLie = 'TEE';
+      simState.shotLogs = [];
+      simState.shotMarkers = [];
+      simState.historyStack = [];
+      simState.isFlying = false;
+      simState.isReplayingRoll = false;
+      simState.activeFlight = null;
+      simState.aimOffsetX = 0;
+      simState.swingPowerPct = 100;
+      simState.chipModeActive = false;
+      simState.greenLandingTarget = { x: 0, zOffset: 0, customSelected: false };
+      simState.lastShotMarker = null;
+      simState.preLastShotState = null;
+      const hole = getCurrentHole();
+      simState.selectedClubId = hole.par === 3 ? '7I' : 'DRIVER';
+
+      while (trailGroup.children.length > 0) trailGroup.remove(trailGroup.children[0]);
+      rebuild3DCourse();
+      syncAllUI();
+
+      document.getElementById('hole-status-badge').textContent = '티샷 준비';
+      document.getElementById('badge-decision-grade').textContent = '판정 대기';
+      document.getElementById('disp-land-stop-delta').textContent = '대기 중';
+      document.getElementById('disp-land-stop-coords').textContent = 'LAND → STOP: 샷 후 자동 계측';
+      document.getElementById('res-smash').textContent = '-';
+      document.getElementById('res-dist').textContent = '-';
+      document.getElementById('res-landing-lie').textContent = '-';
+      document.getElementById('res-rem-dist').textContent = '-';
+      document.getElementById('shot-history-count').textContent = '누적 샷: 0타';
+      document.getElementById('shot-log-strip').innerHTML = '<span>홀 진행 로그: 티박스 대기 중</span>';
+    }
+
+    function setupChipLabDrill(scenarioKey = simState.chipScenario, clearHistory = true) {
+      const activeG = getActiveGreenInfo();
+      const scenario = scenarioKey === 'RANDOM'
+        ? ['SHORT_SIDE_ROUGH', 'UPHILL_TIER', 'FAST_DOWNHILL', 'WET_DEW_LIE', 'TIGHT_HARDPAN'][Math.floor(Math.random() * 5)]
+        : scenarioKey;
+
+      let sideSign = Math.random() < 0.5 ? -1 : 1;
+      let offsetSide = activeG.width * 0.5 + 3.5 + Math.random() * 4.5;
+      let offsetFront = -(activeG.depth * 0.48 + 3.0 + Math.random() * 4.5);
+      let desc = '';
+
+      if (scenario === 'SHORT_SIDE_ROUGH') {
+        simState.pinKey = 'FRONT_LEFT';
+        sideSign = -1;
+        offsetSide = activeG.width * 0.5 + 3.2;
+        offsetFront = -activeG.depth * 0.28;
+        simState.env.surface = SURFACE_PRESETS.KOREAN_FLUFFY;
+        simState.env.greenSpeedStimp = 3.2;
+        desc = '[시나리오 1: 앞핀 숏사이드 러프] 상단 3D 그린뷰 어디든 클릭해 공 위치를 옮길 수 있습니다.';
+      } else if (scenario === 'UPHILL_TIER') {
+        simState.pinKey = 'BACK_RIGHT';
+        sideSign = 0.2;
+        offsetSide = 3.0;
+        offsetFront = -(activeG.depth * 0.5 + 3.5);
+        simState.env.surface = SURFACE_PRESETS.DRY_BENT;
+        simState.env.greenSpeedStimp = 3.0;
+        desc = '[시나리오 2: 2단 그린 오르막 프린지] 그린 앞쪽 랜딩존에 떨어뜨려 PW 또는 52° 런닝샷으로 2단 경사를 태워 올리십시오.';
+      } else if (scenario === 'FAST_DOWNHILL') {
+        simState.pinKey = 'FRONT_CENTER';
+        sideSign = 0.3;
+        offsetSide = 4.0;
+        offsetFront = activeG.depth * 0.5 + 3.5;
+        simState.env.surface = SURFACE_PRESETS.DRY_BENT;
+        simState.env.greenSpeedStimp = 3.6;
+        desc = '[시나리오 3: 스팀프 3.6m 내리막 유리알] 핀 뒤쪽에서 앞핀 내리막 칩샷입니다. 최소 캐리 지점을 노리십시오.';
+      } else if (scenario === 'WET_DEW_LIE') {
+        simState.pinKey = 'MID_RIGHT';
+        sideSign = 1;
+        offsetSide = activeG.width * 0.5 + 4.2;
+        offsetFront = -4.5;
+        simState.env.surface = SURFACE_PRESETS.WET_DEW;
+        simState.env.greenSpeedStimp = 2.8;
+        desc = '[시나리오 4: 습윤·이슬 역결 라이] 리딩에지 다운블로 시 플라이어 런이 발생합니다. 바운스 슬라이딩 또는 54° 런닝샷이 유리합니다.';
+      } else {
+        simState.pinKey = 'CENTER';
+        sideSign = -1;
+        offsetSide = activeG.width * 0.5 + 3.5;
+        offsetFront = -4.0;
+        simState.env.surface = SURFACE_PRESETS.TIGHT_HARDPAN;
+        simState.env.greenSpeedStimp = 3.3;
+        desc = '[시나리오 5: 타이트 맨땅(Hardpan)] 리딩에지 다운블로(투바운드 체크) 또는 런닝샷을 활용하십시오.';
+      }
+
+      const spotX = Number((activeG.centerX + sideSign * offsetSide).toFixed(1));
+      const spotZ = Number((activeG.centerZ + offsetFront).toFixed(1));
+      const detectedLie = classifyPointLie(spotX, spotZ).lie;
+
+      simState.ballPos = { x: spotX, z: spotZ };
+      simState.chipSavedSpot = { x: spotX, z: spotZ, lie: detectedLie };
+      simState.currentLie = detectedLie;
+      simState.chipModeActive = true;
+      simState.selectedClubId = 'W56';
+      simState.greenLandingTarget = { x: 0, zOffset: -Math.round(activeG.depth * 0.2), customSelected: true };
+
+      if (clearHistory) {
+        simState.shotLogs = [];
+        simState.shotMarkers = [];
+        simState.historyStack = [];
+        simState.lastShotMarker = null;
+        simState.preLastShotState = null;
+        while (trailGroup.children.length > 0) trailGroup.remove(trailGroup.children[0]);
+      }
+
+      simState.cameraMode = 'GREEN';
+      simState.camOrbitYaw = 0;
+      document.querySelectorAll('.cam-btn').forEach(x => {
+        x.className = x.dataset.cam === 'GREEN'
+          ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition'
+          : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+      });
+
+      rebuild3DCourse();
+      syncAllUI();
+
+      document.getElementById('hole-status-badge').textContent = `🎯 칩샷 훈련 (${detectedLie})`;
+      document.getElementById('coach-feedback-text').textContent = desc;
+    }
+
+    // =========================================================
+    // 9. 이벤트 바인딩 & 공구름 리플레이 · 동일 위치 재샷 · 3D 클릭
+    // =========================================================
+    document.getElementById('btn-mode-round').addEventListener('click', () => {
+      simState.trainingMode = 'ROUND';
+      resetHolePlay(false);
+      SoundFX.tap(800);
+    });
+
+    document.getElementById('btn-mode-chip-lab').addEventListener('click', () => {
+      simState.trainingMode = 'CHIP_LAB';
+      setupChipLabDrill(simState.chipScenario, true);
+      SoundFX.tap(880);
+    });
+
+    document.getElementById('sel-chip-scenario').addEventListener('change', (e) => {
+      simState.chipScenario = e.target.value;
+      setupChipLabDrill(simState.chipScenario, true);
+      SoundFX.tap(820);
+    });
+
+    document.getElementById('chk-chip-repeat-spot').addEventListener('change', (e) => {
+      simState.chipRepeatSameSpot = e.target.checked;
+      SoundFX.tap(760);
+    });
+
+    document.getElementById('btn-chip-next-drill').addEventListener('click', () => {
+      setupChipLabDrill(simState.chipScenario, true);
+      SoundFX.tap(880);
+    });
+
+    document.getElementById('sel-venue').addEventListener('change', (e) => {
+      simState.venueKey = e.target.value;
+      populateCourseDropdown();
+      if (simState.trainingMode === 'CHIP_LAB') setupChipLabDrill(simState.chipScenario, true);
+      else resetHolePlay(true);
+      SoundFX.tap(820);
+    });
+
+    document.getElementById('sel-course').addEventListener('change', (e) => {
+      simState.courseKey = e.target.value;
+      if (simState.trainingMode === 'CHIP_LAB') setupChipLabDrill(simState.chipScenario, true);
+      else resetHolePlay(true);
+      SoundFX.tap(800);
+    });
+
+    document.getElementById('btn-reroll-virtual').addEventListener('click', () => {
+      simState.virtualSeed += 1;
+      resetHolePlay(true);
+      SoundFX.tap(900);
+    });
+
+    document.getElementById('sel-hole').addEventListener('change', (e) => {
+      simState.currentHoleNo = Number(e.target.value);
+      if (simState.trainingMode === 'CHIP_LAB') setupChipLabDrill(simState.chipScenario, true);
+      else resetHolePlay(true);
+      SoundFX.tap(800);
+    });
+
+    document.getElementById('sel-tee').addEventListener('change', (e) => {
+      simState.teeKey = e.target.value;
+      resetHolePlay(false);
+      SoundFX.tap(780);
+    });
+
+    document.querySelectorAll('.green-side-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        simState.activeGreenSide = btn.dataset.greenSide;
+        simState.greenLandingTarget = { x: 0, zOffset: 0, customSelected: false };
+        if (simState.trainingMode === 'CHIP_LAB') setupChipLabDrill(simState.chipScenario, true);
+        else {
+          rebuild3DCourse();
+          syncAllUI();
+        }
+        SoundFX.tap(840);
+      });
+    });
+
+    document.getElementById('btn-toggle-green-zoom').addEventListener('click', () => {
+      simState.greenZoomSingle = !simState.greenZoomSingle;
+      syncAllUI();
+      SoundFX.tap(820);
+    });
+
+    document.getElementById('btn-replay-roll').addEventListener('click', () => {
+      if (!simState.lastShotMarker || simState.isFlying || simState.isReplayingRoll) return;
+      simState.isReplayingRoll = true;
+      simState.rollAnimProg = 0;
+      syncAllUI();
+      SoundFX.tap(860);
+    });
+
+    document.getElementById('btn-rehit-same-spot').addEventListener('click', () => {
+      if (!simState.preLastShotState || simState.isFlying || simState.isReplayingRoll) return;
+      const prev = simState.preLastShotState;
+      simState.ballPos = { ...prev.ballPos };
+      simState.currentLie = prev.currentLie;
+      simState.chipModeActive = prev.chipModeActive;
+      simState.greenLandingTarget = { ...prev.greenLandingTarget };
+      updateBall3DHeight();
+      syncAllUI();
+      SoundFX.tap(880);
+      document.getElementById('coach-feedback-text').textContent =
+        `방금 샷을 쳤던 원래 위치(${simState.currentLie})로 복원되었습니다. 스팀프미터(2.4~3.8m), 표면 상태 또는 칩샷 방식을 바꾼 뒤 [⛳ 샷 실행]을 눌러 공구름 차이를 비교하십시오.`;
+    });
+
+    document.getElementById('sel-pin').addEventListener('change', (e) => {
+      simState.pinKey = e.target.value;
+      simState.greenLandingTarget = { x: 0, zOffset: 0, customSelected: false };
+      rebuild3DCourse();
+      syncAllUI();
+      SoundFX.tap(780);
+    });
+
+    ['sel-club-wood', 'sel-club-iron', 'sel-club-wedge'].forEach(elId => {
+      document.getElementById(elId).addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        simState.selectedClubId = e.target.value;
+        syncAllUI();
+        SoundFX.tap(760);
+      });
+    });
+
+    document.getElementById('btn-lock-impact').addEventListener('click', () => {
+      simState.impactLocked = !simState.impactLocked;
+      syncAllUI();
+      SoundFX.tap(860);
+    });
+
+    document.getElementById('sel-impact-grade').addEventListener('change', (e) => {
+      simState.smashNoiseSpan = Number(e.target.value);
+      syncAllUI();
+      SoundFX.tap(760);
+    });
+
+    document.getElementById('btn-reroll-env').addEventListener('click', () => {
+      const keepStimp = simState.env.greenSpeedStimp;
+      simState.env = createRandomEnv();
+      simState.env.greenSpeedStimp = keepStimp;
+      syncAllUI();
+      SoundFX.tap(820);
+    });
+
+    document.getElementById('slider-aim').addEventListener('input', (e) => {
+      simState.aimOffsetX = Number(e.target.value);
+      simState.greenLandingTarget.customSelected = false;
+      syncAllUI();
+    });
+
+    document.getElementById('slider-power').addEventListener('input', (e) => {
+      simState.swingPowerPct = Number(e.target.value);
+      syncAllUI();
+    });
+
+    document.querySelectorAll('.shape-btn').forEach(b => b.addEventListener('click', () => {
+      simState.shotShape = b.dataset.shape;
+      syncAllUI();
+      SoundFX.tap(760);
+    }));
+
+    document.getElementById('sel-chip-surface').addEventListener('change', (e) => {
+      simState.env.surface = SURFACE_PRESETS[e.target.value] || SURFACE_PRESETS.DRY_BENT;
+      syncAllUI();
+      SoundFX.tap(780);
+    });
+
+    document.querySelectorAll('.chip-tech-btn').forEach(b => b.addEventListener('click', () => {
+      simState.chipTechnique = b.dataset.chiptech;
+      simState.chipModeActive = true;
+      syncAllUI();
+      SoundFX.tap(820);
+    }));
+
+    document.getElementById('slider-stimp').addEventListener('input', (e) => {
+      simState.env.greenSpeedStimp = Number(e.target.value);
+      syncAllUI();
+    });
+
+    document.querySelectorAll('.stimp-preset-btn').forEach(b => b.addEventListener('click', () => {
+      simState.env.greenSpeedStimp = Number(b.dataset.stimp);
+      syncAllUI();
+      SoundFX.tap(790);
+    }));
+
+    document.getElementById('btn-sim-green-miss').addEventListener('click', () => {
+      const activeG = getActiveGreenInfo();
+      const sideSign = Math.random() < 0.5 ? -1 : 1;
+      const sx = activeG.centerX + sideSign * (activeG.width * 0.5 + 4 + Math.random() * 4.5);
+      const sz = activeG.centerZ - (activeG.depth * 0.5 + 4 + Math.random() * 4.5);
+      const lieRes = classifyPointLie(sx, sz).lie;
+      simState.ballPos = { x: sx, z: sz };
+      simState.currentLie = lieRes;
+      simState.chipModeActive = true;
+      simState.selectedClubId = 'W56';
+      simState.greenLandingTarget = { x: 0, zOffset: -Math.round(activeG.depth * 0.22), customSelected: true };
+
+      updateBall3DHeight();
+      drawFlightTrail(null, 0);
+
+      simState.cameraMode = 'GREEN';
+      document.querySelectorAll('.cam-btn').forEach(x => {
+        x.className = x.dataset.cam === 'GREEN'
+          ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition'
+          : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+      });
+
+      syncAllUI();
+      SoundFX.tap(880);
+      document.getElementById('coach-feedback-text').textContent =
+        `기존 홀 지형과 이전 샷 흔적을 유지한 채 ${simState.activeGreenSide === 'LEFT' ? '좌그린' : '우그린'} 주변(${simState.currentLie}, 스팀프 ${simState.env.greenSpeedStimp.toFixed(1)}m)으로 배치되었습니다.`;
+    });
+
+    document.querySelectorAll('.cam-btn').forEach(b => b.addEventListener('click', () => {
+      simState.cameraMode = b.dataset.cam;
+      simState.camOrbitYaw = 0;
+      document.querySelectorAll('.cam-btn').forEach(x => {
+        x.className = x.dataset.cam === simState.cameraMode
+          ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition'
+          : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+      });
+      SoundFX.tap(780);
+    }));
+
+    yardageCanvas.addEventListener('click', (e) => {
+      const rect = yardageCanvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const hole = getCurrentHole();
+      const pinPos = getPinWorldPos();
+      const worldX = ((px - rect.width * 0.56) / (rect.width - 44)) * 145 + hole.doglegX * 0.35;
+      simState.aimOffsetX = Math.max(-35, Math.min(35, Math.round(worldX - pinPos.x)));
+      simState.greenLandingTarget.customSelected = false;
+      syncAllUI();
+      SoundFX.tap(740);
+    });
+
+    greenCanvas.addEventListener('click', (e) => {
+      const rect = greenCanvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const proj = createGreenMapProjector(rect.width, rect.height);
+      const wPt = proj.canvasToWorld(px, py);
+      const activeG = getActiveGreenInfo();
+
+      simState.greenLandingTarget = {
+        x: Number(Math.max(-activeG.width * 0.48, Math.min(activeG.width * 0.48, wPt.x - activeG.centerX)).toFixed(1)),
+        zOffset: Number(Math.max(-activeG.depth * 0.48, Math.min(activeG.depth * 0.48, wPt.z - activeG.centerZ)).toFixed(1)),
+        customSelected: true
+      };
+      syncAllUI();
+      SoundFX.tap(850);
+    });
+
+    document.getElementById('btn-hit-shot').addEventListener('click', () => {
+      if (simState.isFlying || simState.isReplayingRoll) return;
+      saveHistorySnapshot();
+      simState.preLastShotState = {
+        ballPos: { ...simState.ballPos },
+        currentLie: simState.currentLie,
+        chipModeActive: simState.chipModeActive,
+        greenLandingTarget: { ...simState.greenLandingTarget }
+      };
+      const res = simulateShotWithNoise();
+      simState.activeFlight = res;
+      simState.isFlying = true;
+      simState.flightProg = 0;
+      syncAllUI();
+      SoundFX.impact(res.isWood);
+    });
+
+    document.getElementById('btn-undo-shot').addEventListener('click', () => {
+      undoLastShot();
+    });
+
+    document.getElementById('btn-reset-hole').addEventListener('click', () => {
+      if (simState.trainingMode === 'CHIP_LAB') setupChipLabDrill(simState.chipScenario, true);
+      else resetHolePlay(false);
+      SoundFX.tap(700);
+    });
+
+    document.getElementById('btn-next-hole').addEventListener('click', () => {
+      simState.currentHoleNo = simState.currentHoleNo >= 18 ? 1 : simState.currentHoleNo + 1;
+      if (simState.trainingMode === 'CHIP_LAB') setupChipLabDrill(simState.chipScenario, true);
+      else resetHolePlay(true);
+      SoundFX.tap(880);
+    });
+
+    // 클럽 백 모달
+    document.getElementById('btn-open-bag').addEventListener('click', () => {
+      const list = document.getElementById('bag-editor-list');
+      list.innerHTML = '';
+      simState.bag.forEach((c, idx) => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-12 gap-2 items-center bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs';
+        row.innerHTML = `
+          <span class="col-span-4 font-bold text-slate-200">${c.name}</span>
+          <label class="col-span-4 flex items-center gap-1 text-[10px] text-slate-400">캐리(m)
+            <input data-idx="${idx}" data-field="carry" type="number" value="${c.carry}" class="bag-inp w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono-num" />
+          </label>
+          <label class="col-span-4 flex items-center gap-1 text-[10px] text-slate-400">스핀
+            <input data-idx="${idx}" data-field="spin" type="number" step="100" value="${c.spin}" class="bag-inp w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono-num" />
+          </label>
+        `;
+        list.appendChild(row);
+      });
+      document.getElementById('bag-modal').classList.remove('hidden');
+      SoundFX.tap(800);
+    });
+
+    document.getElementById('btn-close-bag').addEventListener('click', () => {
+      document.getElementById('bag-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-reset-bag').addEventListener('click', () => {
+      simState.bag = JSON.parse(JSON.stringify(TOUR_DEFAULT_BAG));
+      document.getElementById('bag-modal').classList.add('hidden');
+      syncAllUI();
+      SoundFX.tap(750);
+    });
+
+    document.getElementById('btn-save-bag').addEventListener('click', () => {
+      document.querySelectorAll('.bag-inp').forEach(inp => {
+        const idx = Number(inp.dataset.idx);
+        const field = inp.dataset.field;
+        const val = Number(inp.value);
+        if (!Number.isNaN(val) && val > 0) simState.bag[idx][field] = val;
+      });
+      document.getElementById('bag-modal').classList.add('hidden');
+      syncAllUI();
+      SoundFX.tap(880);
+    });
+
+    // 3D 마우스/터치 회전, 줌 및 칩샷 훈련 모드 직접 클릭 공 위치 배치
+    const raycaster = new THREE.Raycaster();
+    const pointerNDC = new THREE.Vector2();
+    let isDragging3D = false;
+    let pointerMovedDist = 0;
+    let prevPointerX = 0;
+    let prevPointerY = 0;
+
+    function handle3DClickPlaceChipBall(clientX, clientY) {
+      if (simState.trainingMode !== 'CHIP_LAB' || !groundRaycastPlane) return;
+      const rect = canvas3D.getBoundingClientRect();
+      pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNDC, camera);
+      const hits = raycaster.intersectObject(groundRaycastPlane, false);
+      if (hits.length > 0) {
+        const pt = hits[0].point;
+        const worldX = -pt.x;
+        const worldZ = pt.z;
+        const activeG = getActiveGreenInfo();
+        const distFromGreen = Math.hypot(worldX - activeG.centerX, worldZ - activeG.centerZ);
+        if (distFromGreen <= 45) {
+          const lieEval = classifyPointLie(worldX, worldZ);
+          const placedLie = lieEval.lie === 'HAZARD' ? 'DEEP-ROUGH' : lieEval.lie;
+          simState.ballPos = { x: Number(worldX.toFixed(1)), z: Number(worldZ.toFixed(1)) };
+          simState.chipSavedSpot = { x: simState.ballPos.x, z: simState.ballPos.z, lie: placedLie };
+          simState.currentLie = placedLie;
+          simState.chipModeActive = true;
+          updateBall3DHeight();
+          syncAllUI();
+          SoundFX.tap(920);
+          document.getElementById('hole-status-badge').textContent = `🎯 칩샷 위치 지정 (${placedLie})`;
+          document.getElementById('coach-feedback-text').textContent =
+            `상단 3D 그린뷰에서 선택한 지점(${placedLie})에 공이 배치되었습니다. 하단 확대된 그린 맵에서 목표 랜딩존(LAND)을 찍고 칩샷을 실행하십시오.`;
+        }
+      }
+    }
+
+    canvas3D.addEventListener('mousedown', (e) => {
+      isDragging3D = true;
+      pointerMovedDist = 0;
+      prevPointerX = e.clientX;
+      prevPointerY = e.clientY;
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (isDragging3D && pointerMovedDist < 5) {
+        handle3DClickPlaceChipBall(e.clientX, e.clientY);
+      }
+      isDragging3D = false;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging3D) return;
+      const dx = e.clientX - prevPointerX;
+      const dy = e.clientY - prevPointerY;
+      pointerMovedDist += Math.hypot(dx, dy);
+      prevPointerX = e.clientX;
+      prevPointerY = e.clientY;
+      simState.camOrbitYaw += dx * 0.006;
+      simState.camOrbitPitch = Math.max(0.05, Math.min(0.95, simState.camOrbitPitch + dy * 0.004));
+    });
+    canvas3D.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      simState.camZoom = Math.max(0.45, Math.min(2.2, simState.camZoom + e.deltaY * 0.0008));
+    }, { passive: false });
+
+    canvas3D.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging3D = true;
+        pointerMovedDist = 0;
+        prevPointerX = e.touches[0].clientX;
+        prevPointerY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+    canvas3D.addEventListener('touchmove', (e) => {
+      if (!isDragging3D || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - prevPointerX;
+      const dy = e.touches[0].clientY - prevPointerY;
+      pointerMovedDist += Math.hypot(dx, dy);
+      prevPointerX = e.touches[0].clientX;
+      prevPointerY = e.touches[0].clientY;
+      simState.camOrbitYaw += dx * 0.007;
+      simState.camOrbitPitch = Math.max(0.05, Math.min(0.95, simState.camOrbitPitch + dy * 0.005));
+    }, { passive: true });
+    canvas3D.addEventListener('touchend', (e) => {
+      if (isDragging3D && pointerMovedDist < 8 && e.changedTouches && e.changedTouches[0]) {
+        handle3DClickPlaceChipBall(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      }
+      isDragging3D = false;
+    });
+
+    function resizeRenderer() {
+      const rect = canvas3D.parentElement.getBoundingClientRect();
+      renderer.setSize(rect.width, rect.height, false);
+      camera.aspect = rect.width / Math.max(1, rect.height);
+      camera.updateProjectionMatrix();
+      renderYardageCourseMap();
+      renderGreenLandingMap();
+    }
+    window.addEventListener('resize', resizeRenderer);
+
+    // =========================================================
+    // 10. 메인 애니메이션 루프 (샷 비행 + 실시간 곡선 공구름 리플레이)
+    // =========================================================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (simState.isReplayingRoll && simState.lastShotMarker) {
+        simState.rollAnimProg = Math.min(1.0, simState.rollAnimProg + 0.015);
+        const mk = simState.lastShotMarker;
+        const rPath = mk.rollPath && mk.rollPath.length >= 2
+          ? mk.rollPath
+          : [{ x: mk.landX, y: mk.landY, z: mk.landZ }, { x: mk.finalX, y: mk.finalY, z: mk.finalZ }];
+        const idx = Math.min(rPath.length - 1, Math.floor(simState.rollAnimProg * (rPath.length - 1)));
+        const cur = rPath[idx];
+        ballMesh.position.set(-cur.x, Math.max(0.45, (cur.y || 0.25) + 0.22), cur.z);
+        renderGreenLandingMap();
+
+        if (simState.rollAnimProg >= 1.0) {
+          simState.isReplayingRoll = false;
+          updateBall3DHeight();
+          syncAllUI();
+        }
+      }
+
+      if (simState.isFlying && simState.activeFlight) {
+        const curStepInc = simState.flightProg > 0.65 ? 0.014 : 0.024;
+        simState.flightProg = Math.min(1.0, simState.flightProg + curStepInc);
+        const pts = simState.activeFlight.pts;
+        const idx = Math.min(pts.length - 1, Math.floor(simState.flightProg * (pts.length - 1)));
+        const cur = pts[idx];
+        ballMesh.position.set(-cur.x, Math.max(0.45, cur.y), cur.z);
+        drawFlightTrail(pts, simState.flightProg, simState.activeFlight.isChipShot ? 0xf59e0b : 0x38bdf8, simState.activeFlight);
+
+        if (simState.flightProg >= 1.0) {
+          simState.isFlying = false;
+          const res = simState.activeFlight;
+          const hole = getCurrentHole();
+          const markerObj = {
+            startX: res.startX,
+            startZ: res.startZ,
+            landX: res.landX,
+            landZ: res.landZ,
+            landY: res.landY,
+            finalX: res.finalX,
+            finalZ: res.finalZ,
+            finalY: res.finalY,
+            rollPath: res.rollPath,
+            newLie: res.newLie,
+            isChipShot: res.isChipShot
+          };
+          simState.lastShotMarker = markerObj;
+          simState.shotMarkers.push(markerObj);
+          simState.shotLogs.push({
+            no: simState.shotLogs.length + 1,
+            club: res.clubLabel,
+            carry: res.actualCarry.toFixed(1),
+            roll: res.rollDist.toFixed(1),
+            lie: res.newLie,
+            rem: res.remPinDist.toFixed(1)
+          });
+
+          if (simState.trainingMode === 'CHIP_LAB') {
+            simState.chipDrillCount += 1;
+            if (res.newLie === 'GREEN' && res.remPinDist <= 3.0) {
+              simState.chipSuccessCount += 1;
+            }
+            if (simState.chipRepeatSameSpot && simState.chipSavedSpot) {
+              simState.ballPos = { x: simState.chipSavedSpot.x, z: simState.chipSavedSpot.z };
+              simState.currentLie = simState.chipSavedSpot.lie;
+              simState.chipModeActive = true;
+            } else {
+              simState.ballPos = { x: res.finalX, z: res.finalZ };
+              simState.currentLie = res.newLie === 'HAZARD' ? 'DEEP-ROUGH' : res.newLie;
+              simState.chipModeActive = true;
+            }
+          } else {
+            if (res.newLie !== 'HAZARD') {
+              simState.ballPos = { x: res.finalX, z: res.finalZ };
+              simState.currentLie = res.newLie;
+            } else {
+              simState.currentLie = 'DEEP-ROUGH';
+            }
+
+            if (res.newLie === 'GREEN') {
+              simState.chipModeActive = false;
+              const scoreKey = `${simState.venueKey}-${simState.courseKey}-${hole.no}`;
+              simState.roundScores[scoreKey] = simState.shotLogs.length;
+            } else if (res.remPinDist <= 45) {
+              simState.chipModeActive = true;
+              simState.cameraMode = 'GREEN';
+              simState.camOrbitYaw = 0;
+              document.querySelectorAll('.cam-btn').forEach(x => {
+                x.className = x.dataset.cam === 'GREEN'
+                  ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition'
+                  : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+              });
+            }
+          }
+
+          updateBall3DHeight();
+          drawFlightTrail(res.pts, 1.0, res.newLie === 'GREEN' ? 0x10b981 : 0x38bdf8, res);
+          SoundFX.result(res.newLie === 'GREEN' || res.newLie === 'FAIRWAY');
+
+          document.getElementById('hole-status-badge').textContent = res.newLie === 'GREEN'
+            ? `온그린 완료 (${simState.shotLogs.length}타)`
+            : `${simState.shotLogs.length}타 완료 (${res.newLie})`;
+          document.getElementById('badge-decision-grade').textContent = res.grade;
+          document.getElementById('res-smash').textContent = `${res.effectiveSmash} (${res.noisePct > 0 ? '+' : ''}${res.noisePct}%)`;
+          document.getElementById('res-dist').textContent = `${res.actualCarry.toFixed(1)}m / ${res.totalShotDist.toFixed(1)}m (런 ${res.rollDist.toFixed(1)}m)`;
+          document.getElementById('res-landing-lie').textContent = res.newLie === 'HAZARD' ? res.hazardHitName : res.newLie;
+          document.getElementById('res-rem-dist').textContent = `${res.remPinDist.toFixed(1)} m`;
+          document.getElementById('coach-feedback-text').textContent = res.feedback;
+          document.getElementById('shot-history-count').textContent = `누적 샷: ${simState.shotLogs.length}타`;
+
+          const logStrip = document.getElementById('shot-log-strip');
+          logStrip.innerHTML = simState.shotLogs
+            .map(l => `<div>#${l.no} [${l.club}] 캐리 ${l.carry}m · 런 ${l.roll}m → <strong>${l.lie}</strong> (잔여 ${l.rem}m)</div>`)
+            .join('');
+
+          syncAllUI();
+        }
+      }
+
+      update3DCamera();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = function () {
+      populateCourseDropdown();
+      resetHolePlay(true);
+      resizeRenderer();
+      animate();
+    };
+  </script>
+</body>
+</html>

@@ -2,30 +2,37 @@
 <html lang="ko" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>SY 골프경기력 평가 분석 연구소 | 선수 훈련용 3D 샷 메이킹 시뮬레이터</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    html {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: #020617;
       color: #f8fafc;
       overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
       -webkit-tap-highlight-color: transparent;
     }
     .font-mono-num {
       font-family: 'JetBrains Mono', monospace;
       font-variant-numeric: tabular-nums;
     }
-    /* 스크롤 시 슬라이더 터치 오작동 방지를 위한 pan-y 허용 */
+    /* 모바일 세로 스크롤(pan-y)을 우선 허용하는 슬라이더 스타일 */
     .touch-safe-slider {
       touch-action: pan-y;
       -webkit-appearance: none;
       appearance: none;
       background: transparent;
-      height: 28px;
+      height: 32px;
+      cursor: pointer;
     }
     .touch-safe-slider::-webkit-slider-runnable-track {
       height: 6px;
@@ -35,11 +42,11 @@
     .touch-safe-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      height: 18px;
-      width: 18px;
+      height: 20px;
+      width: 20px;
       border-radius: 50%;
       background: #10b981;
-      margin-top: -6px;
+      margin-top: -7px;
       border: 2px solid #ecfdf5;
       box-shadow: 0 0 8px rgba(16, 185, 129, 0.55);
     }
@@ -51,10 +58,16 @@
       background: #f59e0b;
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
     }
-    /* 독립 스크롤 영역 최적화 */
-    .scroll-panel {
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
+    /* 3D 캔버스 위에서도 세로 스와이프는 페이지 스크롤로 통과 */
+    #three-viewport,
+    #three-viewport canvas {
+      touch-action: pan-y !important;
+    }
+    @media (min-width: 1024px) {
+      .desktop-scroll-panel {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
     }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #0f172a; }
@@ -64,7 +77,7 @@
 <body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
 
   <!-- 상단 브랜딩 및 사운드/모드 헤더 -->
-  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 z-30">
+  <header id="top-anchor" class="sticky top-0 border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 z-30">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center font-extrabold text-slate-950 text-sm shadow-lg shadow-emerald-500/20">
         SY
@@ -75,7 +88,7 @@
           <span class="hidden md:inline text-slate-600">|</span>
           <span class="hidden md:inline text-xs font-semibold text-emerald-400">선수 훈련용 구질·탄도·클럽 3D 샷 메이킹 시뮬레이터</span>
         </div>
-        <p class="text-[11px] text-slate-400">D-Plane &amp; Magnus 3D Trajectory Lab · 터치 오작동 방지 및 실시간 타구 궤적 엔진</p>
+        <p class="text-[11px] text-slate-400">D-Plane &amp; Magnus 3D Trajectory Lab · 모바일 스크롤 우선 &amp; 오터치 방지 모드</p>
       </div>
     </div>
 
@@ -94,10 +107,10 @@
   </header>
 
   <!-- 메인 3단 반응형 워크스페이스 -->
-  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 lg:overflow-hidden">
 
     <!-- [좌측 패널] 문제 설정 (목표 거리 · 탄도 · 클럽 · 페이스/패스 · 샷 실행) -->
-    <section id="setup-panel" class="lg:col-span-4 xl:col-span-3 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-900/60 p-3.5 scroll-panel overflow-y-auto space-y-3.5 lg:max-h-[calc(100vh-58px)]">
+    <section id="setup-panel" class="lg:col-span-4 xl:col-span-3 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-900/60 p-3.5 desktop-scroll-panel lg:overflow-y-auto space-y-3.5 lg:max-h-[calc(100vh-58px)]">
 
       <!-- STEP 1: 목표 공략 거리 & 탄도 선택 -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
@@ -118,11 +131,11 @@
           </div>
           <input id="slider-target-dist" type="range" min="80" max="300" step="5" value="165" class="w-full touch-safe-slider" />
           <div class="grid grid-cols-5 gap-1 pt-0.5">
-            <button type="button" data-dist="100" class="dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">100m</button>
-            <button type="button" data-dist="140" class="dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">140m</button>
-            <button type="button" data-dist="165" class="dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold">165m</button>
-            <button type="button" data-dist="200" class="dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">200m</button>
-            <button type="button" data-dist="260" class="dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">260m</button>
+            <button type="button" data-dist="100" class="dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">100m</button>
+            <button type="button" data-dist="140" class="dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">140m</button>
+            <button type="button" data-dist="165" class="dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold">165m</button>
+            <button type="button" data-dist="200" class="dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">200m</button>
+            <button type="button" data-dist="260" class="dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">260m</button>
           </div>
         </div>
 
@@ -246,7 +259,7 @@
       </div>
 
       <!-- STEP 4: 샷 실행 (HIT SHOT) 메인 액션 버튼 -->
-      <div class="pt-1 pb-2 sticky bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent">
+      <div class="pt-1 pb-2">
         <button id="btn-hit-shot" type="button" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 active:scale-[0.99] text-slate-950 font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2 tracking-tight">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           <span>샷 실행 (HIT SHOT · 궤적 발사)</span>
@@ -256,15 +269,15 @@
     </section>
 
     <!-- [중앙 및 우측 패널] 3D 뷰포트 + 실시간 결과 그래프 및 역학 데이터 -->
-    <section class="lg:col-span-8 xl:col-span-9 flex flex-col scroll-panel overflow-y-auto lg:max-h-[calc(100vh-58px)]">
+    <section id="result-section" class="lg:col-span-8 xl:col-span-9 flex flex-col desktop-scroll-panel lg:overflow-y-auto lg:max-h-[calc(100vh-58px)]">
 
       <!-- 3D 뷰포트 상단 카메라 바 -->
       <div class="p-2.5 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-          <button type="button" data-cam="DTL" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition">DTL 후방 시선</button>
-          <button type="button" data-cam="TOP" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition">Top-Down 탄착맵</button>
-          <button type="button" data-cam="SIDE" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition">Side 측면 탄도</button>
-          <button type="button" data-cam="ORBIT" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition">3D 자유 회전</button>
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 overflow-x-auto">
+          <button type="button" data-cam="DTL" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition whitespace-nowrap">DTL 후방 시선</button>
+          <button type="button" data-cam="TOP" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition whitespace-nowrap">Top-Down 탄착맵</button>
+          <button type="button" data-cam="SIDE" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition whitespace-nowrap">Side 측면 탄도</button>
+          <button type="button" data-cam="ORBIT" class="cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition whitespace-nowrap">3D 좌우 회전</button>
         </div>
 
         <div class="flex items-center gap-2">
@@ -278,7 +291,7 @@
       </div>
 
       <!-- 3D Three.js 시뮬레이터 캔버스 -->
-      <div id="three-viewport" class="relative w-full h-[340px] sm:h-[390px] xl:h-[430px] bg-slate-950 shrink-0 cursor-grab active:cursor-grabbing">
+      <div id="three-viewport" class="relative w-full h-[310px] sm:h-[380px] xl:h-[430px] bg-slate-950 shrink-0 cursor-grab active:cursor-grabbing">
         <!-- 좌상단 궤적 컬러 범례 -->
         <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur border border-slate-800 rounded-lg px-2.5 py-1.5 text-[10px] space-y-1 pointer-events-none">
           <div class="flex items-center gap-2">
@@ -287,7 +300,7 @@
             <span class="w-2.5 h-1 rounded bg-amber-400 inline-block ml-1"></span>
             <span class="text-slate-200">Fade (우측 커브)</span>
           </div>
-          <div class="text-slate-400">핀 주변 원형 라인: 반경 10m / 20m</div>
+          <div class="text-slate-400">상하 스와이프: 페이지 스크롤 · 좌우 드래그: 회전</div>
         </div>
 
         <!-- 우상단 실시간 비행 계측 HUD -->
@@ -298,7 +311,7 @@
       </div>
 
       <!-- 하단 결과 영역: 2단 결과 그래프 + 정밀 역학 데이터 -->
-      <div class="p-3.5 grid grid-cols-1 xl:grid-cols-12 gap-3.5 bg-slate-950 border-t border-slate-800">
+      <div class="p-3.5 grid grid-cols-1 xl:grid-cols-12 gap-3.5 bg-slate-950 border-t border-slate-800 pb-16 lg:pb-4">
 
         <!-- 결과 그래프 2종 (7 cols) -->
         <div class="xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -371,7 +384,7 @@
 
           <!-- 코칭 피드백 메시지 -->
           <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 leading-relaxed" id="res-coaching-note">
-            좌측 설정 패널에서 <strong class="text-white">목표 거리, 탄도(Low/Mid/High), 클럽, 페이스각과 패스</strong>를 선택한 뒤 <strong class="text-emerald-400">[샷 실행]</strong> 버튼을 누르면 볼이 출발하며 궤적과 결과 데이터가 분석됩니다.
+            좌측(상단) 설정 패널에서 <strong class="text-white">목표 거리, 탄도(Low/Mid/High), 클럽, 페이스각과 패스</strong>를 선택한 뒤 <strong class="text-emerald-400">[샷 실행]</strong> 버튼을 누르면 볼이 출발하며 궤적과 결과 데이터가 분석됩니다.
           </div>
         </div>
 
@@ -380,7 +393,55 @@
 
   </main>
 
+  <!-- 모바일 전용 원터치 빠른 상하 스크롤 이동 플로팅 바 -->
+  <div class="lg:hidden fixed bottom-3 right-3 z-40 flex items-center gap-1.5">
+    <button id="btn-scroll-top" type="button" class="px-3 py-2 rounded-full bg-slate-900/95 border border-slate-700 text-xs font-bold text-slate-200 shadow-lg backdrop-blur active:scale-95">
+      ▲ 조건 설정
+    </button>
+    <button id="btn-scroll-result" type="button" class="px-3 py-2 rounded-full bg-emerald-600/95 border border-emerald-400/50 text-xs font-bold text-white shadow-lg backdrop-blur active:scale-95">
+      ▼ 3D · 결과
+    </button>
+  </div>
+
   <script>
+    // =========================================================================
+    // 0. 전역 모바일 스크롤 vs 탭 판별 가드 (스크롤 중 버튼 오터치 원천 차단)
+    // =========================================================================
+    const TouchScrollGuard = {
+      startX: 0,
+      startY: 0,
+      movedTooMuch: false,
+      lastScrollTime: 0,
+      init() {
+        document.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 0) {
+            this.startX = e.touches[0].clientX;
+            this.startY = e.touches[0].clientY;
+            this.movedTooMuch = false;
+          }
+        }, { passive: true, capture: true });
+
+        document.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) {
+            const dx = Math.abs(e.touches[0].clientX - this.startX);
+            const dy = Math.abs(e.touches[0].clientY - this.startY);
+            if (dx > 10 || dy > 10) {
+              this.movedTooMuch = true;
+              this.lastScrollTime = Date.now();
+            }
+          }
+        }, { passive: true, capture: true });
+
+        window.addEventListener('scroll', () => {
+          this.lastScrollTime = Date.now();
+        }, { passive: true });
+      },
+      isScrollingGesture() {
+        return this.movedTooMuch || (Date.now() - this.lastScrollTime < 140);
+      }
+    };
+    TouchScrollGuard.init();
+
     // =========================================================================
     // 1. WEB AUDIO API 효과음 엔진 (터치 클릭음 + 드라이버/아이언 임팩트 타구음)
     // =========================================================================
@@ -421,7 +482,6 @@
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
 
-        // 1) 금속/페이스 타격 공명음 (드라이버는 높고 경쾌한 티타늄 울림, 아이언은 단단한 클릭음)
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = isWood ? 'triangle' : 'sine';
@@ -437,7 +497,6 @@
         osc.start(now);
         osc.stop(now + 0.17);
 
-        // 2) 임팩트 백색소음 버스트 (스윙 공기 가르는 소리 + 잔디 터프 타격)
         const bufferSize = this.ctx.sampleRate * 0.12;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -525,10 +584,6 @@
       const dynLoft = Math.max(6.0, club.loft + traj.loftMod + traj.aoaMod * 0.4);
       const spinLoft = Math.max(4.0, dynLoft - aoa);
 
-      // 선택된 클럽의 기준 거리와 현재 스피드 비율로 볼스피드 결정 (선수가 목표 거리에 맞춰 스윙 강도 조절)
-      const distRatio = cfg.targetDist / club.refDist;
-      const clampedRatio = Math.max(0.65, Math.min(1.22, distRatio));
-      // 목표 거리를 달성할 수 있도록 물리 역산으로 볼스피드 산출
       let vLow = 30.0, vHigh = 95.0;
 
       function integrate(v0) {
@@ -597,7 +652,6 @@
         const trajRollMult = cfg.trajMode === 'LOW' ? 1.45 : cfg.trajMode === 'HIGH' ? 0.65 : 1.0;
         const roll = z * club.rollRatio * steepFactor * trajRollMult;
 
-        // 착지 후 런(Roll) 궤적 포인트 추가
         const rollDirX = Math.sin(launchAzim + spinAxisRad * 0.35);
         const rollDirZ = Math.cos(launchAzim + spinAxisRad * 0.35);
         const endX = x + roll * rollDirX;
@@ -623,7 +677,6 @@
         };
       }
 
-      // 클럽 한계 비거리 범위 내에서 목표 거리 추종
       const effectiveTarget = Math.max(club.refDist * 0.65, Math.min(club.refDist * 1.15, cfg.targetDist));
       for (let i = 0; i < 16; i++) {
         const mid = 0.5 * (vLow + vHigh);
@@ -633,7 +686,6 @@
       }
       const res = integrate(0.5 * (vLow + vHigh));
 
-      // 구질 분류
       let shapeName = 'Straight';
       let shapeType = 'STRAIGHT';
       if (faceToPath <= -1.0) {
@@ -676,6 +728,7 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(viewport.clientWidth, viewport.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.domElement.style.touchAction = 'pan-y';
     viewport.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -683,7 +736,6 @@
     sunLight.position.set(25, 75, -35);
     scene.add(sunLight);
 
-    // 페어웨이 지면
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(160, 360),
       new THREE.MeshStandardMaterial({ color: 0x06131c, roughness: 0.92 })
@@ -700,7 +752,6 @@
     fairway.position.set(0, 0.01, 160);
     scene.add(fairway);
 
-    // 거리 마커 (50m ~ 300m)
     function makeLabel(txt, color = '#64748b') {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 64;
@@ -725,7 +776,6 @@
       scene.add(sp);
     }
 
-    // 타깃 라인
     const tLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.05, 0), new THREE.Vector3(0, 0.05, 320)]),
       new THREE.LineDashedMaterial({ color: 0x10b981, dashSize: 3, gapSize: 2, opacity: 0.6, transparent: true })
@@ -733,7 +783,6 @@
     tLine.computeLineDistances();
     scene.add(tLine);
 
-    // 목표 핀 및 타깃 링(10m, 20m)
     const pinGroup = new THREE.Group();
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 7.5, 10), new THREE.MeshBasicMaterial({ color: 0xf8fafc }));
     pole.position.y = 3.75;
@@ -763,7 +812,6 @@
     pinGroup.position.set(0, 0, state.targetDist);
     scene.add(pinGroup);
 
-    // 골프공 메쉬 & 동적 궤적 라인
     const ballMesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.6, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -825,22 +873,39 @@
       historyTrailGroup.add(line);
     }
 
-    // 3D 카메라 회전(터치/마우스 안전 분리)
-    let camYaw = 0, camPitch = 0.14, camDist = 36, dragging3D = false, prevPtr = { x: 0, y: 0 };
+    // 3D 카메라 회전: 모바일 세로 스크롤(pan-y)과 충돌하지 않도록 수평 드래그만 인식
+    let camYaw = 0, camPitch = 0.22, camDist = 36, dragging3D = false, dragAxis = null, prevPtr = { x: 0, y: 0 }, startPtr = { x: 0, y: 0 };
     viewport.addEventListener('pointerdown', (e) => {
       dragging3D = true;
+      dragAxis = null;
+      startPtr = { x: e.clientX, y: e.clientY };
       prevPtr = { x: e.clientX, y: e.clientY };
     });
-    window.addEventListener('pointerup', () => { dragging3D = false; });
+    window.addEventListener('pointerup', () => {
+      dragging3D = false;
+      dragAxis = null;
+    });
     window.addEventListener('pointermove', (e) => {
       if (!dragging3D) return;
+      const totalDx = Math.abs(e.clientX - startPtr.x);
+      const totalDy = Math.abs(e.clientY - startPtr.y);
+      if (!dragAxis) {
+        if (totalDx < 8 && totalDy < 8) return;
+        if (e.pointerType === 'touch' && totalDy >= totalDx) {
+          dragging3D = false;
+          return;
+        }
+        dragAxis = 'horizontal';
+      }
       const dx = e.clientX - prevPtr.x;
       const dy = e.clientY - prevPtr.y;
       prevPtr = { x: e.clientX, y: e.clientY };
       state.cameraMode = 'ORBIT';
       syncCameraButtons();
       camYaw -= dx * 0.006;
-      camPitch = Math.max(0.04, Math.min(1.3, camPitch + dy * 0.005));
+      if (e.pointerType !== 'touch') {
+        camPitch = Math.max(0.04, Math.min(1.3, camPitch + dy * 0.005));
+      }
     });
 
     function getTrajectoryBounds() {
@@ -868,7 +933,6 @@
       const midZ = maxZ * 0.5;
 
       if (state.cameraMode === 'DTL') {
-        // 상단 최고점(Apex)과 좌우 최대 궤적이 모두 들어오도록 후방 거리 및 시선 고도 자동 산출
         const reqDistForHeight = (maxY * 1.28) / (2 * halfTanV);
         const reqDistForWidth = (maxAbsX * 1.35) / halfTanH;
         const backOffset = Math.max(22, reqDistForHeight - midZ * 0.35, reqDistForWidth - midZ * 0.25);
@@ -878,7 +942,6 @@
         camera.position.set(0, camY, -backOffset);
         camera.lookAt(0, lookY, Math.max(90, midZ * 1.1));
       } else if (state.cameraMode === 'TOP') {
-        // 전체 비거리(Z)와 좌우 궤적(X)이 화면 상하좌우에 모두 들어오도록 높이 계산
         const hForZ = (maxZ * 0.62) / halfTanV;
         const hForX = (maxAbsX * 1.35) / halfTanH;
         const topHeight = Math.max(130, hForZ, hForX);
@@ -886,7 +949,6 @@
         camera.position.set(0, topHeight, midZ);
         camera.lookAt(0, 0, midZ);
       } else if (state.cameraMode === 'SIDE') {
-        // 측면에서 전체 비거리(Z)와 최고점(Y)이 모두 들어오도록 측면 거리 계산
         const sideForZ = (maxZ * 0.60) / halfTanH;
         const sideForY = (maxY * 0.72) / halfTanV;
         const sideDist = Math.max(115, sideForZ, sideForY);
@@ -908,9 +970,9 @@
     // 5. 결과 그래프 2종 렌더링 (측면 탄도 & 상단 구질 궤적)
     // =========================================================================
     function renderResultCharts(shot) {
-      // 1) 측면 탄도 프로파일 그래프
       const cSide = document.getElementById('canvas-side-chart');
       const r1 = cSide.getBoundingClientRect();
+      if (r1.width <= 0 || r1.height <= 0) return;
       cSide.width = r1.width * devicePixelRatio;
       cSide.height = r1.height * devicePixelRatio;
       const ctx1 = cSide.getContext('2d');
@@ -925,7 +987,6 @@
       const pL = 28, pR = 14, pT = 16, pB = 18;
       const plotW1 = w1 - pL - pR, plotH1 = h1 - pT - pB;
 
-      // 그리드 (동적 고도 눈금)
       ctx1.strokeStyle = '#1e293b';
       ctx1.lineWidth = 1;
       [0.33, 0.66, 0.95].forEach(ratio => {
@@ -937,7 +998,6 @@
         ctx1.fillText(`${yVal}m`, 2, py + 3);
       });
 
-      // 목표 핀 수직선
       const pinX1 = pL + (state.targetDist / maxZ) * plotW1;
       ctx1.strokeStyle = '#f43f5e';
       ctx1.setLineDash([3, 3]);
@@ -958,14 +1018,13 @@
         });
         ctx1.stroke();
 
-        // Apex 마커
         ctx1.fillStyle = '#22d3ee';
         ctx1.beginPath(); ctx1.arc(apexPt.px, apexPt.py, 3.5, 0, Math.PI * 2); ctx1.fill();
       }
 
-      // 2) 상단 구질 궤적 & 탄착 분산 그래프
       const cTop = document.getElementById('canvas-top-chart');
       const r2 = cTop.getBoundingClientRect();
+      if (r2.width <= 0 || r2.height <= 0) return;
       cTop.width = r2.width * devicePixelRatio;
       cTop.height = r2.height * devicePixelRatio;
       const ctx2 = cTop.getContext('2d');
@@ -986,13 +1045,11 @@
       ctx2.lineWidth = 1;
       ctx2.beginPath(); ctx2.moveTo(14, midY); ctx2.lineTo(w2 - 14, midY); ctx2.stroke();
 
-      // 좌우 스케일 표기
       ctx2.fillStyle = '#64748b';
       ctx2.font = '9px JetBrains Mono';
       ctx2.fillText(`L ${maxLat}m`, 14, 12);
       ctx2.fillText(`R ${maxLat}m`, 14, h2 - 5);
 
-      // 목표 핀 원점
       const pinX2 = 14 + (state.targetDist / maxZ) * (w2 - 28);
       ctx2.strokeStyle = 'rgba(244,63,94,0.4)';
       ctx2.beginPath(); ctx2.arc(pinX2, midY, 10, 0, Math.PI * 2); ctx2.stroke();
@@ -1061,15 +1118,13 @@
         shapeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold bg-slate-700/70 text-slate-200 border border-slate-600';
       }
 
-      // 핀 위치 즉시 업데이트
       pinGroup.position.set(0, 0, state.targetDist);
 
-      // 프리셋 버튼 하이라이트
       document.querySelectorAll('.dist-preset-btn').forEach(b => {
         const active = Number(b.dataset.dist) === state.targetDist;
         b.className = active
-          ? 'dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold'
-          : 'dist-preset-btn py-1 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700';
+          ? 'dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold'
+          : 'dist-preset-btn py-1.5 rounded text-[11px] font-mono-num bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700';
       });
       document.querySelectorAll('.traj-btn').forEach(b => {
         const active = b.dataset.traj === state.trajMode;
@@ -1114,7 +1169,6 @@
       document.getElementById('sub-startdir').textContent = startDir;
       document.getElementById('sub-offline').textContent = offDir;
 
-      // 코칭 분석 코멘트
       const distGap = shot.total - shot.targetDist;
       const distNote = Math.abs(distGap) <= 3.0 ? '목표 거리에 정확히 도달했습니다.' : distGap > 0 ? `핀을 ${distGap.toFixed(1)}m 오버했습니다.` : `핀에 ${Math.abs(distGap).toFixed(1)}m 짧았습니다.`;
       document.getElementById('res-coaching-note').innerHTML =
@@ -1124,39 +1178,65 @@
     }
 
     // =========================================================================
-    // 7. 터치 오작동 방지(Touch-Safe Guard) 및 컨트롤 바인딩
+    // 7. 모바일 스크롤 우선 & 오터치 차단 컨트롤 바인딩
     // =========================================================================
-    function attachTouchSafeSlider(sliderEl, stateKey, minVal, maxVal, stepVal) {
+    function bindSafeClick(el, handler) {
+      el.addEventListener('click', (e) => {
+        if (TouchScrollGuard.isScrollingGesture()) {
+          e.preventDefault();
+          return;
+        }
+        handler(e);
+      });
+    }
+
+    function attachTouchSafeSlider(sliderEl, stateKey) {
       let touchStartX = 0;
       let touchStartY = 0;
-      let isScrolling = false;
+      let touchState = 'idle'; // 'idle' | 'scroll' | 'slide'
       let initialVal = state[stateKey];
 
       sliderEl.addEventListener('touchstart', (e) => {
-        if (state.locked) { e.preventDefault(); return; }
+        if (state.locked) return;
         const t = e.touches[0];
         touchStartX = t.clientX;
         touchStartY = t.clientY;
-        isScrolling = false;
+        touchState = 'idle';
         initialVal = state[stateKey];
-      }, { passive: false });
+        sliderEl.value = initialVal;
+      }, { passive: true });
 
       sliderEl.addEventListener('touchmove', (e) => {
-        if (state.locked) { e.preventDefault(); return; }
+        if (state.locked) return;
         const t = e.touches[0];
         const dx = Math.abs(t.clientX - touchStartX);
         const dy = Math.abs(t.clientY - touchStartY);
-        // 수직 스크롤 의도가 감지되면 슬라이더 값 복원 및 변경 차단
-        if (dy > 8 && dy > dx) {
-          isScrolling = true;
+
+        if (touchState === 'idle') {
+          if (dy > 7 && dy >= dx * 0.85) {
+            touchState = 'scroll';
+          } else if (dx > 12 && dx > dy * 1.35) {
+            touchState = 'slide';
+          }
+        }
+
+        if (touchState === 'scroll' || touchState === 'idle') {
+          sliderEl.value = initialVal;
+          state[stateKey] = initialVal;
+        }
+      }, { passive: true });
+
+      sliderEl.addEventListener('touchend', () => {
+        if (touchState !== 'slide') {
           sliderEl.value = initialVal;
           state[stateKey] = initialVal;
           syncSetupUI();
         }
+        touchState = 'idle';
       }, { passive: true });
 
       sliderEl.addEventListener('input', (e) => {
-        if (state.locked || isScrolling) {
+        if (state.locked || touchState === 'scroll' || (touchState === 'idle' && TouchScrollGuard.isScrollingGesture())) {
           e.target.value = state[stateKey];
           return;
         }
@@ -1169,13 +1249,12 @@
       });
     }
 
-    attachTouchSafeSlider(document.getElementById('slider-target-dist'), 'targetDist', 80, 300, 5);
-    attachTouchSafeSlider(document.getElementById('slider-club-path'), 'clubPath', -8, 8, 0.5);
-    attachTouchSafeSlider(document.getElementById('slider-face-angle'), 'faceAngle', -8, 8, 0.5);
+    attachTouchSafeSlider(document.getElementById('slider-target-dist'), 'targetDist');
+    attachTouchSafeSlider(document.getElementById('slider-club-path'), 'clubPath');
+    attachTouchSafeSlider(document.getElementById('slider-face-angle'), 'faceAngle');
 
-    // 스테퍼 버튼 (- / +)
     document.querySelectorAll('.stepper-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      bindSafeClick(btn, () => {
         if (state.locked) { SoundEngine.playTouch(260); return; }
         const key = btn.dataset.stepTarget;
         const delta = Number(btn.dataset.delta);
@@ -1189,9 +1268,8 @@
       });
     });
 
-    // 거리 프리셋 버튼
     document.querySelectorAll('.dist-preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      bindSafeClick(btn, () => {
         if (state.locked) { SoundEngine.playTouch(260); return; }
         state.targetDist = Number(btn.dataset.dist);
         SoundEngine.playTouch(740);
@@ -1199,9 +1277,8 @@
       });
     });
 
-    // 탄도(Low / Mid / High) 버튼
     document.querySelectorAll('.traj-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      bindSafeClick(btn, () => {
         if (state.locked) { SoundEngine.playTouch(260); return; }
         state.trajMode = btn.dataset.traj;
         SoundEngine.playTouch(820);
@@ -1209,21 +1286,18 @@
       });
     });
 
-    // 클럽 선택 버튼
     document.querySelectorAll('.club-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      bindSafeClick(btn, () => {
         if (state.locked) { SoundEngine.playTouch(260); return; }
         state.club = btn.dataset.club;
-        // 클럽 선택 시 해당 클럽 표준 거리로 자동 제안 (사용자가 이후 거리 변경 가능)
         state.targetDist = CLUB_DB[state.club].refDist;
         SoundEngine.playTouch(880);
         syncSetupUI();
       });
     });
 
-    // 구질 프리셋 버튼
     document.querySelectorAll('.shape-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      bindSafeClick(btn, () => {
         if (state.locked) { SoundEngine.playTouch(260); return; }
         const s = btn.dataset.shape;
         if (s === 'DRAW') { state.clubPath = 4.0; state.faceAngle = 2.0; }
@@ -1234,8 +1308,7 @@
       });
     });
 
-    // 설정 잠금 토글
-    document.getElementById('btn-lock-setup').addEventListener('click', () => {
+    bindSafeClick(document.getElementById('btn-lock-setup'), () => {
       state.locked = !state.locked;
       SoundEngine.playTouch(state.locked ? 440 : 660);
       const btn = document.getElementById('btn-lock-setup');
@@ -1246,41 +1319,46 @@
         : 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800/90 text-slate-200 hover:border-amber-400/60 transition flex items-center gap-1.5';
     });
 
-    // 사운드 토글
-    document.getElementById('btn-sound-toggle').addEventListener('click', () => {
+    bindSafeClick(document.getElementById('btn-sound-toggle'), () => {
       SoundEngine.enabled = !SoundEngine.enabled;
       if (SoundEngine.enabled) SoundEngine.playTouch(800);
       document.getElementById('sound-icon').textContent = SoundEngine.enabled ? '🔊' : '🔇';
       document.getElementById('sound-text').textContent = SoundEngine.enabled ? '효과음 ON' : '음소거';
     });
 
-    // 카메라 전환 버튼
     function syncCameraButtons() {
       document.querySelectorAll('.cam-btn').forEach(b => {
         const active = b.dataset.cam === state.cameraMode;
         b.className = active
-          ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition'
-          : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+          ? 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 text-white transition whitespace-nowrap'
+          : 'cam-btn px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition whitespace-nowrap';
       });
     }
     document.querySelectorAll('.cam-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      bindSafeClick(btn, () => {
         state.cameraMode = btn.dataset.cam;
         SoundEngine.playTouch(700);
         syncCameraButtons();
       });
     });
 
-    // 이전 궤적 지우기
-    document.getElementById('btn-clear-history').addEventListener('click', () => {
+    bindSafeClick(document.getElementById('btn-clear-history'), () => {
       while (historyTrailGroup.children.length > 0) historyTrailGroup.remove(historyTrailGroup.children[0]);
       while (dynamicTrailGroup.children.length > 0) dynamicTrailGroup.remove(dynamicTrailGroup.children[0]);
       ballMesh.position.set(0, 0.6, 0);
       SoundEngine.playTouch(500);
     });
 
-    // [핵심] 샷 실행 (HIT SHOT) 버튼 핸들러
-    document.getElementById('btn-hit-shot').addEventListener('click', () => {
+    // 모바일 빠른 상하 이동 버튼
+    bindSafeClick(document.getElementById('btn-scroll-top'), () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    bindSafeClick(document.getElementById('btn-scroll-result'), () => {
+      document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // 샷 실행 (HIT SHOT) 버튼 핸들러 + 모바일 자동 결과 스크롤
+    bindSafeClick(document.getElementById('btn-hit-shot'), () => {
       if (state.activeShot) {
         archiveShotToHistory(state.activeShot);
       }
@@ -1292,6 +1370,10 @@
       SoundEngine.playShotImpact(shot.isWood);
       document.getElementById('flight-status-badge').textContent = `비행 중 · ${shot.clubName} (${shot.shapeName})`;
       document.getElementById('flight-status-badge').className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse';
+
+      if (window.innerWidth < 1024) {
+        document.getElementById('result-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
 
     // =========================================================================
